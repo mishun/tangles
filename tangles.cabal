@@ -1,0 +1,119 @@
+name:               tangles
+version:            0.0
+author:             Alexander Mishunin
+maintainer:         alexander.mishunin@gmail.com
+stability:          Experimental
+license:            LGPL
+synopsis:           Enumeration algorithms for knot theory objects
+category:           Math, Combinatorics, Topology
+build-type:         Simple
+cabal-version:      >=1.14
+
+source-repository head
+    type:     git
+    location: https://github.com/mishun/tangles.git
+
+library
+    default-language:   Haskell2010
+    default-extensions: BangPatterns, FlexibleContexts
+    ghc-options:        -Wall -O2
+    cc-options:         -Wall -std=c++11 -O2
+    ld-options:         -static
+    build-depends:      base, array, deepseq, mtl, containers
+    hs-source-dirs:     src
+    c-sources:
+        src/Math/Manifolds/SurfaceGraph/Embedding.cpp
+        src/Math/Manifolds/SurfaceGraph/SphereStar.cpp
+    extra-libraries:    stdc++ gsl gslcblas
+    include-dirs:
+        ext/gsl-1.15/include/
+        src/
+    exposed-modules:
+        Graphics.HP
+        Math.Algebra.Group.D4
+        Math.Algebra.Group.Dn
+        Math.Algebra.RotationDirection
+        Math.Combinatorics.ChordDiagrams.Generator
+        Math.Combinatorics.Strings.Lyndon
+        Math.KnotTh.Crossings
+        Math.KnotTh.Crossings.Arbitrary
+        Math.KnotTh.Crossings.Projection
+        Math.KnotTh.Crossings.SubTangle
+        Math.KnotTh.Links
+        Math.KnotTh.Links.Projection
+        Math.KnotTh.Links.TangleStarConstruction
+        Math.KnotTh.Tangles
+        Math.KnotTh.Tangles.BorderIncremental.IncrementalGluing
+        Math.KnotTh.Tangles.BorderIncremental.IncrementalTests
+        Math.KnotTh.Tangles.BorderIncremental.RootingTest
+        Math.KnotTh.Tangles.Draw
+        Math.KnotTh.Tangles.Flypes
+        Math.KnotTh.Tangles.NonAlternating
+        Math.KnotTh.Tangles.Generation.FlypeGenerator
+        Math.KnotTh.Tangles.Moves.Move
+        Math.KnotTh.Tangles.Paths
+        Math.KnotTh.Tangles.Projection
+        Math.Manifolds.SurfaceGraph
+        Math.Manifolds.SurfaceGraph.Embedding
+        Math.Manifolds.SurfaceGraph.SphereStar
+        Math.Manifolds.SurfaceGraph.Util
+    other-modules:
+        Graphics.HP.Color
+        Graphics.HP.DrawContext
+        Graphics.HP.Image
+        Graphics.HP.ImageBody
+        Graphics.HP.MetaPost
+        Graphics.HP.Path
+        Graphics.HP.PostScript
+        Graphics.HP.PostScript.Context
+        Graphics.HP.PostScript.Path
+        Graphics.HP.PostScript.Transform
+        Graphics.HP.Transform
+        Graphics.HP.Units
+
+
+test-suite TestTangles
+    type:               detailed-0.9
+    default-language:   Haskell2010
+    build-depends:      base, hunit
+    hs-source-dirs:     test
+    test-module:        TestTangles
+
+
+executable TestCDGenerator
+    default-language:   Haskell2010
+    default-extensions: BangPatterns
+    ghc-options:        -Wall -O2 -threaded
+    ld-options:         -static
+    build-depends:      base, tangles
+    main-is:            TestCDGenerator.hs
+    hs-source-dirs:     test
+    extra-lib-dirs:     ext/gsl-1.15/lib/
+
+executable TestGraphDrawing
+    default-language:   Haskell2010
+    default-extensions: BangPatterns
+    ghc-options:        -Wall -O2 -threaded
+    build-depends:      base, array, tangles
+    main-is:            TestGraphDrawing.hs
+    hs-source-dirs:     test
+    extra-lib-dirs:     ext/gsl-1.15/lib/
+
+executable TestTangleGenerator
+    default-language:   Haskell2010
+    default-extensions: BangPatterns
+    ghc-options:        -Wall -O2 -threaded
+    ld-options:         -static
+    build-depends:      base, mtl, containers, tangles
+    main-is:            TestTangleGenerator.hs
+    hs-source-dirs:     test
+    extra-lib-dirs:     ext/gsl-1.15/lib/
+
+executable TestNonAlternatingGenerator
+    default-language:   Haskell2010
+    default-extensions: BangPatterns
+    ghc-options:        -Wall -O2 -threaded
+    build-depends:      base, array, deepseq, mtl, tangles
+    main-is:            TestNonAlternatingGenerator.hs
+    hs-source-dirs:     test
+    extra-lib-dirs:     ext/gsl-1.15/lib/
