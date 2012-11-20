@@ -123,7 +123,9 @@ rootCodeLeg !root !dir = runST $ do
 	let n = numberOfCrossings tangle
 
 	x <- newArray (0, n) 0 :: ST s (STUArray s Int Int)
+	unsafeWrite x (crossingIndex $! adjacentCrossing root) 1
 	q <- newArray_ (0, n - 1) :: ST s (STArray s Int (Dart ct))
+	unsafeWrite q 0 (opposite root)
 	free <- newSTRef 2
 
 	let	{-# INLINE look #-}
@@ -153,8 +155,6 @@ rootCodeLeg !root !dir = runST $ do
 					unsafeWrite rc (2 * h + 1) $! le + nb `shiftL` 3
 			bfs $! h + 1
 
-	unsafeWrite q 0 (opposite root)
-	unsafeWrite x (crossingIndex $! adjacentCrossing root) 1
 	bfs 0
 	unsafeFreeze rc
 

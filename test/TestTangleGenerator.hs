@@ -63,7 +63,7 @@ main :: IO ()
 main = do
 	printTable "Prime projections" False (simpleIncrementalGenerator primeProjectionType [ProjectionCrossing]) 8
 	printTable "Template projections" False (simpleIncrementalGenerator templateProjectionType [ProjectionCrossing]) 9
-	printTable "Alternating tangles" False generateFlypeEquivalent 9
+	printTable "Alternating tangles" False generateFlypeEquivalent 10
 
 	{-
 	writePostScriptFile "TestTangleGenerator.ps" $ do

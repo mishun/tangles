@@ -5,8 +5,9 @@ module Math.KnotTh.Tangles.Generation.FlypeGenerator
 
 import Data.List (nubBy)
 import Data.Array ((!), (//), listArray)
-import Control.Monad.State.Strict (evalStateT, get, put, lift)
-import Control.Monad (forM_)
+import Data.Function (fix)
+import Control.Monad.State.Strict (evalStateT, execStateT, get, put, lift)
+import Control.Monad (forM_, when)
 import Math.Algebra.RotationDirection
 import Math.Algebra.Group.Dn (DnSubGroup, maximumSubGroup, addSymmetryToSubGroup)
 import Math.KnotTh.Crossings
@@ -19,96 +20,124 @@ import Math.KnotTh.Tangles.BorderIncremental.IncrementalTests
 
 
 generateFlypeEquivalentDecomposition :: (Monad m) => Int -> (SubTangleTangle ProjectionCrossing -> DnSubGroup -> m ()) -> m ()
-generateFlypeEquivalentDecomposition maxN yield = flip evalStateT (0, listArray (1, maxN) $ repeat []) $ do
+generateFlypeEquivalentDecomposition maxN yield = do
 
-	let templateType = GluingType
-		{ preGlueTest  = \ _ leg gl ->
-			let t = dartTangle leg
-			in case () of
-				_ | numberOfCrossings t == 1 -> gl < 2
-				  | numberOfLegs t == 4      -> False
-				  | otherwise                -> testMultiEdges leg gl
-		, postGlueTest = \ root gl _ s ->
-			if gl < 3 || testFlow4 root
-				then return $! s
-				else Nothing
-		}
+	let templateDescendants =
+		let templateType = GluingType
+			{ preGlueTest  = \ _ leg gl ->
+				let t = dartTangle leg
+				in case () of
+					_ | numberOfCrossings t == 1 -> gl < 2
+					  | numberOfLegs t == 4      -> False
+					  | otherwise                -> testMultiEdges leg gl
+			, postGlueTest = \ root gl _ s ->
+				if gl < 3 || testFlow4 root
+					then return $! s
+					else Nothing
+			}
+		in \ crossings -> canonicalGluing templateType . representativeGluingSites crossings
 
-	let directSumType = GluingType
-		{ preGlueTest  = \ cr leg gl ->
-			let	t = dartTangle leg
-				lp = directSumDecompositionTypeById cr 0
-				rp = directSumDecompositionType (opposite leg)
-			in case () of
-				_ | numberOfLegs t /= 4      -> False
-				  | gl /= 2                  -> False
-				  | testMultiEdges leg gl    -> False
-				  | lp == DirectSum01_23     -> False
-				  | numberOfCrossings t == 1 -> rp /= DirectSum12_30
-				  | otherwise                -> True
-		, postGlueTest = \ root _ leg s ->
-			let	coLeg = nextCCW $ nextCCW leg
-				flypeS =
-					case additionalFlypeSymmetry (crossingTangle root) of
-						Just x  -> addSymmetryToSubGroup s x
-						Nothing -> s
-			in case (isLoner' root, isLoner' $ incidentCrossing $ opposite leg, isLoner' $ incidentCrossing $ opposite coLeg) of
-				(False, False, False) -> return $! s
-				(True , True , _    ) -> return $! flypeS
-				(True , False, False) ->
-					if min (rootCodeLeg leg ccw) (rootCodeLeg (nextCW leg) cw) <= min (rootCodeLeg coLeg ccw) (rootCodeLeg (nextCW coLeg) cw)
-						then return $! flypeS
-						else Nothing
-				_                     -> Nothing
-		}
+	let directSumDescendants =
+		let directSumType = GluingType
+			{ preGlueTest  = \ cr leg gl ->
+				let	t = dartTangle leg
+					lp = directSumDecompositionTypeById cr 0
+					rp = directSumDecompositionType (opposite leg)
+				in case () of
+					_ | numberOfLegs t /= 4      -> False
+					  | gl /= 2                  -> False
+					  | testMultiEdges leg gl    -> False
+					  | lp == DirectSum01_23     -> False
+					  | numberOfCrossings t == 1 -> rp /= DirectSum12_30
+					  | otherwise                -> True
+			, postGlueTest = \ root _ leg s ->
+				let	coLeg = nextCCW $ nextCCW leg
+					flypeS =
+						case additionalFlypeSymmetry (crossingTangle root) of
+							Just x  -> addSymmetryToSubGroup s x
+							Nothing -> s
+				in case (isLoner' root, isLoner' $ incidentCrossing $ opposite leg, isLoner' $ incidentCrossing $ opposite coLeg) of
+					(False, False, False) -> return $! s
+					(True , True , _    ) -> return $! flypeS
+					(True , False, False) ->
+						if min (rootCodeLeg leg ccw) (rootCodeLeg (nextCW leg) cw) <= min (rootCodeLeg coLeg ccw) (rootCodeLeg (nextCW coLeg) cw)
+							then return $! flypeS
+							else Nothing
+					_                     -> Nothing
+			}
+		in \ crossings -> nubBy (\ (a, _) (b, _) -> minimumRootCode a == minimumRootCode b) .
+			canonicalGluing directSumType . allGluingSites' crossings 2 . fst
 
-	let growTree rootTemplate rootSymmetry = do
-		(root, crossings, rootN) <- do
-			(!free, !prev) <- get
-			let cr =
-				let sumType
-					| (a == b) && (c == d) && (a /= c)  = DirectSum01_23
-					| (b == c) && (a == d) && (a /= b)  = DirectSum12_30
-					| otherwise                         = NonDirectSumDecomposable
-					where
-						[a, b, c, d] = map adjacentCrossing $ allLegs rootTemplate
-				in fromTangle' rootTemplate rootSymmetry sumType free
-			let n = numberOfCrossings (subTangle cr)
-			let root = lonerTangle $ crossing' cr
+	let makeCrossing template symmetry =
+		let sumType
+			| (a == b) && (c == d) && (a /= c)  = DirectSum01_23
+			| (b == c) && (a == d) && (a /= b)  = DirectSum12_30
+			| otherwise                         = NonDirectSumDecomposable
+			where
+				[a, b, c, d] = map adjacentCrossing $ allLegs template
+		in fromTangle' template symmetry sumType
 
-			let next
-				| n >= maxN - 1  = prev
-				| otherwise      = prev // [(n, cr : (prev ! n))]
+	let halfN = maxN `div` 2
 
-			put $! next `seq` (free + 1, next)
-			return $! (root, next, n)
+	(finalFree, finalCrossings, rootList) <- flip execStateT (0, listArray (1, halfN) $ repeat [], []) $
+		let	lonerSymmetry = maximumSubGroup 4
+			loner = crossing' $ fromTangle lonerProjection lonerSymmetry NonDirectSumDecomposable 0
+		in flip fix (lonerTangle loner, lonerSymmetry) $ \ growTree (rootTemplate, rootSymmetry) -> do
+			(!free, !prevCrossings, !prevList) <- get
+			let rootCrossing = makeCrossing rootTemplate rootSymmetry free
+			let rootN = numberOfCrossings $ subTangle rootCrossing
+			let crossings = prevCrossings // [(rootN, rootCrossing : (prevCrossings ! rootN))]
+			let root = lonerTangle $ crossing' rootCrossing
+			put $! (free + 1, crossings, ((root, rootSymmetry), crossings) : prevList)
 
-		let glueTemplates curN ancestor ancestorSymmetry =
-			forM_ [1 .. maxN - curN] $ \ cn -> do
-				let desc = canonicalGluing templateType $ representativeGluingSites (crossings ! cn) (ancestor, ancestorSymmetry)
-				forM_ desc $ \ (child, childSymmetry) ->
+			let glueTemplates curN ancestor =
+				forM_ [1 .. halfN - curN] $ \ cn ->
+					forM_ (templateDescendants (crossings ! cn) ancestor) $ \ (child, childSymmetry) -> do
+						let t = curN + cn - halfN + (numberOfLegs child `div` 2) - 2
+						when (t <= 0) $
+							case numberOfLegs child of
+								4 -> growTree (child, childSymmetry)
+								_ -> lift (yield child childSymmetry) >> glueTemplates (curN + cn) (child, childSymmetry)
+
+			let glueDirectSums curN ancestor =
+				forM_ [1 .. halfN - curN] $ \ cn ->
+					forM_ (directSumDescendants (crossings ! cn) ancestor) $ \ (child, childSymmetry) -> do
+						let t = curN + cn - halfN + (numberOfLegs child `div` 2) - 2
+						when (t <= 0) $ do
+							growTree (child, childSymmetry)
+							glueDirectSums (curN + cn) (child, childSymmetry)
+
+			lift $ yield rootTemplate rootSymmetry
+			glueTemplates rootN (root, rootSymmetry)
+			glueDirectSums rootN (root, rootSymmetry)
+
+	flip evalStateT finalFree $ forM_ rootList $ fix $ \ grow (root, crossings) -> do
+		let tree (rootTemplate, rootSymmetry) = do
+			free <- get
+			put $! free + 1
+			lift $ yield rootTemplate rootSymmetry
+			grow ((lonerTangle $ crossing' $ makeCrossing rootTemplate rootSymmetry free, rootSymmetry), finalCrossings)
+
+		let glueTemplates curN ancestor =
+			forM_ [1 .. min halfN (maxN - curN)] $ \ cn ->
+				forM_ (templateDescendants (crossings ! cn) ancestor) $ \ (child, childSymmetry) -> do
+					let t = curN + cn - halfN + (numberOfLegs child `div` 2) - 2
 					case numberOfLegs child of
-						4 -> growTree child childSymmetry
+						4 -> when (t > 0) $ tree (child, childSymmetry)
 						_ -> do
-							lift $ yield child childSymmetry
-							glueTemplates (curN + cn) child childSymmetry
+							when (t > 0) $ lift $ yield child childSymmetry
+							glueTemplates (curN + cn) (child, childSymmetry)
 
-		let glueDirectSums curN ancestor _ =
-			forM_ [1 .. maxN - curN] $ \ cn -> do
-				let desc = nubBy (\ (a, _) (b, _) -> minimumRootCode a == minimumRootCode b) $
-					canonicalGluing directSumType $ allGluingSites' (crossings ! cn) 2 ancestor
-				forM_ desc $ \ (child, childSymmetry) -> do
-					growTree child childSymmetry
-					glueDirectSums (curN + cn) child childSymmetry
+		let glueDirectSums curN ancestor =
+			forM_ [1 .. min halfN (maxN - curN)] $ \ cn ->
+				forM_ (directSumDescendants (crossings ! cn) ancestor) $ \ (child, childSymmetry) -> do
+					let t = curN + cn - halfN + (numberOfLegs child `div` 2) - 2
+					when (t > 0) $ tree (child, childSymmetry)
+					glueDirectSums (curN + cn) (child, childSymmetry)
 
-		lift $ yield rootTemplate rootSymmetry
-		glueTemplates rootN root rootSymmetry
-		glueDirectSums rootN root rootSymmetry
-
-	let lonerSymmetry = maximumSubGroup 4
-	let loner = crossing' $ fromTangle lonerProjection lonerSymmetry NonDirectSumDecomposable 0
-	growTree (lonerTangle loner) lonerSymmetry
-
+		let rootN = numberOfCrossingsAfterSubstitution $ fst root
+		glueTemplates rootN root
+		glueDirectSums rootN root
 
 generateFlypeEquivalent :: (Monad m) => Int -> (TangleProjection -> DnSubGroup -> m ()) -> m ()
 generateFlypeEquivalent maxN yield = generateFlypeEquivalentDecomposition maxN (\ t s -> yield (substitute t) s)
