@@ -7,6 +7,7 @@ module Math.KnotTh.Crossings.SubTangle
 	, fromTangle'
 	, tangleInside
 	, numberOfCrossingsInside
+	, isLoner
 	, isLonerInside
 	, numberOfCrossingsAfterSubstitution
 	, isCrossingOrientationInverted'
@@ -83,28 +84,22 @@ fromTangle' tangle symmetry sumType code
 
 {-# INLINE tangleInside #-}
 tangleInside :: (CrossingType ct, Knotted k c d) => c (SubTangleCrossing ct) -> Tangle ct
-tangleInside = subTangle . crossingType . crossingState
+tangleInside = subTangle . crossingType
 
 
 {-# INLINE numberOfCrossingsInside #-}
 numberOfCrossingsInside :: (CrossingType ct, Knotted k c d) => c (SubTangleCrossing ct) -> Int
 numberOfCrossingsInside = numberOfCrossings . tangleInside
 
-{-
-{-# INLINE numberOfCrossingsInside' #-}
-numberOfCrossingsInside' :: (CrossingType ct) => Crossing (SubTangleCrossing ct) -> Int
-numberOfCrossingsInside' = numberOfCrossingsInside . crossingState
--}
+
+{-# INLINE isLoner #-}
+isLoner :: (CrossingType ct) => CrossingState (SubTangleCrossing ct) -> Bool
+isLoner = (== 1) . numberOfCrossings . subTangle . crossingType'
 
 {-# INLINE isLonerInside #-}
 isLonerInside :: (CrossingType ct, Knotted k c d) => c (SubTangleCrossing ct) -> Bool
 isLonerInside = (== 1) . numberOfCrossingsInside
 
-{-
-{-# INLINE isLoner' #-}
-isLoner' :: (CrossingType ct) => Crossing (SubTangleCrossing ct) -> Bool
-isLoner' = (== 1) . numberOfCrossingsInside'
--}
 
 numberOfCrossingsAfterSubstitution :: (CrossingType ct) => SubTangleTangle ct -> Int
 numberOfCrossingsAfterSubstitution = sum . map numberOfCrossingsInside . allCrossings
@@ -120,7 +115,7 @@ directSumDecompositionTypeInside d
 	| f          = changeSumType st
 	| otherwise  = st
 	where
-		st = _sumType $ crossingType $ crossingState $ incidentCrossing d
+		st = _sumType $ crossingType $ incidentCrossing d
 		f = isCrossingOrientationInverted (incidentCrossing d) /= odd (crossingLegIdByDart d)
 
 
@@ -129,7 +124,7 @@ directSumDecompositionType c
 	| f          = changeSumType st
 	| otherwise  = st
 	where
-		st = _sumType $ crossingType c
+		st = _sumType $ crossingType' c
 		f = isCrossingOrientationInverted' c /= odd (crossingLegIdByDartId c 0)
 
 

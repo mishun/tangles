@@ -136,4 +136,4 @@ simpleIncrementalGenerator gluing crossingsToGlue maxN yield =
 	in mapM_ (dfs . makeRoot . makeCrossing') crossingsToGlue
 	where
 		makeRoot :: (CrossingType ct) => CrossingState ct -> (Tangle ct, DnSubGroup)
-		makeRoot st = (lonerTangle st, toDnSubGroup $! localCrossingSymmetry $! crossingType st)
+		makeRoot st = (lonerTangle st, toDnSubGroup $! localCrossingSymmetry $! crossingType' st)
