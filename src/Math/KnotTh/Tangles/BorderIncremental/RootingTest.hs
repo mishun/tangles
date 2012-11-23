@@ -15,12 +15,11 @@ import Control.Monad.ST (ST, runST)
 import Control.Monad (when, foldM)
 import Control.Applicative ((<$>))
 import Math.Algebra.Group.Dn (DnSubGroup, fromPeriod, fromPeriodAndMirroredZero)
-import Math.KnotTh.Crossings (crossingCode)
 import Math.KnotTh.Tangles
 import Math.Algebra.RotationDirection
 
 
-rootingTest :: Crossing ct -> Maybe DnSubGroup
+rootingTest :: (CrossingType ct) => Crossing ct -> Maybe DnSubGroup
 rootingTest lastCrossing = do
 	let tangle = crossingTangle lastCrossing
 	when (numberOfLegs tangle < 4) Nothing
@@ -68,14 +67,14 @@ investigateConnectivity lastCrossing = runST $ do
 			(Just $!) <$> unsafeFreeze cp
 
 
-analyseSymmetry :: Crossing ct -> (Crossing ct -> Bool) -> Maybe DnSubGroup
+analyseSymmetry :: (CrossingType ct) => Crossing ct -> (Crossing ct -> Bool) -> Maybe DnSubGroup
 analyseSymmetry lastCrossing skipCrossing = findSymmetry
 	where
 		tangle = crossingTangle lastCrossing
 
 		lastRootCode = min rcCCW rcCW
 			where
-				startCCW = baseLeg tangle
+				startCCW = firstLeg tangle
 				startCW = opposite $ nthIncidentDart lastCrossing 3
 				rcCCW = rootCodeLeg startCCW ccw
 				rcCW = rootCodeLeg startCW cw
@@ -115,7 +114,7 @@ analyseSymmetry lastCrossing skipCrossing = findSymmetry
 						pv = fst $ begin $ opposite $ nextCW leg
 
 
-rootCodeLeg :: Dart ct -> RotationDirection -> UArray Int Int
+rootCodeLeg :: (CrossingType ct) => Dart ct -> RotationDirection -> UArray Int Int
 rootCodeLeg !root !dir = runST $ do
 	when (isDart root) (fail "rootCodeLeg: leg expected")
 
@@ -159,5 +158,5 @@ rootCodeLeg !root !dir = runST $ do
 	unsafeFreeze rc
 
 
-minimumRootCode :: Tangle ct -> UArray Int Int
+minimumRootCode :: (CrossingType ct) => Tangle ct -> UArray Int Int
 minimumRootCode tangle = minimum [ rootCodeLeg leg dir | leg <- allLegs tangle, dir <- bothDirections ]

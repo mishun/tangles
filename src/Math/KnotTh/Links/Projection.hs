@@ -14,5 +14,5 @@ import Math.KnotTh.Links
 type LinkProjection = Link ProjectionCrossing
 
 
-linkProjection :: Link ct -> LinkProjection
+linkProjection :: (CrossingType ct) => Link ct -> LinkProjection
 linkProjection = mapCrossingStates (const projectionCrossing)

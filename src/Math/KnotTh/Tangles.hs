@@ -1,52 +1,26 @@
 module Math.KnotTh.Tangles
-	( Dart
+	( module Math.KnotTh.Knotted
+	, Dart
 	, Crossing
 	, Tangle
-
-	, numberOfCrossings
-	, numberOfLegs
 	, crossingTangle
-	, crossingIndex
-	, crossingState
 	, dartTangle
+	, numberOfLegs
 	, isLeg
 	, isDart
-	, incidentCrossing
-	, dartPlace
 	, legPlace
-	, opposite
-	, nextCCW
-	, nextCW
-	, nextDir
-	, nthIncidentDart
-	, nthCrossing
 	, nthLeg
-	, dartArrIndex
-	, forMIncidentDarts
-	, foldMIncidentDarts
-	, foldMAdjacentDarts
-	, foldMIncidentDartsFrom
-	, foldMAdjacentDartsFrom
-	, lonerTangle
-	, mapCrossingStates
-	, glueToBorder
-	, fromLists
-
-	, numberOfEdges
-	, continuation
+	, firstLeg
+	, allLegs
 	, isAdjacentToBorder
-	, begin
-	, adjacentCrossing
 	, maybeIncidentCrossing
 	, maybeAdjacentCrossing
-	, incidentDarts
-	, nthAdjacentDart
-	, adjacentDarts
-	, baseLeg
-	, allCrossings
-	, allLegs
-	, allDarts
 	, allLegsAndDarts
+	, lonerTangle
+	, glueToBorder
+	, glueToBorderST
+	, fromLists
+	, fromListsST
 	) where
 
 import Data.List (intercalate)
@@ -61,6 +35,7 @@ import Control.DeepSeq
 import Control.Monad.ST (ST, runST)
 import Control.Monad (forM_, when)
 import Math.Algebra.RotationDirection
+import Math.KnotTh.Knotted
 import Math.KnotTh.Crossings
 
 
@@ -97,18 +72,18 @@ instance Ord (Crossing ct) where
 	compare (Crossing _ c1) (Crossing _ c2) = compare c1 c2
 
 
-instance (Show ct) => Show (Crossing ct) where
+instance (Show ct, CrossingType ct) => Show (Crossing ct) where
 	show c =
 		let d = map (show . opposite) $ incidentDarts c
 		in concat ["(Crossing ", show (crossingIndex c), " ",  show $ crossingState c," [ ", intercalate " " d, " ])"]
 
 
 data Tangle ct = Tangle
-	{ numberOfCrossings :: {-# UNPACK #-} !Int
-	, numberOfLegs      :: {-# UNPACK #-} !Int
-	, crossingsArray    :: {-# UNPACK #-} !(UArray Int Int)
-	, borderArray       :: {-# UNPACK #-} !(UArray Int Int)
-	, stateArray        :: {-# UNPACK #-} !(Array Int (CrossingState ct))
+	{ count          :: {-# UNPACK #-} !Int
+	, numberOfLegs   :: {-# UNPACK #-} !Int
+	, crossingsArray :: {-# UNPACK #-} !(UArray Int Int)
+	, borderArray    :: {-# UNPACK #-} !(UArray Int Int)
+	, stateArray     :: {-# UNPACK #-} !(Array Int (CrossingState ct))
 	}
 
 
@@ -116,25 +91,89 @@ instance (NFData ct) => NFData (Tangle ct) where
 	rnf tangle = rnf (stateArray tangle) `seq` tangle `seq` ()
 
 
-instance (Show ct) => Show (Tangle ct) where
+instance (Show ct, CrossingType ct) => Show (Tangle ct) where
 	show t =
 		let d = concat ["(Border [ ", intercalate " " (map (show . opposite) $ allLegs t), " ])"] : map (show . nthCrossing t) [1 .. numberOfCrossings t]
 		in concat ["(Tangle ", intercalate " " d, ")"]
 
 
+instance Knotted Tangle Crossing Dart where
+	numberOfCrossings = count
+
+	numberOfEdges tangle = 2 * (numberOfCrossings tangle) + div (numberOfLegs tangle) 2
+
+	nthCrossing t i
+		| i < 1 || i > numberOfCrossings t  = error "nthCrossing: out of bound"
+		| otherwise                         = Crossing t i
+
+	mapCrossingStates f tangle = runST $ do
+		let n = numberOfCrossings tangle
+		st <- newArray_ (0, n - 1) :: ST s (STArray s Int a)
+		forM_ [0 .. n - 1] $ \ !i ->
+			unsafeWrite st i $! f $! stateArray tangle `unsafeAt` i
+		st' <- unsafeFreeze st
+		return $! Tangle
+			{ count          = n
+			, numberOfLegs   = numberOfLegs tangle
+			, crossingsArray = crossingsArray tangle
+			, borderArray    = borderArray tangle
+			, stateArray     = st' 
+			}
+
+	crossingOwner = crossingTangle
+
+	crossingIndex (Crossing _ c) = c
+
+	crossingState (Crossing t c) = stateArray t `unsafeAt` (c - 1)
+
+	nthIncidentDart (Crossing t c) i = Dart t c (i .&. 3)
+
+	opposite (Dart t c i)
+		| c == 0     =
+			let	a = borderArray t
+				j = 2 * i
+			in Dart t (a `unsafeAt` j) (a `unsafeAt` (j + 1))
+		| otherwise  =
+			let	a = crossingsArray t
+				j = (c - 1) * 8 + 2 * i
+			in Dart t (a `unsafeAt` j) (a `unsafeAt` (j + 1))
+
+	nextCCW d@(Dart t c i) =
+		let u = if isLeg d then numberOfLegs t - 1 else 3
+		in Dart t c (if i == u then 0 else i + 1)
+
+	nextCW d@(Dart t c i) =
+		let u = if isLeg d then numberOfLegs t - 1 else 3
+		in Dart t c (if i == 0 then u else i - 1)
+
+	incidentCrossing (Dart t c _)
+		| c == 0     = error "incidentCrossing: from leg"
+		| otherwise  = Crossing t c
+
+	dartPlace (Dart _ c i)
+		| c == 0     = error "dartPlace: from leg"
+		| otherwise  = i
+
+	dartOwner = dartTangle
+
+	dartArrIndex (Dart t c i)
+		| c == 0     = let n = numberOfCrossings t in 4 * n + i
+		| otherwise  = 4 * (c - 1) + i
+
+	forMIncidentDarts (Crossing t c) f = do{ f $! Dart t c 0 ; f $! Dart t c 1 ; f $! Dart t c 2 ; f $! Dart t c 3 }
+
+	foldMIncidentDarts (Crossing t c) f s = f (Dart t c 0) s >>= f (Dart t c 1) >>= f (Dart t c 2) >>= f (Dart t c 3)
+
+	foldMIncidentDartsFrom dart@(Dart t c i) !direction f s
+		| isLeg dart  = error "foldMIncidentDartsFrom: from leg"
+		| otherwise   =
+			let d = directionSign direction
+			in f dart s >>= f (Dart t c $! (i + d) .&. 3) >>= f (Dart t c $! (i + 2 * d) .&. 3) >>= f (Dart t c $! (i + 3 * d) .&. 3)
+
+
 {-# INLINE crossingTangle #-}
 crossingTangle :: Crossing ct -> Tangle ct
 crossingTangle (Crossing t _) = t
-
-
-{-# INLINE crossingIndex #-}
-crossingIndex :: Crossing ct -> Int
-crossingIndex (Crossing _ c) = c
-
-
-{-# INLINE crossingState #-}
-crossingState :: Crossing ct -> CrossingState ct
-crossingState (Crossing t c) = stateArray t `unsafeAt` (c - 1)
 
 
 {-# INLINE dartTangle #-}
@@ -152,20 +191,6 @@ isDart :: Dart ct -> Bool
 isDart (Dart _ c _) = (c /= 0)
 
 
-{-# INLINE incidentCrossing #-}
-incidentCrossing :: Dart ct -> Crossing ct
-incidentCrossing (Dart t c _)
-	| c == 0     = error "incidentCrossing: from leg"
-	| otherwise  = Crossing t c
-
-
-{-# INLINE dartPlace #-}
-dartPlace :: Dart ct -> Int
-dartPlace (Dart _ c i)
-	| c == 0     = error "dartPlace: from leg"
-	| otherwise  = i
-
-
 {-# INLINE legPlace #-}
 legPlace :: Dart ct -> Int
 legPlace (Dart _ c i)
@@ -173,126 +198,50 @@ legPlace (Dart _ c i)
 	| otherwise  = i
 
 
-{-# INLINE opposite #-}
-opposite :: Dart ct -> Dart ct
-opposite (Dart t c i)
-	| c == 0     =
-		let	a = borderArray t
-			j = 2 * i
-		in Dart t (a `unsafeAt` j) (a `unsafeAt` (j + 1))
-	| otherwise  =
-		let	a = crossingsArray t
-			j = (c - 1) * 8 + 2 * i
-		in Dart t (a `unsafeAt` j) (a `unsafeAt` (j + 1))
-
-
-{-# INLINE nextCCW #-}
-nextCCW :: Dart ct -> Dart ct
-nextCCW d@(Dart t c i) =
-	let u = if isLeg d then numberOfLegs t - 1 else 3
-	in Dart t c (if i == u then 0 else i + 1)
-
-
-{-# INLINE nextCW #-}
-nextCW :: Dart ct -> Dart ct
-nextCW d@(Dart t c i) =
-	let u = if isLeg d then numberOfLegs t - 1 else 3
-	in Dart t c (if i == 0 then u else i - 1)
-
-
-nextDir :: RotationDirection -> Dart ct -> Dart ct
-nextDir dir
-	| isClockwise dir  = nextCW
-	| otherwise        = nextCCW
-
-
-{-# INLINE nthIncidentDart #-}
-nthIncidentDart :: Crossing ct -> Int -> Dart ct
-nthIncidentDart (Crossing t c) i = Dart t c (i .&. 3)
-
-
-{-# INLINE nthCrossing #-}
-nthCrossing :: Tangle ct -> Int -> Crossing ct
-nthCrossing t i
-	| i < 1 || i > numberOfCrossings t  = error "nthCrossing: out of bound"
-	| otherwise                         = Crossing t i
-
-
 {-# INLINE nthLeg #-}
 nthLeg :: Tangle ct -> Int -> Dart ct
 nthLeg t i = let l = numberOfLegs t in Dart t 0 ((l + mod i l) `mod` l)
 
 
-{-# INLINE dartArrIndex #-}
-dartArrIndex :: Dart ct -> Int
-dartArrIndex (Dart t c i)
-	| c == 0     = let n = numberOfCrossings t in 4 * n + i
-	| otherwise  = 4 * (c - 1) + i
+{-# INLINE firstLeg #-}
+firstLeg :: Tangle ct -> Dart ct
+firstLeg t = Dart t 0 0
 
 
-{-# INLINE forMIncidentDarts #-}
-forMIncidentDarts :: (Monad m) => Crossing ct -> (Dart ct -> m ()) -> m ()
-forMIncidentDarts (Crossing t c) f = do
-	f $! Dart t c 0
-	f $! Dart t c 1
-	f $! Dart t c 2
-	f $! Dart t c 3
+{-# INLINE allLegs #-}
+allLegs :: Tangle ct -> [Dart ct]
+allLegs t = map (Dart t 0) [0 .. numberOfLegs t - 1]
+
+{-# INLINE isAdjacentToBorder #-}
+isAdjacentToBorder :: Dart ct -> Bool
+isAdjacentToBorder = isLeg . opposite
 
 
-{-# INLINE foldMIncidentDarts #-}
-foldMIncidentDarts :: (Monad m) => Crossing ct -> (Dart ct -> s -> m s) -> s -> m s
-foldMIncidentDarts (Crossing t c) f s = f (Dart t c 0) s >>= f (Dart t c 1) >>= f (Dart t c 2) >>= f (Dart t c 3)
+{-# INLINE maybeIncidentCrossing #-}
+maybeIncidentCrossing :: Dart ct -> Maybe (Crossing ct)
+maybeIncidentCrossing d
+	| isLeg d    = Nothing
+	| otherwise  = Just $! incidentCrossing d
 
 
-{-# INLINE foldMAdjacentDarts #-}
-foldMAdjacentDarts :: (Monad m) => Crossing ct -> (Dart ct -> s -> m s) -> s -> m s
-foldMAdjacentDarts (Crossing t c) f s = f (opposite $! Dart t c 0) s >>= f (opposite $! Dart t c 1) >>= f (opposite $! Dart t c 2) >>= f (opposite $! Dart t c 3)
+{-# INLINE maybeAdjacentCrossing #-}
+maybeAdjacentCrossing :: Dart ct -> Maybe (Crossing ct)
+maybeAdjacentCrossing = maybeIncidentCrossing . opposite
 
 
-{-# INLINE foldMIncidentDartsFrom #-}
-foldMIncidentDartsFrom :: (Monad m) => Dart ct -> RotationDirection -> (Dart ct -> s -> m s) -> s -> m s
-foldMIncidentDartsFrom dart@(Dart t c i) !direction f s
-	| isLeg dart  = error "foldMIncidentDartsFrom: from leg"
-	| otherwise   =
-		let d = directionSign direction
-		in f dart s >>= f (Dart t c $! (i + d) .&. 3) >>= f (Dart t c $! (i + 2 * d) .&. 3) >>= f (Dart t c $! (i + 3 * d) .&. 3)
-
-
-{-# INLINE foldMAdjacentDartsFrom #-}
-foldMAdjacentDartsFrom :: (Monad m) => Dart ct -> RotationDirection -> (Dart ct -> s -> m s) -> s -> m s
-foldMAdjacentDartsFrom dart@(Dart t c i) !direction f s
-	| isLeg dart  = error "foldMAdjacentDartsFrom: from leg"
-	| otherwise   =
-		let d = directionSign direction
-		in f (opposite dart) s >>= f (opposite $! Dart t c $! (i + d) .&. 3)
-			>>= f (opposite $! Dart t c $! (i + 2 * d) .&. 3)
-				>>= f (opposite $! Dart t c $! (i + 3 * d) .&. 3)
+{-# INLINE allLegsAndDarts #-}
+allLegsAndDarts :: Tangle ct -> [Dart ct]
+allLegsAndDarts tangle = (allLegs tangle) ++ (allDarts tangle)
 
 
 lonerTangle :: (CrossingType ct) => CrossingState ct -> Tangle ct
 lonerTangle !cr = Tangle
-	{ numberOfCrossings = 1
-	, numberOfLegs      = 4
-	, crossingsArray    = listArray (0, 7) [0, 0, 0, 1, 0, 2, 0, 3]
-	, borderArray       = listArray (0, 7) [1, 0, 1, 1, 1, 2, 1, 3]
-	, stateArray        = listArray (0, 0) $! [cr]
+	{ count          = 1
+	, numberOfLegs   = 4
+	, crossingsArray = listArray (0, 7) [0, 0, 0, 1, 0, 2, 0, 3]
+	, borderArray    = listArray (0, 7) [1, 0, 1, 1, 1, 2, 1, 3]
+	, stateArray     = listArray (0, 0) $! [cr]
 	}
-
-
-mapCrossingStates :: (CrossingState a -> CrossingState b) -> Tangle a -> Tangle b
-mapCrossingStates f tangle = runST $ do
-	let n = numberOfCrossings tangle
-	st <- newArray_ (0, n - 1) :: ST s (STArray s Int a)
-	forM_ [0 .. n - 1] $ \ !i ->
-		unsafeWrite st i $! f $! stateArray tangle `unsafeAt` i
-	st' <- unsafeFreeze st
-	return $! Tangle
-		{ numberOfCrossings = n
-		, numberOfLegs      = numberOfLegs tangle
-		, crossingsArray    = crossingsArray tangle
-		, borderArray       = borderArray tangle
-		, stateArray        = st'
-		}
 
 
 --       edgesToGlue = 1                 edgesToGlue = 2                 edgesToGlue = 3
@@ -306,10 +255,14 @@ mapCrossingStates f tangle = runST $ do
 -- ........|  |   \-----|--0       ........|                       (leg-2)-|--|-----/   |
 -- ........|  +=========+          ........|                       ........|  +=========+
 glueToBorder :: (CrossingType ct) => Dart ct -> Int -> CrossingState ct -> Crossing ct
-glueToBorder leg legsToGlue crossingToGlue
+glueToBorder leg legsToGlue crossingToGlue = runST $ glueToBorderST leg legsToGlue crossingToGlue
+
+
+glueToBorderST :: (CrossingType ct) => Dart ct -> Int -> CrossingState ct -> ST s (Crossing ct)
+glueToBorderST leg legsToGlue crossingToGlue
 	| not (isLeg leg)                   = error "glueToBorder: leg expected"
 	| legsToGlue < 1 || legsToGlue > 3  = error "glueToBorder: legsToGlue must be 1, 2 or 3"
-	| otherwise                         = runST $ do
+	| otherwise                         = do
 		let tangle = dartTangle leg
 		let oldL = numberOfLegs tangle
 		when (oldL <= legsToGlue) (fail "glueToBorder: not enough legs to glue")
@@ -364,18 +317,22 @@ glueToBorder leg legsToGlue crossingToGlue
 		ls' <- unsafeFreeze ls
 		st' <- unsafeFreeze st
 		let result = Tangle
-			{ numberOfCrossings = newC
-			, numberOfLegs      = newL
-			, crossingsArray    = cr'
-			, borderArray       = ls'
-			, stateArray        = st' 
+			{ count          = newC
+			, numberOfLegs   = newL
+			, crossingsArray = cr'
+			, borderArray    = ls'
+			, stateArray     = st' 
 			}
 
 		return $! nthCrossing result newC
 
 
 fromLists :: [(Int, Int)] -> [([(Int, Int)], CrossingState ct)] -> Tangle ct
-fromLists border list = runST $ do
+fromLists border list = runST $ fromListsST border list
+
+
+fromListsST :: [(Int, Int)] -> [([(Int, Int)], CrossingState ct)] -> ST s (Tangle ct)
+fromListsST border list = do
 	let n = length list
 	let l = length border
 	when (l <= 0 || odd l) (fail "fromLists: number of legs must be positive and even")
@@ -419,92 +376,9 @@ fromLists border list = runST $ do
 	ls' <- unsafeFreeze ls
 	st' <- unsafeFreeze st
 	return $! Tangle
-		{ numberOfCrossings = n
-		, numberOfLegs      = l
-		, crossingsArray    = cr'
-		, borderArray       = ls'
-		, stateArray        = st' 
+		{ count          = n
+		, numberOfLegs   = l
+		, crossingsArray = cr'
+		, borderArray    = ls'
+		, stateArray     = st' 
 		}
-
-
-
-{-# INLINE numberOfEdges #-}
-numberOfEdges :: Tangle ct -> Int
-numberOfEdges tangle = 2 * (numberOfCrossings tangle) + div (numberOfLegs tangle) 2
-
-
-{-# INLINE continuation #-}
-continuation :: Dart ct -> Dart ct
-continuation d
-	| isDart d   = nextCCW $! nextCCW d
-	| otherwise  = error "continuation: from leg"
-
-
-{-# INLINE isAdjacentToBorder #-}
-isAdjacentToBorder :: Dart ct -> Bool
-isAdjacentToBorder = isLeg . opposite
-
-
-{-# INLINE begin #-}
-begin :: Dart ct -> (Crossing ct, Int)
-begin d =
-	let	c = incidentCrossing d
-		p = dartPlace d
-	in c `seq` p `seq` (c, p)
-
-
-{-# INLINE adjacentCrossing #-}
-adjacentCrossing :: Dart ct -> Crossing ct
-adjacentCrossing = incidentCrossing . opposite
-
-
-{-# INLINE maybeIncidentCrossing #-}
-maybeIncidentCrossing :: Dart ct -> Maybe (Crossing ct)
-maybeIncidentCrossing d
-	| isLeg d    = Nothing
-	| otherwise  = Just $! incidentCrossing d
-
-
-{-# INLINE maybeAdjacentCrossing #-}
-maybeAdjacentCrossing :: Dart ct -> Maybe (Crossing ct)
-maybeAdjacentCrossing = maybeIncidentCrossing . opposite
-
-
-{-# INLINE incidentDarts #-}
-incidentDarts :: Crossing ct -> [Dart ct]
-incidentDarts c = map (nthIncidentDart c) [0 .. 3]
-
-
-{-# INLINE nthAdjacentDart #-}
-nthAdjacentDart :: Crossing ct -> Int -> Dart ct
-nthAdjacentDart c = opposite . nthIncidentDart c
-
-
-{-# INLINE adjacentDarts #-}
-adjacentDarts :: Crossing ct -> [Dart ct]
-adjacentDarts c = map (nthAdjacentDart c) [0 .. 3]
-
-
-{-# INLINE baseLeg #-}
-baseLeg :: Tangle ct -> Dart ct
-baseLeg t = nthLeg t 0
-
-
-{-# INLINE allCrossings #-}
-allCrossings :: Tangle ct -> [Crossing ct]
-allCrossings t = map (nthCrossing t) [1 .. numberOfCrossings t]
-
-
-{-# INLINE allLegs #-}
-allLegs :: Tangle ct -> [Dart ct]
-allLegs t = map (nthLeg t) [0 .. numberOfLegs t - 1]
-
-
-{-# INLINE allDarts #-}
-allDarts :: Tangle ct -> [Dart ct]
-allDarts = concatMap incidentDarts . allCrossings
-
-
-{-# INLINE allLegsAndDarts #-}
-allLegsAndDarts :: Tangle ct -> [Dart ct]
-allLegsAndDarts tangle = (allLegs tangle) ++ (allDarts tangle)

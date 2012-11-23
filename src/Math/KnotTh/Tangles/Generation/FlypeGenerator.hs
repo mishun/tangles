@@ -10,7 +10,6 @@ import Control.Monad.State.Strict (evalStateT, execStateT, get, put, lift)
 import Control.Monad (forM_, when)
 import Math.Algebra.RotationDirection
 import Math.Algebra.Group.Dn (DnSubGroup, maximumSubGroup, addSymmetryToSubGroup)
-import Math.KnotTh.Crossings
 import Math.KnotTh.Crossings.SubTangle
 import Math.KnotTh.Tangles.Projection
 import Math.KnotTh.Tangles.Flypes

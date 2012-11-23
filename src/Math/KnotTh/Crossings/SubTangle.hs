@@ -49,14 +49,14 @@ instance (CrossingType ct) => CrossingType (SubTangleCrossing ct) where
 	localCrossingSymmetry c = _symmetry c
 
 
-instance (Show ct) => Show (SubTangleCrossing ct) where
+instance (Show ct, CrossingType ct) => Show (SubTangleCrossing ct) where
 	show cr = concat ["(SubTangle ", show $ _code cr, " ", show $ _symmetry cr, " ", show $ _sumType cr, " (", show $ subTangle cr, "))"]
 
 
 type SubTangleTangle ct = Tangle (SubTangleCrossing ct)
 
 
-fromTangle :: Tangle ct -> DnSubGroup -> DirectSumDecompositionType -> Int -> SubTangleCrossing ct
+fromTangle :: (CrossingType ct) => Tangle ct -> DnSubGroup -> DirectSumDecompositionType -> Int -> SubTangleCrossing ct
 fromTangle tangle symmetry sumType code
 	| numberOfLegs tangle /= 4           = error "fromTangle: tangle must have 4 legs"
 	| pointsUnderSubGroup symmetry /= 4  = error "fromTangle: symmetry group must have 4 points"
@@ -68,7 +68,7 @@ fromTangle tangle symmetry sumType code
 		}
 
 
-fromTangle' :: Tangle (SubTangleCrossing ct) -> DnSubGroup -> DirectSumDecompositionType -> Int -> SubTangleCrossing ct
+fromTangle' :: (CrossingType ct) => Tangle (SubTangleCrossing ct) -> DnSubGroup -> DirectSumDecompositionType -> Int -> SubTangleCrossing ct
 fromTangle' tangle symmetry sumType code
 	| numberOfLegs tangle /= 4           = error "fromTangle': tangle must have 4 legs"
 	| pointsUnderSubGroup symmetry /= 4  = error "fromTangle': symmetry group must have 4 points"
@@ -81,46 +81,46 @@ fromTangle' tangle symmetry sumType code
 
 
 {-# INLINE tangleInside #-}
-tangleInside :: CrossingState (SubTangleCrossing ct) -> Tangle ct
+tangleInside :: (CrossingType ct) => CrossingState (SubTangleCrossing ct) -> Tangle ct
 tangleInside = subTangle . crossingType
 
 
 {-# INLINE tangleInside' #-}
-tangleInside' :: Crossing (SubTangleCrossing ct) -> Tangle ct
+tangleInside' :: (CrossingType ct) => Crossing (SubTangleCrossing ct) -> Tangle ct
 tangleInside' = tangleInside . crossingState
 
 
 {-# INLINE numberOfCrossingsInside #-}
-numberOfCrossingsInside :: CrossingState (SubTangleCrossing ct) -> Int
+numberOfCrossingsInside :: (CrossingType ct) => CrossingState (SubTangleCrossing ct) -> Int
 numberOfCrossingsInside = numberOfCrossings . tangleInside
 
 
 {-# INLINE numberOfCrossingsInside' #-}
-numberOfCrossingsInside' :: Crossing (SubTangleCrossing ct) -> Int
+numberOfCrossingsInside' :: (CrossingType ct) => Crossing (SubTangleCrossing ct) -> Int
 numberOfCrossingsInside' = numberOfCrossingsInside . crossingState
 
 
 {-# INLINE isLoner #-}
-isLoner :: CrossingState (SubTangleCrossing ct) -> Bool
+isLoner :: (CrossingType ct) => CrossingState (SubTangleCrossing ct) -> Bool
 isLoner = (== 1) . numberOfCrossingsInside
 
 
 {-# INLINE isLoner' #-}
-isLoner' :: Crossing (SubTangleCrossing ct) -> Bool
+isLoner' :: (CrossingType ct) => Crossing (SubTangleCrossing ct) -> Bool
 isLoner' = (== 1) . numberOfCrossingsInside'
 
 
-numberOfCrossingsAfterSubstitution :: SubTangleTangle ct -> Int
+numberOfCrossingsAfterSubstitution :: (CrossingType ct) => SubTangleTangle ct -> Int
 numberOfCrossingsAfterSubstitution tangle = sum $! map numberOfCrossingsInside' $! allCrossings tangle
 
 
 {-# INLINE isCrossingOrientationInverted' #-}
-isCrossingOrientationInverted' :: Crossing (SubTangleCrossing ct) -> Bool
+isCrossingOrientationInverted' :: (CrossingType ct) => Crossing (SubTangleCrossing ct) -> Bool
 isCrossingOrientationInverted' = isCrossingOrientationInverted . crossingState
 
 
 {-# INLINE subTangleLegFromDart #-}
-subTangleLegFromDart :: Dart (SubTangleCrossing ct) -> Dart ct
+subTangleLegFromDart :: (CrossingType ct) => Dart (SubTangleCrossing ct) -> Dart ct
 subTangleLegFromDart d =
 	let c = crossingState $! incidentCrossing d
 	in nthLeg (tangleInside c) $! crossingLegByDart c $! dartPlace d
@@ -143,11 +143,11 @@ directSumDecompositionTypeById cr p =
 		f = isCrossingOrientationInverted cr == odd (crossingLegByDart cr p)
 
 
-directSumDecompositionType :: Dart (SubTangleCrossing ct) -> DirectSumDecompositionType
+directSumDecompositionType :: (CrossingType ct) => Dart (SubTangleCrossing ct) -> DirectSumDecompositionType
 directSumDecompositionType d = directSumDecompositionTypeById (crossingState $! incidentCrossing d) $! dartPlace d
 
 
-substitute :: Tangle (SubTangleCrossing ct) -> Tangle ct
+substitute :: (CrossingType ct) => Tangle (SubTangleCrossing ct) -> Tangle ct
 substitute tangle =
 	fromLists (map oppositeExt $! allLegs tangle) $!
 		let connections b = do

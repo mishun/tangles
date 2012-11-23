@@ -19,5 +19,5 @@ lonerProjection :: TangleProjection
 lonerProjection = lonerTangle projectionCrossing
 
 
-tangleProjection :: Tangle ct -> TangleProjection
+tangleProjection :: (CrossingType ct) => Tangle ct -> TangleProjection
 tangleProjection = mapCrossingStates (const projectionCrossing)

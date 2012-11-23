@@ -4,7 +4,6 @@ module Math.KnotTh.Tangles.Draw
 
 import Data.Array ((!))
 import Control.Monad
-import Math.KnotTh.Crossings
 import Math.KnotTh.Crossings.Projection
 import Math.KnotTh.Crossings.Arbitrary
 import Math.KnotTh.Tangles

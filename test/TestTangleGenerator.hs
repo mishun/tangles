@@ -9,6 +9,7 @@ import Text.Printf
 import Control.Monad
 import Math.Algebra.Group.Dn (DnSubGroup, hasReflectionPart, rotationPeriod)
 import Math.KnotTh.Crossings.SubTangle
+import Math.KnotTh.Knotted
 import Math.KnotTh.Tangles.Projection
 import Math.KnotTh.Tangles.Draw
 import Math.KnotTh.Tangles.BorderIncremental.IncrementalGluing
@@ -63,7 +64,7 @@ main :: IO ()
 main = do
 	printTable "Prime projections" False (simpleIncrementalGenerator primeProjectionType [ProjectionCrossing]) 8
 	printTable "Template projections" False (simpleIncrementalGenerator templateProjectionType [ProjectionCrossing]) 9
-	printTable "Alternating tangles" False generateFlypeEquivalent 10
+	printTable "Alternating tangles" False generateFlypeEquivalent 8
 
 	{-
 	writePostScriptFile "TestTangleGenerator.ps" $ do
