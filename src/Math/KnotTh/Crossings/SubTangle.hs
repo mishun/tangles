@@ -14,8 +14,8 @@ module Math.KnotTh.Crossings.SubTangle
 	, numberOfCrossingsAfterSubstitution
 	, isCrossingOrientationInverted'
 	, subTangleLegFromDart
-	, directSumDecompositionType'
-	, directSumDecompositionTypeById
+	-- , directSumDecompositionTypeById
+	, directSumDecompositionTypeInside
 	, directSumDecompositionType
 	, substitute
 	) where
@@ -122,7 +122,7 @@ isCrossingOrientationInverted' = isCrossingOrientationInverted . crossingState
 subTangleLegFromDart :: (CrossingType ct) => Dart (SubTangleCrossing ct) -> Dart ct
 subTangleLegFromDart d =
 	let c = crossingState $! incidentCrossing d
-	in nthLeg (tangleInside c) $! crossingLegByDart c $! dartPlace d
+	in nthLeg (tangleInside c) $! crossingLegIdByDart d
 
 
 {-# INLINE directSumDecompositionType' #-}
@@ -142,8 +142,21 @@ directSumDecompositionTypeById cr p =
 		f = isCrossingOrientationInverted cr == odd (crossingLegByDart cr p)
 
 
-directSumDecompositionType :: (CrossingType ct) => Dart (SubTangleCrossing ct) -> DirectSumDecompositionType
-directSumDecompositionType d = directSumDecompositionTypeById (crossingState $! incidentCrossing d) $! dartPlace d
+directSumDecompositionTypeInside :: (CrossingType ct, Knotted k c d) => d (SubTangleCrossing ct) -> DirectSumDecompositionType
+directSumDecompositionTypeInside d =
+	case _sumType $ crossingType cr of
+		NonDirectSumDecomposable   -> NonDirectSumDecomposable
+		DirectSum01_23 | f         -> DirectSum01_23
+		               | otherwise -> DirectSum12_30
+		DirectSum12_30 | f         -> DirectSum12_30
+		               | otherwise -> DirectSum01_23
+	where
+		cr = crossingState $! incidentCrossing d
+		f = isCrossingOrientationInverted cr == odd (crossingLegIdByDart d)
+
+
+directSumDecompositionType :: (CrossingType ct) => CrossingState (SubTangleCrossing ct) -> DirectSumDecompositionType
+directSumDecompositionType c = directSumDecompositionTypeById c 0
 
 
 substitute :: (CrossingType ct) => Tangle (SubTangleCrossing ct) -> Tangle ct

@@ -40,8 +40,8 @@ generateFlypeEquivalentDecomposition maxN yield = do
 		let directSumType = GluingType
 			{ preGlueTest  = \ cr leg gl ->
 				let	t = dartTangle leg
-					lp = directSumDecompositionTypeById cr 0
-					rp = directSumDecompositionType (opposite leg)
+					lp = directSumDecompositionType cr
+					rp = directSumDecompositionTypeInside (opposite leg)
 				in case () of
 					_ | numberOfLegs t /= 4      -> False
 					  | gl /= 2                  -> False
