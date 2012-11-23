@@ -2,6 +2,8 @@ module Math.KnotTh.Tangles.Moves.ReidemeisterIII
 	( neighbours
 	) where
 
+import Data.Maybe
+import Control.Monad (when)
 import Math.KnotTh.Tangles.NonAlternating
 import Math.KnotTh.Tangles.Moves.Move
 
@@ -20,41 +22,37 @@ neighbours tangle = mapMaybe try3rdReidemeister $ allDarts tangle
 		--     ap/a\aq               ca/ cb   bc \ba
 		--      /   \                 /           \
 		--   pa/     \qa             /pa           \qa
-		try3rdReidemeister ab
-			| isLeg ba || isLeg ca  = Nothing
-			| bc /= opposite cb     = Nothing
-			| not abcAreDifferent   = Nothing
-			| not threadMovable     = Nothing
-			| not isBetterRoot      = Nothing
-			| otherwise             =
-				Just $ moveZ tangle $ do
-					substituteM [(ca, ap), (ba, aq), (ab, br), (ac, cs)]
-					connectM [(br, aq), (cs, ap)]
+		try3rdReidemeister ab = do
+			let ac = nextCCW ab
+			let ba = opposite ab
+			let ca = opposite ac
+			when (isLeg ba || isLeg ca) Nothing
 
-			where
-				ac = nextCCW ab
+			let bc = nextCW ba
+			let cb = nextCCW ca
+			when (bc /= opposite cb) Nothing
 
-				ba = opposite ab
-				ca = opposite ac
+			let a = incidentCrossing ab
+			let b = incidentCrossing ba
+			let c = incidentCrossing ca
 
-				bc = nextCW ba
-				cb = nextCCW ca
+			let abcAreDifferent = (a /= b) && (a /= c) && (b /= c)
+			when (not abcAreDifferent) Nothing
 
-				a = incidentCrossing ab
-				b = incidentCrossing ba
-				c = incidentCrossing ca
+			let threadMovable = (passOver bc) == (passOver cb)
+			when (not threadMovable) Nothing
 
-				abcAreDifferent = (a /= b) && (a /= c) && (b /= c)
+			let isBetterRoot =
+				let altRoot = if (passOver ab) == (passOver ba) then ca else bc
+				in ab < altRoot
 
-				threadMovable = (passOver bc) == (passOver cb)
+			when (not isBetterRoot) Nothing
 
-				isBetterRoot = ab < altRoot
-					where
-						altRoot = if (passOver ab) == (passOver ba)
-							then ca
-							else bc
+			let ap = continuation ab
+			let aq = nextCW ab
+			let br = nextCW bc
+			let cs = nextCCW cb
 
-				ap = continuation ab
-				aq = nextCW ab
-				br = nextCW bc
-				cs = nextCCW cb
+			return $! moveZ tangle $ do
+					substituteC [(ca, ap), (ba, aq), (ab, br), (ac, cs)]
+					connectC [(br, aq), (cs, ap)]

@@ -1,10 +1,15 @@
 {-# LANGUAGE Rank2Types #-}
 module Math.KnotTh.Tangles.Moves.Move
 	( MoveM
+	, moveZ
 	, move
+	, oppositeC
 	, emitCircle
 	, maskC
 	, flipC
+	, connectC
+	, substituteC
+	, greedy
 	) where
 
 import Data.Array.ST (STArray, newArray, readArray, writeArray)
@@ -24,6 +29,10 @@ data MoveState s ct = MoveState
 	}
 
 type MoveM s ct r = StateT (MoveState s ct) (ST s) r
+
+
+moveZ :: Tangle ct -> (forall s. MoveM s ct ()) -> (Tangle ct, Int)
+moveZ tangle = move (tangle, 0)
 
 
 move :: (Tangle ct, Int) -> (forall s. MoveM s ct ()) -> (Tangle ct, Int)
@@ -84,8 +93,8 @@ move (tangle, circles) modification = runST $ disassemble >>= execStateT modific
 -}
 
 
---oppositeM :: Dart ct -> MoveM s ct (Dart ct)
---oppositeM d = State.get >>= \ st -> State.lift $ readMDA (stateConnections st) d
+oppositeC :: Dart ct -> MoveM s ct (Dart ct)
+oppositeC = undefined --d = State.get >>= \ st -> State.lift $ readMDA (stateConnections st) d
 
 
 emitCircle :: MoveM s ct ()
@@ -109,6 +118,57 @@ flipC crossings = get >>= \ !st -> lift $!
 				Direct  -> Flipped
 				Flipped -> Direct
 				Masked  -> error "flipC: flipping masked crossing"
+
+
+connectC :: [(Dart ct, Dart ct)] -> MoveM s ct ()
+connectC = undefined --connections =
+--	State.get >>= \ st -> State.lift $
+--		reconnect st connections
+
+
+substituteC :: [(Dart ct, Dart ct)] -> MoveM s ct ()
+substituteC = undefined --substitutions = do
+--	reconnections <- mapM (\ (a, b) -> do { ob <- oppositeM b ; return $! (a, ob) }) substitutions
+--	st <- State.get
+--	State.lift $ do
+--		aux <- do
+--			let testSubsts (a, b) =
+--				if a == b
+--					then do
+--						IORef.modifyIORef (stateCircles st) (+ 1)
+--						return False
+--					else return True
+--			arr <- createMDA (stateSource st) id
+--			assignments <- filterM testSubsts substitutions
+--			modifyMDA arr $ map swap assignments
+--			extractMDAState arr
+--		reconnect st $ map (\ (a, b) -> (a, aux b)) reconnections
+--	where
+--		swap (a, b) = (b, a)
+
+
+greedy :: [Dart ct -> MoveM s ct Bool] -> MoveM s ct ()
+greedy = undefined -- reductionsList = iteration
+--	where
+--		iteration = do
+--			darts <- State.get >>= \ st -> State.lift $ return $ allDarts $ stateSource st
+--			changed <- anyM processDart darts
+--			when changed iteration
+
+--		processDart d = do
+--			masked <- State.get >>= \ st -> State.lift $ IOArray.readArray (stateMask st) (fst $ begin d)
+--			if masked == Masked
+--				then return False
+--				else anyM (\ r -> r d) reductionsList
+
+--		anyM :: (Monad m) => (a -> m Bool) -> [a] -> m Bool
+--		anyM _ [] = return False
+--		anyM f (cur : rest) = do
+--			res <- f cur
+--			if res
+--				then return True
+--				else anyM f rest
+
 
 
 {-

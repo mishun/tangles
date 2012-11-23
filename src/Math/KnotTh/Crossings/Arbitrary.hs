@@ -6,10 +6,11 @@ module Math.KnotTh.Crossings.Arbitrary
 	, passOver
 	, passUnder
 	, writhe
+	, invertCrossings
 	) where
 
 import Control.DeepSeq
-import Math.Algebra.Group.D4 (i, c, subGroupDS)
+import Math.Algebra.Group.D4 ((<*>), i, c, subGroupDS)
 import Math.KnotTh.Knotted
 
 
@@ -57,3 +58,7 @@ writhe a b
 	| otherwise                                 = error "writhe: bad path"
 	where
 		d = if passOver b then 1 else -1
+
+
+invertCrossings :: (Knotted k c d) => k ArbitraryCrossing -> k ArbitraryCrossing
+invertCrossings = mapCrossingStates (alterCrossingOrientation (c <*>))

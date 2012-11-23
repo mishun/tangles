@@ -49,8 +49,15 @@ library
         Math.KnotTh.Tangles.Draw
         Math.KnotTh.Tangles.Flypes
         Math.KnotTh.Tangles.NonAlternating
+        Math.KnotTh.Tangles.Generation.ArbitraryGenerator
         Math.KnotTh.Tangles.Generation.FlypeGenerator
+        Math.KnotTh.Tangles.Moves.DoublePass
+        Math.KnotTh.Tangles.Moves.Flype
         Math.KnotTh.Tangles.Moves.Move
+        Math.KnotTh.Tangles.Moves.Pass
+        Math.KnotTh.Tangles.Moves.ReidemeisterIII
+        Math.KnotTh.Tangles.Moves.ReidemeisterReduction
+        Math.KnotTh.Tangles.Moves.Weak
         Math.KnotTh.Tangles.Paths
         Math.KnotTh.Tangles.Projection
         Math.Manifolds.SurfaceGraph
@@ -70,6 +77,7 @@ library
         Graphics.HP.PostScript.Transform
         Graphics.HP.Transform
         Graphics.HP.Units
+        Math.KnotTh.Tangles.Moves.Resting
 
 
 test-suite TestTangles

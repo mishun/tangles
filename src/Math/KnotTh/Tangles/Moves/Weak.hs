@@ -2,6 +2,7 @@ module Math.KnotTh.Tangles.Moves.Weak
 	( neighbours
 	) where
 
+import Data.Maybe
 import Math.KnotTh.Tangles.NonAlternating
 import Math.KnotTh.Tangles.Moves.Move
 
@@ -18,12 +19,12 @@ neighboursBorderCrossing tangle = mapMaybe tryReduceLeg $ allLegs tangle
 			| ya /= opposite ay  = Nothing
 			| otherwise          =
 				Just $ moveZ tangle $ do
-					maskM [a]
+					maskC [a]
 					if qa == ap
 						then do
-							connectM [(xa, ya)]
-							emitCircleM
-						else connectM [(pa, ya), (qa, xa)]
+							connectC [(xa, ya)]
+							emitCircle
+						else connectC [(pa, ya), (qa, xa)]
 			where
 				ax = opposite xa
 
@@ -50,8 +51,8 @@ neighboursBorderLoop tangle = mapMaybe tryReduceLoop $ allLegs tangle
 			| passOver ax == passOver by  = Nothing
 			| otherwise                   =
 				Just $ moveZ tangle $ do
-					substituteM [(abl, ap), (bal, bq)]
-					connectM [(ax, by), (ap, xa), (bq, yb)]
+					substituteC [(abl, ap), (bal, bq)]
+					connectC [(ax, by), (ap, xa), (bq, yb)]
 			where
 				ax = opposite xa
 				abr = nextCCW ax

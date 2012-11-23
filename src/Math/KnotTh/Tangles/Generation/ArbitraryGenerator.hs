@@ -1,12 +1,11 @@
-module Math.KnotTh.Tangles.ArbitraryGenerator
-	( generateArbitrary
+module Math.KnotTh.Tangles.Generation.ArbitraryGenerator
+	( --generateArbitrary
 	) where
-
+{-
 import Data.Word
 import qualified Data.List as List
 import qualified Control.Monad.State.Strict as State
 import Control.Monad
-
 import qualified Data.CRC as CRC
 import qualified Data.EquivalenceClasses as EquivCl
 import qualified Math.KnotTh.Tangles.BorderIncremental.Generator as BIGenerator
@@ -128,3 +127,4 @@ generateArbitrary maxN yield
 		insertDead !diagram !inv = State.modify (\ !c -> EquivCl.insert inv (Composite $ numberOfCrossings diagram) c)
 		contains !inv = State.gets (\ !c -> EquivCl.member inv c)
 		merge !invA !invB = State.modify (\ !c -> EquivCl.join (invA, invB) c)
+-}

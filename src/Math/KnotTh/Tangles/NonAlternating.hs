@@ -3,7 +3,6 @@ module Math.KnotTh.Tangles.NonAlternating
 	, module Math.KnotTh.Tangles
 	, NonAlternatingTangle
 	, isAlternating
-	, invertCrossings
 --	, selfWrithe
 --	, linkingNumber
 	) where
@@ -23,10 +22,6 @@ isAlternating :: NonAlternatingTangle -> Bool
 isAlternating =
 	let altOrBorderEdge d = isLeg (opposite d) || passOver d == passUnder (opposite d)
 	in all altOrBorderEdge . allDarts
-
-
-invertCrossings :: NonAlternatingTangle -> NonAlternatingTangle
-invertCrossings = mapCrossingStates (alterCrossingOrientation (c <*>))
 
 
 {-

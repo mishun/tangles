@@ -2,41 +2,38 @@ module Math.KnotTh.Tangles.Moves.Flype
 	( neighbours
 	) where
 
-import Data.Array ((!))
+import Data.Maybe
+import Data.Array.Unboxed ((!))
+import Control.Monad (when)
 import Math.KnotTh.Tangles.NonAlternating
 import Math.KnotTh.Tangles.Moves.Move
-import Math.KnotTh.Tangles.Util.Resting
+import Math.KnotTh.Tangles.Moves.Resting
 
 
-neighbours :: NonAlterantingTangle -> [(NonAlterantingTangle, Int)]
+neighbours :: NonAlternatingTangle -> [(NonAlternatingTangle, Int)]
 neighbours tangle = mapMaybe tryFlype $ allDarts tangle
 	where
-		tryFlype ab
-			| isLeg ba || isLeg ca        = Nothing
-			| b == c || a == b || a == c  = Nothing
-			| isNothing flype2T           = Nothing
-			| otherwise                   =
-				Just $ moveZ tangle $ do
-					substituteM [(ba, ae), (ca, ad), (ab, rp), (ac, sq)]
-					connectM [(rp, ae), (sq, ad)]
-					flipM $ filter ((!) sub) $ allCrossings tangle
-			where
-				ba = opposite ab
-				ac = nextCCW ab
-				ca = opposite ac
+		tryFlype ab = do
+			let ba = opposite ab
+			let ac = nextCCW ab
+			let ca = opposite ac
+			when (isLeg ba || isLeg ca) Nothing
 
-				a = incidentCrossing ab
-				b = incidentCrossing ba
-				c = incidentCrossing ca
+			let a = incidentCrossing ab
+			let b = incidentCrossing ba
+			let c = incidentCrossing ca
+			when (b == c || a == b || a == c) Nothing
 
-				ae = nextCCW ac
-				ad = nextCW ab
+			let ae = nextCCW ac
+			let ad = nextCW ab
 
-				flype2T =
-					let otherPair (lst, s) =
-						case lst of
-							[x, y] -> Just $! ((x, y), s)
-							_      -> Nothing
-					in restingPart tangle [ba, ca] >>= otherPair
+			((rp, sq), sub) <-
+				restingPart tangle [ba, ca] >>= \ (lst, s) ->
+					case lst of
+						[x, y] -> Just $! ((x, y), s)
+						_      -> Nothing
 
-				((rp, sq), sub) = fromJust flype2T
+			return $! moveZ tangle $ do
+				substituteC [(ba, ae), (ca, ad), (ab, rp), (ac, sq)]
+				connectC [(rp, ae), (sq, ad)]
+				flipC $ filter ((sub !) . crossingIndex) $ allCrossings tangle

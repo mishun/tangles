@@ -2,14 +2,16 @@ module Math.KnotTh.Tangles.Moves.Pass
 	( neighbours
 	) where
 
+import Data.Maybe
+import Data.List (sort, nub)
 import Control.Monad
 import Math.KnotTh.Tangles.NonAlternating
-import Math.KnotTh.Tangles.Util.Resting
+import Math.KnotTh.Tangles.Moves.Resting
 import Math.KnotTh.Tangles.Moves.Move
 import Math.KnotTh.Tangles.Moves.ReidemeisterReduction
 
 
-neighbours :: NonAlterantingTangle -> [(NonAlterantingTangle, Int)]
+neighbours :: NonAlternatingTangle -> [(NonAlternatingTangle, Int)]
 neighbours tangle = mapMaybe tryPass $ allDarts tangle
 	where
 		tryPass ab
@@ -69,22 +71,20 @@ neighbours tangle = mapMaybe tryPass $ allDarts tangle
 				self = restingPart tangle selfIncoming >>= testLen >>= testSelf >>= (return . performPass tangle incoming)
 
 
-performPass :: (Show t, Tangle t c d ArbitraryCrossing) => t -> [d] -> [d] -> (TangleSt.TangleSt ArbitraryCrossing, Int)
+performPass :: NonAlternatingTangle -> [Dart ArbitraryCrossing] -> [Dart ArbitraryCrossing] -> (NonAlternatingTangle, Int)
 performPass tangle incoming outcoming
 	| n < m      = error "performPass: bad sizes"
 	| otherwise  =
 		moveZ tangle $ do
-			substituteM $ (map (\ d -> (d, continuation $ opposite d)) incoming) ++ (zip (map opposite incoming) outcoming)
-			connectM $ zip outcoming $ map (continuation . opposite) incoming
+			substituteC $ (map (\ d -> (d, continuation $ opposite d)) incoming) ++ (zip (map opposite incoming) outcoming)
+			connectC $ zip outcoming $ map (continuation . opposite) incoming
 			when (not $ null toRemove) $ do
-				maskM $ map adjacentCrossing toRemove
+				maskC $ map adjacentCrossing toRemove
 				let p = nextCCW $ opposite $ last toRemove
 				let q = opposite $ nextCW $ opposite $ head toRemove
-				substituteM [(q, p)]
+				substituteC [(q, p)]
 			greedy [reduce1st, reduce2nd]
-
 	where
 		n = length incoming
 		m = length outcoming
-
 		toRemove = drop m incoming
