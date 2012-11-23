@@ -1,6 +1,5 @@
 module Math.KnotTh.Crossings.SubTangle
-	( module Math.KnotTh.Crossings
-	, DirectSumDecompositionType(..)
+	( DirectSumDecompositionType(..)
 	, SubTangleCrossing
 	, subTangle
 	, SubTangleTangle
@@ -24,7 +23,7 @@ module Math.KnotTh.Crossings.SubTangle
 import Data.Array.Unboxed (UArray, (!), listArray)
 import Math.Algebra.Group.Dn (DnSubGroup, pointsUnderSubGroup)
 import Math.Algebra.Group.D4 (ec, D4SubGroup, fromDnSubGroup)
-import Math.KnotTh.Crossings
+import Math.KnotTh.Knotted
 import Math.KnotTh.Tangles
 
 

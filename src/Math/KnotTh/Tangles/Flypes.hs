@@ -29,7 +29,7 @@ flypeCodeLeg leg initialDirection
 				| i >= n || isLeg d              = return ()
 				| isLoner' (incidentCrossing d)  = go i (opposite $ continuation d) (oppositeDirection dir)
 				| otherwise                      = do
-					case crossingCode (crossingState $ incidentCrossing d) dir (dartPlace d) of
+					case crossingCode dir d of
 						(# be, le #) -> do
 							unsafeWrite code (2 * i) be
 							unsafeWrite code (2 * i + 1) le

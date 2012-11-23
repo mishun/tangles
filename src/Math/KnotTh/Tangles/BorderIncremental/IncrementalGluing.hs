@@ -133,7 +133,7 @@ simpleIncrementalGenerator gluing crossingsToGlue maxN yield =
 		yield tangle symmetry
 		when (numberOfCrossings tangle < maxN) $
 			mapM_ dfs $! canonicalGluing gluing $! representativeGluingSites crossingsToGlue node
-	in mapM_ (dfs . makeRoot . crossing') crossingsToGlue
+	in mapM_ (dfs . makeRoot . makeCrossing') crossingsToGlue
 	where
 		makeRoot :: (CrossingType ct) => CrossingState ct -> (Tangle ct, DnSubGroup)
 		makeRoot st = (lonerTangle st, toDnSubGroup $! localCrossingSymmetry $! crossingType st)

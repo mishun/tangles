@@ -148,7 +148,7 @@ rootCodeLeg !root !dir = runST $ do
 		bfs !h = when (h < n) $ do
 			d <- unsafeRead q h
 			nb <- foldMAdjacentDartsFrom d dir look 0
-			case crossingCode (crossingState $ incidentCrossing d) dir (dartPlace d) of
+			case crossingCode dir d of
 				(# be, le #) -> do
 					unsafeWrite rc (2 * h) be
 					unsafeWrite rc (2 * h + 1) $! le + nb `shiftL` 3

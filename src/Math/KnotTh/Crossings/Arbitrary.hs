@@ -1,6 +1,5 @@
 module Math.KnotTh.Crossings.Arbitrary
-	( module Math.KnotTh.Crossings
-	, ArbitraryCrossing(..)
+	( ArbitraryCrossing(..)
 	, overCrossing
 	, underCrossing
 	, arbitraryCrossings
@@ -10,7 +9,7 @@ module Math.KnotTh.Crossings.Arbitrary
 
 import Control.DeepSeq
 import Math.Algebra.Group.D4 (i, c, subGroupDS)
-import Math.KnotTh.Crossings
+import Math.KnotTh.Knotted
 
 
 data ArbitraryCrossing = ArbitraryCrossing deriving (Eq)
@@ -30,11 +29,11 @@ instance Show ArbitraryCrossing where
 
 
 overCrossing :: CrossingState ArbitraryCrossing
-overCrossing = crossing ArbitraryCrossing i
+overCrossing = makeCrossing ArbitraryCrossing i
 
 
 underCrossing :: CrossingState ArbitraryCrossing
-underCrossing = crossing ArbitraryCrossing c
+underCrossing = makeCrossing ArbitraryCrossing c
 
 
 arbitraryCrossings :: [CrossingState ArbitraryCrossing]

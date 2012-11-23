@@ -67,7 +67,7 @@ generateFlypeEquivalentDecomposition maxN yield = do
 		in \ crossings -> nubBy (\ (a, _) (b, _) -> minimumRootCode a == minimumRootCode b) .
 			canonicalGluing directSumType . allGluingSites' crossings 2 . fst
 
-	let makeCrossing template symmetry =
+	let buildCrossingType template symmetry =
 		let sumType
 			| (a == b) && (c == d) && (a /= c)  = DirectSum01_23
 			| (b == c) && (a == d) && (a /= b)  = DirectSum12_30
@@ -80,13 +80,13 @@ generateFlypeEquivalentDecomposition maxN yield = do
 
 	(finalFree, finalCrossings, rootList) <- flip execStateT (0, listArray (1, halfN) $ repeat [], []) $
 		let	lonerSymmetry = maximumSubGroup 4
-			loner = crossing' $ fromTangle lonerProjection lonerSymmetry NonDirectSumDecomposable 0
+			loner = makeCrossing' $ fromTangle lonerProjection lonerSymmetry NonDirectSumDecomposable 0
 		in flip fix (lonerTangle loner, lonerSymmetry) $ \ growTree (rootTemplate, rootSymmetry) -> do
 			(!free, !prevCrossings, !prevList) <- get
-			let rootCrossing = makeCrossing rootTemplate rootSymmetry free
+			let rootCrossing = buildCrossingType rootTemplate rootSymmetry free
 			let rootN = numberOfCrossings $ subTangle rootCrossing
 			let crossings = prevCrossings // [(rootN, rootCrossing : (prevCrossings ! rootN))]
-			let root = lonerTangle $ crossing' rootCrossing
+			let root = lonerTangle $ makeCrossing' rootCrossing
 			put $! (free + 1, crossings, ((root, rootSymmetry), crossings) : prevList)
 
 			let glueTemplates curN ancestor =
@@ -115,7 +115,7 @@ generateFlypeEquivalentDecomposition maxN yield = do
 			free <- get
 			put $! free + 1
 			lift $ yield rootTemplate rootSymmetry
-			grow ((lonerTangle $ crossing' $ makeCrossing rootTemplate rootSymmetry free, rootSymmetry), finalCrossings)
+			grow ((lonerTangle $ makeCrossing' $ buildCrossingType rootTemplate rootSymmetry free, rootSymmetry), finalCrossings)
 
 		let glueTemplates curN ancestor =
 			forM_ [1 .. min halfN (maxN - curN)] $ \ cn ->

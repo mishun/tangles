@@ -36,7 +36,6 @@ import Control.Monad.ST (ST, runST)
 import Control.Monad (forM_, when)
 import Math.Algebra.RotationDirection
 import Math.KnotTh.Knotted
-import Math.KnotTh.Crossings
 
 
 data Dart ct = Dart !(Tangle ct) {-# UNPACK #-} !Int {-# UNPACK #-} !Int

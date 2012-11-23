@@ -18,7 +18,6 @@ import Data.Array.Unsafe (unsafeFreeze)
 import Control.Monad.ST (ST, runST)
 import Control.Monad (when, forM_)
 import Math.Algebra.RotationDirection
-import Math.KnotTh.Crossings
 import Math.KnotTh.Knotted
 
 

@@ -1,13 +1,12 @@
 module Math.KnotTh.Crossings.Projection
-	( module Math.KnotTh.Crossings
-	, ProjectionCrossing(..)
+	( ProjectionCrossing(..)
 	, projectionCrossing
 	, projectionCrossings
 	) where
 
 import Control.DeepSeq
 import Math.Algebra.Group.D4 (subGroupD4)
-import Math.KnotTh.Crossings
+import Math.KnotTh.Knotted
 
 
 data ProjectionCrossing = ProjectionCrossing deriving (Eq)
@@ -27,7 +26,7 @@ instance Show ProjectionCrossing where
 
 
 projectionCrossing :: CrossingState ProjectionCrossing
-projectionCrossing = crossing' ProjectionCrossing
+projectionCrossing = makeCrossing' ProjectionCrossing
 
 
 projectionCrossings :: [CrossingState ProjectionCrossing]

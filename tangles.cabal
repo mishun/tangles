@@ -35,7 +35,6 @@ library
         Math.Algebra.RotationDirection
         Math.Combinatorics.ChordDiagrams.Generator
         Math.Combinatorics.Strings.Lyndon
-        Math.KnotTh.Crossings
         Math.KnotTh.Crossings.Arbitrary
         Math.KnotTh.Crossings.Projection
         Math.KnotTh.Crossings.SubTangle
