@@ -55,7 +55,7 @@ generateFlypeEquivalentDecomposition maxN yield = do
 						case additionalFlypeSymmetry (crossingTangle root) of
 							Just x  -> addSymmetryToSubGroup s x
 							Nothing -> s
-				in case (isLoner' root, isLoner' $ incidentCrossing $ opposite leg, isLoner' $ incidentCrossing $ opposite coLeg) of
+				in case (isLonerInside root, isLonerInside $ incidentCrossing $ opposite leg, isLonerInside $ incidentCrossing $ opposite coLeg) of
 					(False, False, False) -> return $! s
 					(True , True , _    ) -> return $! flypeS
 					(True , False, False) ->

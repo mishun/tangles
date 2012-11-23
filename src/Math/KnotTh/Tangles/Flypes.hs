@@ -26,9 +26,9 @@ flypeCodeLeg leg initialDirection
 
 		let	{-# INLINE go #-}
 			go !i !d !dir
-				| i >= n || isLeg d              = return ()
-				| isLoner' (incidentCrossing d)  = go i (opposite $ continuation d) (oppositeDirection dir)
-				| otherwise                      = do
+				| i >= n || isLeg d                   = return ()
+				| isLonerInside (incidentCrossing d)  = go i (opposite $ continuation d) (oppositeDirection dir)
+				| otherwise                           = do
 					case crossingCode dir d of
 						(# be, le #) -> do
 							unsafeWrite code (2 * i) be

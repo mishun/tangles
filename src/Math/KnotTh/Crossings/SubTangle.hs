@@ -6,15 +6,11 @@ module Math.KnotTh.Crossings.SubTangle
 	, fromTangle
 	, fromTangle'
 	, tangleInside
-	, tangleInside'
 	, numberOfCrossingsInside
-	, numberOfCrossingsInside'
-	, isLoner
-	, isLoner'
+	, isLonerInside
 	, numberOfCrossingsAfterSubstitution
 	, isCrossingOrientationInverted'
 	, subTangleLegFromDart
-	-- , directSumDecompositionTypeById
 	, directSumDecompositionTypeInside
 	, directSumDecompositionType
 	, substitute
@@ -28,6 +24,12 @@ import Math.KnotTh.Tangles
 
 
 data DirectSumDecompositionType = NonDirectSumDecomposable | DirectSum01_23 | DirectSum12_30 deriving (Eq, Show)
+
+
+changeSumType :: DirectSumDecompositionType -> DirectSumDecompositionType
+changeSumType NonDirectSumDecomposable = NonDirectSumDecomposable
+changeSumType DirectSum01_23 = DirectSum12_30
+changeSumType DirectSum12_30 = DirectSum01_23
 
 
 data SubTangleCrossing ct = SubTangle
@@ -80,91 +82,63 @@ fromTangle' tangle symmetry sumType code
 
 
 {-# INLINE tangleInside #-}
-tangleInside :: (CrossingType ct) => CrossingState (SubTangleCrossing ct) -> Tangle ct
-tangleInside = subTangle . crossingType
-
-
-{-# INLINE tangleInside' #-}
-tangleInside' :: (CrossingType ct) => Crossing (SubTangleCrossing ct) -> Tangle ct
-tangleInside' = tangleInside . crossingState
+tangleInside :: (CrossingType ct, Knotted k c d) => c (SubTangleCrossing ct) -> Tangle ct
+tangleInside = subTangle . crossingType . crossingState
 
 
 {-# INLINE numberOfCrossingsInside #-}
-numberOfCrossingsInside :: (CrossingType ct) => CrossingState (SubTangleCrossing ct) -> Int
+numberOfCrossingsInside :: (CrossingType ct, Knotted k c d) => c (SubTangleCrossing ct) -> Int
 numberOfCrossingsInside = numberOfCrossings . tangleInside
 
-
+{-
 {-# INLINE numberOfCrossingsInside' #-}
 numberOfCrossingsInside' :: (CrossingType ct) => Crossing (SubTangleCrossing ct) -> Int
 numberOfCrossingsInside' = numberOfCrossingsInside . crossingState
+-}
 
+{-# INLINE isLonerInside #-}
+isLonerInside :: (CrossingType ct, Knotted k c d) => c (SubTangleCrossing ct) -> Bool
+isLonerInside = (== 1) . numberOfCrossingsInside
 
-{-# INLINE isLoner #-}
-isLoner :: (CrossingType ct) => CrossingState (SubTangleCrossing ct) -> Bool
-isLoner = (== 1) . numberOfCrossingsInside
-
-
+{-
 {-# INLINE isLoner' #-}
 isLoner' :: (CrossingType ct) => Crossing (SubTangleCrossing ct) -> Bool
 isLoner' = (== 1) . numberOfCrossingsInside'
-
+-}
 
 numberOfCrossingsAfterSubstitution :: (CrossingType ct) => SubTangleTangle ct -> Int
-numberOfCrossingsAfterSubstitution tangle = sum $! map numberOfCrossingsInside' $! allCrossings tangle
-
-
-{-# INLINE isCrossingOrientationInverted' #-}
-isCrossingOrientationInverted' :: (CrossingType ct) => Crossing (SubTangleCrossing ct) -> Bool
-isCrossingOrientationInverted' = isCrossingOrientationInverted . crossingState
+numberOfCrossingsAfterSubstitution = sum . map numberOfCrossingsInside . allCrossings
 
 
 {-# INLINE subTangleLegFromDart #-}
-subTangleLegFromDart :: (CrossingType ct) => Dart (SubTangleCrossing ct) -> Dart ct
-subTangleLegFromDart d =
-	let c = crossingState $! incidentCrossing d
-	in nthLeg (tangleInside c) $! crossingLegIdByDart d
-
-
-{-# INLINE directSumDecompositionType' #-}
-directSumDecompositionType' :: CrossingState (SubTangleCrossing ct) -> DirectSumDecompositionType
-directSumDecompositionType' = _sumType . crossingType
-
-
-directSumDecompositionTypeById :: CrossingState (SubTangleCrossing ct) -> Int -> DirectSumDecompositionType
-directSumDecompositionTypeById cr p =
-	case directSumDecompositionType' cr of
-		NonDirectSumDecomposable   -> NonDirectSumDecomposable
-		DirectSum01_23 | f         -> DirectSum01_23
-		               | otherwise -> DirectSum12_30
-		DirectSum12_30 | f         -> DirectSum12_30
-		               | otherwise -> DirectSum01_23
-	where
-		f = isCrossingOrientationInverted cr == odd (crossingLegByDart cr p)
+subTangleLegFromDart :: (CrossingType ct, Knotted k c d) => d (SubTangleCrossing ct) -> Dart ct
+subTangleLegFromDart d = nthLeg (tangleInside $ incidentCrossing d) $! crossingLegIdByDart d
 
 
 directSumDecompositionTypeInside :: (CrossingType ct, Knotted k c d) => d (SubTangleCrossing ct) -> DirectSumDecompositionType
-directSumDecompositionTypeInside d =
-	case _sumType $ crossingType cr of
-		NonDirectSumDecomposable   -> NonDirectSumDecomposable
-		DirectSum01_23 | f         -> DirectSum01_23
-		               | otherwise -> DirectSum12_30
-		DirectSum12_30 | f         -> DirectSum12_30
-		               | otherwise -> DirectSum01_23
+directSumDecompositionTypeInside d
+	| f          = changeSumType st
+	| otherwise  = st
 	where
-		cr = crossingState $! incidentCrossing d
-		f = isCrossingOrientationInverted cr == odd (crossingLegIdByDart d)
+		st = _sumType $ crossingType $ crossingState $ incidentCrossing d
+		f = isCrossingOrientationInverted (incidentCrossing d) /= odd (crossingLegIdByDart d)
 
 
 directSumDecompositionType :: (CrossingType ct) => CrossingState (SubTangleCrossing ct) -> DirectSumDecompositionType
-directSumDecompositionType c = directSumDecompositionTypeById c 0
+directSumDecompositionType c
+	| f          = changeSumType st
+	| otherwise  = st
+	where
+		st = _sumType $ crossingType c
+		f = isCrossingOrientationInverted' c /= odd (crossingLegIdByDartId c 0)
 
 
 substitute :: (CrossingType ct) => Tangle (SubTangleCrossing ct) -> Tangle ct
 substitute tangle =
 	fromLists (map oppositeExt $! allLegs tangle) $!
 		let connections b = do
-			let rev = isCrossingOrientationInverted' b
-			!c <- allCrossings $! tangleInside' b
+			let rev = isCrossingOrientationInverted b
+			!c <- allCrossings $! tangleInside b
 			let nb = map (oppositeInt b) $! incidentDarts c
 			let st
 				| rev        = alterCrossingOrientation (ec <*>) $! crossingState c
@@ -173,14 +147,16 @@ substitute tangle =
 		in concatMap connections $! allCrossings tangle
 	where
 		offset :: UArray Int Int
-		offset = listArray (1, numberOfCrossings tangle) $! scanl (\ !i !c -> i + numberOfCrossingsInside' c) 0 $! allCrossings tangle
+		offset = listArray (1, numberOfCrossings tangle) $! scanl (\ !i !c -> i + numberOfCrossingsInside c) 0 $! allCrossings tangle
 
 		oppositeInt b u
-			| isLeg v    = oppositeExt $! nthIncidentDart b $! crossingDartByLeg (crossingState b) $! legPlace v
-			| otherwise  = ((offset ! crossingIndex b) + crossingIndex c, if isCrossingOrientationInverted' b then 3 - dartPlace v else dartPlace v)
+			| isLeg v                          = oppositeExt $! dartByCrossingLegId b (legPlace v)
+			| isCrossingOrientationInverted b  = (w, 3 - dartPlace v)
+			| otherwise                        = (w, dartPlace v)
 			where
 				v = opposite u
 				c = incidentCrossing v
+				w = (offset ! crossingIndex b) + crossingIndex c
 
 		oppositeExt u
 			| isLeg v    = (0, legPlace v)

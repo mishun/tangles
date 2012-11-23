@@ -4,13 +4,15 @@ module Math.KnotTh.Knotted
 	, CrossingState
 	, crossingType
 	, isCrossingOrientationInverted
-	, crossingLegByDart
-	, crossingDartByLeg
-	, crossingCode
+	, isCrossingOrientationInverted'
+	, crossingLegIdByDartId
 	, crossingLegIdByDart
+	, dartIdByCrossingLegId
+	, dartByCrossingLegId
 	, alterCrossingOrientation
 	, makeCrossing
 	, makeCrossing'
+	, crossingCode
 
 	, Knotted(..)
 	, nextDir
@@ -72,23 +74,33 @@ instance (Show ct) => Show (CrossingState ct) where
 
 
 {-# INLINE isCrossingOrientationInverted #-}
-isCrossingOrientationInverted :: CrossingState ct -> Bool
-isCrossingOrientationInverted = hasReflection . orientation
+isCrossingOrientationInverted :: (CrossingType ct, Knotted k c d) => c ct -> Bool
+isCrossingOrientationInverted = hasReflection . orientation . crossingState
 
 
-{-# INLINE crossingLegByDart #-}
-crossingLegByDart :: CrossingState ct -> Int -> Int
-crossingLegByDart cr = permute (inverse $! orientation cr)
+{-# INLINE isCrossingOrientationInverted' #-}
+isCrossingOrientationInverted' :: CrossingState ct -> Bool
+isCrossingOrientationInverted' = hasReflection . orientation
 
 
-{-# INLINE crossingDartByLeg #-}
-crossingDartByLeg :: CrossingState ct -> Int -> Int
-crossingDartByLeg cr = permute (orientation cr)
+{-# INLINE crossingLegIdByDartId #-}
+crossingLegIdByDartId :: CrossingState ct -> Int -> Int
+crossingLegIdByDartId cr = permute (inverse $! orientation cr)
 
 
 {-# INLINE crossingLegIdByDart #-}
 crossingLegIdByDart :: (CrossingType ct, Knotted t c d) => d ct -> Int
-crossingLegIdByDart d = permute (inverse $! orientation $! crossingState $! incidentCrossing d) (dartPlace d)
+crossingLegIdByDart d = crossingLegIdByDartId (crossingState $ incidentCrossing d) (dartPlace d)
+
+
+{-# INLINE dartIdByCrossingLegId #-}
+dartIdByCrossingLegId :: CrossingState ct -> Int -> Int
+dartIdByCrossingLegId cr = permute (orientation cr)
+
+
+{-# INLINE dartByCrossingLegId #-}
+dartByCrossingLegId :: (CrossingType ct, Knotted k c d) => c ct -> Int -> d ct
+dartByCrossingLegId c = nthIncidentDart c . dartIdByCrossingLegId (crossingState c)
 
 
 alterCrossingOrientation :: (D4 -> D4) -> CrossingState ct -> CrossingState ct
