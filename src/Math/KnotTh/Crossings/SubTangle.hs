@@ -154,7 +154,7 @@ substitute tangle =
 			!c <- allCrossings $! tangleInside' b
 			let nb = map (oppositeInt b) $! incidentDarts c
 			let st
-				| rev        = modifyCrossingOrientation (ec <*>) $! crossingState c
+				| rev        = alterCrossingOrientation (ec <*>) $! crossingState c
 				| otherwise  = crossingState c
 			return $! (if rev then reverse nb else nb, st)
 		in concatMap connections $! allCrossings tangle

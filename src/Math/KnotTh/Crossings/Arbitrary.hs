@@ -3,8 +3,8 @@ module Math.KnotTh.Crossings.Arbitrary
 	, overCrossing
 	, underCrossing
 	, arbitraryCrossings
-	, passOverById
-	, passUnderById
+	, passOver
+	, passUnder
 	) where
 
 import Control.DeepSeq
@@ -40,9 +40,9 @@ arbitraryCrossings :: [CrossingState ArbitraryCrossing]
 arbitraryCrossings = [overCrossing, underCrossing]
 
 
-passOverById :: CrossingState ArbitraryCrossing -> Int -> Bool
-passOverById cr = even . crossingLegByDart cr
+passOver :: (Knotted k c d) => d ArbitraryCrossing -> Bool
+passOver = even . crossingLegIdByDart
 
 
-passUnderById :: CrossingState ArbitraryCrossing -> Int -> Bool
-passUnderById cr = not . passOverById cr
+passUnder :: (Knotted k c d) => d ArbitraryCrossing -> Bool
+passUnder = odd . crossingLegIdByDart

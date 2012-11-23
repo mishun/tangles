@@ -2,8 +2,6 @@ module Math.KnotTh.Tangles.NonAlternating
 	( module Math.KnotTh.Crossings.Arbitrary
 	, module Math.KnotTh.Tangles
 	, NonAlternatingTangle
-	, passOver
-	, passUnder
 	, isAlternating
 	, invertCrossings
 --	, selfWrithe
@@ -21,16 +19,6 @@ import Math.KnotTh.Tangles.Paths
 type NonAlternatingTangle = Tangle ArbitraryCrossing
 
 
-passOver :: Dart ArbitraryCrossing -> Bool
-passOver d
-	| isLeg d    = error "passOver: from leg"
-	| otherwise  = passOverById (crossingState $ incidentCrossing d) $ dartPlace d
-
-
-passUnder :: Dart ArbitraryCrossing -> Bool
-passUnder = not . passOver
-
-
 isAlternating :: NonAlternatingTangle -> Bool
 isAlternating =
 	let altOrBorderEdge d = isLeg (opposite d) || passOver d == passUnder (opposite d)
@@ -38,7 +26,7 @@ isAlternating =
 
 
 invertCrossings :: NonAlternatingTangle -> NonAlternatingTangle
-invertCrossings = mapCrossingStates (modifyCrossingOrientation (c <*>))
+invertCrossings = mapCrossingStates (alterCrossingOrientation (c <*>))
 
 
 {-

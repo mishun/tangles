@@ -3,13 +3,14 @@ module Math.KnotTh.Knotted
 	( CrossingType(..)
 	, CrossingState
 	, crossingType
-	, makeCrossing
-	, makeCrossing'
-	, modifyCrossingOrientation
 	, isCrossingOrientationInverted
 	, crossingLegByDart
 	, crossingDartByLeg
 	, crossingCode
+	, crossingLegIdByDart
+	, alterCrossingOrientation
+	, makeCrossing
+	, makeCrossing'
 
 	, Knotted(..)
 	, nextDir
@@ -70,28 +71,6 @@ instance (Show ct) => Show (CrossingState ct) where
 	show c = concat [ "(" , show (orientation c), " ", show (crossingType c), ")"]
 
 
-makeCrossing :: (CrossingType ct) => ct -> D4 -> CrossingState ct
-makeCrossing !ct !g = Crossing
-	{ code         = crossingTypeCode ct
-	, orientation  = g
-	, symmetry     = localCrossingSymmetry ct
-	, crossingType = ct
-	}
-
-
-makeCrossing' :: (CrossingType ct) => ct -> CrossingState ct
-makeCrossing' ct = makeCrossing ct i
-
-
-modifyCrossingOrientation :: (D4 -> D4) -> CrossingState ct -> CrossingState ct
-modifyCrossingOrientation f st = Crossing
-	{ code         = code st
-	, orientation  = f $! orientation st
-	, symmetry     = symmetry st
-	, crossingType = crossingType st
-	}
-
-
 {-# INLINE isCrossingOrientationInverted #-}
 isCrossingOrientationInverted :: CrossingState ct -> Bool
 isCrossingOrientationInverted = hasReflection . orientation
@@ -105,6 +84,33 @@ crossingLegByDart cr = permute (inverse $! orientation cr)
 {-# INLINE crossingDartByLeg #-}
 crossingDartByLeg :: CrossingState ct -> Int -> Int
 crossingDartByLeg cr = permute (orientation cr)
+
+
+{-# INLINE crossingLegIdByDart #-}
+crossingLegIdByDart :: (CrossingType ct, Knotted t c d) => d ct -> Int
+crossingLegIdByDart d = permute (inverse $! orientation $! crossingState $! incidentCrossing d) (dartPlace d)
+
+
+alterCrossingOrientation :: (D4 -> D4) -> CrossingState ct -> CrossingState ct
+alterCrossingOrientation f st = Crossing
+	{ code         = code st
+	, orientation  = f $! orientation st
+	, symmetry     = symmetry st
+	, crossingType = crossingType st
+	}
+
+
+makeCrossing :: (CrossingType ct) => ct -> D4 -> CrossingState ct
+makeCrossing !ct !g = Crossing
+	{ code         = crossingTypeCode ct
+	, orientation  = g
+	, symmetry     = localCrossingSymmetry ct
+	, crossingType = ct
+	}
+
+
+makeCrossing' :: (CrossingType ct) => ct -> CrossingState ct
+makeCrossing' ct = makeCrossing ct i
 
 
 {-# INLINE crossingCode #-}
