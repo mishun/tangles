@@ -13,7 +13,6 @@ import Math.KnotTh.Knotted
 import Math.KnotTh.Tangles.Projection
 import Math.KnotTh.Tangles.Draw
 import Math.KnotTh.Tangles.BorderIncremental.IncrementalGluing
-import Math.KnotTh.Tangles.BorderIncremental.RootingTest
 import Math.KnotTh.Tangles.Generation.FlypeGenerator
 import Graphics.HP
 
@@ -66,30 +65,14 @@ main = do
 	printTable "Template projections" False (simpleIncrementalGenerator templateProjectionType [ProjectionCrossing]) 9
 	printTable "Alternating tangles" False generateFlypeEquivalent 8
 
-	{-
 	writePostScriptFile "TestTangleGenerator.ps" $ do
 		let a4Width = 595
 		let a4Height = 842
 
 		transformed [shifted (0.2 * a4Width, 0.98 * a4Height), scaled 6] $
-			forM_ tmp' $ \ list -> do
-				forM_ (zip list [0 ..]) $ \ ((code, templ), x) -> do
-					trace (show code ++ "\n" ++ show templ ++ "\n") (return ())
-					transformed [shifted (5 * x, 0)] $ drawTangle 0.01 (tangleProjection templ)
-					transformed [shifted (5 * x + 2.1, 0)] $ drawTangle 0.01 (substitute templ)
-				appendTransform [shifted (0, -2.2)]
-
-			generateFlypeEquivalentDecomposition 8 $ \ template _ -> do
+			generateFlypeEquivalentDecomposition 5 $ \ template _ -> do
 				let tangle = substitute template
-				when (numberOfCrossings tangle == 8 && numberOfLegs tangle == 4) $ do
-					let ok =
-						let ds =
-							let [a, b, c, d] = map adjacentCrossing $ allLegs template
-							in ((a == b) && (c == d) && (a /= c)) || ((b == c) && (a == d) && (a /= b))
-						in numberOfCrossings template == 8 || (any (\ c -> numberOfCrossingsInside' c > 1 && directSumDecompositionType' (crossingState c) == NonDirectSumDecomposable) $ allCrossings template)
-
-					when ok $ do
-						drawTangle 0.01 tangle
-						transformed [shifted (3, 0)] $ drawTangle 0.01 $ tangleProjection template
-						appendTransform [shifted (0, -2.2)]
-	-}
+				when (numberOfCrossings tangle == 5 && numberOfLegs tangle == 4) $ do
+					drawTangle 0.01 tangle
+					transformed [shifted (3, 0)] $ drawTangle 0.01 $ tangleProjection template
+					appendTransform [shifted (0, -2.2)]

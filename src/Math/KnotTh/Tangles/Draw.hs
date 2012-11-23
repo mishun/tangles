@@ -31,10 +31,11 @@ instance DrawableCrossingType ArbitraryCrossing
 drawTangle :: (DrawableCrossingType ct) => Double -> Tangle ct -> Image ()
 drawTangle lineWidth tangle =
 	let	g =
-			let pair d
-				| isLeg d    = (0, let p = legPlace d in if p == 0 then 0 else numberOfLegs tangle - p)
-				| otherwise  = (crossingIndex $ incidentCrossing d, dartPlace d)
-			in G.constructFromList $ (let ls = allLegs tangle in map (pair . opposite) $ head ls : reverse (tail ls)) : (map (map pair . adjacentDarts) $ allCrossings tangle)
+			let	l = numberOfLegs tangle
+				(b, r) = toLists tangle
+				change (0, j) = (0, (l - j) `mod` l)
+				change p = p
+			in G.constructFromList $ map (map change) ((head b : reverse (tail b)) : map fst r)
 		e = embeddingWithVertexRooting (3 :: Int) (G.nthVertex g 0)
 	in crossingDependentImage lineWidth tangle $!
 		let toGraphDart d

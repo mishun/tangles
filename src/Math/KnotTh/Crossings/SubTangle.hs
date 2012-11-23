@@ -22,7 +22,7 @@ module Math.KnotTh.Crossings.SubTangle
 
 import Data.Array.Unboxed (UArray, (!), listArray)
 import Math.Algebra.Group.Dn (DnSubGroup, pointsUnderSubGroup)
-import Math.Algebra.Group.D4 (ec, D4SubGroup, fromDnSubGroup)
+import Math.Algebra.Group.D4 ((<*>), ec, D4SubGroup, fromDnSubGroup)
 import Math.KnotTh.Knotted
 import Math.KnotTh.Tangles
 
@@ -154,7 +154,7 @@ substitute tangle =
 			!c <- allCrossings $! tangleInside' b
 			let nb = map (oppositeInt b) $! incidentDarts c
 			let st
-				| rev        = modifyCrossingOrientation ec $! crossingState c
+				| rev        = modifyCrossingOrientation (ec <*>) $! crossingState c
 				| otherwise  = crossingState c
 			return $! (if rev then reverse nb else nb, st)
 		in concatMap connections $! allCrossings tangle

@@ -12,7 +12,7 @@ module Math.KnotTh.Tangles.NonAlternating
 
 import qualified Data.Map as Map
 import Data.List (foldl')
-import Math.Algebra.Group.D4 (c)
+import Math.Algebra.Group.D4 ((<*>), c)
 import Math.KnotTh.Crossings.Arbitrary
 import Math.KnotTh.Tangles
 import Math.KnotTh.Tangles.Paths
@@ -38,7 +38,7 @@ isAlternating =
 
 
 invertCrossings :: NonAlternatingTangle -> NonAlternatingTangle
-invertCrossings = mapCrossingStates (modifyCrossingOrientation c)
+invertCrossings = mapCrossingStates (modifyCrossingOrientation (c <*>))
 
 
 {-
