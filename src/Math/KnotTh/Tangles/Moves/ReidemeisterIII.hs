@@ -3,7 +3,7 @@ module Math.KnotTh.Tangles.Moves.ReidemeisterIII
 	) where
 
 import Data.Maybe
-import Control.Monad (when)
+import Control.Monad (guard)
 import Math.KnotTh.Tangles.NonAlternating
 import Math.KnotTh.Tangles.Moves.Move
 
@@ -26,27 +26,22 @@ neighbours tangle = mapMaybe try3rdReidemeister $ allDarts tangle
 			let ac = nextCCW ab
 			let ba = opposite ab
 			let ca = opposite ac
-			when (isLeg ba || isLeg ca) Nothing
+			guard $ not (isLeg ba || isLeg ca)
 
 			let bc = nextCW ba
 			let cb = nextCCW ca
-			when (bc /= opposite cb) Nothing
+			guard $ not (bc /= opposite cb)
 
 			let a = incidentCrossing ab
 			let b = incidentCrossing ba
 			let c = incidentCrossing ca
 
-			let abcAreDifferent = (a /= b) && (a /= c) && (b /= c)
-			when (not abcAreDifferent) Nothing
+			guard $ (a /= b) && (a /= c) && (b /= c)
+			guard $ (passOver bc) == (passOver cb)
 
-			let threadMovable = (passOver bc) == (passOver cb)
-			when (not threadMovable) Nothing
-
-			let isBetterRoot =
+			guard $
 				let altRoot = if (passOver ab) == (passOver ba) then ca else bc
 				in ab < altRoot
-
-			when (not isBetterRoot) Nothing
 
 			let ap = continuation ab
 			let aq = nextCW ab

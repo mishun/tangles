@@ -1,4 +1,4 @@
-module Math.KnotTh.Tangles.Generation.FlypeGenerator
+module Math.KnotTh.Tangles.BorderIncremental.FlypeGenerator
 	( generateFlypeEquivalentDecomposition
 	, generateFlypeEquivalent
 	) where

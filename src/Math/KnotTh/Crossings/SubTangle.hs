@@ -6,6 +6,7 @@ module Math.KnotTh.Crossings.SubTangle
 	, fromTangle
 	, fromTangle'
 	, tangleInside
+	, tangleInCrossing
 	, numberOfCrossingsInside
 	, isLoner
 	, isLonerInside
@@ -84,7 +85,12 @@ fromTangle' tangle symmetry sumType code
 
 {-# INLINE tangleInside #-}
 tangleInside :: (CrossingType ct, Knotted k c d) => c (SubTangleCrossing ct) -> Tangle ct
-tangleInside = subTangle . crossingType
+tangleInside = subTangle . crossingTypeInside
+
+
+{-# INLINE tangleInCrossing #-}
+tangleInCrossing :: (CrossingType ct) => CrossingState (SubTangleCrossing ct) -> Tangle ct
+tangleInCrossing = subTangle . crossingType
 
 
 {-# INLINE numberOfCrossingsInside #-}
@@ -94,7 +100,8 @@ numberOfCrossingsInside = numberOfCrossings . tangleInside
 
 {-# INLINE isLoner #-}
 isLoner :: (CrossingType ct) => CrossingState (SubTangleCrossing ct) -> Bool
-isLoner = (== 1) . numberOfCrossings . subTangle . crossingType'
+isLoner = (== 1) . numberOfCrossings . subTangle . crossingType
+
 
 {-# INLINE isLonerInside #-}
 isLonerInside :: (CrossingType ct, Knotted k c d) => c (SubTangleCrossing ct) -> Bool
@@ -115,7 +122,7 @@ directSumDecompositionTypeInside d
 	| f          = changeSumType st
 	| otherwise  = st
 	where
-		st = _sumType $ crossingType $ incidentCrossing d
+		st = _sumType $ crossingTypeInside $ incidentCrossing d
 		f = isCrossingOrientationInverted (incidentCrossing d) /= odd (crossingLegIdByDart d)
 
 
@@ -124,7 +131,7 @@ directSumDecompositionType c
 	| f          = changeSumType st
 	| otherwise  = st
 	where
-		st = _sumType $ crossingType' c
+		st = _sumType $ crossingType c
 		f = isCrossingOrientationInverted' c /= odd (crossingLegIdByDartId c 0)
 
 

@@ -43,14 +43,15 @@ library
         Math.KnotTh.Links.Projection
         Math.KnotTh.Links.TangleStarConstruction
         Math.KnotTh.Tangles
+        Math.KnotTh.Tangles.BorderIncremental.FlypeGenerator
         Math.KnotTh.Tangles.BorderIncremental.IncrementalGluing
         Math.KnotTh.Tangles.BorderIncremental.IncrementalTests
         Math.KnotTh.Tangles.BorderIncremental.RootingTest
+        Math.KnotTh.Tangles.BorderIncremental.SimpleTypes
         Math.KnotTh.Tangles.Draw
         Math.KnotTh.Tangles.Flypes
         Math.KnotTh.Tangles.NonAlternating
         Math.KnotTh.Tangles.Generation.ArbitraryGenerator
-        Math.KnotTh.Tangles.Generation.FlypeGenerator
         Math.KnotTh.Tangles.Moves.DoublePass
         Math.KnotTh.Tangles.Moves.Flype
         Math.KnotTh.Tangles.Moves.Move
@@ -121,7 +122,7 @@ executable TestNonAlternatingGenerator
     default-language:   Haskell2010
     default-extensions: BangPatterns
     ghc-options:        -Wall -O2 -threaded
-    build-depends:      base, array, deepseq, mtl, tangles
+    build-depends:      base, mtl, containers, tangles
     main-is:            TestNonAlternatingGenerator.hs
     hs-source-dirs:     test
     extra-lib-dirs:     ext/gsl-1.15/lib/

@@ -4,7 +4,7 @@ module Math.KnotTh.Tangles.Moves.Flype
 
 import Data.Maybe
 import Data.Array.Unboxed ((!))
-import Control.Monad (when)
+import Control.Monad (guard)
 import Math.KnotTh.Tangles.NonAlternating
 import Math.KnotTh.Tangles.Moves.Move
 import Math.KnotTh.Tangles.Moves.Resting
@@ -17,12 +17,12 @@ neighbours tangle = mapMaybe tryFlype $ allDarts tangle
 			let ba = opposite ab
 			let ac = nextCCW ab
 			let ca = opposite ac
-			when (isLeg ba || isLeg ca) Nothing
+			guard $ isDart ba && isDart ca
 
 			let a = incidentCrossing ab
 			let b = incidentCrossing ba
 			let c = incidentCrossing ca
-			when (b == c || a == b || a == c) Nothing
+			guard $ b /= c && a /= b && a /= c
 
 			let ae = nextCCW ac
 			let ad = nextCW ab

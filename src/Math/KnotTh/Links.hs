@@ -6,6 +6,9 @@ module Math.KnotTh.Links
 	, crossingLink
 	, dartLink
 	, fromList
+	, fromListST
+	, toPair
+	, toList
 	) where
 
 import Data.List (intercalate)
@@ -134,7 +137,11 @@ dartLink (Dart l _) = l
 
 
 fromList :: [([(Int, Int)], CrossingState ct)] -> Link ct
-fromList list = runST $ do
+fromList list = runST $ fromListST list
+
+
+fromListST :: [([(Int, Int)], CrossingState ct)] -> ST s (Link ct)
+fromListST list = do
 	let n = length list
 	cr <- newArray_ (0, 8 * n - 1) :: ST s (STUArray s Int Int)
 	st <- newArray_ (0, n - 1) :: ST s (STArray s Int a)
@@ -160,3 +167,11 @@ fromList list = runST $ do
 		, crossingsArray = cr'
 		, stateArray     = st'
 		}
+
+
+toPair :: Dart ct -> (Int, Int)
+toPair d = (crossingIndex $ incidentCrossing d, dartPlace d)
+
+
+toList :: (CrossingType ct) => Link ct -> [([(Int, Int)], CrossingState ct)]
+toList = map (\ c -> (map (toPair . opposite) $ incidentDarts c, crossingState c)) . allCrossings

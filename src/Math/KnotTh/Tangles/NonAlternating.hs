@@ -3,13 +3,16 @@ module Math.KnotTh.Tangles.NonAlternating
 	, module Math.KnotTh.Tangles
 	, NonAlternatingTangle
 	, isAlternating
---	, selfWrithe
---	, linkingNumber
+	, selfWrithe
+	, linkingNumbers
 	) where
 
 import qualified Data.Map as Map
-import Data.List (foldl')
-import Math.Algebra.Group.D4 ((<*>), c)
+import Data.List (foldl', sort)
+import Data.Array (array, (!))
+import Data.Array.ST (STUArray, newArray, readArray, writeArray)
+import Control.Monad.ST (ST, runST)
+import Control.Monad (when, forM_)
 import Math.KnotTh.Crossings.Arbitrary
 import Math.KnotTh.Tangles
 import Math.KnotTh.Tangles.Paths
@@ -24,39 +27,27 @@ isAlternating =
 	in all altOrBorderEdge . allDarts
 
 
-{-
-crossingWrithe :: Dart ArbitraryCrossing -> Dart ArbitraryCrossing -> Int
-crossingWrithe a b
-	| a == nextCCW b  = d
-	| a == nextCW b   = -d
-	| otherwise       = error "crossingWrithe: something strange"
-	where
-		d = if passOver b then 1 else -1
-
-
-threadWrithe :: [(Dart ArbitraryCrossing, Dart ArbitraryCrossing)] -> Int
-threadWrithe = fst . foldl' edgeWrithe (0, Map.empty)
-	where
-		edgeWrithe (writhe, m) (d, _)
-			| isLeg d          = (writhe, m)
-			| Map.member cr m  = (writhe + crossingWrithe cr ((Map.!) m cr) d, m)
-			| otherwise        = (writhe, Map.insert cr d m)
+selfWrithe :: NonAlternatingTangle -> Int
+selfWrithe =
+	let threadWrithe =
+		let edgeWrithe (!w, !m) (!d, _)
+			| isLeg d          = (w, m)
+			| Map.member cr m  = (w + writhe (m Map.! cr) d, m)
+			| otherwise        = (w, Map.insert cr d m)
 			where
 				cr = incidentCrossing d
+		in fst . foldl' edgeWrithe (0, Map.empty)
+	in sum . map threadWrithe . allThreads
 
 
-selfWrithe :: NonAlternatingTangle -> Int
-selfWrithe = sum . map threadWrithe . allThreads
-
-
-linkingNumber :: NonAlternatingTangle -> [Int]
-linkingNumber tangle = sort $ map abs $ concatMap threadLinkings threads
+linkingNumbers :: NonAlternatingTangle -> [Int]
+linkingNumbers tangle = sort $ map abs $ concatMap threadLinkings threads
 	where
 		threads = zip (allThreads tangle) [1 ..]
 
 		n = length threads
 
-		threadId = Array.array (dartsRange tangle) $ z ++ concatMap threadNum threads
+		threadId = array (0, 2 * numberOfEdges tangle - 1) $ map (\ (d, x) -> (dartArrIndex d, x)) $ z ++ concatMap threadNum threads
 			where
 				z = zip (allDarts tangle) (repeat (0 :: Int))
 				threadNum (thread, i) = zip (filter isDart $ map snd thread) (repeat i)
@@ -77,6 +68,5 @@ linkingNumber tangle = sort $ map abs $ concatMap threadLinkings threads
 					| otherwise  = error "no thread"
 					where
 						p = if passOver d then 1 else -1
-						l = threadId ! nextCCW d
-						r = threadId ! nextCW d
--}
+						l = threadId ! dartArrIndex (nextCCW d)
+						r = threadId ! dartArrIndex (nextCW d)

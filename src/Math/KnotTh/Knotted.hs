@@ -2,8 +2,8 @@
 module Math.KnotTh.Knotted
 	( CrossingType(..)
 	, CrossingState
+	, crossingTypeInside
 	, crossingType
-	, crossingType'
 	, isCrossingOrientationInverted
 	, isCrossingOrientationInverted'
 	, crossingLegIdByDartId
@@ -14,7 +14,6 @@ module Math.KnotTh.Knotted
 	, makeCrossing
 	, makeCrossing'
 	, crossingCode
-
 	, Knotted(..)
 	, nextDir
 	, continuation
@@ -74,14 +73,14 @@ instance (Show ct) => Show (CrossingState ct) where
 	show c = concat [ "(" , show (orientation c), " ", show (stateType c), ")"]
 
 
+{-# INLINE crossingTypeInside #-}
+crossingTypeInside :: (CrossingType ct, Knotted k c d) => c ct -> ct
+crossingTypeInside = stateType . crossingState
+
+
 {-# INLINE crossingType #-}
-crossingType :: (CrossingType ct, Knotted k c d) => c ct -> ct
-crossingType = stateType . crossingState
-
-
-{-# INLINE crossingType' #-}
-crossingType' :: (CrossingType ct) => CrossingState ct -> ct
-crossingType' = stateType
+crossingType :: (CrossingType ct) => CrossingState ct -> ct
+crossingType = stateType
 
 
 {-# INLINE isCrossingOrientationInverted #-}
@@ -115,12 +114,7 @@ dartByCrossingLegId c = nthIncidentDart c . dartIdByCrossingLegId (crossingState
 
 
 alterCrossingOrientation :: (D4 -> D4) -> CrossingState ct -> CrossingState ct
-alterCrossingOrientation f st = Crossing
-	{ code        = code st
-	, orientation = f $! orientation st
-	, symmetry    = symmetry st
-	, stateType   = stateType st
-	}
+alterCrossingOrientation f crossing = crossing { orientation = f $! orientation crossing }
 
 
 makeCrossing :: (CrossingType ct) => ct -> D4 -> CrossingState ct
@@ -145,7 +139,6 @@ crossingCode dir d =
 	in (# code cr, equivalenceClassId (symmetry cr) t #)
 
 
-
 class Knotted (k :: * -> *) (c :: * -> *) (d :: * -> *) | k -> d, k -> c, c -> k, c -> d, d -> k, d -> c where
 	numberOfCrossings :: k ct -> Int
 	numberOfEdges     :: k ct -> Int
@@ -163,7 +156,8 @@ class Knotted (k :: * -> *) (c :: * -> *) (d :: * -> *) | k -> d, k -> c, c -> k
 	dartPlace         :: d ct -> Int
 	dartOwner         :: d ct -> k ct
 
-	dartArrIndex           :: d ct -> Int
+	dartArrIndex      :: d ct -> Int
+
 	forMIncidentDarts      :: (Monad m) => c ct -> (d ct -> m ()) -> m ()
 	foldMIncidentDarts     :: (Monad m) => c ct -> (d ct -> s -> m s) -> s -> m s
 	foldMIncidentDartsFrom :: (Monad m) => d ct -> RotationDirection -> (d ct -> s -> m s) -> s -> m s

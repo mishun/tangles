@@ -1,8 +1,5 @@
 module Math.KnotTh.Tangles.BorderIncremental.IncrementalGluing
 	( GluingType(..)
-	, primeProjectionType
-	, reducedProjectionType
-	, templateProjectionType
 	, allGluingSites'
 	, allGluingSites
 	, representativeGluingSites'
@@ -14,43 +11,13 @@ module Math.KnotTh.Tangles.BorderIncremental.IncrementalGluing
 import Control.Monad (when, guard)
 import Math.Algebra.Group.Dn (DnSubGroup, pointsUnderSubGroup, rotationPeriod, hasReflectionPart, mirroredZero)
 import Math.Algebra.Group.D4 (e, ec2, ec3, toDnSubGroup)
-import Math.KnotTh.Crossings.Projection
 import Math.KnotTh.Tangles
 import Math.KnotTh.Tangles.BorderIncremental.RootingTest
-import Math.KnotTh.Tangles.BorderIncremental.IncrementalTests
 
 
 data GluingType ct s = GluingType
-	{ preGlueTest     :: CrossingState ct -> Dart ct -> Int -> Bool
-	, postGlueTest    :: Crossing ct -> Int -> Dart ct -> DnSubGroup -> Maybe s
-	}
-
-
-primeProjectionType :: GluingType ProjectionCrossing DnSubGroup
-primeProjectionType = GluingType
-	{ preGlueTest     = \ _ _ _ -> True
-	, postGlueTest    = \ _ _ _ s -> return $! s
-	}
-
-
-reducedProjectionType :: GluingType ProjectionCrossing DnSubGroup
-reducedProjectionType = GluingType
-	{ preGlueTest     = const testMultiEdges
-	, postGlueTest    = \ _ _ _ s -> return $! s
-	}
-
-
-templateProjectionType :: GluingType ProjectionCrossing DnSubGroup
-templateProjectionType = GluingType
-	{ preGlueTest     = \ _ leg gl ->
-		let	t = dartTangle leg
-			n = numberOfCrossings t
-			l = numberOfLegs t
-		in (n == 1 || l > 4) && testMultiEdges leg gl
-	, postGlueTest    = \ root gl _ s ->
-		if gl < 3 || testFlow4 root
-			then return $! s
-			else Nothing
+	{ preGlueTest  :: CrossingState ct -> Dart ct -> Int -> Bool
+	, postGlueTest :: Crossing ct -> Int -> Dart ct -> DnSubGroup -> Maybe s
 	}
 
 
@@ -136,4 +103,4 @@ simpleIncrementalGenerator gluing crossingsToGlue maxN yield =
 	in mapM_ (dfs . makeRoot . makeCrossing') crossingsToGlue
 	where
 		makeRoot :: (CrossingType ct) => CrossingState ct -> (Tangle ct, DnSubGroup)
-		makeRoot st = (lonerTangle st, toDnSubGroup $! localCrossingSymmetry $! crossingType' st)
+		makeRoot st = (lonerTangle st, toDnSubGroup $! localCrossingSymmetry $! crossingType st)

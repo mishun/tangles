@@ -1,27 +1,31 @@
 module Math.KnotTh.Tangles.Generation.ArbitraryGenerator
-	( --generateArbitrary
+	( generateArbitrary
 	) where
-{-
-import Data.Word
-import qualified Data.List as List
-import qualified Control.Monad.State.Strict as State
-import Control.Monad
-import qualified Data.CRC as CRC
-import qualified Data.EquivalenceClasses as EquivCl
-import qualified Math.KnotTh.Tangles.BorderIncremental.Generator as BIGenerator
-import qualified Math.KnotTh.Tangles.BorderIncremental.Tests as BITests
-import qualified Math.KnotTh.Tangles.Util as Util
-import qualified Math.KnotTh.Tangles.Util.Connectivity as Connectivity
-import qualified Math.KnotTh.Tangles.Util.Alternating as Alternating
+
+--import Data.Word
+--import qualified Data.List as List
+--import qualified Control.Monad.State.Strict as State
+--import Control.Monad
+--import qualified Data.CRC as CRC
+--import qualified Data.EquivalenceClasses as EquivCl
+--import qualified Math.KnotTh.Tangles.BorderIncremental.Generator as BIGenerator
+--import qualified Math.KnotTh.Tangles.BorderIncremental.Tests as BITests
+--import qualified Math.KnotTh.Tangles.Util as Util
+--import qualified Math.KnotTh.Tangles.Util.Connectivity as Connectivity
+--import qualified Math.KnotTh.Tangles.Util.Alternating as Alternating
+
+import Control.Monad.State.Strict (execState, get, put)
+import Math.KnotTh.Tangles.NonAlternating
+import Math.KnotTh.Tangles.BorderIncremental.SimpleTypes
 import qualified Math.KnotTh.Tangles.Moves.ReidemeisterIII as ReidemeisterIII
 import qualified Math.KnotTh.Tangles.Moves.ReidemeisterReduction as ReidemeisterReduction
 import qualified Math.KnotTh.Tangles.Moves.Pass as Pass
 import qualified Math.KnotTh.Tangles.Moves.Flype as Flype
-import qualified Math.KnotTh.Tangles.Moves.Weak as Weak
+--import qualified Math.KnotTh.Tangles.Moves.Weak as Weak
 import Math.KnotTh.Crossings.Arbitrary
 import Math.KnotTh.Tangles
 
-
+{-
 data DiagramInfo = Wrong | Ok !(Tangle ArbitraryCrossing) | Composite Int
 
 
@@ -82,16 +86,22 @@ invariant !diagram = Util.diskHomeomorphismInvariant diagram
 
 bad :: [Int]
 bad = []
--}
+-}-}
 
-generateArbitrary :: (Monad m) => Int -> (Tangle ArbitraryCrossing -> m ()) -> m ()
+generateArbitrary :: (Monad m) => Int -> (NonAlternatingTangle -> m ()) -> m ()
 generateArbitrary maxN yield
 	| maxN < 1   = error "generateArbitrary: maxN must be at least 1"
-	| otherwise  = mapM_ yield diagrams
-	where
+	| otherwise  =
+		let diagrams = classes
+			where
+				classes =
+					let yieldD t _ = get >>= \ l -> put $! t : l
+					in execState (simpleIncrementalGenerator primeIrreducibleDiagramType [ArbitraryCrossing] maxN yieldD) []
+		in mapM_ yield diagrams
+{-	where
 		diagrams = mapMaybe extractDiagram $ EquivCl.classes classes
 
-		classes = State.execState generator $! EquivCl.singleton mergeInfo bad Wrong
+		classes = execState generator $! EquivCl.singleton mergeInfo bad Wrong
 			where
 				generator = BIGenerator.generateFromCrossings test [ArbitraryCrossing] maxN processDiagram
 				test = (BITests.preTestIrreducibleArbitraryForTriangle (maxN + 0), BITests.postTestProjection)

@@ -21,6 +21,7 @@ module Math.KnotTh.Tangles
 	, glueToBorderST
 	, fromLists
 	, fromListsST
+	, toPair
 	, toLists
 	) where
 
@@ -384,11 +385,13 @@ fromListsST border list = do
 		}
 
 
-toLists :: (CrossingType ct) => Tangle ct -> ([(Int, Int)], [([(Int, Int)], CrossingState ct)])
-toLists tangle = (map (toPair . opposite) $ allLegs tangle, map crToList $ allCrossings tangle)
-	where
-		toPair d
-			| isLeg d    = (0, legPlace d)
-			| otherwise  = (crossingIndex $ incidentCrossing d, dartPlace d)
+toPair :: Dart ct -> (Int, Int)
+toPair d
+	| isLeg d    = (0, legPlace d)
+	| otherwise  = (crossingIndex $ incidentCrossing d, dartPlace d)
 
-		crToList c = (map (toPair . opposite) $ incidentDarts c, crossingState c)
+
+toLists :: (CrossingType ct) => Tangle ct -> ([(Int, Int)], [([(Int, Int)], CrossingState ct)])
+toLists tangle =
+	let crToList c = (map (toPair . opposite) $ incidentDarts c, crossingState c)
+	in (map (toPair . opposite) $ allLegs tangle, map crToList $ allCrossings tangle)

@@ -2,7 +2,7 @@ module Math.KnotTh.Tangles.Draw
 	( drawTangle
 	) where
 
-import Data.Array ((!))
+import Data.Array.IArray ((!))
 import Control.Monad
 import Math.KnotTh.Crossings.Projection
 import Math.KnotTh.Crossings.Arbitrary
@@ -16,16 +16,32 @@ import Graphics.HP
 class (CrossingType ct) => DrawableCrossingType ct where
 	crossingDependentImage :: Double -> Tangle ct -> [[((Dart ct, Dart ct), [(Double, Double)])]] -> Image ()
 
+
+instance DrawableCrossingType ProjectionCrossing where
 	crossingDependentImage lineWidth _ threads = do
 		forM_ threads $ \ thread ->
 			stroke [withLineWidth lineWidth] $ chain $ concatMap snd thread
 		stroke [withLineWidth $ 0.6 * lineWidth] circumference
 
 
-instance DrawableCrossingType ProjectionCrossing
+instance DrawableCrossingType ArbitraryCrossing where
+	crossingDependentImage lineWidth _ threads = do
+		forM_ threads $ \ thread ->
+			forM_ thread $ \ ((a, b), line) -> do
+				let n = length line
+				when (n > 1) $ do
+					let change (x0, y0) (x1, y1) =
+						let	dx = x1 - x0
+							dy = y1 - y0
+							m = 3.0 * lineWidth / sqrt (dx * dx + dy * dy)
+						in (x0 + m * dx, y0 + m * dy)
 
-
-instance DrawableCrossingType ArbitraryCrossing
+					let f	| isLeg a || passUnder a  = head line
+						| otherwise               = change (line !! 0) (line !! 1)
+					let l	| isLeg b || passUnder b  = last line
+						| otherwise               = change (line !! (n - 1)) (line !! (n - 2))
+					stroke [withLineWidth lineWidth] $ chain $ [f] ++ take (n - 2) (tail line) ++ [l]
+		stroke [withLineWidth $ 0.6 * lineWidth] circumference
 
 
 drawTangle :: (DrawableCrossingType ct) => Double -> Tangle ct -> Image ()
