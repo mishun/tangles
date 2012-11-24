@@ -19,7 +19,7 @@ library
     ghc-options:        -Wall -O2
     cc-options:         -Wall -std=c++11 -O2
     ld-options:         -static
-    build-depends:      base, array, deepseq, mtl, containers
+    build-depends:      base, array, deepseq, mtl, containers, disjoint-set
     hs-source-dirs:     src
     c-sources:
         src/Math/Manifolds/SurfaceGraph/Embedding.cpp

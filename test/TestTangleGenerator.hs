@@ -14,7 +14,7 @@ main = do
 	printTable "Prime projections" False (simpleIncrementalGenerator primeProjectionType [ProjectionCrossing]) 8
 	printTable "Template projections" False (simpleIncrementalGenerator templateProjectionType [ProjectionCrossing]) 9
 	printTable "Alternating tangles" False generateFlypeEquivalent 8
-	printTable "Prime diagrams" False (simpleIncrementalGenerator primeDiagramType [ArbitraryCrossing]) 5
+	printTable "Prime diagrams" False (simpleIncrementalGenerator primeDiagramType [ArbitraryCrossing]) 6
 
 	writePostScriptFile "TestTangleGenerator.ps" $ do
 		let a4Width = 595
