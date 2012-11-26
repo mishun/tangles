@@ -138,5 +138,6 @@ generateFlypeEquivalentDecomposition maxN yield = do
 		glueTemplates rootN root
 		glueDirectSums rootN root
 
+
 generateFlypeEquivalent :: (Monad m) => Int -> (TangleProjection -> DnSubGroup -> m ()) -> m ()
-generateFlypeEquivalent maxN yield = generateFlypeEquivalentDecomposition maxN (\ t s -> yield (substitute t) s)
+generateFlypeEquivalent maxN yield = generateFlypeEquivalentDecomposition maxN (\ tangle symmetry -> yield (substituteTangle tangle) symmetry)

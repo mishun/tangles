@@ -19,13 +19,10 @@ printTable name isLabelled generator maxN = do
 
 	let table =
 		let yield !tangle !symmetry = do
-			let n = numberOfCrossings tangle
-			let l = numberOfLegs tangle
 			let weight
 				| isLabelled  = rotationPeriod symmetry * (if hasReflectionPart symmetry then 1 else 2)
 				| otherwise   = 1
-			let update !k = Just $! maybe weight (+ weight) k
-			get >>= (\ !m -> n `seq` l `seq` put $! Map.alter update (n, l) m)
+			get >>= (\ !m -> put $! Map.insertWith (+) (numberOfCrossings tangle, numberOfLegs tangle) weight m)
 		in execState (generator maxN yield) (Map.empty :: Map.Map (Int, Int) Int)
 
 	let totalTangles = sum $ map snd $ Map.assocs table

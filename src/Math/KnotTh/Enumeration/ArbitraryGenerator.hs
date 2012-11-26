@@ -1,4 +1,4 @@
-module Math.KnotTh.Tangles.Generation.ArbitraryGenerator
+module Math.KnotTh.Enumeration.ArbitraryGenerator
 	( generateArbitrary
 	) where
 

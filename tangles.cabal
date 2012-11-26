@@ -38,20 +38,22 @@ library
         Math.KnotTh.Crossings.Arbitrary
         Math.KnotTh.Crossings.Projection
         Math.KnotTh.Crossings.SubTangle
+        Math.KnotTh.Enumeration.ArbitraryGenerator
+        Math.KnotTh.Enumeration.ByEquivalenceClasses
         Math.KnotTh.Knotted
         Math.KnotTh.Links
+        Math.KnotTh.Links.FromTangle
         Math.KnotTh.Links.Projection
-        Math.KnotTh.Links.TangleStarConstruction
         Math.KnotTh.Tangles
         Math.KnotTh.Tangles.BorderIncremental.FlypeGenerator
         Math.KnotTh.Tangles.BorderIncremental.IncrementalGluing
         Math.KnotTh.Tangles.BorderIncremental.IncrementalTests
         Math.KnotTh.Tangles.BorderIncremental.RootingTest
         Math.KnotTh.Tangles.BorderIncremental.SimpleTypes
+        Math.KnotTh.Tangles.Connectivity
         Math.KnotTh.Tangles.Draw
         Math.KnotTh.Tangles.Flypes
         Math.KnotTh.Tangles.NonAlternating
-        Math.KnotTh.Tangles.Generation.ArbitraryGenerator
         Math.KnotTh.Tangles.Moves.DoublePass
         Math.KnotTh.Tangles.Moves.Flype
         Math.KnotTh.Tangles.Moves.Move

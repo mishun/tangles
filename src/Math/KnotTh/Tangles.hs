@@ -16,6 +16,7 @@ module Math.KnotTh.Tangles
 	, maybeIncidentCrossing
 	, maybeAdjacentCrossing
 	, allLegsAndDarts
+	, allEdges
 	, lonerTangle
 	, glueToBorder
 	, glueToBorderST
@@ -213,6 +214,7 @@ firstLeg t = Dart t 0 0
 allLegs :: Tangle ct -> [Dart ct]
 allLegs t = map (Dart t 0) [0 .. numberOfLegs t - 1]
 
+
 {-# INLINE isAdjacentToBorder #-}
 isAdjacentToBorder :: Dart ct -> Bool
 isAdjacentToBorder = isLeg . opposite
@@ -232,7 +234,12 @@ maybeAdjacentCrossing = maybeIncidentCrossing . opposite
 
 {-# INLINE allLegsAndDarts #-}
 allLegsAndDarts :: Tangle ct -> [Dart ct]
-allLegsAndDarts tangle = (allLegs tangle) ++ (allDarts tangle)
+allLegsAndDarts tangle = allLegs tangle ++ allDarts tangle
+
+
+{-# INLINE allEdges #-}
+allEdges :: Tangle ct -> [(Dart ct, Dart ct)]
+allEdges tangle = [ (a, b) | a <- allLegsAndDarts tangle, let b = opposite a, a < b ]
 
 
 lonerTangle :: (CrossingType ct) => CrossingState ct -> Tangle ct

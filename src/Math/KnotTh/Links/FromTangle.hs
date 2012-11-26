@@ -1,9 +1,11 @@
-module Math.KnotTh.Links.TangleStarConstruction
+module Math.KnotTh.Links.FromTangle
 	( fromTangleAndStarByPlace
 	, fromTangleAndStarByOffset
+	, tangleDoubling
 	) where
 
 import Data.Array.IArray
+import Math.KnotTh.Crossings.Arbitrary
 import Math.KnotTh.Knotted
 import qualified Math.KnotTh.Links as L
 import qualified Math.KnotTh.Tangles as T
@@ -36,3 +38,7 @@ fromTangleAndStar' withLeg tangle =
 		| T.isDart d  = T.toPair d
 		| otherwise   = watch $ opposite $ withLeg d
 	in L.fromList $ map (\ c -> (map watch $ adjacentDarts c, crossingState c)) $ allCrossings tangle
+
+
+tangleDoubling :: T.Tangle ArbitraryCrossing -> L.Link ArbitraryCrossing
+tangleDoubling = undefined

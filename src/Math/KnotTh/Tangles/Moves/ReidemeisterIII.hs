@@ -23,14 +23,16 @@ neighbours tangle = mapMaybe try3rdReidemeister $ allDarts tangle
 		--      /   \                 /           \
 		--   pa/     \qa             /pa           \qa
 		try3rdReidemeister ab = do
+			guard $ isDart ab
+
 			let ac = nextCCW ab
 			let ba = opposite ab
 			let ca = opposite ac
-			guard $ not (isLeg ba || isLeg ca)
+			guard $ isDart ba && isDart ca
 
 			let bc = nextCW ba
 			let cb = nextCCW ca
-			guard $ not (bc /= opposite cb)
+			guard $ bc == opposite cb
 
 			let a = incidentCrossing ab
 			let b = incidentCrossing ba

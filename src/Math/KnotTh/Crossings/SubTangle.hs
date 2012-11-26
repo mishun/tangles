@@ -15,7 +15,7 @@ module Math.KnotTh.Crossings.SubTangle
 	, subTangleLegFromDart
 	, directSumDecompositionTypeInside
 	, directSumDecompositionType
-	, substitute
+	, substituteTangle
 	) where
 
 import Data.Array.Unboxed (UArray, (!), listArray)
@@ -79,7 +79,7 @@ fromTangle' tangle symmetry sumType code
 		{ _code     = code
 		, _symmetry = fromDnSubGroup symmetry
 		, _sumType  = sumType
-		, subTangle = substitute tangle
+		, subTangle = substituteTangle tangle
 		}
 
 
@@ -135,8 +135,8 @@ directSumDecompositionType c
 		f = isCrossingOrientationInverted' c /= odd (crossingLegIdByDartId c 0)
 
 
-substitute :: (CrossingType ct) => Tangle (SubTangleCrossing ct) -> Tangle ct
-substitute tangle =
+substituteTangle :: (CrossingType ct) => Tangle (SubTangleCrossing ct) -> Tangle ct
+substituteTangle tangle =
 	fromLists (map oppositeExt $! allLegs tangle) $!
 		let connections b = do
 			let rev = isCrossingOrientationInverted b
