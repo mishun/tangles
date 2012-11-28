@@ -16,12 +16,13 @@ source-repository head
 library
     default-language:   Haskell2010
     default-extensions: BangPatterns, FlexibleContexts, MultiParamTypeClasses
-    ghc-options:        -Wall -O2
+    ghc-options:        -Wall -O2 -threaded
     cc-options:         -Wall -std=c++11 -O2
     ld-options:         -static
     build-depends:      base, array, deepseq, mtl, containers, disjoint-set
     hs-source-dirs:     src
     c-sources:
+        src/Math/KnotTh/Invariants/Skein/JonesPolynomial.cpp
         src/Math/Manifolds/SurfaceGraph/Embedding.cpp
         src/Math/Manifolds/SurfaceGraph/SphereStar.cpp
     extra-libraries:    stdc++ gsl gslcblas
@@ -38,8 +39,10 @@ library
         Math.KnotTh.Crossings.Arbitrary
         Math.KnotTh.Crossings.Projection
         Math.KnotTh.Crossings.SubTangle
-        Math.KnotTh.Enumeration.ArbitraryGenerator
         Math.KnotTh.Enumeration.ByEquivalenceClasses
+        Math.KnotTh.Enumeration.ByEquivalenceClasses.NonAlternatingTangles
+        Math.KnotTh.Invariants.ThreadExpansion
+        Math.KnotTh.Invariants.Skein.JonesPolynomial
         Math.KnotTh.Knotted
         Math.KnotTh.Links
         Math.KnotTh.Links.FromTangle
@@ -53,6 +56,7 @@ library
         Math.KnotTh.Tangles.Connectivity
         Math.KnotTh.Tangles.Draw
         Math.KnotTh.Tangles.Flypes
+        Math.KnotTh.Tangles.IsomorphismTest
         Math.KnotTh.Tangles.NonAlternating
         Math.KnotTh.Tangles.Moves.DoublePass
         Math.KnotTh.Tangles.Moves.Flype
@@ -82,14 +86,12 @@ library
         Graphics.HP.Units
         Math.KnotTh.Tangles.Moves.Resting
 
-
 test-suite TestTangles
     type:               detailed-0.9
     default-language:   Haskell2010
     build-depends:      base, hunit
     hs-source-dirs:     test
     test-module:        TestTangles
-
 
 executable TestCDGenerator
     default-language:   Haskell2010

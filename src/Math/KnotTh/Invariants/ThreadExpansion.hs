@@ -1,20 +1,16 @@
-module Math.KnotTh.Tangles.Invariants.ThreadExpansion
-	(
-	  threadExpansion
+module Math.KnotTh.Invariants.ThreadExpansion
+	( threadExpansion
 	) where
 
-import qualified Data.List as List
-import qualified Data.Array as Array
+import Data.List (sort, elemIndex)
+import Data.Array (array, (!))
 import qualified Data.Set as Set
-
-import qualified Math.KnotTh.Tangles.TangleSt as TangleSt
-
-import Math.KnotTh
+import Math.KnotTh.Knotted
 import Math.KnotTh.Tangles
-import Math.KnotTh.Tangles.Util.Paths
+import Math.KnotTh.Tangles.Paths
 
 
-threadExpansion :: (Ord inv, Tangle t c d ct) => ((TangleSt.TangleSt ct, Int) -> inv) -> t -> [([Int], inv)]
+threadExpansion :: (Ord inv, CrossingType ct) => ((Tangle ct, Int) -> inv) -> Tangle ct -> [([Int], inv)]
 threadExpansion invariant tangle = sort $ map (processThreadSet invariant tangle) sets
 	where
 		sets = subsets $ allThreads tangle
@@ -25,7 +21,7 @@ threadExpansion invariant tangle = sort $ map (processThreadSet invariant tangle
 					in nx ++ map (x :) nx
 
 
-processThreadSet :: (Ord inv, Tangle t c d ct) => ((TangleSt.TangleSt ct, Int) -> inv) -> t -> [[(d, d)]] -> ([Int], inv)
+processThreadSet :: (Ord inv, CrossingType ct) => ((Tangle ct, Int) -> inv) -> Tangle ct -> [[(Dart ct, Dart ct)]] -> ([Int], inv)
 processThreadSet invariant tangle threads = (ecode, invariant (threadTangle, circles))
 	where
 		targetLegs = sort $ concatMap (\ t -> let a = fst $ head t in if isLeg a then [a, snd $ last t] else []) threads
@@ -39,34 +35,26 @@ processThreadSet invariant tangle threads = (ecode, invariant (threadTangle, cir
 					where
 						c = incidentCrossing b
 
-		indices = Array.array (crossingsRange tangle) $ (zip (allCrossings tangle) (repeat 0)) ++ (zip targets [1 ..])
+		indices = array (1, numberOfCrossings tangle) $ map (\ (c, x) -> (crossingIndex c, x)) $ (zip (allCrossings tangle) (repeat 0)) ++ (zip targets [1 ..])
 
 		findTarget u
 			| isLeg v    =
 				case elemIndex v targetLegs of
 					Just i  -> (0, i)
 					Nothing -> error "processThread: internal error"
-			| ix > 0     = (ix, place)
+			| ix > 0     = (ix, dartPlace v)
 			| otherwise  = findTarget (continuation v)
 			where
 				v = opposite u
+				ix = indices ! crossingIndex (incidentCrossing v)
 
-				(c, place) = begin v
+		threadTangle = fromLists (map findTarget targetLegs) $ map (\ c -> (map findTarget $ incidentDarts c, crossingState c)) targets
 
-				ix = (Array.!) indices c
-
-		threadTangle = TangleSt.constructFromList (conn, sts)
-			where
-				conn = (map findTarget targetLegs) : map (map findTarget . incidentDarts) targets
-
-				sts = map state targets
-
-		circles = length $ filter (all (\ (_, d) -> (indices Array.! (incidentCrossing d)) == 0)) $ filter (not . isLeg . fst . head) threads
+		circles = length $ filter (all (\ (_, d) -> (indices ! crossingIndex (incidentCrossing d)) == 0)) $ filter (not . isLeg . fst . head) threads
 
 		ecode = sort $ map (\ t -> dist (fst $ head t) (snd $ last t)) $ filter (isLeg . fst . head) threads
 			where
 				l = numberOfLegs tangle
-
 				dist a b =
-					let d = legPosition a - legPosition b
+					let d = legPlace a - legPlace b
 					in min (mod (l + d) l) (mod (l - d) l)

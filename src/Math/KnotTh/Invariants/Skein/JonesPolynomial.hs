@@ -1,3 +1,14 @@
+module Math.KnotTh.Invariants.Skein.JonesPolynomial
+	( fromTangle
+	) where
+
+import Math.KnotTh.Tangles.NonAlternating
+
+
+fromTangle :: NonAlternatingTangle -> [Int]
+fromTangle _ = []
+
+{-
 module Math.KnotTh.Tangles.Invariants.JonesPolynomial
 	(
 	  jonesPolynomial
@@ -93,3 +104,4 @@ reductionOutcome tangle reduction = (scheme, power circles d)
 					if (passOver drt) == (reduction Array.! (incidentCrossing drt))
 						then nextCCW drt
 						else nextCW drt
+-}

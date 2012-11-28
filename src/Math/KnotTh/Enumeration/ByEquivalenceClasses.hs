@@ -4,113 +4,72 @@ module Math.KnotTh.Enumeration.ByEquivalenceClasses
 	) where
 
 import Data.Function (fix)
-import qualified Data.Map as Map
-import qualified Data.IntMap as IntMap
+import qualified Data.Map as M
+import qualified Data.IntMap as IM
 import Control.Monad.State.Strict (execState, get, put)
 import Control.Monad (when, unless, forM_)
 import qualified Data.IntDisjointSet as DS 
 import Math.KnotTh.Knotted
 
 
-data DiagramData x k = DiagramData
-	{ representative     :: !k
-	, numberOfCircles    :: !Int
-	, representativeCode :: !x
-	}
-
-
-merge :: DiagramData x k -> DiagramData x k -> DiagramData x k
-merge a _ = a
-
-
-data SiftState x k = SiftState
-	{ disjointSet     :: !DS.IntDisjointSet
-	, codeIndices     :: !(Map.Map x Int)
-	, representatives :: !(IntMap.IntMap (DiagramData x k))
-	}
-
-
-initialState :: (Ord x, CrossingType ct, Knotted k c d) => SiftState x (k ct)
-initialState = SiftState
-	{ disjointSet     = DS.empty
-	, codeIndices     = Map.empty
-	, representatives = IntMap.empty
+data SiftState k v = St
+	{ set  :: !DS.IntDisjointSet
+	, keys :: !(M.Map k Int)
+	, vals :: !(IM.IntMap v)
 	}
 
 
 siftByEquivalenceClasses ::
-	(Monad m, Ord code, CrossingType ct, Knotted knot crossing dart)
-		=> (knot ct -> code)
+	(Ord c, CrossingType ct, Knotted knot crossing dart)
+		=> (d -> d -> d)
+		-> ((knot ct, Int) -> d)
+		-> ((knot ct, Int) -> c)
 		-> [knot ct -> [(knot ct, Int)]]
-		-> (forall m'. (Monad m') => (knot ct -> m' ()) -> m' ())
-		-> (knot ct -> m ())
-		-> m ()
+		-> (forall m. (Monad m) => (knot ct -> m ()) -> m ())
+		-> [d]
 
-siftByEquivalenceClasses isomorphismTest moves enumerateDiagrams =
-	let final = flip execState initialState $ do
-
-		let areEquivalent a b = do
-			!st <- get
-			let ai = codeIndices st Map.! a
-			let bi = codeIndices st Map.! b
-			let (result, nextDS) = DS.equivalent ai bi (disjointSet st)
-			put $! st { disjointSet = nextDS }
-			return $! result
-
+siftByEquivalenceClasses merge wrap isomorphismTest moves enumerateDiagrams =
+	let final = flip execState (St { set = DS.empty, keys = M.empty, vals = IM.empty }) $ do
 		let declareEquivalent a b = do
-			eq <- areEquivalent a b
+			eq <- do
+				!st <- get
+				let ai = keys st M.! a
+				let bi = keys st M.! b
+				let (result, nextDS) = DS.equivalent ai bi $! set st
+				put $! st { set = nextDS }
+				return $! result
 			unless eq $ do
 				!st <- get
-				let ds0 = disjointSet st
-				let (Just ai, ds1) = DS.lookup (codeIndices st Map.! a) ds0
-				let (Just bi, ds2) = DS.lookup (codeIndices st Map.! b) ds1
-				let ad = representatives st IntMap.! ai
-				let bd = representatives st IntMap.! bi
+				let ds0 = set st
+				let (Just ai, ds1) = DS.lookup (keys st M.! a) ds0
+				let (Just bi, ds2) = DS.lookup (keys st M.! b) ds1
+				let ad = vals st IM.! ai
+				let bd = vals st IM.! bi
 				let ds3 = DS.union ai bi ds2
 				let (Just resi, ds4) = DS.lookup ai ds3
-				put $! st
-					{ disjointSet     = ds4
-					, representatives = IntMap.insert resi (merge ad bd) $ IntMap.delete bi $ IntMap.delete ai $ representatives st
-					}
+				put $! st { set = ds4, vals = IM.insert resi (merge ad bd) $ IM.delete bi $ IM.delete ai $ vals st }
 
-		let insert current = do
-			let code = representativeCode current
+		let insert code current = do
 			!st <- get
-			let ds = disjointSet st
-			case Map.lookup code (codeIndices st) of
+			let ds = set st
+			case M.lookup code $ keys st of
 				Nothing   -> do
 					let rootId = DS.size ds
-					put $! st
-						{ disjointSet     = DS.insert rootId ds
-						, codeIndices     = Map.insert code rootId (codeIndices st)
-						, representatives = IntMap.insert rootId current (representatives st)
-						}
+					put $! st { set = DS.insert rootId ds, keys = M.insert code rootId $ keys st, vals = IM.insert rootId current $ vals st }
 					return True
-
 				Just elId -> do
 					let (Just rootId, ds') = DS.lookup elId ds
-					let nextData = merge (representatives st IntMap.! rootId) current
-					put $! st { disjointSet = ds', representatives = IntMap.insert rootId nextData (representatives st) }
+					put $! st { set = ds', vals = IM.insertWith merge rootId current $ vals st }
 					return False
 
-		let makeDiagramData (diagram, circles) = DiagramData
-			{ representative     = diagram
-			, numberOfCircles    = circles
-			, representativeCode = isomorphismTest diagram
-			}
-
 		enumerateDiagrams $ \ !startDiagram ->
-			flip fix (startDiagram, 0) $ \ dfs (diagram, circles) -> do
-				let fatherCode = isomorphismTest diagram
-				let current = makeDiagramData (diagram, circles)
-				inserted <- insert current
-				when inserted $ do
-					forM_ [ (d, circles + c) | move <- moves, (d, c) <- move diagram ] $ \ (childDiagram, childCircles) -> do
-						let childCode = isomorphismTest childDiagram
-						when (childCircles == 0) $
-							dfs (childDiagram, childCircles)
-						declareEquivalent fatherCode childCode
-
-		return []
-
-	in forM_ (map representative $ IntMap.elems $ representatives final)
+			fix (\ dfs !dc@(diagram, circles) !prevCode -> do
+				let code = isomorphismTest dc
+				inserted <- insert code $ wrap dc
+				maybe (return ()) (declareEquivalent code) prevCode
+				when inserted $
+					forM_ [ (d, circles + c) | move <- moves, (d, c) <- move diagram ] $ \ child ->
+						dfs child $! Just code
+				) (startDiagram, 0) Nothing
+		return ()
+	in IM.elems $ vals final

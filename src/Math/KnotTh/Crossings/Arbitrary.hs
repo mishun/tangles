@@ -13,7 +13,7 @@ module Math.KnotTh.Crossings.Arbitrary
 	) where
 
 import Control.DeepSeq
-import Math.Algebra.Group.D4 ((<*>), i, c, subGroupDS)
+import Math.Algebra.Group.D4 ((<*>), i, c, subGroupDS, equivalenceClassId)
 import Math.KnotTh.Knotted
 
 
@@ -26,7 +26,11 @@ instance NFData ArbitraryCrossing
 instance CrossingType ArbitraryCrossing where
 	localCrossingSymmetry _ = subGroupDS
 
-	possibleOrientations _ _ = arbitraryCrossings
+	possibleOrientations _ bound =
+		case bound of
+			Nothing                                       -> arbitraryCrossings
+			Just g | equivalenceClassId subGroupDS g == 0 -> arbitraryCrossings
+			Just _                                        -> overCrossingOnly
 
 
 instance Show ArbitraryCrossing where
@@ -43,6 +47,10 @@ underCrossing = makeCrossing ArbitraryCrossing c
 
 arbitraryCrossings :: [CrossingState ArbitraryCrossing]
 arbitraryCrossings = [overCrossing, underCrossing]
+
+
+overCrossingOnly :: [CrossingState ArbitraryCrossing]
+overCrossingOnly = [overCrossing]
 
 
 passOver :: (Knotted k c d) => d ArbitraryCrossing -> Bool
