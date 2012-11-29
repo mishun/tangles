@@ -13,7 +13,7 @@ main = do
 	--let g = constructFromList [[(0, 1), (0, 0)]]
 	--let e = embeddingWithFaceRooting (3 :: Int) (head $ graphFaces g)
 	let e = embeddingWithVertexRooting (3 :: Int) (head $ graphVertices g)
-	writePostScriptFile "TestGraphDrawing.ps" $ do
+	writePostScriptFile "graph.ps" $ do
 		let a4Width = 595
 		let a4Height = 842
 		transformed [shifted (0.5 * a4Width, 0.5 * a4Height), scaled 250] $ do

@@ -46,6 +46,7 @@ library
         Math.KnotTh.Knotted
         Math.KnotTh.Links
         Math.KnotTh.Links.FromTangle
+        Math.KnotTh.Links.NonAlternating
         Math.KnotTh.Links.Projection
         Math.KnotTh.Tangles
         Math.KnotTh.Tangles.BorderIncremental.FlypeGenerator
@@ -87,38 +88,35 @@ library
         Math.KnotTh.Tangles.Moves.Resting
 
 test-suite TestTangles
-    type:               detailed-0.9
+    type:               exitcode-stdio-1.0
     default-language:   Haskell2010
-    build-depends:      base, hunit
+    default-extensions: BangPatterns
+    ghc-options:        -O2 -threaded
+    ld-options:         -static
+    build-depends:      base, containers, mtl, HUnit, tangles
+    main-is:            TestTangles.hs
     hs-source-dirs:     test
-    test-module:        TestTangles
+    extra-lib-dirs:     ext/gsl-1.15/lib/
 
-executable TestCDGenerator
+benchmark GraphDrawingBenchmark
+    type:               exitcode-stdio-1.0
     default-language:   Haskell2010
     default-extensions: BangPatterns
     ghc-options:        -Wall -O2 -threaded
     ld-options:         -static
-    build-depends:      base, tangles
-    main-is:            TestCDGenerator.hs
-    hs-source-dirs:     test
-    extra-lib-dirs:     ext/gsl-1.15/lib/
-
-executable TestGraphDrawing
-    default-language:   Haskell2010
-    default-extensions: BangPatterns
-    ghc-options:        -Wall -O2 -threaded
     build-depends:      base, array, tangles
-    main-is:            TestGraphDrawing.hs
+    main-is:            GraphDrawingBenchmark.hs
     hs-source-dirs:     test
     extra-lib-dirs:     ext/gsl-1.15/lib/
 
-executable TestTangleGenerator
+benchmark TangleGeneratorBenchmark
+    type:               exitcode-stdio-1.0
     default-language:   Haskell2010
     default-extensions: BangPatterns
     ghc-options:        -Wall -O2 -threaded
     ld-options:         -static
     build-depends:      base, mtl, containers, tangles
-    main-is:            TestTangleGenerator.hs
+    main-is:            TangleGeneratorBenchmark.hs
     hs-source-dirs:     test
     extra-lib-dirs:     ext/gsl-1.15/lib/
 

@@ -1,13 +1,15 @@
 module Math.KnotTh.Tangles.BorderIncremental.FlypeGenerator
 	( generateFlypeEquivalentDecomposition
+	, generateFlypeEquivalentDecompositionInTriangle
 	, generateFlypeEquivalent
+	, generateFlypeEquivalentInTriangle
 	) where
 
 import Data.List (nubBy)
 import Data.Array ((!), (//), listArray)
 import Data.Function (fix)
 import Control.Monad.State.Strict (evalStateT, execStateT, get, put, lift)
-import Control.Monad (forM_, when)
+import Control.Monad (forM_, when, unless)
 import Math.Algebra.RotationDirection
 import Math.Algebra.Group.Dn (DnSubGroup, maximumSubGroup, addSymmetryToSubGroup)
 import Math.KnotTh.Crossings.SubTangle
@@ -18,8 +20,8 @@ import Math.KnotTh.Tangles.BorderIncremental.RootingTest (rootCodeLeg, minimumRo
 import Math.KnotTh.Tangles.BorderIncremental.IncrementalTests
 
 
-generateFlypeEquivalentDecomposition :: (Monad m) => Int -> (SubTangleTangle ProjectionCrossing -> DnSubGroup -> m ()) -> m ()
-generateFlypeEquivalentDecomposition maxN yield = do
+generateFlypeEquivalentDecomposition' :: (Monad m) => Bool -> Int -> (SubTangleTangle ProjectionCrossing -> DnSubGroup -> m ()) -> m ()
+generateFlypeEquivalentDecomposition' triangle maxN yield = do
 
 	let templateDescendants =
 		let templateType = GluingType
@@ -121,23 +123,41 @@ generateFlypeEquivalentDecomposition maxN yield = do
 			forM_ [1 .. min halfN (maxN - curN)] $ \ cn ->
 				forM_ (templateDescendants (crossings ! cn) ancestor) $ \ (child, childSymmetry) -> do
 					let t = curN + cn - halfN + (numberOfLegs child `div` 2) - 2
-					case numberOfLegs child of
-						4 -> when (t > 0) $ tree (child, childSymmetry)
-						_ -> do
-							when (t > 0) $ lift $ yield child childSymmetry
-							glueTemplates (curN + cn) (child, childSymmetry)
+					unless (triangle && t > maxN - halfN) $
+						case numberOfLegs child of
+							4 -> when (t > 0) $ tree (child, childSymmetry)
+							_ -> do
+								when (t > 0) $ lift $ yield child childSymmetry
+								glueTemplates (curN + cn) (child, childSymmetry)
 
 		let glueDirectSums curN ancestor =
 			forM_ [1 .. min halfN (maxN - curN)] $ \ cn ->
 				forM_ (directSumDescendants (crossings ! cn) ancestor) $ \ (child, childSymmetry) -> do
 					let t = curN + cn - halfN + (numberOfLegs child `div` 2) - 2
-					when (t > 0) $ tree (child, childSymmetry)
-					glueDirectSums (curN + cn) (child, childSymmetry)
+					unless (triangle && t > maxN - halfN) $ do
+						when (t > 0) $ tree (child, childSymmetry)
+						glueDirectSums (curN + cn) (child, childSymmetry)
 
 		let rootN = numberOfCrossingsAfterSubstitution $ fst root
 		glueTemplates rootN root
 		glueDirectSums rootN root
 
 
+generateFlypeEquivalentDecomposition :: (Monad m) => Int -> (SubTangleTangle ProjectionCrossing -> DnSubGroup -> m ()) -> m ()
+generateFlypeEquivalentDecomposition = generateFlypeEquivalentDecomposition' False
+
+
+generateFlypeEquivalentDecompositionInTriangle :: (Monad m) => Int -> (SubTangleTangle ProjectionCrossing -> DnSubGroup -> m ()) -> m ()
+generateFlypeEquivalentDecompositionInTriangle = generateFlypeEquivalentDecomposition' True
+
+
 generateFlypeEquivalent :: (Monad m) => Int -> (TangleProjection -> DnSubGroup -> m ()) -> m ()
-generateFlypeEquivalent maxN yield = generateFlypeEquivalentDecomposition maxN (\ tangle symmetry -> yield (substituteTangle tangle) symmetry)
+generateFlypeEquivalent maxN yield =
+	generateFlypeEquivalentDecomposition maxN
+		(\ tangle symmetry -> yield (substituteTangle tangle) symmetry)
+
+
+generateFlypeEquivalentInTriangle :: (Monad m) => Int -> (TangleProjection -> DnSubGroup -> m ()) -> m ()
+generateFlypeEquivalentInTriangle maxN yield =
+	generateFlypeEquivalentDecompositionInTriangle maxN
+		(\ tangle symmetry -> yield (substituteTangle tangle) symmetry)

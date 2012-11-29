@@ -1,123 +1,84 @@
+{-# LANGUAGE Rank2Types #-}
 module Math.KnotTh.Enumeration.ByEquivalenceClasses.NonAlternatingTangles
-	(
+	( module Math.KnotTh.Tangles.NonAlternating
+	, module Math.KnotTh.Enumeration.ByEquivalenceClasses
+	, siftTangles
+	, siftWeakTangles
 	) where
 
+import Data.Maybe (mapMaybe)
 import Math.KnotTh.Enumeration.ByEquivalenceClasses
+import Math.KnotTh.Tangles.Connectivity
 import Math.KnotTh.Tangles.NonAlternating
 import Math.KnotTh.Tangles.IsomorphismTest
+import qualified Math.KnotTh.Tangles.Moves.Flype as Flype
+import qualified Math.KnotTh.Tangles.Moves.Pass as Pass
+import qualified Math.KnotTh.Tangles.Moves.ReidemeisterIII as ReidemeisterIII
+import qualified Math.KnotTh.Tangles.Moves.ReidemeisterReduction as ReidemeisterReduction
+import qualified Math.KnotTh.Tangles.Moves.Weak as Weak
 
 
-{-
-data DiagramInfo = Wrong | Ok !(Tangle ArbitraryCrossing) | Composite Int
+data DiagramInfo = Disconnected | Composite NonAlternatingTangle | Good !NonAlternatingTangle
 
 
 instance Eq DiagramInfo where
-	(==) a b = (compare a b) == EQ
+	(==) a b = EQ == compare a b
 
 
 instance Ord DiagramInfo where
-	compare Wrong Wrong = EQ
-	compare Wrong _ = LT
-	compare _ Wrong = GT
+	compare Disconnected Disconnected = EQ
+	compare Disconnected _            = LT
+	compare _            Disconnected = GT
 
-	compare (Composite n) (Composite m) = compare n m
+	compare (Composite a) (Composite b) = compare (numberOfCrossings a) (numberOfCrossings b)
 
-	compare (Ok d) (Composite n) = if numberOfCrossings d <= n then LT else GT
-	compare (Composite n) (Ok d) = if numberOfCrossings d <= n then GT else LT
+	compare (Composite c) (Good g)
+		| numberOfCrossings c <= numberOfCrossings g  = LT
+		| otherwise                                   = GT
 
-	compare (Ok a) (Ok b)
-		| nA < nB       = LT
-		| nA > nB       = GT
-		| altA && altB  = EQ
-		| altA          = LT
-		| altB          = GT
-		| otherwise     = EQ
+	compare (Good g) (Composite c)
+		| numberOfCrossings c <= numberOfCrossings g  = GT
+		| otherwise                                   = LT
 
-		where
-			nA = numberOfCrossings a
-			nB = numberOfCrossings b
-
-			altA = Alternating.isAlternating a
-			altB = Alternating.isAlternating b
+	compare (Good a) (Good b)
+		| numberOfCrossings a < numberOfCrossings b  = LT
+		| numberOfCrossings b > numberOfCrossings a  = GT
+		| otherwise                                  = compare (alternatingDefect a) (alternatingDefect b)
 
 
-mergeInfo :: DiagramInfo -> DiagramInfo -> DiagramInfo
-mergeInfo a b =
-	if compare a b == GT
-		then b
-		else a
+wrap :: (NonAlternatingTangle, Int) -> DiagramInfo
+wrap (d, circles)
+	| circles > 0          = Disconnected
+	| not (isConnected d)  = Disconnected
+	| not (isPrime d)      = Composite d
+	| otherwise            = Good d
 
 
-extractDiagram :: DiagramInfo -> Maybe (Tangle ArbitraryCrossing)
-extractDiagram (Ok diagram) = Just diagram
-extractDiagram _ = Nothing
+goodDiagram :: DiagramInfo -> Maybe NonAlternatingTangle
+goodDiagram (Good d) = Just $! d
+goodDiagram _        = Nothing
 
 
-
-invariant :: (Tangle t c d ct) => t -> Word64
-invariant !diagram = CRC.listCRC64 $! Util.diskHomeomorphismInvariant diagram
-
-
-bad :: Word64
-bad = CRC.emptyCRC64
-
-{-
-invariant :: (Tangle t c d ct) => t -> [Int]
-invariant !diagram = Util.diskHomeomorphismInvariant diagram
+sift :: [NonAlternatingTangle -> [(NonAlternatingTangle, Int)]] -> (forall m. (Monad m) => (NonAlternatingTangle -> m ()) -> m ()) -> [NonAlternatingTangle]
+sift moves enumerateDiagrams =
+	mapMaybe goodDiagram $
+		siftByEquivalenceClasses min wrap
+			(\ (t, c) -> min (isomorphismTest (t, c)) (isomorphismTest (invertCrossings t, c)))
+			moves
+			enumerateDiagrams
 
 
-bad :: [Int]
-bad = []
--}-}
+tangleMoves :: [NonAlternatingTangle -> [(NonAlternatingTangle, Int)]]
+tangleMoves = map (map ReidemeisterReduction.greedy1st2ndReduction .) [ ReidemeisterIII.neighbours, Flype.neighbours, Pass.neighbours ]
 
---generateArbitrary :: (Monad m) => Int -> (NonAlternatingTangle -> m ()) -> m ()
---generateArbitrary maxN yield
---	| maxN < 1   = error "generateArbitrary: maxN must be at least 1"
---	| otherwise  =
---		let diagrams = classes
---			where
---				classes =
---					let yieldD t _ = get >>= \ l -> put $! t : l
---					in execState (simpleIncrementalGenerator primeIrreducibleDiagramType [ArbitraryCrossing] maxN yieldD) []
---		in mapM_ yield diagrams
 
-{-	where
-		diagrams = mapMaybe extractDiagram $ EquivCl.classes classes
+weakTangleMoves :: [NonAlternatingTangle -> [(NonAlternatingTangle, Int)]]
+weakTangleMoves = map (map ReidemeisterReduction.greedy1st2ndReduction .) [ Weak.neighbours ] ++ tangleMoves
 
-		classes = execState generator $! EquivCl.singleton mergeInfo bad Wrong
-			where
-				generator = BIGenerator.generateFromCrossings test [ArbitraryCrossing] maxN processDiagram
-				test = (BITests.preTestIrreducibleArbitraryForTriangle (maxN + 0), BITests.postTestProjection)
 
-		processDiagram !diagram =
-			when (l <= 40) $! do
-				let inv = invariant diagram
-				visited <- contains inv
-				insertLive diagram inv
-				when (not visited) $! traverse diagram inv
-			where
-				l = numberOfLegs diagram
+siftTangles :: (forall m. (Monad m) => (NonAlternatingTangle -> m ()) -> m ()) -> [NonAlternatingTangle]
+siftTangles = sift tangleMoves
 
-		traverse !diagram !inv = forM_ neighbours action					
-			where
-				neighbours =
-					let moves = [ReidemeisterIII.neighbours, Flype.neighbours, Pass.neighbours{-, DoublePass.neighbours, Weak.neighbours-}]
-					in concatMap (map ReidemeisterReduction.greedy1st2ndReduction . ($ diagram)) moves
 
-				action (!d, !extraCircles)
-					| extraCircles > 0                  = merge inv bad
-					| numberOfCrossings d < 1           = merge inv bad
-					| not $ Connectivity.isConnected d  = merge inv bad
-					| otherwise  = do
-						let invD = invariant d
-						visited <- contains invD
-						when (not visited) $! do
-							insertDead d invD
-							traverse d invD
-						merge inv invD
-
-		insertLive !diagram !inv = State.modify (\ !c -> EquivCl.insert inv (Ok diagram) c)
-		insertDead !diagram !inv = State.modify (\ !c -> EquivCl.insert inv (Composite $ numberOfCrossings diagram) c)
-		contains !inv = State.gets (\ !c -> EquivCl.member inv c)
-		merge !invA !invB = State.modify (\ !c -> EquivCl.join (invA, invB) c)
--}
+siftWeakTangles :: (forall m. (Monad m) => (NonAlternatingTangle -> m ()) -> m ()) -> [NonAlternatingTangle]
+siftWeakTangles = sift weakTangleMoves

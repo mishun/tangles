@@ -6,7 +6,7 @@ import Math.KnotTh.Tangles.Draw
 import Math.KnotTh.Tangles.BorderIncremental.SimpleTypes
 import Math.KnotTh.Tangles.BorderIncremental.FlypeGenerator
 import Graphics.HP
-import TestTangles.PrintTable
+import TestTangles.Table
 
 
 main :: IO ()
@@ -16,7 +16,7 @@ main = do
 	printTable "Alternating tangles" False generateFlypeEquivalent 8
 	printTable "Prime diagrams" False (simpleIncrementalGenerator primeDiagramType [ArbitraryCrossing]) 6
 
-	writePostScriptFile "TestTangleGenerator.ps" $ do
+	writePostScriptFile "tangles.ps" $ do
 		let a4Width = 595
 		let a4Height = 842
 

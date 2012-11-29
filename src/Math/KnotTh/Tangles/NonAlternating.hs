@@ -3,6 +3,7 @@ module Math.KnotTh.Tangles.NonAlternating
 	, module Math.KnotTh.Tangles
 	, NonAlternatingTangle
 	, isAlternating
+	, alternatingDefect
 	, selfWrithe
 	, linkingNumbers
 	) where
@@ -25,6 +26,16 @@ isAlternating :: NonAlternatingTangle -> Bool
 isAlternating =
 	let altOrBorderEdge d = isLeg (opposite d) || passOver d == passUnder (opposite d)
 	in all altOrBorderEdge . allDarts
+
+
+alternatingDefect :: NonAlternatingTangle -> Int
+alternatingDefect tangle =
+	let defect a
+		| isDart b && passOver a == passOver b  = 1
+		| otherwise                             = 0
+		where
+			b = opposite a
+	in (sum $ map defect $ allDarts tangle) `div` 2
 
 
 selfWrithe :: NonAlternatingTangle -> Int

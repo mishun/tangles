@@ -66,7 +66,7 @@ data Link ct = Link
 instance Show (Link ct) where
 	show t =
 		let d = map (show . nthCrossing t) [1 .. numberOfCrossings t]
-		in concat ["(Tangle ", intercalate " " d, " )"]
+		in concat ["(Link ", intercalate " " d, " )"]
 
 
 instance Knotted Link Crossing Dart where

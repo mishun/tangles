@@ -1,4 +1,4 @@
-{-# LANGUAGE Rank2Types, ConstraintKinds #-}
+{-# LANGUAGE Rank2Types #-}
 module Math.KnotTh.Enumeration.ByEquivalenceClasses
 	( siftByEquivalenceClasses
 	) where
