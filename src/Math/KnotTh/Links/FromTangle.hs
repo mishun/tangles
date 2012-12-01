@@ -41,4 +41,6 @@ fromTangleAndStar' withLeg tangle =
 
 
 tangleDoubling :: T.Tangle ArbitraryCrossing -> L.Link ArbitraryCrossing
-tangleDoubling = undefined
+tangleDoubling tangle = L.fromList $ do
+	c <- allCrossings tangle
+	[]

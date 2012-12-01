@@ -13,6 +13,14 @@ type NonAlternatingLink = Link ArbitraryCrossing
 
 
 isAlternating :: NonAlternatingLink -> Bool
-isAlternating =
-	let altOrBorderEdge d = passOver d == passUnder (opposite d)
-	in all altOrBorderEdge . allDarts
+isAlternating = (== 0) . alternatingDefect
+
+
+alternatingDefect :: NonAlternatingLink -> Int
+alternatingDefect tangle =
+	let defect a
+		| passOver a == passOver b  = 1
+		| otherwise                 = 0
+		where
+			b = opposite a
+	in (sum $ map defect $ allDarts tangle) `div` 2

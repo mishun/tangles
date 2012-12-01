@@ -60,11 +60,11 @@ import Control.Monad
 
 
 data SurfaceGraph = Graph
-	{ _opposite   :: !(UArray Int Int)
-	, _vertices   :: !(Array Int (UArray Int Int))
-	, _connToVert :: !(Array Int (Int, Int))
-	, _faces      :: !(Array Int (UArray Int Int))
-	, _connToFace :: !(Array Int (Int, Int))
+	{ _opposite   :: {-# UNPACK #-} !(UArray Int Int)
+	, _vertices   :: {-# UNPACK #-} !(Array Int (UArray Int Int))
+	, _connToVert :: {-# UNPACK #-} !(Array Int (Int, Int))
+	, _faces      :: {-# UNPACK #-} !(Array Int (UArray Int Int))
+	, _connToFace :: {-# UNPACK #-} !(Array Int (Int, Int))
 	}
 
 instance Show SurfaceGraph where

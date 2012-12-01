@@ -23,9 +23,7 @@ type NonAlternatingTangle = Tangle ArbitraryCrossing
 
 
 isAlternating :: NonAlternatingTangle -> Bool
-isAlternating =
-	let altOrBorderEdge d = isLeg (opposite d) || passOver d == passUnder (opposite d)
-	in all altOrBorderEdge . allDarts
+isAlternating = (== 0) . alternatingDefect
 
 
 alternatingDefect :: NonAlternatingTangle -> Int
