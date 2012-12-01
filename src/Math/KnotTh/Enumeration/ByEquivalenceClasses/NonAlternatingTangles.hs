@@ -6,10 +6,12 @@ module Math.KnotTh.Enumeration.ByEquivalenceClasses.NonAlternatingTangles
 	, siftWeakTangles
 	) where
 
+import Data.Ord (comparing)
 import Data.Maybe (mapMaybe)
 import Math.KnotTh.Enumeration.ByEquivalenceClasses
 import Math.KnotTh.Tangles.Connectivity
 import Math.KnotTh.Tangles.NonAlternating
+import Math.KnotTh.Tangles.Projection
 import Math.KnotTh.Tangles.IsomorphismTest
 import qualified Math.KnotTh.Tangles.Moves.Flype as Flype
 import qualified Math.KnotTh.Tangles.Moves.Pass as Pass
@@ -40,10 +42,9 @@ instance Ord DiagramInfo where
 		| numberOfCrossings c <= numberOfCrossings g  = GT
 		| otherwise                                   = LT
 
-	compare (Good a) (Good b)
-		| numberOfCrossings a < numberOfCrossings b  = LT
-		| numberOfCrossings b > numberOfCrossings a  = GT
-		| otherwise                                  = compare (alternatingDefect a) (alternatingDefect b)
+	compare (Good a) (Good b) = comparing
+		(\ d -> (numberOfCrossings d, alternatingDefect d, isomorphismTest' (tangleProjection d)))
+		a b
 
 
 wrap :: (NonAlternatingTangle, Int) -> DiagramInfo

@@ -1,6 +1,7 @@
 {-# LANGUAGE UnboxedTuples #-}
 module Math.KnotTh.Tangles.IsomorphismTest
 	( isomorphismTest
+	, isomorphismTest'
 	) where
 
 import Data.Bits (shiftL)
@@ -13,6 +14,10 @@ import Control.Monad.ST (ST, runST)
 import Control.Monad (when)
 import Math.Algebra.RotationDirection (ccw, cw)
 import Math.KnotTh.Tangles
+
+
+isomorphismTest' :: (CrossingType ct) => Tangle ct -> UArray Int Int
+isomorphismTest' tangle = isomorphismTest (tangle, 0)
 
 
 isomorphismTest :: (CrossingType ct) => (Tangle ct, Int) -> UArray Int Int
