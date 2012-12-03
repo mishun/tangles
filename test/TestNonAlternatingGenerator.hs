@@ -11,7 +11,7 @@ import TestTangles.Table
 
 main :: IO ()
 main = do
-	printTable "Diagrams" False (simpleIncrementalGenerator (triangleBoundedType 6 primeIrreducibleDiagramType) [ArbitraryCrossing]) 6
+	--printTable "Diagrams" False (simpleIncrementalGenerator (triangleBoundedType 6 primeIrreducibleDiagramType) [ArbitraryCrossing]) 6
 
 	let generate maxN =
 		let list = siftTangles $ \ yieldDiagram ->
@@ -21,8 +21,9 @@ main = do
 		in forM_ list
 
 	printTable "Arbitrary tangles" False
-		(\ maxN yieldTangle -> generate maxN (\ tangle -> yieldTangle tangle $ maximumSubGroup $ numberOfLegs tangle)) 6
+		(\ maxN yieldTangle -> generate maxN (\ tangle -> yieldTangle tangle $ maximumSubGroup $ numberOfLegs tangle)) 7
 
+{-
 	writePostScriptFile "tangles.ps" $ do
 		let a4Width = 595
 		let a4Height = 842
@@ -50,3 +51,4 @@ main = do
 				when (numberOfCrossings tangle <= 7 && numberOfLegs tangle == 4) $ do
 					drawTangle 0.01 tangle
 					appendTransform [shifted (0, -2.2)]
+-}

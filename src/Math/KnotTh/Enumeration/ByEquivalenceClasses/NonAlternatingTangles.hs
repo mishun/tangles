@@ -20,7 +20,7 @@ import qualified Math.KnotTh.Tangles.Moves.ReidemeisterReduction as Reidemeister
 import qualified Math.KnotTh.Tangles.Moves.Weak as Weak
 
 
-data DiagramInfo = Disconnected | Composite NonAlternatingTangle | Good !NonAlternatingTangle
+data DiagramInfo = Disconnected | Composite !NonAlternatingTangle | Good !NonAlternatingTangle
 
 
 instance Eq DiagramInfo where

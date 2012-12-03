@@ -30,7 +30,7 @@ siftByEquivalenceClasses ::
 
 siftByEquivalenceClasses merge wrap isomorphismTest moves enumerateDiagrams =
 	let final = flip execState (St { set = DS.empty, keys = M.empty, vals = IM.empty }) $ do
-		let declareEquivalent a b = do
+		let declareEquivalent !a !b = do
 			eq <- do
 				!st <- get
 				let ai = keys st M.! a
@@ -41,35 +41,33 @@ siftByEquivalenceClasses merge wrap isomorphismTest moves enumerateDiagrams =
 			unless eq $ do
 				!st <- get
 				let ds0 = set st
-				let (Just ai, ds1) = DS.lookup (keys st M.! a) ds0
-				let (Just bi, ds2) = DS.lookup (keys st M.! b) ds1
-				let ad = vals st IM.! ai
-				let bd = vals st IM.! bi
-				let ds3 = DS.union ai bi ds2
-				let (Just resi, ds4) = DS.lookup ai ds3
-				put $! st { set = ds4, vals = IM.insert resi (merge ad bd) $ IM.delete bi $ IM.delete ai $ vals st }
+				let (Just !ai, !ds1) = DS.lookup (keys st M.! a) ds0
+				let (Just !bi, !ds2) = DS.lookup (keys st M.! b) ds1
+				let !ds3 = DS.union ai bi ds2
+				let (Just !resi, !ds4) = DS.lookup ai ds3
+				let !result = merge (vals st IM.! bi) $! vals st IM.! ai
+				put $! st { set = ds4, vals = IM.insert resi result $! IM.delete bi $! IM.delete ai $! vals st }
 
-		let insert code current = do
+		let insert !code !current = do
 			!st <- get
 			let ds = set st
-			case M.lookup code $ keys st of
+			case M.lookup code $! keys st of
 				Nothing   -> do
-					let rootId = DS.size ds
-					put $! st { set = DS.insert rootId ds, keys = M.insert code rootId $ keys st, vals = IM.insert rootId current $ vals st }
+					let !rootId = DS.size ds
+					put $! st { set = DS.insert rootId ds, keys = M.insert code rootId $! keys st, vals = IM.insert rootId current $! vals st }
 					return True
 				Just elId -> do
 					let (Just rootId, ds') = DS.lookup elId ds
-					put $! st { set = ds', vals = IM.insertWith merge rootId current $ vals st }
+					put $! st { set = ds', vals = IM.insertWith' merge rootId current $! vals st }
 					return False
 
 		enumerateDiagrams $ \ !startDiagram ->
-			fix (\ dfs !dc@(diagram, circles) !prevCode -> do
+			fix (\ dfs dc@(!diagram, !circles) !prevCode -> do
 				let code = isomorphismTest dc
-				inserted <- insert code $ wrap dc
+				inserted <- insert code $! wrap dc
 				maybe (return ()) (declareEquivalent code) prevCode
 				when inserted $
 					forM_ [ (d, circles + c) | move <- moves, (d, c) <- move diagram ] $ \ child ->
 						dfs child $! Just code
 				) (startDiagram, 0) Nothing
-		return ()
 	in IM.elems $ vals final

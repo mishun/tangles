@@ -36,19 +36,25 @@ codeWithDirection !dir (tangle, circles) = minimum [ code leg | leg <- allLegs t
 			queue <- newArray_ (0, n - 1) :: ST s (STArray s Int (Dart ct))
 			free <- newSTRef 1
 
-			let look !d
-				| isLeg d    = return 0
-				| otherwise  = do
-					let u = incidentCrossing d
-					ux <- unsafeRead index $! crossingIndex u
-					if ux > 0
-						then return $! ux
-						else do
-							nf <- readSTRef free
-							writeSTRef free $! nf + 1
-							unsafeWrite index (crossingIndex u) nf
-							unsafeWrite queue (nf - 1) d
-							return $! nf
+			let	{-# INLINE look #-}
+				look !d
+					| isLeg d    = return 0
+					| otherwise  = do
+						let u = incidentCrossing d
+						ux <- unsafeRead index $! crossingIndex u
+						if ux > 0
+							then return $! ux
+							else do
+								nf <- readSTRef free
+								writeSTRef free $! nf + 1
+								unsafeWrite index (crossingIndex u) nf
+								unsafeWrite queue (nf - 1) d
+								return $! nf
+
+				{-# INLINE lookAndAdd #-}
+				lookAndAdd !d !s = do
+					!c <- look d
+					return $! c + s `shiftL` 7
 
 			rc <- newArray_ (0, l + 2 * n) :: ST s (STUArray s Int Int)
 			unsafeWrite rc 0 circles
@@ -58,7 +64,7 @@ codeWithDirection !dir (tangle, circles) = minimum [ code leg | leg <- allLegs t
 				tail <- readSTRef free
 				when (head < tail - 1) $ do
 					input <- unsafeRead queue head
-					nb <- foldMAdjacentDartsFrom input dir (\ !d !s -> do { c <- look d ; return $! c + s `shiftL` 7 }) 0
+					!nb <- foldMAdjacentDartsFrom input dir lookAndAdd 0
 					case crossingCode dir input of
 						(# be, le #) -> do
 							unsafeWrite rc (l + 1 + 2 * head) be

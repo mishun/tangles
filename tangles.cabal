@@ -17,6 +17,7 @@ library
     default-language:   Haskell2010
     default-extensions: BangPatterns, FlexibleContexts, MultiParamTypeClasses
     ghc-options:        -Wall -O2 -threaded
+    ghc-prof-options:   -prof -auto-all -caf-all
     cc-options:         -Wall -std=c++11 -O2
     ld-options:         -static
     build-depends:      base, array, deepseq, mtl, containers, disjoint-set
@@ -92,6 +93,7 @@ test-suite TestTangles
     default-language:   Haskell2010
     default-extensions: BangPatterns
     ghc-options:        -O2 -threaded
+    ghc-prof-options:   -rtsopts -prof -auto-all -caf-all
     ld-options:         -static
     build-depends:      base, containers, mtl, HUnit, tangles
     main-is:            TestTangles.hs
@@ -103,6 +105,7 @@ benchmark GraphDrawingBenchmark
     default-language:   Haskell2010
     default-extensions: BangPatterns
     ghc-options:        -Wall -O2 -threaded
+    ghc-prof-options:   -rtsopts -prof -auto-all -caf-all
     ld-options:         -static
     build-depends:      base, array, tangles
     main-is:            GraphDrawingBenchmark.hs
@@ -114,6 +117,7 @@ benchmark TangleGeneratorBenchmark
     default-language:   Haskell2010
     default-extensions: BangPatterns
     ghc-options:        -Wall -O2 -threaded
+    ghc-prof-options:   -rtsopts -prof -auto-all -caf-all
     ld-options:         -static
     build-depends:      base, mtl, containers, tangles
     main-is:            TangleGeneratorBenchmark.hs
@@ -124,6 +128,7 @@ executable TestNonAlternatingGenerator
     default-language:   Haskell2010
     default-extensions: BangPatterns
     ghc-options:        -Wall -O2 -threaded
+    ghc-prof-options:   -rtsopts -prof -auto-all -caf-all
     build-depends:      base, mtl, containers, tangles
     main-is:            TestNonAlternatingGenerator.hs
     hs-source-dirs:     test
