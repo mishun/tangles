@@ -15,7 +15,7 @@ import Data.List (intercalate)
 import Data.Bits ((.&.), shiftL, shiftR, complement)
 import Data.Array (Array)
 import Data.Array.Unboxed (UArray)
-import Data.Array.ST (STArray, STUArray, newArray_)
+import Data.Array.ST (STArray, STUArray, runSTArray, newArray_)
 import Data.Array.Base (unsafeAt, unsafeWrite, unsafeRead)
 import Data.Array.Unsafe (unsafeFreeze)
 import Control.Monad.ST (ST, runST)
@@ -78,17 +78,14 @@ instance Knotted Link Crossing Dart where
 		| i < 1 || i > numberOfCrossings l  = error "nthCrossing: out of bound"
 		| otherwise                         = Crossing l i
 
-	mapCrossingStates f link = runST $ do
-		let n = numberOfCrossings link
-		st <- newArray_ (0, n - 1) :: ST s (STArray s Int a)
-		forM_ [0 .. n - 1] $ \ !i ->
-			unsafeWrite st i $! f $! stateArray link `unsafeAt` i
-		st' <- unsafeFreeze st
-		return $! Link
-			{ count          = n
-			, crossingsArray = crossingsArray link
-			, stateArray     = st' 
-			}
+	mapCrossingStates f link = link
+		{ stateArray = runSTArray $ do
+			let n = numberOfCrossings link
+			st <- newArray_ (0, n - 1)
+			forM_ [0 .. n - 1] $ \ !i ->
+				unsafeWrite st i $! f $! stateArray link `unsafeAt` i
+			return $! st
+		}
 
 	crossingOwner = crossingLink
 

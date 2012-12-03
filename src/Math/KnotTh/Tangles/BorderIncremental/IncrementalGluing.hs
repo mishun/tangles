@@ -1,5 +1,7 @@
 module Math.KnotTh.Tangles.BorderIncremental.IncrementalGluing
 	( GluingType(..)
+	, nextNumberOfLegs
+	, diagonalIndex
 	, allGluingSites'
 	, allGluingSites
 	, representativeGluingSites'
@@ -19,6 +21,16 @@ data GluingType ct s = GluingType
 	{ preGlueTest  :: CrossingState ct -> Dart ct -> Int -> Bool
 	, postGlueTest :: Crossing ct -> Int -> Dart ct -> DnSubGroup -> Maybe s
 	}
+
+
+{-# INLINE nextNumberOfLegs #-}
+nextNumberOfLegs :: Int -> Int -> Int
+nextNumberOfLegs l gl = l + 4 - 2 * gl
+
+
+{-# INLINE diagonalIndex #-}
+diagonalIndex :: Int -> Int -> Int
+diagonalIndex n l = n + l `div` 2 - 2
 
 
 allGluingSites' :: (CrossingType ct) => [ct] -> Int -> Tangle ct -> [(Int, Dart ct, CrossingState ct)]

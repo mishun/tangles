@@ -30,7 +30,7 @@ import Data.List (intercalate)
 import Data.Array.IArray (listArray)
 import Data.Array (Array)
 import Data.Array.Unboxed (UArray)
-import Data.Array.ST (STArray, STUArray, newArray_)
+import Data.Array.ST (STArray, STUArray, runSTArray, newArray_)
 import Data.Array.Unsafe (unsafeFreeze)
 import Data.Array.Base (unsafeAt, unsafeWrite, unsafeRead)
 import Data.Bits ((.&.))
@@ -108,19 +108,14 @@ instance Knotted Tangle Crossing Dart where
 		| i < 1 || i > numberOfCrossings t  = error "nthCrossing: out of bound"
 		| otherwise                         = Crossing t i
 
-	mapCrossingStates f tangle = runST $ do
-		let n = numberOfCrossings tangle
-		st <- newArray_ (0, n - 1) :: ST s (STArray s Int a)
-		forM_ [0 .. n - 1] $ \ !i ->
-			unsafeWrite st i $! f $! stateArray tangle `unsafeAt` i
-		st' <- unsafeFreeze st
-		return $! Tangle
-			{ count          = n
-			, numberOfLegs   = numberOfLegs tangle
-			, crossingsArray = crossingsArray tangle
-			, borderArray    = borderArray tangle
-			, stateArray     = st' 
-			}
+	mapCrossingStates f tangle = tangle
+		{ stateArray = runSTArray $ do
+			let n = numberOfCrossings tangle
+			st <- newArray_ (0, n - 1)
+			forM_ [0 .. n - 1] $ \ !i ->
+				unsafeWrite st i $! f $! stateArray tangle `unsafeAt` i
+			return $! st
+		}
 
 	crossingOwner = crossingTangle
 

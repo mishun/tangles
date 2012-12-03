@@ -2,7 +2,6 @@ module Main (main) where
 
 import qualified Data.Map as Map
 import Text.Printf
-import Control.Monad.ST (runST)
 import Control.Monad (forM_)
 import Test.HUnit
 import qualified Math.Combinatorics.ChordDiagrams.Generator as CDGen
@@ -17,7 +16,7 @@ main = runTestTT tests
 tests = TestList
 	[ TestLabel "Numbers of non-planar chord diagrams" $ TestCase $
 		forM_ [ (0, 1), (1, 0), (2, 1), (3, 2), (4, 7), (5, 29), (6, 196), (7, 1788), (8, 21994) ] $ \ (n, t) ->
-			assertEqual (printf "for n = %i" n) t (runST $ CDGen.generateNonPlanar n (\ c _ -> return $! c + 1) 0)
+			assertEqual (printf "for n = %i" n) t (CDGen.generateNonPlanar n (\ c _ -> return $! c + 1) 0)
 
 	, TestLabel "Numbers of prime tangle projections" $ TestCase $ do
 		let table = Table.generateTable False (IncrementalGluing.simpleIncrementalGenerator SimpleTypes.primeProjectionType [ProjectionCrossing.ProjectionCrossing]) 8

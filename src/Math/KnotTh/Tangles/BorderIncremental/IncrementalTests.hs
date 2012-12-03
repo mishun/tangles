@@ -1,6 +1,6 @@
 module Math.KnotTh.Tangles.BorderIncremental.IncrementalTests
-	( testInTriangle
-	, testMultiEdges
+	( testNoMultiEdges
+	, testNo2ndReidemeisterReduction
 	, testFlow4
 	) where
 
@@ -10,24 +10,30 @@ import Data.STRef (newSTRef, readSTRef, writeSTRef)
 import Control.Monad.ST (ST, runST)
 import Control.Monad (when, forM_)
 import Math.KnotTh.Tangles
+import Math.KnotTh.Tangles.NonAlternating
 
 
-testInTriangle :: Int -> Dart ct -> Int -> Bool
-testInTriangle maxN leg gl =
-	let	t = dartTangle leg
-		n = numberOfCrossings t
-		l = numberOfLegs t
-	in (l >= 2 * gl) && (n + div l 2 - gl < maxN)
-
-
-testMultiEdges :: Dart ct -> Int -> Bool
-testMultiEdges leg gl =
+testNoMultiEdges :: Dart ct -> Int -> Bool
+testNoMultiEdges leg gl =
 	let ls = take gl $! iterate nextCW leg
 	in and $! zipWith (\ !a !b ->
 			let	a' = opposite a
 				b' = opposite b
 			in isLeg a' || isLeg b' || incidentCrossing a' /= incidentCrossing b' 
 		) ls $! tail ls
+
+
+testNo2ndReidemeisterReduction :: CrossingState ArbitraryCrossing -> Dart ArbitraryCrossing -> Int -> Bool
+testNo2ndReidemeisterReduction cr leg gl =
+	let	legs = take gl $ iterate nextCW leg
+		test (i, a, b)
+			| isLeg a' || isLeg b' || incidentCrossing a' /= incidentCrossing b'        = True
+			| (passOver a' == passOver' cr i) && (passOver b' == passOver' cr (i + 1))  = False
+			| otherwise                                                                 = True
+			where
+				a' = opposite a
+				b' = opposite b
+	in all test $ zip3 [0 ..] legs (tail legs)
 
 
 testFlow4 :: Crossing ct -> Bool

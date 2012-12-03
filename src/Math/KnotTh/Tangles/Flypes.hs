@@ -6,9 +6,7 @@ module Math.KnotTh.Tangles.Flypes
 
 import Data.Array.Base (unsafeWrite)
 import Data.Array.Unboxed (UArray)
-import Data.Array.ST (STUArray, newArray)
-import Data.Array.Unsafe (unsafeFreeze)
-import Control.Monad.ST (ST, runST)
+import Data.Array.ST (runSTUArray, newArray)
 import Math.Algebra.RotationDirection
 import Math.Algebra.Group.Dn (Dn, fromReflectionRotation)
 import Math.KnotTh.Crossings.Projection
@@ -19,10 +17,10 @@ import Math.KnotTh.Tangles
 flypeCodeLeg :: Dart (SubTangleCrossing ProjectionCrossing) -> RotationDirection -> UArray Int Int
 flypeCodeLeg leg initialDirection
 	| isDart leg  = error "flypeCodeLeg: leg expected"
-	| otherwise   = runST $ do
+	| otherwise   = runSTUArray $ do
 		let tangle = dartTangle leg
 		let n = numberOfCrossings tangle
-		code <- newArray (0, 2 * n - 1) 0 :: ST s (STUArray s Int Int)
+		code <- newArray (0, 2 * n - 1) 0
 
 		let	{-# INLINE go #-}
 			go !i !d !dir
@@ -36,7 +34,7 @@ flypeCodeLeg leg initialDirection
 					go (i + 1) (opposite $ nextDir dir d) dir
 
 		go 0 (opposite leg) initialDirection
-		unsafeFreeze code
+		return $! code
 
 
 minimumFlypeCode :: Tangle (SubTangleCrossing ProjectionCrossing) -> UArray Int Int

@@ -7,7 +7,7 @@ module Math.KnotTh.Crossings.Arbitrary
 	, passUnder
 	, passOver'
 	, passUnder'
-	, isAltEdge
+	, isAltenatingEdge
 	, writhe
 	, invertCrossings
 	) where
@@ -69,8 +69,8 @@ passUnder' :: CrossingState ArbitraryCrossing -> Int -> Bool
 passUnder' cr p = odd $ crossingLegIdByDartId cr p
 
 
-isAltEdge :: (Knotted k c d) => d ArbitraryCrossing -> Bool
-isAltEdge d = passOver d == passUnder (opposite d)
+isAltenatingEdge :: (Knotted k c d) => d ArbitraryCrossing -> Bool
+isAltenatingEdge d = passOver d == passUnder (opposite d)
 
 
 writhe :: (Eq (d ArbitraryCrossing), Eq (c ArbitraryCrossing), Knotted t c d) => d ArbitraryCrossing -> d ArbitraryCrossing -> Int

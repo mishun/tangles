@@ -2,6 +2,7 @@ module Math.KnotTh.Crossings.Projection
 	( ProjectionCrossing(..)
 	, projectionCrossing
 	, projectionCrossings
+	, projection
 	) where
 
 import Control.DeepSeq
@@ -31,3 +32,7 @@ projectionCrossing = makeCrossing' ProjectionCrossing
 
 projectionCrossings :: [CrossingState ProjectionCrossing]
 projectionCrossings = [projectionCrossing]
+
+
+projection :: (CrossingType ct, Knotted k c d) => k ct -> k ProjectionCrossing
+projection = mapCrossingStates (const projectionCrossing)

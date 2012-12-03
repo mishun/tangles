@@ -4,15 +4,16 @@ module Math.KnotTh.Tangles.IsomorphismTest
 	, isomorphismTest'
 	) where
 
+import Prelude hiding (head, tail)
 import Data.Bits (shiftL)
+import Data.Function (fix)
 import Data.STRef (newSTRef, readSTRef, writeSTRef)
 import Data.Array.Base (unsafeRead, unsafeWrite)
-import Data.Array.Unsafe (unsafeFreeze)
 import Data.Array.Unboxed (UArray)
-import Data.Array.ST (STArray, STUArray, newArray, newArray_)
-import Control.Monad.ST (ST, runST)
-import Control.Monad (when)
-import Math.Algebra.RotationDirection (ccw, cw)
+import Data.Array.ST (STArray, STUArray, runSTUArray, newArray, newArray_)
+import Control.Monad.ST (ST)
+import Control.Monad (when, foldM_)
+import Math.Algebra.RotationDirection (RotationDirection, ccw, cw)
 import Math.KnotTh.Tangles
 
 
@@ -21,44 +22,53 @@ isomorphismTest' tangle = isomorphismTest (tangle, 0)
 
 
 isomorphismTest :: (CrossingType ct) => (Tangle ct, Int) -> UArray Int Int
-isomorphismTest (tangle, circles) = minimum [ min (code leg ccw) (code leg cw) | leg <- allLegs tangle ]
+isomorphismTest tc = min (codeWithDirection ccw tc) (codeWithDirection cw tc)
+
+
+codeWithDirection :: (CrossingType ct) => RotationDirection -> (Tangle ct, Int) -> UArray Int Int
+codeWithDirection !dir (tangle, circles) = minimum [ code leg | leg <- allLegs tangle ]
 	where
 		n = numberOfCrossings tangle
+		l = numberOfLegs tangle
 
-		code leg !dir = runST $ do
-			x <- newArray (0, n) 0 :: ST s (STUArray s Int Int)
-			unsafeWrite x (crossingIndex $! adjacentCrossing leg) 1
+		code leg = runSTUArray $ do
+			index <- newArray (0, n) 0 :: ST s (STUArray s Int Int)
+			queue <- newArray_ (0, n - 1) :: ST s (STArray s Int (Dart ct))
+			free <- newSTRef 1
 
-			q <- newArray_ (0, n - 1) :: ST s (STArray s Int (Dart ct))
-			unsafeWrite q 0 (opposite leg)
-			free <- newSTRef 2
+			let look !d
+				| isLeg d    = return 0
+				| otherwise  = do
+					let u = incidentCrossing d
+					ux <- unsafeRead index $! crossingIndex u
+					if ux > 0
+						then return $! ux
+						else do
+							nf <- readSTRef free
+							writeSTRef free $! nf + 1
+							unsafeWrite index (crossingIndex u) nf
+							unsafeWrite queue (nf - 1) d
+							return $! nf
 
-			let	{-# INLINE look #-}
-				look !d !s
-					| isLeg d    = return $! s `shiftL` 7
-					| otherwise  = do
-						let u = incidentCrossing d
-						ux <- unsafeRead x (crossingIndex u)
-						if ux > 0
-							then return $! ux + (s `shiftL` 7)
-							else do
-								nf <- readSTRef free
-								writeSTRef free $! nf + 1
-								unsafeWrite x (crossingIndex u) nf
-								unsafeWrite q (nf - 1) d
-								return $! nf + (s `shiftL` 7)
+			rc <- newArray_ (0, l + 2 * n) :: ST s (STUArray s Int Int)
+			unsafeWrite rc 0 circles
+			foldM_ (\ !d !i -> do { look (opposite d) >>= unsafeWrite rc i ; return $! nextDir dir d }) leg [1 .. l]
 
-			rc <- newArray (0, 2 * n - 1) 0 :: ST s (STUArray s Int Int)
-
-			let	{-# INLINE bfs #-}
-				bfs !h = when (h < n) $ do
-					d <- unsafeRead q h
-					nb <- foldMAdjacentDartsFrom d dir look 0
-					case crossingCode dir d of
+			flip fix 0 $ \ bfs !head -> do
+				tail <- readSTRef free
+				when (head < tail - 1) $ do
+					input <- unsafeRead queue head
+					nb <- foldMAdjacentDartsFrom input dir (\ !d !s -> do { c <- look d ; return $! c + s `shiftL` 7 }) 0
+					case crossingCode dir input of
 						(# be, le #) -> do
-							unsafeWrite rc (2 * h) be
-							unsafeWrite rc (2 * h + 1) $! le + nb `shiftL` 3
-					bfs $! h + 1
+							unsafeWrite rc (l + 1 + 2 * head) be
+							unsafeWrite rc (l + 2 + 2 * head) $! le + nb `shiftL` 3
+					bfs $! head + 1
 
-			bfs 0
-			unsafeFreeze rc
+			fix $ \ recheck -> do
+				tail <- readSTRef free
+				when (tail <= n) $
+					fail "codeWithDirection: not connected diagram"
+					recheck
+
+			return $! rc

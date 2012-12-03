@@ -32,7 +32,7 @@ instance Ord DiagramInfo where
 	compare Disconnected _            = LT
 	compare _            Disconnected = GT
 
-	compare (Composite a) (Composite b) = compare (numberOfCrossings a) (numberOfCrossings b)
+	compare (Composite a) (Composite b) = comparing numberOfCrossings a b
 
 	compare (Composite c) (Good g)
 		| numberOfCrossings c <= numberOfCrossings g  = LT
@@ -43,7 +43,7 @@ instance Ord DiagramInfo where
 		| otherwise                                   = LT
 
 	compare (Good a) (Good b) = comparing
-		(\ d -> (numberOfCrossings d, alternatingDefect d, isomorphismTest' (tangleProjection d)))
+		(\ d -> (numberOfCrossings d, alternatingDefect d, isomorphismTest' (projection d)))
 		a b
 
 

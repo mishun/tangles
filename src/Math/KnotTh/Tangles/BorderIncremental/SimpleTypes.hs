@@ -5,6 +5,7 @@ module Math.KnotTh.Tangles.BorderIncremental.SimpleTypes
 	, templateProjectionType
 	, primeDiagramType
 	, primeIrreducibleDiagramType
+	, triangleBoundedType
 	) where
 
 import Math.Algebra.Group.Dn (DnSubGroup)
@@ -16,26 +17,26 @@ import Math.KnotTh.Tangles.BorderIncremental.IncrementalTests
 
 primeProjectionType :: GluingType ProjectionCrossing DnSubGroup
 primeProjectionType = GluingType
-	{ preGlueTest     = \ _ _ _ -> True
-	, postGlueTest    = \ _ _ _ s -> return $! s
+	{ preGlueTest  = \ _ _ _ -> True
+	, postGlueTest = \ _ _ _ s -> return $! s
 	}
 
 
 reducedProjectionType :: GluingType ProjectionCrossing DnSubGroup
 reducedProjectionType = GluingType
-	{ preGlueTest     = const testMultiEdges
-	, postGlueTest    = \ _ _ _ s -> return $! s
+	{ preGlueTest  = const testNoMultiEdges
+	, postGlueTest = \ _ _ _ s -> return $! s
 	}
 
 
 templateProjectionType :: GluingType ProjectionCrossing DnSubGroup
 templateProjectionType = GluingType
-	{ preGlueTest     = \ _ leg gl ->
+	{ preGlueTest  = \ _ leg gl ->
 		let	t = dartTangle leg
 			n = numberOfCrossings t
 			l = numberOfLegs t
-		in (n == 1 || l > 4) && testMultiEdges leg gl
-	, postGlueTest    = \ root gl _ s ->
+		in (n == 1 || l > 4) && testNoMultiEdges leg gl
+	, postGlueTest = \ root gl _ s ->
 		if gl < 3 || testFlow4 root
 			then return $! s
 			else Nothing
@@ -51,15 +52,15 @@ primeDiagramType = GluingType
 
 primeIrreducibleDiagramType :: GluingType ArbitraryCrossing DnSubGroup
 primeIrreducibleDiagramType = GluingType
-	{ preGlueTest  = \ cr leg gl ->
-		let	legs = take gl $ iterate nextCW leg
-			test (i, a, b)
-				| isLeg a' || isLeg b' || incidentCrossing a' /= incidentCrossing b'        = True
-				| (passOver a' == passOver' cr i) && (passOver b' == passOver' cr (i + 1))  = False
-				| otherwise                                                                 = True
-				where
-					a' = opposite a
-					b' = opposite b
-		in all test $ zip3 [0 ..] legs (tail legs)
+	{ preGlueTest  = testNo2ndReidemeisterReduction
 	, postGlueTest = \ _ _ _ s -> return $! s
+	}
+
+
+triangleBoundedType :: Int -> GluingType ct a -> GluingType ct a
+triangleBoundedType maxN gt = gt
+	{ preGlueTest = \ cr leg gl ->
+		let t = dartTangle leg
+		in (diagonalIndex (1 + numberOfCrossings t) (nextNumberOfLegs (numberOfLegs t) gl) <= diagonalIndex maxN 4)
+			&& preGlueTest gt cr leg gl
 	}

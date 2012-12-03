@@ -8,7 +8,7 @@ module Math.KnotTh.Tangles.BorderIncremental.RootingTest
 import Data.Bits (shiftL)
 import Data.Array.Base (unsafeRead, unsafeWrite, unsafeAt)
 import Data.Array.Unboxed (UArray)
-import Data.Array.ST (STArray, STUArray, newArray, newArray_)
+import Data.Array.ST (STArray, STUArray, runSTUArray, newArray, newArray_)
 import Data.Array.Unsafe (unsafeFreeze)
 import Data.STRef (newSTRef, readSTRef, writeSTRef)
 import Control.Monad.ST (ST, runST)
@@ -115,7 +115,7 @@ analyseSymmetry lastCrossing skipCrossing = findSymmetry
 
 
 rootCodeLeg :: (CrossingType ct) => Dart ct -> RotationDirection -> UArray Int Int
-rootCodeLeg !root !dir = runST $ do
+rootCodeLeg !root !dir = runSTUArray $ do
 	when (isDart root) (fail "rootCodeLeg: leg expected")
 
 	let tangle = dartTangle root
@@ -155,7 +155,7 @@ rootCodeLeg !root !dir = runST $ do
 			bfs $! h + 1
 
 	bfs 0
-	unsafeFreeze rc
+	return $! rc
 
 
 minimumRootCode :: (CrossingType ct) => Tangle ct -> UArray Int Int

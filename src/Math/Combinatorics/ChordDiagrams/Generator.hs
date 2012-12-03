@@ -1,3 +1,4 @@
+{-# LANGUAGE Rank2Types #-}
 module Math.Combinatorics.ChordDiagrams.Generator
 	( generateWithChecker
 	, generate
@@ -11,12 +12,12 @@ import Data.Array.ST (STUArray, newArray, newListArray)
 import Data.STRef (newSTRef, readSTRef, writeSTRef)
 import Control.Applicative ((<$>))
 import Control.Monad (when)
-import Control.Monad.ST (ST)
+import Control.Monad.ST (ST, runST)
 import Math.Combinatorics.Strings.Lyndon
 
 
-generateWithChecker :: Int -> (STUArray s Int Int -> Int -> Int -> ST s Bool) -> Int -> (st -> STUArray s Int Int -> ST s st) -> st -> ST s st
-generateWithChecker minimalChordLength checker n yield initial = do
+generateWithChecker :: Int -> (forall s. STUArray s Int Int -> Int -> Int -> ST s Bool) -> Int -> (forall s. st -> STUArray s Int Int -> ST s st) -> st -> st
+generateWithChecker minimalChordLength checker n yield initial = runST $ do
 	let p = 2 * n
 
 	a <- newArray (0, p - 1) 0 :: ST s (STUArray s Int Int)
@@ -165,9 +166,9 @@ generateWithChecker minimalChordLength checker n yield initial = do
 	readSTRef result
 
 
-generate :: Int -> Int -> (st -> STUArray s Int Int -> ST s st) -> st -> ST s st
+generate :: Int -> Int -> (forall s. st -> STUArray s Int Int -> ST s st) -> st -> st
 generate minimalChordLength = generateWithChecker minimalChordLength (\ _ _ _ -> return True)
 
 
-generateNonPlanar :: Int -> (st -> STUArray s Int Int -> ST s st) -> st -> ST s st
+generateNonPlanar :: Int -> (forall s. st -> STUArray s Int Int -> ST s st) -> st -> st
 generateNonPlanar = generate 2
