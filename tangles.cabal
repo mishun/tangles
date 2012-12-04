@@ -15,7 +15,7 @@ source-repository head
 
 library
     default-language:   Haskell2010
-    default-extensions: BangPatterns, FlexibleContexts, MultiParamTypeClasses
+    default-extensions: BangPatterns, FlexibleContexts, FlexibleInstances, MultiParamTypeClasses
     ghc-options:        -Wall -O2 -threaded
     ghc-prof-options:   -prof -auto-all -caf-all
     cc-options:         -Wall -std=c++11 -O2
@@ -42,6 +42,7 @@ library
         Math.KnotTh.Crossings.SubTangle
         Math.KnotTh.Enumeration.ByEquivalenceClasses
         Math.KnotTh.Enumeration.ByEquivalenceClasses.NonAlternatingTangles
+        Math.KnotTh.Enumeration.DiagramInfo
         Math.KnotTh.Invariants.ThreadExpansion
         Math.KnotTh.Invariants.Skein.JonesPolynomial
         Math.KnotTh.Knotted

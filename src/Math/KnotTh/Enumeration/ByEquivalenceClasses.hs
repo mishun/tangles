@@ -10,6 +10,7 @@ import Control.Monad.State.Strict (execState, get, put)
 import Control.Monad (when, unless, forM_)
 import qualified Data.IntDisjointSet as DS 
 import Math.KnotTh.Knotted
+import Math.KnotTh.Enumeration.DiagramInfo
 
 
 data SiftState k v = St
@@ -20,15 +21,13 @@ data SiftState k v = St
 
 
 siftByEquivalenceClasses ::
-	(Ord c, CrossingType ct, Knotted knot crossing dart)
-		=> (d -> d -> d)
-		-> ((knot ct, Int) -> d)
-		-> ((knot ct, Int) -> c)
+	(Ord c, CrossingType ct, Knotted knot crossing dart, DiagramInfo d (knot ct))
+		=> ((knot ct, Int) -> c)
 		-> [knot ct -> [(knot ct, Int)]]
 		-> (forall m. (Monad m) => (knot ct -> m ()) -> m ())
 		-> [d]
 
-siftByEquivalenceClasses merge wrap isomorphismTest moves enumerateDiagrams =
+siftByEquivalenceClasses isomorphismTest moves enumerateDiagrams =
 	let final = flip execState (St { set = DS.empty, keys = M.empty, vals = IM.empty }) $ do
 		let declareEquivalent !a !b = do
 			eq <- do
