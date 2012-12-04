@@ -7,7 +7,6 @@ import Data.Array (array, (!))
 import qualified Data.Set as Set
 import Math.KnotTh.Knotted
 import Math.KnotTh.Tangles
-import Math.KnotTh.Tangles.Paths
 
 
 threadExpansion :: (Ord inv, CrossingType ct) => ((Tangle ct, Int) -> inv) -> Tangle ct -> [([Int], inv)]

@@ -7,7 +7,6 @@ import Control.Monad
 import Math.KnotTh.Crossings.Projection
 import Math.KnotTh.Crossings.Arbitrary
 import Math.KnotTh.Tangles
-import Math.KnotTh.Tangles.Paths
 import qualified Math.Manifolds.SurfaceGraph as G
 import Math.Manifolds.SurfaceGraph.Embedding
 import Graphics.HP

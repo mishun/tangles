@@ -21,11 +21,11 @@ data SiftState k v = St
 
 
 siftByEquivalenceClasses ::
-	(Ord c, CrossingType ct, Knotted knot crossing dart, DiagramInfo d (knot ct))
+	(Ord c, CrossingType ct, Knotted knot crossing dart, DiagramInfo info)
 		=> ((knot ct, Int) -> c)
 		-> [knot ct -> [(knot ct, Int)]]
 		-> (forall m. (Monad m) => (knot ct -> m ()) -> m ())
-		-> [d]
+		-> [info (knot ct)]
 
 siftByEquivalenceClasses isomorphismTest moves enumerateDiagrams =
 	let final = flip execState (St { set = DS.empty, keys = M.empty, vals = IM.empty }) $ do

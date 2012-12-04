@@ -56,7 +56,6 @@ library
         Math.KnotTh.Tangles.BorderIncremental.IncrementalTests
         Math.KnotTh.Tangles.BorderIncremental.RootingTest
         Math.KnotTh.Tangles.BorderIncremental.SimpleTypes
-        Math.KnotTh.Tangles.Connectivity
         Math.KnotTh.Tangles.Draw
         Math.KnotTh.Tangles.Flypes
         Math.KnotTh.Tangles.IsomorphismTest
@@ -68,7 +67,6 @@ library
         Math.KnotTh.Tangles.Moves.ReidemeisterIII
         Math.KnotTh.Tangles.Moves.ReidemeisterReduction
         Math.KnotTh.Tangles.Moves.Weak
-        Math.KnotTh.Tangles.Paths
         Math.KnotTh.Tangles.Projection
         Math.Manifolds.SurfaceGraph
         Math.Manifolds.SurfaceGraph.Embedding

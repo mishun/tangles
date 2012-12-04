@@ -16,7 +16,6 @@ import Control.Monad.ST (ST, runST)
 import Control.Monad (when, forM_)
 import Math.KnotTh.Crossings.Arbitrary
 import Math.KnotTh.Tangles
-import Math.KnotTh.Tangles.Paths
 
 
 type NonAlternatingTangle = Tangle ArbitraryCrossing

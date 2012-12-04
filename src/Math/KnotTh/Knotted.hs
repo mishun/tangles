@@ -139,28 +139,30 @@ crossingCode dir d =
 	in (# code cr, equivalenceClassId (symmetry cr) t #)
 
 
-class Knotted (k :: * -> *) (c :: * -> *) (d :: * -> *) | k -> d, k -> c, c -> k, c -> d, d -> k, d -> c where
-	numberOfCrossings :: k ct -> Int
-	numberOfEdges     :: k ct -> Int
-	nthCrossing       :: k ct -> Int -> c ct
-	mapCrossingStates :: (CrossingType a, CrossingType b) => (CrossingState a -> CrossingState b) -> k a -> k b
+class Knotted (knot :: * -> *) (cross :: * -> *) (dart :: * -> *) | knot -> cross, cross -> dart, dart -> knot where
+	numberOfCrossings :: knot ct -> Int
+	numberOfEdges     :: knot ct -> Int
+	nthCrossing       :: knot ct -> Int -> cross ct
+	mapCrossingStates :: (CrossingType a, CrossingType b) => (CrossingState a -> CrossingState b) -> knot a -> knot b
 
-	crossingOwner     :: c ct -> k ct
-	crossingIndex     :: c ct -> Int
-	crossingState     :: (CrossingType ct) => c ct -> CrossingState ct
-	nthIncidentDart   :: c ct -> Int -> d ct
+	crossingOwner     :: cross ct -> knot ct
+	crossingIndex     :: cross ct -> Int
+	crossingState     :: (CrossingType ct) => cross ct -> CrossingState ct
+	nthIncidentDart   :: cross ct -> Int -> dart ct
 
-	nextCW, nextCCW   :: d ct -> d ct
-	opposite          :: d ct -> d ct
-	incidentCrossing  :: d ct -> c ct
-	dartPlace         :: d ct -> Int
-	dartOwner         :: d ct -> k ct
+	nextCW, nextCCW   :: dart ct -> dart ct
+	opposite          :: dart ct -> dart ct
+	incidentCrossing  :: dart ct -> cross ct
+	dartPlace         :: dart ct -> Int
+	dartOwner         :: dart ct -> knot ct
+	dartArrIndex      :: dart ct -> Int
 
-	dartArrIndex      :: d ct -> Int
+	forMIncidentDarts      :: (Monad m) => cross ct -> (dart ct -> m ()) -> m ()
+	foldMIncidentDarts     :: (Monad m) => cross ct -> (dart ct -> s -> m s) -> s -> m s
+	foldMIncidentDartsFrom :: (Monad m) => dart ct -> RotationDirection -> (dart ct -> s -> m s) -> s -> m s
 
-	forMIncidentDarts      :: (Monad m) => c ct -> (d ct -> m ()) -> m ()
-	foldMIncidentDarts     :: (Monad m) => c ct -> (d ct -> s -> m s) -> s -> m s
-	foldMIncidentDartsFrom :: (Monad m) => d ct -> RotationDirection -> (d ct -> s -> m s) -> s -> m s
+	isConnected :: knot ct -> Bool
+	isPrime     :: knot ct -> Bool
 
 
 	forMIncidentDarts c f = mapM_ f $ incidentDarts c

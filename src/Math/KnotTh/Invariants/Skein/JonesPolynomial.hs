@@ -7,7 +7,6 @@ import Data.Array.Unboxed (UArray, array, (!))
 import qualified Data.IntMap as Map
 import Math.Algebra.Group.Dn (fromReflectionRotation)
 import Math.KnotTh.Tangles.NonAlternating
-import Math.KnotTh.Tangles.Paths
 
 
 ofTangle :: (NonAlternatingTangle, Int) -> [(Scheme, Poly)]

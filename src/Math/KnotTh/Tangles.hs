@@ -25,13 +25,24 @@ module Math.KnotTh.Tangles
 	, fromListsST
 	, toPair
 	, toLists
+	, containingDirectedPath
+	, containingUndirectedPath
+	, directedPathsDecomposition
+	, undirectedPathsDecomposition
+	, containingThread
+	, allThreads
+	, containingFaceLeft
+	, containingFaceRight
+	, allFaces
 	) where
 
-import Data.List (intercalate)
+import Data.List (intercalate, nub, foldl', sort)
+import qualified Data.Set as Set
+import qualified Data.Map as Map
 import Data.Array.IArray (listArray)
 import Data.Array (Array)
 import Data.Array.Unboxed (UArray)
-import Data.Array.ST (STArray, STUArray, runSTArray, newArray_, thaw)
+import Data.Array.ST (STArray, STUArray, runSTArray, newArray_)
 import Data.Array.Unsafe (unsafeFreeze)
 import Data.Array.Base (unsafeAt, unsafeWrite, unsafeRead)
 import Data.Bits ((.&.))
@@ -160,7 +171,7 @@ instance Knotted Tangle Crossing Dart where
 		| c == 0     = let n = numberOfCrossings t in 4 * n + i
 		| otherwise  = 4 * (c - 1) + i
 
-	forMIncidentDarts (Crossing t c) f = do{ f $! Dart t c 0 ; f $! Dart t c 1 ; f $! Dart t c 2 ; f $! Dart t c 3 }
+	forMIncidentDarts (Crossing t c) f = do { f $! Dart t c 0 ; f $! Dart t c 1 ; f $! Dart t c 2 ; f $! Dart t c 3 }
 
 	foldMIncidentDarts (Crossing t c) f s = f (Dart t c 0) s >>= f (Dart t c 1) >>= f (Dart t c 2) >>= f (Dart t c 3)
 
@@ -169,6 +180,30 @@ instance Knotted Tangle Crossing Dart where
 		| otherwise   =
 			let d = directionSign direction
 			in f dart s >>= f (Dart t c $! (i + d) .&. 3) >>= f (Dart t c $! (i + 2 * d) .&. 3) >>= f (Dart t c $! (i + 3 * d) .&. 3)
+
+	isConnected tangle = all (\ (a, b) -> Set.member a con && Set.member b con) edges
+		where
+			edges = allEdges tangle
+			con = dfs (Set.empty) $ fst $ head edges
+			dfs vis c
+				| Set.member c vis  = vis
+				| otherwise         = foldl' dfs (Set.insert c vis) neigh
+				where
+					neigh
+						| isLeg c    = [opposite c]
+						| otherwise  = [opposite c, nextCCW c, nextCW c]
+
+	isPrime tangle = connections == nub connections
+		where
+			idm =	let faces = allFaces tangle
+				in Map.fromList $ concatMap (\ (face, i) -> zip face $ repeat i) $ zip faces [(0 :: Int) ..]
+
+			connections = sort $ map getPair $ allEdges tangle
+				where
+					getPair (da, db) = (min a b, max a b)
+						where
+							a = idm Map.! da
+							b = idm Map.! db
 
 
 {-# INLINE crossingTangle #-}
@@ -254,39 +289,27 @@ transformTangle :: (CrossingType ct) => Dn -> Tangle ct -> Tangle ct
 transformTangle g tangle
 	| l /= pointsUnderGroup g                   = error "transformTangle: order conflict"
 	| reflection g == False && rotation g == 0  = tangle
-	| otherwise                                 = runST $ do
-		cr <- thaw $ crossingsArray tangle :: ST s (STUArray s Int Int)
-		ls <- newArray_ (0, l - 1) :: ST s (STUArray s Int Int)
-
-		forM_ [0 .. l - 1] $ \ !i -> do
-			let j = permute g i
-			unsafeWrite ls (2 * j) $ borderArray tangle `unsafeAt` (2 * i)
-			unsafeWrite ls (2 * j + 1) $ borderArray tangle `unsafeAt` (2 * i + 1)
-
-		when (reflection g) $ do
-			forM_ [0 .. l - 1] $ \ !i -> do
-				return ()
-
-			forM_ [0 .. n - 1] $ \ !i -> do
-				return ()
-
-		cr' <- unsafeFreeze cr
-		ls' <- unsafeFreeze ls
-		return $! tangle
-			{ crossingsArray = cr'
-			, borderArray    = ls'
-			, stateArray     =
-				if not $ reflection g
-					then stateArray tangle
-					else runSTArray $ do
-						st <- newArray_ (0, n - 1) :: ST s (STArray s Int a)
-						forM_ [0 .. n - 1] $ \ !i ->
-							unsafeWrite st i $ alterCrossingOrientation (ec <*>) $ stateArray tangle `unsafeAt` i
-						return $! st
-			}
+	| otherwise                                 = fromLists border (map crossing $ allCrossings tangle)
 	where
-		n = numberOfCrossings tangle
 		l = numberOfLegs tangle
+
+		pair d
+			| isLeg d    = (0, permute g $ legPlace d)
+			| otherwise  =
+				let c = incidentCrossing d
+				in (crossingIndex c, if reflection g then 3 - dartPlace d else dartPlace d)
+
+		crossing c
+			| reflection g  = (reverse $ map pair $ adjacentDarts c, alterCrossingOrientation (ec <*>) $ crossingState c)
+			| otherwise     = (map pair $ adjacentDarts c, crossingState c)
+
+		border
+			| reflection g  = head rotated : reverse (tail rotated)
+			| otherwise     = rotated
+			where
+				rotated =
+					let (pre, post) = splitAt (l - rotation g) $ map (pair . opposite) $ allLegs tangle
+					in post ++ pre
 
 
 --       edgesToGlue = 1                 edgesToGlue = 2                 edgesToGlue = 3
@@ -439,3 +462,70 @@ toLists :: (CrossingType ct) => Tangle ct -> ([(Int, Int)], [([(Int, Int)], Cros
 toLists tangle =
 	let crToList c = (map (toPair . opposite) $ incidentDarts c, crossingState c)
 	in (map (toPair . opposite) $ allLegs tangle, map crToList $ allCrossings tangle)
+
+
+containingDirectedPath :: (Dart ct -> Dart ct, Dart ct -> Dart ct) -> Dart ct -> [Dart ct]
+containingDirectedPath (adjForward, adjBackward) start
+	| isCycle    = forward
+	| otherwise  = walkBackward (start, forward)
+	where
+		(forward, isCycle) = walkForward start
+
+		walkForward d
+			| isLeg opp     = ([d], False)
+			| start == nxt  = ([d], True)
+			| otherwise     = (d : nextPath, nextCycle)
+			where
+				opp = opposite d
+				nxt = adjForward opp
+				(nextPath, nextCycle) = walkForward nxt
+
+		walkBackward (d, path)
+			| isLeg d    = path
+			| otherwise  = let prev = opposite $ adjBackward d in walkBackward (prev, prev : path)
+
+
+containingUndirectedPath :: (Dart ct -> Dart ct) -> Dart ct -> [(Dart ct, Dart ct)]
+containingUndirectedPath cont = map (\ d -> (d, opposite d)) . containingDirectedPath (cont, cont)
+
+
+directedPathsDecomposition :: (Dart ct -> Dart ct, Dart ct -> Dart ct) -> Tangle ct -> [[Dart ct]]
+directedPathsDecomposition continue = fst . foldl' processDart ([], Set.empty) . allLegsAndDarts
+	where
+		processDart (paths, s) d
+			| Set.member d s  = (paths, s)
+			| otherwise       = (path : paths, nextS)
+			where
+				path = containingDirectedPath continue d
+				nextS = foldl' (\ curs a -> Set.insert a curs) s path
+
+
+undirectedPathsDecomposition :: (Dart ct -> Dart ct) -> Tangle ct -> [[(Dart ct, Dart ct)]]
+undirectedPathsDecomposition continue = fst . foldl' processDart ([], Set.empty) . allLegsAndDarts
+	where
+		processDart (!paths, s) d
+			| Set.member d s  = (paths, s)
+			| otherwise       = (path : paths, nextS)
+			where
+				path = containingUndirectedPath continue d
+				nextS = foldl' (\ curs (a, b) -> Set.insert b $ Set.insert a curs) s path
+
+
+containingThread :: Dart ct -> [(Dart ct, Dart ct)]
+containingThread = containingUndirectedPath continuation
+
+
+allThreads :: Tangle ct -> [[(Dart ct, Dart ct)]]
+allThreads = undirectedPathsDecomposition continuation
+
+
+containingFaceLeft :: Dart ct -> [Dart ct]
+containingFaceLeft = containingDirectedPath (nextCW, nextCCW)
+
+
+containingFaceRight :: Dart ct -> [Dart ct]
+containingFaceRight = containingDirectedPath (nextCCW, nextCW)
+
+
+allFaces :: Tangle ct -> [[Dart ct]]
+allFaces = directedPathsDecomposition (nextCW, nextCCW)
