@@ -18,6 +18,7 @@ module Math.KnotTh.Tangles
 	, allLegsAndDarts
 	, allEdges
 	, lonerTangle
+	, transformTangle
 	, glueToBorder
 	, glueToBorderST
 	, fromLists
@@ -30,7 +31,7 @@ import Data.List (intercalate)
 import Data.Array.IArray (listArray)
 import Data.Array (Array)
 import Data.Array.Unboxed (UArray)
-import Data.Array.ST (STArray, STUArray, runSTArray, newArray_)
+import Data.Array.ST (STArray, STUArray, runSTArray, newArray_, thaw)
 import Data.Array.Unsafe (unsafeFreeze)
 import Data.Array.Base (unsafeAt, unsafeWrite, unsafeRead)
 import Data.Bits ((.&.))
@@ -38,6 +39,8 @@ import Control.DeepSeq
 import Control.Monad.ST (ST, runST)
 import Control.Monad (forM_, when)
 import Math.Algebra.RotationDirection
+import Math.Algebra.Group.Dn (Dn, pointsUnderGroup, reflection, rotation, permute)
+import Math.Algebra.Group.D4 ((<*>), ec)
 import Math.KnotTh.Knotted
 
 
@@ -247,6 +250,45 @@ lonerTangle !cr = Tangle
 	}
 
 
+transformTangle :: (CrossingType ct) => Dn -> Tangle ct -> Tangle ct
+transformTangle g tangle
+	| l /= pointsUnderGroup g                   = error "transformTangle: order conflict"
+	| reflection g == False && rotation g == 0  = tangle
+	| otherwise                                 = runST $ do
+		cr <- thaw $ crossingsArray tangle :: ST s (STUArray s Int Int)
+		ls <- newArray_ (0, l - 1) :: ST s (STUArray s Int Int)
+
+		forM_ [0 .. l - 1] $ \ !i -> do
+			let j = permute g i
+			unsafeWrite ls (2 * j) $ borderArray tangle `unsafeAt` (2 * i)
+			unsafeWrite ls (2 * j + 1) $ borderArray tangle `unsafeAt` (2 * i + 1)
+
+		when (reflection g) $ do
+			forM_ [0 .. l - 1] $ \ !i -> do
+				return ()
+
+			forM_ [0 .. n - 1] $ \ !i -> do
+				return ()
+
+		cr' <- unsafeFreeze cr
+		ls' <- unsafeFreeze ls
+		return $! tangle
+			{ crossingsArray = cr'
+			, borderArray    = ls'
+			, stateArray     =
+				if not $ reflection g
+					then stateArray tangle
+					else runSTArray $ do
+						st <- newArray_ (0, n - 1) :: ST s (STArray s Int a)
+						forM_ [0 .. n - 1] $ \ !i ->
+							unsafeWrite st i $ alterCrossingOrientation (ec <*>) $ stateArray tangle `unsafeAt` i
+						return $! st
+			}
+	where
+		n = numberOfCrossings tangle
+		l = numberOfLegs tangle
+
+
 --       edgesToGlue = 1                 edgesToGlue = 2                 edgesToGlue = 3
 -- ........|                       ........|                       ........|
 -- (leg+1)-|---------------3       (leg+1)-|---------------2       (leg+1)-|---------------1
@@ -275,8 +317,8 @@ glueToBorderST leg legsToGlue crossingToGlue
 		let newL = oldL + 4 - 2 * legsToGlue
 		let lp = legPlace leg
 
-		cr <- newArray_ (0, 8 * newC - 1) :: ST s (STUArray s Int Int)
-		ls <- newArray_ (0, 2 * newL - 1) :: ST s (STUArray s Int Int)
+		cr <- newArray_ (0, 8 * newC - 1)
+		ls <- newArray_ (0, 2 * newL - 1)
 
 
 		let	{-# INLINE writePair #-}
@@ -347,7 +389,7 @@ fromListsST border list = do
 				_ | c < 0 || c > n -> fail "fromLists: crossing index must be from 1 to number of crossings"
 				  | otherwise      -> when (p < 0 || p > 3) (fail "fromLists: place index is out of bound")
 
-	ls <- newArray_ (0, 2 * l - 1) :: ST s (STUArray s Int Int)
+	ls <- newArray_ (0, 2 * l - 1)
 	forM_ (zip border [0 ..]) $ \ ((!c, !p), !i) -> do
 		testPair c p
 		when (c == 0 && p == i) (fail "fromLists: leg connected to itself")

@@ -9,6 +9,7 @@ module Math.Algebra.Group.Dn
 	, fromRotation
 	, fromReflectionRotation
 	, fromRotationReflection
+	, permute
 
 	, DnSubGroup
 	, pointsUnderSubGroup
@@ -82,6 +83,15 @@ fromRotationReflection :: Int -> (Int, Bool) -> Dn
 fromRotationReflection n (r, m)
 	| n <= 0     = error "fromRotationReflection: order is non-positive"
 	| otherwise  = Dn { pointsUnderGroup = n, rotation = mod (n + mod (if m then -r else r) n) n, reflection = m }
+
+
+{-# INLINE permute #-}
+permute :: Dn -> Int -> Int
+permute g i
+	| reflection g  = (p - (i + rotation g) `mod` p) `mod` p
+	| otherwise     = (p + (i + rotation g) `mod` p) `mod` p
+	where
+		p = pointsUnderGroup g
 
 
 data DnSubGroup =
