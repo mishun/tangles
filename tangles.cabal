@@ -20,10 +20,9 @@ library
     ghc-prof-options:   -prof -auto-all -caf-all
     cc-options:         -Wall -std=c++11 -O2
     ld-options:         -static
-    build-depends:      base, array, deepseq, mtl, containers, disjoint-set
+    build-depends:      base, array, deepseq, mtl, containers, disjoint-set, HaskellForMaths
     hs-source-dirs:     src
     c-sources:
-        src/Math/KnotTh/Invariants/Skein/JonesPolynomial.cpp
         src/Math/Manifolds/SurfaceGraph/Embedding.cpp
         src/Math/Manifolds/SurfaceGraph/SphereStar.cpp
     extra-libraries:    stdc++ gsl gslcblas

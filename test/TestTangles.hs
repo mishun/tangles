@@ -9,16 +9,18 @@ import qualified Math.KnotTh.Crossings.Projection as ProjectionCrossing
 import qualified Math.KnotTh.Tangles.BorderIncremental.IncrementalGluing as IncrementalGluing
 import qualified Math.KnotTh.Tangles.BorderIncremental.SimpleTypes as SimpleTypes
 import qualified Math.KnotTh.Tangles.BorderIncremental.FlypeGenerator as FlypeGenerator
+import qualified Math.KnotTh.Links.NonAlternating as NALinks
+import qualified Math.KnotTh.Invariants.Skein.JonesPolynomial as JP
 import qualified TestTangles.Table as Table
 
 main = runTestTT tests
 
-tests = TestList
-	[ TestLabel "Numbers of non-planar chord diagrams" $ TestCase $
+tests = test
+	[ "Numbers of non-planar chord diagrams" ~:
 		forM_ [ (0, 1), (1, 0), (2, 1), (3, 2), (4, 7), (5, 29), (6, 196), (7, 1788), (8, 21994) ] $ \ (n, t) ->
 			assertEqual (printf "for n = %i" n) t (CDGen.generateNonPlanar n (\ c _ -> return $! c + 1) 0)
 
-	, TestLabel "Numbers of prime tangle projections" $ TestCase $ do
+	, "Numbers of prime tangle projections" ~: do
 		let table = Table.generateTable False (IncrementalGluing.simpleIncrementalGenerator SimpleTypes.primeProjectionType [ProjectionCrossing.ProjectionCrossing]) 8
 		let target = Map.fromList
 			[ ((1, 4), 1)
@@ -34,7 +36,7 @@ tests = TestList
 		forM_ (Map.assocs table) $ \ ((n, l), actual) ->
 			assertEqual (printf "for n = %i and l = %i" n l) (Map.lookup (n, l) target) (Just actual)
 
-	, TestLabel "Numbers of tangle templates" $ TestCase $ do
+	, "Numbers of tangle templates" ~: do
 		let table = Table.generateTable False (IncrementalGluing.simpleIncrementalGenerator SimpleTypes.templateProjectionType [ProjectionCrossing.ProjectionCrossing]) 8
 		let target = Map.fromList
 			[ ((1, 4), 1)
@@ -50,7 +52,7 @@ tests = TestList
 		forM_ (Map.assocs table) $ \ ((n, l), actual) ->
 			assertEqual (printf "for n = %i and l = %i" n l) (Map.lookup (n, l) target) (Just actual)
 
-	, TestLabel "Numbers of aternating tangles" $ TestCase $ do
+	, "Numbers of aternating tangles" ~: do
 		let table = Table.generateTable False FlypeGenerator.generateFlypeEquivalent 9
 		let target = Map.fromList
 			[ ((1, 4), 1)
@@ -67,8 +69,18 @@ tests = TestList
 		forM_ (Map.assocs table) $ \ ((n, l), actual) ->
 			assertEqual (printf "for n = %i and l = %i" n l) (Map.lookup (n, l) target) (Just actual)
 
-	, TestLabel "Numbers of 4-leg alternating tangles without symmetry" $ TestCase $ do
+	, "Numbers of 4-leg alternating tangles without symmetry" ~: do
 		let table = Table.generateTable True FlypeGenerator.generateFlypeEquivalent 10
 		forM_ [(1, 1), (2, 2), (3, 4), (4, 10), (5, 29), (6, 98), (7, 372), (8, 1538), (9, 6755), (10, 30996)] $ \ (n, t) ->
 			assertEqual (printf "for n = %i and l = 4" n) t (table Map.! (n, 4))
+
+	, "Jones polynomial" ~:
+		map (\ (name, target, link) -> name ~: (show (JP.jonesPolynomialOfLink link) ~?= target))
+			[ ("unknot"             , "1"                  , NALinks.singleCrossingUnknot)
+			, ("left trefoil knot"  , "-t^-4+t^-3+t^-1"    , NALinks.leftTrefoilKnot     )
+			, ("right trefoil knot" , "t+t^3-t^4"          , NALinks.rightTrefoilKnot    )
+			, ("figure eight knot"  , "t^-2-t^-1+1-t+t^2"  , NALinks.figureEightKnot     )
+			, ("hopf link"          , "-t^-1-t"            , NALinks.hopfLink            )
+			, ("solomon's seal knot", "t^2+t^4-t^5+t^6-t^7", NALinks.rightCinquefoilKnot )
+			]
 	]

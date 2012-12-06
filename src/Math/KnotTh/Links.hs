@@ -9,10 +9,12 @@ module Math.KnotTh.Links
 	, fromListST
 	, toPair
 	, toList
+	, allThreads
 	) where
 
-import Data.List (intercalate)
+import Data.List (intercalate, foldl')
 import Data.Bits ((.&.), shiftL, shiftR, complement)
+import qualified Data.Set as Set
 import Data.Array (Array)
 import Data.Array.Unboxed (UArray)
 import Data.Array.ST (STArray, STUArray, runSTArray, newArray_)
@@ -52,8 +54,10 @@ instance Ord (Crossing ct) where
 	compare (Crossing _ c1) (Crossing _ c2) = compare c1 c2
 
 
-instance Show (Crossing ct) where
-	show c = concat ["(Crossing ", show (crossingIndex c), " [ ", intercalate " " $ map (show . opposite . nthIncidentDart c) [0 .. 3], " ])"]
+instance (Show ct, CrossingType ct) => Show (Crossing ct) where
+	show c =
+		let d = map (show . opposite) $ incidentDarts c
+		in concat ["(Crossing ", show (crossingIndex c), " ",  show $ crossingState c, " [ ", intercalate " " d, " ])"]
 
 
 data Link ct = Link
@@ -63,7 +67,7 @@ data Link ct = Link
 	}
 
 
-instance Show (Link ct) where
+instance (Show ct, CrossingType ct) => Show (Link ct) where
 	show t =
 		let d = map (show . nthCrossing t) [1 .. numberOfCrossings t]
 		in concat ["(Link ", intercalate " " d, " )"]
@@ -76,7 +80,7 @@ instance Knotted Link Crossing Dart where
 
 	nthCrossing l i
 		| i < 1 || i > numberOfCrossings l  = error "nthCrossing: out of bound"
-		| otherwise                         = Crossing l i
+		| otherwise                         = Crossing l (i - 1)
 
 	mapCrossingStates f link = link
 		{ stateArray = runSTArray $ do
@@ -89,11 +93,11 @@ instance Knotted Link Crossing Dart where
 
 	crossingOwner = crossingLink
 
-	crossingIndex (Crossing _ c) = c
+	crossingIndex (Crossing _ c) = c + 1
 
-	crossingState (Crossing l c) = stateArray l `unsafeAt` (c - 1)
+	crossingState (Crossing l c) = stateArray l `unsafeAt` c
 
-	nthIncidentDart (Crossing l c) i = Dart l $! ((c - 1) `shiftL` 2) + (i .&. 3)
+	nthIncidentDart (Crossing l c) i = Dart l $! (c `shiftL` 2) + (i .&. 3)
 
 	opposite (Dart l d) = Dart l $! crossingsArray l `unsafeAt` d
 
@@ -101,7 +105,7 @@ instance Knotted Link Crossing Dart where
 
 	nextCW (Dart l d) = Dart l $! (d .&. complement 3) + ((d - 1) .&. 3)
 
-	incidentCrossing (Dart l d) = Crossing l $! 1 + d `shiftR` 2
+	incidentCrossing (Dart l d) = Crossing l $! d `shiftR` 2
 
 	dartPlace (Dart _ d) = d .&. 3
 
@@ -110,11 +114,11 @@ instance Knotted Link Crossing Dart where
 	dartArrIndex (Dart _ i) = i
 
 	forMIncidentDarts (Crossing l c) f =
-		let b = (c - 1) `shiftL` 2
+		let b = c `shiftL` 2
 		in f (Dart l b) >> f (Dart l $! b + 1) >> f (Dart l $! b + 2) >> f (Dart l $! b + 3)
 
 	foldMIncidentDarts (Crossing l c) f s =
-		let b = (c - 1) `shiftL` 2
+		let b = c `shiftL` 2
 		in f (Dart l b) s >>= f (Dart l $! b + 1) >>= f (Dart l $! b + 2) >>= f (Dart l $! b + 3)
 
 	foldMIncidentDartsFrom dart@(Dart l i) !direction f s =
@@ -140,22 +144,21 @@ fromList list = runST $ fromListST list
 fromListST :: [([(Int, Int)], CrossingState ct)] -> ST s (Link ct)
 fromListST list = do
 	let n = length list
-	cr <- newArray_ (0, 8 * n - 1) :: ST s (STUArray s Int Int)
+	cr <- newArray_ (0, 4 * n - 1) :: ST s (STUArray s Int Int)
 	st <- newArray_ (0, n - 1) :: ST s (STArray s Int a)
+
 	forM_ (zip list [0 ..]) $ \ ((!ns, !state), !i) -> do
 		unsafeWrite st i state
 		when (length ns /= 4) (fail "fromList: there must be 4 neighbours for every crossing")
 		forM_ (zip ns [0 ..]) $ \ ((!c, !p), !j) -> do
 			when (c < 1 || c > n || p < 0 || p > 3) (fail "fromList: out of bound")
-			when (c == i + 1 && p == j) (fail "fromList: dart connected to itself")
-			when (c <= i || (c == i + 1 && p < j)) $ do
-				let offset = 4 * (c - 1) + p
-				c' <- unsafeRead cr (2 * offset)
-				p' <- unsafeRead cr (2 * offset + 1)
-				when (c' /= i + 1 || p' /= j) (fail "fromList: unconsistent data")
-			let offset = 4 * i + j
-			unsafeWrite cr (2 * offset) c
-			unsafeWrite cr (2 * offset + 1) p
+			let a = 4 * i + j
+			let b = 4 * (c - 1) + p
+			when (a == b) (fail "fromList: dart connected to itself")
+			unsafeWrite cr a b
+			when (b < a) $ do
+				x <- unsafeRead cr b
+				when (x /= a) (fail "fromList: unconsistent data")
 
 	cr' <- unsafeFreeze cr
 	st' <- unsafeFreeze st
@@ -172,3 +175,17 @@ toPair d = (crossingIndex $ incidentCrossing d, dartPlace d)
 
 toList :: (CrossingType ct) => Link ct -> [([(Int, Int)], CrossingState ct)]
 toList = map (\ c -> (map (toPair . opposite) $ incidentDarts c, crossingState c)) . allCrossings
+
+
+allThreads :: Link ct -> [[(Dart ct, Dart ct)]]
+allThreads =
+	let extractThread (threads, vis) start
+		| Set.member start vis  = (threads, vis)
+		| otherwise             =
+			let thread =
+				let walk list d
+					| d == start  = list
+					| otherwise   = walk ((opposite d, d) : list) $ continuation $ opposite d
+				in walk [(opposite start, start)] $ continuation $ opposite start
+			in (thread : threads, foldl' (\ s (a, b) -> Set.insert b $ Set.insert a s) vis thread)
+	in fst . foldl extractThread ([], Set.empty) . allDarts

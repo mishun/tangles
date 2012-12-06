@@ -91,7 +91,7 @@ instance Ord (Crossing ct) where
 instance (Show ct, CrossingType ct) => Show (Crossing ct) where
 	show c =
 		let d = map (show . opposite) $ incidentDarts c
-		in concat ["(Crossing ", show (crossingIndex c), " ",  show $ crossingState c," [ ", intercalate " " d, " ])"]
+		in concat ["(Crossing ", show (crossingIndex c), " ",  show $ crossingState c, " [ ", intercalate " " d, " ])"]
 
 
 data Tangle ct = Tangle

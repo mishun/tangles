@@ -1,15 +1,92 @@
 module Math.KnotTh.Invariants.Skein.JonesPolynomial
-	( ofTangle
+	( jonesPolynomialOfLink
+	, jonesPolynomialOfLink'
+	, kauffmanXPolynomialOfLink
+	, kauffmanXPolynomialOfLink'
+	, ofTangle
 	) where
 
 import Data.List (sort)
 import Data.Array.Unboxed (UArray, array, (!))
-import qualified Data.IntMap as Map
+import Data.Array.ST (STUArray, newArray, getAssocs, readArray, writeArray)
+import qualified Data.Map as Map
+import Control.Monad.ST (ST, runST)
+import qualified Math.Projects.KnotTheory.LaurentMPoly as LP
 import Math.Algebra.Group.Dn (fromReflectionRotation)
-import Math.KnotTh.Tangles.NonAlternating
+import Math.KnotTh.Knotted
+import Math.KnotTh.Crossings.Arbitrary
+import qualified Math.KnotTh.Links.NonAlternating as L
+import qualified Math.KnotTh.Tangles.NonAlternating as T
 
 
-ofTangle :: (NonAlternatingTangle, Int) -> [(Scheme, Poly)]
+data Node a = Cross a a a a | Join a a deriving (Eq, Show, Read, Ord)
+
+instance Functor Node where
+	fmap f (Cross a b c d) = Cross (f a) (f b) (f c) (f d)
+	fmap f (Join a b) = Join (f a) (f b)
+
+
+kauffmanStateSums :: L.NonAlternatingLink -> [((Int, Int), Int)]
+kauffmanStateSums link = runST $ do
+	let n = numberOfCrossings link
+	coeff <- newArray ((0, 0), (n, n + 1)) 0 :: ST s (STUArray s (Int, Int) Int)
+
+	let kauffman !u !v list =
+		case list of
+			[]                          -> readArray coeff (u, v) >>= writeArray coeff (u, v) . (+ 1)
+			Join a b : rest | a == b    -> kauffman u (v + 1) rest
+			                | otherwise -> kauffman u v $! map (fmap $ \ x -> if x == a then b else x) rest
+			Cross a b c d : rest        -> do
+				kauffman u v $! Join a b : Join c d : rest
+				kauffman (u + 1) v $! Join a d : Join b c : rest
+
+	kauffman 0 0 $! flip map (allCrossings link) $ \ c ->
+		let	label d = min (dartArrIndex d) (dartArrIndex $ opposite d)
+			[d0, d1, d2, d3] = incidentDarts c
+		in if passOver d0
+			then Cross (label d0) (label d1) (label d2) (label d3)
+			else Cross (label d1) (label d2) (label d3) (label d0)
+
+	filter ((/= 0) . snd) `fmap` getAssocs coeff
+
+
+kauffmanBracket :: (Num a) => (L.NonAlternatingLink -> Int) -> a -> a -> a -> (L.NonAlternatingLink, Int) -> a
+kauffmanBracket calculateWrithe a b d (!link, !circles) = writheFactor * (b ^ numberOfCrossings link) * stateSum
+	where
+		writheFactor =
+			let w = calculateWrithe link
+			in (if w <= 0 then -a else -b) ^ abs (3 * w)
+
+		stateSum = sum $ flip map (kauffmanStateSums link) $ \ ((u, v), k) ->
+			fromIntegral k * (a ^ (u + u)) * (d ^ (v + circles - 1))
+
+
+jonesPolynomialOfLink :: L.NonAlternatingLink -> LP.LaurentMPoly Int
+jonesPolynomialOfLink link = jonesPolynomialOfLink' (link, 0)
+
+
+jonesPolynomialOfLink' :: (L.NonAlternatingLink, Int) -> LP.LaurentMPoly Int
+jonesPolynomialOfLink' = kauffmanBracket L.selfWrithe a b d
+	where
+		a = LP.LP [(LP.LM $ Map.fromList [("t", -1 / 4)], 1)]
+		b = LP.LP [(LP.LM $ Map.fromList [("t",  1 / 4)], 1)]
+		d = -((a * a) + (b * b))
+
+
+kauffmanXPolynomialOfLink :: L.NonAlternatingLink -> LP.LaurentMPoly Int
+kauffmanXPolynomialOfLink link = kauffmanXPolynomialOfLink' (link, 0)
+
+
+kauffmanXPolynomialOfLink' :: (L.NonAlternatingLink, Int) -> LP.LaurentMPoly Int
+kauffmanXPolynomialOfLink' = kauffmanBracket L.selfWrithe a b d
+	where
+		a = LP.LP [(LP.LM $ Map.fromList [("A",  1)], 1)]
+		b = LP.LP [(LP.LM $ Map.fromList [("A", -1)], 1)]
+		d = -((a * a) + (b * b))
+
+
+
+ofTangle :: (T.NonAlternatingTangle, Int) -> [(Scheme, Poly)]
 ofTangle = jonesPolynomial
 
 
@@ -52,14 +129,7 @@ power p x
 type Scheme = [(Int, Int)]
 
 
-u, a, b, d :: Poly
-u = [(0, 1)]
-a = [(1, 1)]
-b = [(-1, 1)]
-d = [(-2, -1), (2, -1)]
-
-
-jonesPolynomial :: (NonAlternatingTangle, Int) -> [(Scheme, Poly)]
+jonesPolynomial :: (T.NonAlternatingTangle, Int) -> [(Scheme, Poly)]
 jonesPolynomial (tangle, circles)
 	| l == 0     = bruteForceJones (tangle, circles)
 	| otherwise  =
@@ -67,18 +137,18 @@ jonesPolynomial (tangle, circles)
 			refl <- [False, True]
 			rot <- [0 .. l - 1]
 			let g = fromReflectionRotation l (refl, rot)
-			let t = transformTangle g tangle
+			let t = T.transformTangle g tangle
 			[(t, circles), (invertCrossings t, circles)]
 	where
-		l = numberOfLegs tangle
+		l = T.numberOfLegs tangle
 
 
-bruteForceJones :: (NonAlternatingTangle, Int) -> [(Scheme, Poly)]
-bruteForceJones (tangle, circles) = map (\ (sch, poly) -> (sch, wm <*> cm <*> poly)) $ skein (allCrossings tangle) [] u
+bruteForceJones :: (T.NonAlternatingTangle, Int) -> [(Scheme, Poly)]
+bruteForceJones (tangle, circles) = map (\ (sch, poly) -> (sch, wm <*> cm <*> poly)) $ skein (allCrossings tangle) [] [(0, 1)]
 	where
 		cm = power circles d
 
-		wm =	let w = selfWrithe tangle
+		wm =	let w = T.selfWrithe tangle
 			in power ((* 3) $ abs w) (negative $ if w >= 0 then b else a)
 
 		skein [] assocs mul =
@@ -101,8 +171,12 @@ bruteForceJones (tangle, circles) = map (\ (sch, poly) -> (sch, wm <*> cm <*> po
 								then merge al bl
 								else (as, s) : merge al bl
 
+		a = [(1, 1)]
+		b = [(-1, 1)]
+		d = [(-2, -1), (2, -1)]
 
-reductionOutcome :: NonAlternatingTangle -> UArray Int Bool -> (Scheme, Poly)
+
+reductionOutcome :: T.NonAlternatingTangle -> UArray Int Bool -> (Scheme, Poly)
 reductionOutcome tangle reduction = (scheme, power circles d)
 	where
 		circles = (length paths) - (length pairs)
@@ -111,14 +185,16 @@ reductionOutcome tangle reduction = (scheme, power circles d)
 			where
 				toPositionPair (al, bl) = (min ap bp, max ap bp)
 					where
-						ap = legPlace al
-						bp = legPlace bl
+						ap = T.legPlace al
+						bp = T.legPlace bl
 
-		pairs = map (\ path -> (fst $ head path, snd $ last path)) $ filter (isLeg . fst . head) paths
+		pairs = map (\ path -> (fst $ head path, snd $ last path)) $ filter (T.isLeg . fst . head) paths
 
-		paths = undirectedPathsDecomposition smooting tangle
+		paths = T.undirectedPathsDecomposition smooting tangle
 			where
 				smooting drt =
 					if (passOver drt) == (reduction ! crossingIndex (incidentCrossing drt))
 						then nextCCW drt
 						else nextCW drt
+
+		d = [(-2, -1), (2, -1)]
