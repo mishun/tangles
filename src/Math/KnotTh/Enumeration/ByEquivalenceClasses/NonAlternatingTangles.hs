@@ -4,6 +4,8 @@ module Math.KnotTh.Enumeration.ByEquivalenceClasses.NonAlternatingTangles
 	, module Math.KnotTh.Enumeration.ByEquivalenceClasses
 	, siftTangles
 	, siftWeakTangles
+	, siftTangleClasses
+	, siftWeakTangleClasses
 	) where
 
 import Data.Maybe (mapMaybe)
@@ -18,12 +20,12 @@ import qualified Math.KnotTh.Tangles.Moves.ReidemeisterReduction as Reidemeister
 import qualified Math.KnotTh.Tangles.Moves.Weak as Weak
 
 
-sift :: [NonAlternatingTangle -> [(NonAlternatingTangle, Int)]] -> (forall m. (Monad m) => (NonAlternatingTangle -> m ()) -> m ()) -> [NonAlternatingTangle]
-sift moves enumerateDiagrams =
-	mapMaybe maybePrimeDiagram $
-		siftByEquivalenceClasses
-			(\ (t, c) -> min (isomorphismTest (t, c)) (isomorphismTest (invertCrossings t, c)))
-			moves enumerateDiagrams
+sift :: (DiagramInfo info)
+	=> [NonAlternatingTangle -> [(NonAlternatingTangle, Int)]]
+	-> (forall m. (Monad m) => (NonAlternatingTangle -> m ()) -> m ())
+	-> [info NonAlternatingTangle]
+
+sift = siftByEquivalenceClasses (\ (t, c) -> min (isomorphismTest (t, c)) (isomorphismTest (invertCrossings t, c)))
 
 
 tangleMoves :: [NonAlternatingTangle -> [(NonAlternatingTangle, Int)]]
@@ -35,8 +37,16 @@ weakTangleMoves = map (map ReidemeisterReduction.greedy1st2ndReduction .) [ Weak
 
 
 siftTangles :: (forall m. (Monad m) => (NonAlternatingTangle -> m ()) -> m ()) -> [NonAlternatingTangle]
-siftTangles = sift tangleMoves
+siftTangles = mapMaybe maybePrimeDiagram . sift tangleMoves
 
 
 siftWeakTangles :: (forall m. (Monad m) => (NonAlternatingTangle -> m ()) -> m ()) -> [NonAlternatingTangle]
-siftWeakTangles = sift weakTangleMoves
+siftWeakTangles = mapMaybe maybePrimeDiagram . sift weakTangleMoves
+
+
+siftTangleClasses :: (forall m. (Monad m) => (NonAlternatingTangle -> m ()) -> m ()) -> [[(NonAlternatingTangle, Int)]]
+siftTangleClasses = map allDiagrams . sift tangleMoves
+
+
+siftWeakTangleClasses :: (forall m. (Monad m) => (NonAlternatingTangle -> m ()) -> m ()) -> [[(NonAlternatingTangle, Int)]]
+siftWeakTangleClasses = map allDiagrams . sift weakTangleMoves

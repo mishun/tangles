@@ -1,10 +1,14 @@
 module Main (main) where
 
+import Data.Ord
+import Data.List (sortBy)
 import Control.Monad
 import Math.Algebra.Group.Dn (maximumSubGroup)
 import Math.KnotTh.Tangles.BorderIncremental.SimpleTypes
 import Math.KnotTh.Enumeration.ByEquivalenceClasses.NonAlternatingTangles
 import Math.KnotTh.Tangles.Draw
+import Math.KnotTh.Links.FromTangle
+import Math.KnotTh.Invariants.Skein.JonesPolynomial
 import Graphics.HP
 import TestTangles.Table
 
@@ -13,8 +17,20 @@ main :: IO ()
 main = do
 	--printTable "Diagrams" False (simpleIncrementalGenerator (triangleBoundedType 6 primeIrreducibleDiagramType) [ArbitraryCrossing]) 6
 
-	let generate maxN =
-		let list = siftTangles $ \ yieldDiagram ->
+{-	let classes maxN = siftWeakTangleClasses $ \ yieldDiagram ->
+			simpleIncrementalGenerator
+				(triangleBoundedType maxN primeIrreducibleDiagramType)
+				[ArbitraryCrossing] maxN (\ t _ -> yieldDiagram t)
+
+	forM_ (classes 7) $ \ cl -> do
+		let poly = map (jonesPolynomialOfLink' . tangleDoubling id) cl
+		let ok = all (== head poly) poly
+		print ok
+-}
+
+
+{-	let generate maxN =
+		let list = siftWeakTangles $ \ yieldDiagram ->
 			simpleIncrementalGenerator
 				(triangleBoundedType maxN primeIrreducibleDiagramType)
 				[ArbitraryCrossing] maxN (\ t _ -> yieldDiagram t)
@@ -22,13 +38,25 @@ main = do
 
 	printTable "Arbitrary tangles" False
 		(\ maxN yieldTangle -> generate maxN (\ tangle -> yieldTangle tangle $ maximumSubGroup $ numberOfLegs tangle)) 7
+-}
 
-{-
+	let gen maxN = siftWeakTangles $ \ yieldDiagram ->
+		simpleIncrementalGenerator
+			(triangleBoundedType maxN primeIrreducibleDiagramType)
+			[ArbitraryCrossing] maxN (\ t _ -> when (numberOfLegs t == 4) $ yieldDiagram t)
+
+	let res = sortBy (comparing fst) $ map (\ t -> ((numberOfCrossings t, length $ allThreads t), t)) $ filter ((<= 7) . numberOfCrossings) $ gen 8
+
+	forM_ res $ \ (i, t) -> do
+		let p = jonesPolynomialOfLink' $ tangleDoubling id (t, 0)
+		putStrLn $ show i ++ ": " ++ show p
+
+
 	writePostScriptFile "tangles.ps" $ do
 		let a4Width = 595
 		let a4Height = 842
 
-		transformed [shifted (0.2 * a4Width, 0.98 * a4Height), scaled 10] $ do
+		transformed [shifted (0.05 * a4Width, 0.98 * a4Height), scaled 10] $ do
 			--let classes = siftByEquivalenceClasses (++) ((: []) . fst)
 			--	(\ (t, c) -> min (isomorphismTest (t, c)) (isomorphismTest (invertCrossings t, c)))
 			--	[]
@@ -47,8 +75,6 @@ main = do
 			--			transformed [shifted (2.2 * i, 0)] $ drawTangle 0.01 res
 			--		appendTransform [shifted (0, -2.2)]
 
-			generate 5 $ \ tangle -> do
-				when (numberOfCrossings tangle <= 7 && numberOfLegs tangle == 4) $ do
-					drawTangle 0.01 tangle
-					appendTransform [shifted (0, -2.2)]
--}
+			forM_ res $ \ (_, tangle) -> do
+				drawTangle 0.01 tangle
+				appendTransform [shifted (0, -2.2)]

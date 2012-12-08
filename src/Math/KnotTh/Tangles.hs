@@ -12,6 +12,7 @@ module Math.KnotTh.Tangles
 	, nthLeg
 	, firstLeg
 	, allLegs
+	, allLegOpposites
 	, isAdjacentToBorder
 	, maybeIncidentCrossing
 	, maybeAdjacentCrossing
@@ -246,6 +247,11 @@ firstLeg t = Dart t 0 0
 {-# INLINE allLegs #-}
 allLegs :: Tangle ct -> [Dart ct]
 allLegs t = map (Dart t 0) [0 .. numberOfLegs t - 1]
+
+
+{-# INLINE allLegOpposites #-}
+allLegOpposites :: Tangle ct -> [Dart ct]
+allLegOpposites = map opposite . allLegs
 
 
 {-# INLINE isAdjacentToBorder #-}
