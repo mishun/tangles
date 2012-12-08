@@ -38,12 +38,15 @@ fromTangleAndStar' withLeg tangle =
 	let watch d
 		| T.isDart d  = T.toPair d
 		| otherwise   = watch $ opposite $ withLeg d
-	in L.fromList $ map (\ c -> (map watch $ adjacentDarts c, crossingState c)) $ allCrossings tangle
+	in L.fromList
+		(numberOfFreeLoops tangle + div (length $ filter (\ l -> opposite l == withLeg l) $ T.allLegs tangle) 2)
+		(map (\ c -> (map watch $ adjacentDarts c, crossingState c)) $ allCrossings tangle)
 
 
-tangleDoubling :: (D4 -> D4) -> (T.Tangle ArbitraryCrossing, Int) -> (L.Link ArbitraryCrossing, Int)
-tangleDoubling f (tangle, circles) =
-	let	link = L.fromList $ do
+tangleDoubling :: (D4 -> D4) -> T.Tangle ArbitraryCrossing -> L.Link ArbitraryCrossing
+tangleDoubling f tangle =
+	let resultCircles = 2 * (numberOfFreeLoops tangle) + div (length $ filter T.isLeg $ T.allLegOpposites tangle) 2
+	in L.fromList resultCircles $ do
 			let atTop d =
 				let c = incidentCrossing d
 				in (2 * crossingIndex c - 1, dartPlace d)
@@ -70,6 +73,3 @@ tangleDoubling f (tangle, circles) =
 				in (map pair $ reverse $ incidentDarts a, alterCrossingOrientation ((ec <*>) . f) $ crossingState a)
 
 			[top, bottom]
-
-		resultCircles = 2 * circles + div (length $ filter T.isLeg $ T.allLegOpposites tangle) 2
-	in link `seq` resultCircles `seq` (link, resultCircles)

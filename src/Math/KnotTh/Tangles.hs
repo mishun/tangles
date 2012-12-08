@@ -96,11 +96,12 @@ instance (Show ct, CrossingType ct) => Show (Crossing ct) where
 
 
 data Tangle ct = Tangle
-	{ count          :: {-# UNPACK #-} !Int
+	{ crossCount     :: {-# UNPACK #-} !Int
 	, numberOfLegs   :: {-# UNPACK #-} !Int
 	, crossingsArray :: {-# UNPACK #-} !(UArray Int Int)
 	, borderArray    :: {-# UNPACK #-} !(UArray Int Int)
 	, stateArray     :: {-# UNPACK #-} !(Array Int (CrossingState ct))
+	, loopsCount     :: {-# UNPACK #-} !Int
 	}
 
 
@@ -109,13 +110,16 @@ instance (NFData ct) => NFData (Tangle ct) where
 
 
 instance (Show ct, CrossingType ct) => Show (Tangle ct) where
-	show t =
-		let d = concat ["(Border [ ", intercalate " " (map (show . opposite) $ allLegs t), " ])"] : map (show . nthCrossing t) [1 .. numberOfCrossings t]
-		in concat ["(Tangle ", intercalate " " d, ")"]
+	show tangle =
+		let	b = concat ["(Border [ ", intercalate " " (map show $ allLegOpposites tangle), " ])"]
+			d = map show $ allCrossings tangle
+		in concat ["(Tangle (", show (numberOfFreeLoops tangle), " O) ", intercalate " " (b : d), ")"]
 
 
 instance Knotted Tangle Crossing Dart where
-	numberOfCrossings = count
+	numberOfFreeLoops = loopsCount
+
+	numberOfCrossings = crossCount
 
 	numberOfEdges tangle = 2 * (numberOfCrossings tangle) + div (numberOfLegs tangle) 2
 
@@ -182,7 +186,9 @@ instance Knotted Tangle Crossing Dart where
 			let d = directionSign direction
 			in f dart s >>= f (Dart t c $! (i + d) .&. 3) >>= f (Dart t c $! (i + 2 * d) .&. 3) >>= f (Dart t c $! (i + 3 * d) .&. 3)
 
-	isConnected tangle = all (\ (a, b) -> Set.member a con && Set.member b con) edges
+	isConnected tangle
+		| numberOfFreeLoops tangle /= 0  = False
+		| otherwise                      = all (\ (a, b) -> Set.member a con && Set.member b con) edges
 		where
 			edges = allEdges tangle
 			con = dfs (Set.empty) $ fst $ head edges
@@ -285,11 +291,12 @@ allEdges tangle = [ (a, b) | a <- allLegsAndDarts tangle, let b = opposite a, a 
 
 lonerTangle :: (CrossingType ct) => CrossingState ct -> Tangle ct
 lonerTangle !cr = Tangle
-	{ count          = 1
+	{ crossCount     = 1
 	, numberOfLegs   = 4
 	, crossingsArray = listArray (0, 7) [0, 0, 0, 1, 0, 2, 0, 3]
 	, borderArray    = listArray (0, 7) [1, 0, 1, 1, 1, 2, 1, 3]
 	, stateArray     = listArray (0, 0) $! [cr]
+	, loopsCount     = 0
 	}
 
 
@@ -297,7 +304,7 @@ transformTangle :: (CrossingType ct) => Dn -> Tangle ct -> Tangle ct
 transformTangle g tangle
 	| l /= pointsUnderGroup g                   = error "transformTangle: order conflict"
 	| reflection g == False && rotation g == 0  = tangle
-	| otherwise                                 = fromLists border (map crossing $ allCrossings tangle)
+	| otherwise                                 = fromLists (numberOfFreeLoops tangle) border (map crossing $ allCrossings tangle)
 	where
 		l = numberOfLegs tangle
 
@@ -393,22 +400,25 @@ glueToBorderST leg legsToGlue crossingToGlue
 		ls' <- unsafeFreeze ls
 		st' <- unsafeFreeze st
 		let result = Tangle
-			{ count          = newC
+			{ crossCount     = newC
 			, numberOfLegs   = newL
 			, crossingsArray = cr'
 			, borderArray    = ls'
 			, stateArray     = st' 
+			, loopsCount     = numberOfFreeLoops tangle
 			}
 
 		return $! nthCrossing result newC
 
 
-fromLists :: [(Int, Int)] -> [([(Int, Int)], CrossingState ct)] -> Tangle ct
-fromLists border list = runST $ fromListsST border list
+fromLists :: Int -> [(Int, Int)] -> [([(Int, Int)], CrossingState ct)] -> Tangle ct
+fromLists loops border list = runST $ fromListsST loops border list
 
 
-fromListsST :: [(Int, Int)] -> [([(Int, Int)], CrossingState ct)] -> ST s (Tangle ct)
-fromListsST border list = do
+fromListsST :: Int -> [(Int, Int)] -> [([(Int, Int)], CrossingState ct)] -> ST s (Tangle ct)
+fromListsST loops border list = do
+	when (loops < 0) (fail "fromListST: number of free loops is negative")
+
 	let n = length list
 	let l = length border
 	when (l <= 0 || odd l) (fail "fromLists: number of legs must be positive and even")
@@ -452,11 +462,12 @@ fromListsST border list = do
 	ls' <- unsafeFreeze ls
 	st' <- unsafeFreeze st
 	return $! Tangle
-		{ count          = n
+		{ crossCount     = n
 		, numberOfLegs   = l
 		, crossingsArray = cr'
 		, borderArray    = ls'
 		, stateArray     = st' 
+		, loopsCount     = loops
 		}
 
 

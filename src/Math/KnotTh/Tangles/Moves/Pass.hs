@@ -11,7 +11,7 @@ import Math.KnotTh.Tangles.Moves.Move
 import Math.KnotTh.Tangles.Moves.ReidemeisterReduction
 
 
-neighbours :: NonAlternatingTangle -> [(NonAlternatingTangle, Int)]
+neighbours :: NonAlternatingTangle -> [NonAlternatingTangle]
 neighbours tangle = mapMaybe tryPass $ allDarts tangle
 	where
 		tryPass ab
@@ -71,11 +71,11 @@ neighbours tangle = mapMaybe tryPass $ allDarts tangle
 				self = restingPart tangle selfIncoming >>= testLen >>= testSelf >>= (return . performPass tangle incoming)
 
 
-performPass :: NonAlternatingTangle -> [Dart ArbitraryCrossing] -> [Dart ArbitraryCrossing] -> (NonAlternatingTangle, Int)
+performPass :: NonAlternatingTangle -> [Dart ArbitraryCrossing] -> [Dart ArbitraryCrossing] -> NonAlternatingTangle
 performPass tangle incoming outcoming
 	| n < m      = error "performPass: bad sizes"
 	| otherwise  =
-		moveZ tangle $ do
+		move tangle $ do
 			substituteC $ (map (\ d -> (d, continuation $ opposite d)) incoming) ++ (zip (map opposite incoming) outcoming)
 			connectC $ zip outcoming $ map (continuation . opposite) incoming
 			when (not $ null toRemove) $ do

@@ -10,7 +10,7 @@ import Math.KnotTh.Tangles.Moves.Move
 import Math.KnotTh.Tangles.Moves.Resting
 
 
-neighbours :: NonAlternatingTangle -> [(NonAlternatingTangle, Int)]
+neighbours :: NonAlternatingTangle -> [NonAlternatingTangle]
 neighbours tangle = mapMaybe tryFlype $ allDarts tangle
 	where
 		tryFlype ab = do
@@ -33,7 +33,7 @@ neighbours tangle = mapMaybe tryFlype $ allDarts tangle
 						[x, y] -> Just $! ((x, y), s)
 						_      -> Nothing
 
-			return $! moveZ tangle $ do
+			return $! move tangle $ do
 				substituteC [(ba, ae), (ca, ad), (ab, rp), (ac, sq)]
 				connectC [(rp, ae), (sq, ad)]
 				flipC $ filter ((sub !) . crossingIndex) $ allCrossings tangle

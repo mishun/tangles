@@ -1,7 +1,8 @@
 module Main (main) where
 
 import Data.Ord
-import Data.List (sortBy)
+import Data.Function (on)
+import Data.List (sortBy, groupBy)
 import Control.Monad
 import Math.Algebra.Group.Dn (maximumSubGroup)
 import Math.KnotTh.Tangles.BorderIncremental.SimpleTypes
@@ -28,7 +29,6 @@ main = do
 		print ok
 -}
 
-
 {-	let generate maxN =
 		let list = siftWeakTangles $ \ yieldDiagram ->
 			simpleIncrementalGenerator
@@ -48,7 +48,7 @@ main = do
 	let res = sortBy (comparing fst) $ map (\ t -> ((numberOfCrossings t, length $ allThreads t), t)) $ filter ((<= 7) . numberOfCrossings) $ gen 8
 
 	forM_ res $ \ (i, t) -> do
-		let p = jonesPolynomialOfLink' $ tangleDoubling id (t, 0)
+		let p = jonesPolynomialOfLink $ tangleDoubling id t
 		putStrLn $ show i ++ ": " ++ show p
 
 
@@ -75,6 +75,7 @@ main = do
 			--			transformed [shifted (2.2 * i, 0)] $ drawTangle 0.01 res
 			--		appendTransform [shifted (0, -2.2)]
 
-			forM_ res $ \ (_, tangle) -> do
-				drawTangle 0.01 tangle
+			forM_ (groupBy (on (==) fst) res) $ \ gr -> do
+				forM_ (zip gr [0 ..]) $ \ ((_, tangle), i) ->
+					transformed [shifted (2.2 * i, 0)] $ drawTangle 0.01 tangle
 				appendTransform [shifted (0, -2.2)]

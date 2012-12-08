@@ -21,18 +21,18 @@ import qualified Math.KnotTh.Tangles.Moves.Weak as Weak
 
 
 sift :: (DiagramInfo info)
-	=> [NonAlternatingTangle -> [(NonAlternatingTangle, Int)]]
+	=> [NonAlternatingTangle -> [NonAlternatingTangle]]
 	-> (forall m. (Monad m) => (NonAlternatingTangle -> m ()) -> m ())
 	-> [info NonAlternatingTangle]
 
-sift = siftByEquivalenceClasses (\ (t, c) -> min (isomorphismTest (t, c)) (isomorphismTest (invertCrossings t, c)))
+sift = siftByEquivalenceClasses (\ t -> min (isomorphismTest t) (isomorphismTest $! invertCrossings t))
 
 
-tangleMoves :: [NonAlternatingTangle -> [(NonAlternatingTangle, Int)]]
+tangleMoves :: [NonAlternatingTangle -> [NonAlternatingTangle]]
 tangleMoves = map (map ReidemeisterReduction.greedy1st2ndReduction .) [ ReidemeisterIII.neighbours, Flype.neighbours, Pass.neighbours ]
 
 
-weakTangleMoves :: [NonAlternatingTangle -> [(NonAlternatingTangle, Int)]]
+weakTangleMoves :: [NonAlternatingTangle -> [NonAlternatingTangle]]
 weakTangleMoves = map (map ReidemeisterReduction.greedy1st2ndReduction .) [ Weak.neighbours ] ++ tangleMoves
 
 
@@ -44,9 +44,9 @@ siftWeakTangles :: (forall m. (Monad m) => (NonAlternatingTangle -> m ()) -> m (
 siftWeakTangles = mapMaybe maybePrimeDiagram . sift weakTangleMoves
 
 
-siftTangleClasses :: (forall m. (Monad m) => (NonAlternatingTangle -> m ()) -> m ()) -> [[(NonAlternatingTangle, Int)]]
+siftTangleClasses :: (forall m. (Monad m) => (NonAlternatingTangle -> m ()) -> m ()) -> [[NonAlternatingTangle]]
 siftTangleClasses = map allDiagrams . sift tangleMoves
 
 
-siftWeakTangleClasses :: (forall m. (Monad m) => (NonAlternatingTangle -> m ()) -> m ()) -> [[(NonAlternatingTangle, Int)]]
+siftWeakTangleClasses :: (forall m. (Monad m) => (NonAlternatingTangle -> m ()) -> m ()) -> [[NonAlternatingTangle]]
 siftWeakTangleClasses = map allDiagrams . sift weakTangleMoves

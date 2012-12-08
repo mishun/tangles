@@ -8,11 +8,11 @@ import Math.KnotTh.Tangles.NonAlternating
 import Math.KnotTh.Tangles.Moves.Move
 
 
-neighbours :: NonAlternatingTangle -> [(NonAlternatingTangle, Int)]
+neighbours :: NonAlternatingTangle -> [NonAlternatingTangle]
 neighbours tangle = concatMap (\ f -> f tangle) [neighboursBorderCrossing, neighboursBorderLoop]
 
 
-neighboursBorderCrossing :: NonAlternatingTangle -> [(NonAlternatingTangle, Int)]
+neighboursBorderCrossing :: NonAlternatingTangle -> [NonAlternatingTangle]
 neighboursBorderCrossing tangle = mapMaybe tryReduceLeg $ allLegs tangle
 	where
 		tryReduceLeg xa = do
@@ -31,14 +31,14 @@ neighboursBorderCrossing tangle = mapMaybe tryReduceLeg $ allLegs tangle
 			let pa = opposite ap
 			let qa = opposite aq
 
-			return $! moveZ tangle $ do
+			return $! move tangle $ do
 				maskC [a]
 				if qa == ap
 					then connectC [(xa, ya)] >> emitCircle
 					else connectC [(pa, ya), (qa, xa)]
 
 
-neighboursBorderLoop :: NonAlternatingTangle -> [(NonAlternatingTangle, Int)]
+neighboursBorderLoop :: NonAlternatingTangle -> [NonAlternatingTangle]
 neighboursBorderLoop tangle = mapMaybe tryReduceLoop $ allLegs tangle
 	where
 		tryReduceLoop xa = do
@@ -62,6 +62,6 @@ neighboursBorderLoop tangle = mapMaybe tryReduceLoop $ allLegs tangle
 			guard $ abl == opposite bal
 			guard $ passOver ax /= passOver by
 
-			return $! moveZ tangle $ do
+			return $! move tangle $ do
 				substituteC [(abl, ap), (bal, bq)]
 				connectC [(ax, by), (ap, xa), (bq, yb)]

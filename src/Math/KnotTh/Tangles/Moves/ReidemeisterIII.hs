@@ -8,7 +8,7 @@ import Math.KnotTh.Tangles.NonAlternating
 import Math.KnotTh.Tangles.Moves.Move
 
 
-neighbours :: NonAlternatingTangle -> [(NonAlternatingTangle, Int)]
+neighbours :: NonAlternatingTangle -> [NonAlternatingTangle]
 neighbours tangle = mapMaybe try3rdReidemeister $ allDarts tangle
 	where
 		-- \sc           /rb             \sc   /rb
@@ -50,6 +50,6 @@ neighbours tangle = mapMaybe try3rdReidemeister $ allDarts tangle
 			let br = nextCW bc
 			let cs = nextCCW cb
 
-			return $! moveZ tangle $ do
-					substituteC [(ca, ap), (ba, aq), (ab, br), (ac, cs)]
-					connectC [(br, aq), (cs, ap)]
+			return $! move tangle $ do
+				substituteC [(ca, ap), (ba, aq), (ab, br), (ac, cs)]
+				connectC [(br, aq), (cs, ap)]

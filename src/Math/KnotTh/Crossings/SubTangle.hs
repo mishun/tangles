@@ -59,28 +59,32 @@ instance (Show ct, CrossingType ct) => Show (SubTangleCrossing ct) where
 type SubTangleTangle ct = Tangle (SubTangleCrossing ct)
 
 
-fromTangle :: (CrossingType ct) => Tangle ct -> DnSubGroup -> DirectSumDecompositionType -> Int -> SubTangleCrossing ct
-fromTangle tangle symmetry sumType code
-	| numberOfLegs tangle /= 4           = error "fromTangle: tangle must have 4 legs"
-	| pointsUnderSubGroup symmetry /= 4  = error "fromTangle: symmetry group must have 4 points"
+makeSubTangle :: (CrossingType a, CrossingType b)
+	=> (Tangle a -> Tangle b)
+	-> Tangle a
+	-> DnSubGroup
+	-> DirectSumDecompositionType
+	-> Int
+	-> SubTangleCrossing b
+
+makeSubTangle f tangle symmetry sumType code
+	| numberOfLegs tangle /= 4           = error "makeSubTangle: tangle must have 4 legs"
+	| pointsUnderSubGroup symmetry /= 4  = error "makeSubTangle: symmetry group must have 4 points"
+	| numberOfFreeLoops tangle /= 0      = error "makeSubTangle: tangle contains free loops"
 	| otherwise                          = SubTangle
 		{ _code     = code
 		, _symmetry = fromDnSubGroup symmetry
 		, _sumType  = sumType
-		, subTangle = tangle
+		, subTangle = f tangle
 		}
+
+
+fromTangle :: (CrossingType ct) => Tangle ct -> DnSubGroup -> DirectSumDecompositionType -> Int -> SubTangleCrossing ct
+fromTangle = makeSubTangle id
 
 
 fromTangle' :: (CrossingType ct) => Tangle (SubTangleCrossing ct) -> DnSubGroup -> DirectSumDecompositionType -> Int -> SubTangleCrossing ct
-fromTangle' tangle symmetry sumType code
-	| numberOfLegs tangle /= 4           = error "fromTangle': tangle must have 4 legs"
-	| pointsUnderSubGroup symmetry /= 4  = error "fromTangle': symmetry group must have 4 points"
-	| otherwise                          = SubTangle
-		{ _code     = code
-		, _symmetry = fromDnSubGroup symmetry
-		, _sumType  = sumType
-		, subTangle = substituteTangle tangle
-		}
+fromTangle' = makeSubTangle substituteTangle
 
 
 {-# INLINE tangleInside #-}
@@ -137,7 +141,7 @@ directSumDecompositionType c
 
 substituteTangle :: (CrossingType ct) => Tangle (SubTangleCrossing ct) -> Tangle ct
 substituteTangle tangle =
-	fromLists (map oppositeExt $! allLegs tangle) $!
+	fromLists (numberOfFreeLoops tangle) (map oppositeExt $! allLegs tangle) $!
 		let connections b = do
 			let rev = isCrossingOrientationInverted b
 			!c <- allCrossings $! tangleInside b

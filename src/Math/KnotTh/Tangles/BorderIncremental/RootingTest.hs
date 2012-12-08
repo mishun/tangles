@@ -121,6 +121,9 @@ rootCodeLeg !root !dir = runSTUArray $ do
 	let tangle = dartTangle root
 	let n = numberOfCrossings tangle
 
+	when (numberOfFreeLoops tangle /= 0) (fail "rootCodeLeg: free loops present")
+	when (numberOfCrossings tangle > 127) (fail "rootCodeLeg: too many crossings")
+
 	x <- newArray (0, n) 0 :: ST s (STUArray s Int Int)
 	unsafeWrite x (crossingIndex $! adjacentCrossing root) 1
 	q <- newArray_ (0, n - 1) :: ST s (STArray s Int (Dart ct))

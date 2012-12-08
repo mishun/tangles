@@ -42,8 +42,9 @@ library
         Math.KnotTh.Enumeration.ByEquivalenceClasses
         Math.KnotTh.Enumeration.ByEquivalenceClasses.NonAlternatingTangles
         Math.KnotTh.Enumeration.DiagramInfo
-        Math.KnotTh.Invariants.ThreadExpansion
+        Math.KnotTh.Invariants.LinkingNumber
         Math.KnotTh.Invariants.Skein.JonesPolynomial
+        Math.KnotTh.Invariants.ThreadExpansion
         Math.KnotTh.Knotted
         Math.KnotTh.Links
         Math.KnotTh.Links.FromTangle

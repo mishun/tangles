@@ -9,7 +9,7 @@ import Math.KnotTh.Knotted
 import Math.KnotTh.Tangles
 
 
-threadExpansion :: (Ord inv, CrossingType ct) => ((Tangle ct, Int) -> inv) -> Tangle ct -> [([Int], inv)]
+threadExpansion :: (Ord inv, CrossingType ct) => (Tangle ct -> inv) -> Tangle ct -> [([Int], inv)]
 threadExpansion invariant tangle = sort $ map (processThreadSet invariant tangle) sets
 	where
 		sets = subsets $ allThreads tangle
@@ -20,8 +20,8 @@ threadExpansion invariant tangle = sort $ map (processThreadSet invariant tangle
 					in nx ++ map (x :) nx
 
 
-processThreadSet :: (Ord inv, CrossingType ct) => ((Tangle ct, Int) -> inv) -> Tangle ct -> [[(Dart ct, Dart ct)]] -> ([Int], inv)
-processThreadSet invariant tangle threads = (ecode, invariant (threadTangle, circles))
+processThreadSet :: (Ord inv, CrossingType ct) => (Tangle ct -> inv) -> Tangle ct -> [[(Dart ct, Dart ct)]] -> ([Int], inv)
+processThreadSet invariant tangle threads = (ecode, invariant threadTangle)
 	where
 		targetLegs = sort $ concatMap (\ t -> let a = fst $ head t in if isLeg a then [a, snd $ last t] else []) threads
 
@@ -47,9 +47,10 @@ processThreadSet invariant tangle threads = (ecode, invariant (threadTangle, cir
 				v = opposite u
 				ix = indices ! crossingIndex (incidentCrossing v)
 
-		threadTangle = fromLists (map findTarget targetLegs) $ map (\ c -> (map findTarget $ incidentDarts c, crossingState c)) targets
-
-		circles = length $ filter (all (\ (_, d) -> (indices ! crossingIndex (incidentCrossing d)) == 0)) $ filter (not . isLeg . fst . head) threads
+		threadTangle = fromLists
+			(length $ filter (all (\ (_, d) -> (indices ! crossingIndex (incidentCrossing d)) == 0)) $ filter (not . isLeg . fst . head) threads)
+			(map findTarget targetLegs)
+			(map (\ c -> (map findTarget $ incidentDarts c, crossingState c)) targets)
 
 		ecode = sort $ map (\ t -> dist (fst $ head t) (snd $ last t)) $ filter (isLeg . fst . head) threads
 			where

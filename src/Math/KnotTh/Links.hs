@@ -61,20 +61,23 @@ instance (Show ct, CrossingType ct) => Show (Crossing ct) where
 
 
 data Link ct = Link
-	{ count          :: {-# UNPACK #-} !Int
+	{ crossCount     :: {-# UNPACK #-} !Int
 	, crossingsArray :: {-# UNPACK #-} !(UArray Int Int)
 	, stateArray     :: {-# UNPACK #-} !(Array Int (CrossingState ct))
+	, loopsCount     :: {-# UNPACK #-} !Int
 	}
 
 
 instance (Show ct, CrossingType ct) => Show (Link ct) where
-	show t =
-		let d = map (show . nthCrossing t) [1 .. numberOfCrossings t]
-		in concat ["(Link ", intercalate " " d, " )"]
+	show link =
+		let d = map show $ allCrossings link
+		in concat ["(Link (", show (numberOfFreeLoops link), " O) ", intercalate " " d, " )"]
 
 
 instance Knotted Link Crossing Dart where
-	numberOfCrossings = count
+	numberOfFreeLoops = loopsCount
+
+	numberOfCrossings = crossCount
 
 	numberOfEdges l = 2 * (numberOfCrossings l)
 
@@ -137,12 +140,14 @@ dartLink :: Dart ct -> Link ct
 dartLink (Dart l _) = l
 
 
-fromList :: [([(Int, Int)], CrossingState ct)] -> Link ct
-fromList list = runST $ fromListST list
+fromList :: Int -> [([(Int, Int)], CrossingState ct)] -> Link ct
+fromList loops list = runST $ fromListST loops list
 
 
-fromListST :: [([(Int, Int)], CrossingState ct)] -> ST s (Link ct)
-fromListST list = do
+fromListST :: Int -> [([(Int, Int)], CrossingState ct)] -> ST s (Link ct)
+fromListST loops list = do
+	when (loops < 0) (fail "fromListST: number of free loops is negative")
+
 	let n = length list
 	cr <- newArray_ (0, 4 * n - 1) :: ST s (STUArray s Int Int)
 	st <- newArray_ (0, n - 1) :: ST s (STArray s Int a)
@@ -163,9 +168,10 @@ fromListST list = do
 	cr' <- unsafeFreeze cr
 	st' <- unsafeFreeze st
 	return $! Link
-		{ count          = n
+		{ crossCount     = n
 		, crossingsArray = cr'
 		, stateArray     = st'
+		, loopsCount     = loops
 		}
 
 

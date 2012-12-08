@@ -1,7 +1,6 @@
 {-# LANGUAGE UnboxedTuples #-}
 module Math.KnotTh.Tangles.IsomorphismTest
 	( isomorphismTest
-	, isomorphismTest'
 	) where
 
 import Prelude hiding (head, tail)
@@ -17,16 +16,14 @@ import Math.Algebra.RotationDirection (RotationDirection, ccw, cw)
 import Math.KnotTh.Tangles
 
 
-isomorphismTest' :: (CrossingType ct) => Tangle ct -> UArray Int Int
-isomorphismTest' tangle = isomorphismTest (tangle, 0)
+isomorphismTest :: (CrossingType ct) => Tangle ct -> UArray Int Int
+isomorphismTest tangle
+	| numberOfCrossings tangle > 127  = error "isomorphismTest: too many crossings"
+	| otherwise                       = min (codeWithDirection ccw tangle) (codeWithDirection cw tangle)
 
 
-isomorphismTest :: (CrossingType ct) => (Tangle ct, Int) -> UArray Int Int
-isomorphismTest tc = min (codeWithDirection ccw tc) (codeWithDirection cw tc)
-
-
-codeWithDirection :: (CrossingType ct) => RotationDirection -> (Tangle ct, Int) -> UArray Int Int
-codeWithDirection !dir (tangle, circles) = minimum [ code leg | leg <- allLegs tangle ]
+codeWithDirection :: (CrossingType ct) => RotationDirection -> Tangle ct -> UArray Int Int
+codeWithDirection !dir tangle = minimum [ code leg | leg <- allLegs tangle ]
 	where
 		n = numberOfCrossings tangle
 		l = numberOfLegs tangle
@@ -57,7 +54,7 @@ codeWithDirection !dir (tangle, circles) = minimum [ code leg | leg <- allLegs t
 					return $! c + s `shiftL` 7
 
 			rc <- newArray_ (0, l + 2 * n) :: ST s (STUArray s Int Int)
-			unsafeWrite rc 0 circles
+			unsafeWrite rc 0 $! numberOfFreeLoops tangle
 			foldM_ (\ !d !i -> do { look (opposite d) >>= unsafeWrite rc i ; return $! nextDir dir d }) leg [1 .. l]
 
 			flip fix 0 $ \ bfs !head -> do
@@ -74,7 +71,7 @@ codeWithDirection !dir (tangle, circles) = minimum [ code leg | leg <- allLegs t
 			fix $ \ recheck -> do
 				tail <- readSTRef free
 				when (tail <= n) $
-					fail "codeWithDirection: not connected diagram"
+					fail "codeWithDirection: disconnected diagram (not implemented)"
 					recheck
 
 			return $! rc

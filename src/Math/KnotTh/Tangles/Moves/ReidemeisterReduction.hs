@@ -10,7 +10,7 @@ import Math.KnotTh.Tangles.NonAlternating
 import Math.KnotTh.Tangles.Moves.Move
 
 
-greedy1st2ndReduction :: (NonAlternatingTangle, Int) -> (NonAlternatingTangle, Int)
+greedy1st2ndReduction :: NonAlternatingTangle -> NonAlternatingTangle
 greedy1st2ndReduction tangleC = move tangleC $ greedy [reduce1st, reduce2nd]
 
 

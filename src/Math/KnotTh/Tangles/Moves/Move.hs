@@ -1,7 +1,6 @@
 {-# LANGUAGE Rank2Types #-}
 module Math.KnotTh.Tangles.Moves.Move
 	( MoveM
-	, moveZ
 	, move
 	, oppositeC
 	, emitCircle
@@ -30,8 +29,8 @@ data MoveState s ct = MoveState
 	}
 
 
-disassemble :: (CrossingType ct) => (Tangle ct, Int) -> ST s (MoveState s ct)
-disassemble (tangle, circles) = do
+disassemble :: (CrossingType ct) => Tangle ct -> ST s (MoveState s ct)
+disassemble tangle = do
 	let n = numberOfCrossings tangle
 
 	connections <- newArray_ (0, 2 * numberOfEdges tangle - 1)
@@ -39,7 +38,7 @@ disassemble (tangle, circles) = do
 		writeArray connections (dartArrIndex d) (opposite d)
 
 	mask <- newArray (1, n) Direct
-	circlesCounter <- newSTRef circles
+	circlesCounter <- newSTRef $! numberOfFreeLoops tangle
 	return $! MoveState
 		{ stateSource      = tangle
 		, stateMask        = mask
@@ -48,7 +47,7 @@ disassemble (tangle, circles) = do
 		}
 
 
-assemble :: (CrossingType ct) => MoveState s ct -> ST s (Tangle ct, Int)
+assemble :: (CrossingType ct) => MoveState s ct -> ST s (Tangle ct)
 assemble st = do
 	let source = stateSource st
 
@@ -88,7 +87,7 @@ assemble st = do
 			)
 
 	circles <- readSTRef (stateCircles st)
-	return $! (fromLists border connections, circles)
+	fromListsST circles border connections
 
 
 reconnect :: MoveState s ct -> [(Dart ct, Dart ct)] -> ST s ()
@@ -102,11 +101,7 @@ reconnect st connections =
 type MoveM s ct r = StateT (MoveState s ct) (ST s) r
 
 
-moveZ :: (CrossingType ct) => Tangle ct -> (forall s. MoveM s ct ()) -> (Tangle ct, Int)
-moveZ tangle = move (tangle, 0)
-
-
-move :: (CrossingType ct) => (Tangle ct, Int) -> (forall s. MoveM s ct ()) -> (Tangle ct, Int)
+move :: (CrossingType ct) => Tangle ct -> (forall s. MoveM s ct ()) -> Tangle ct
 move initial modification = runST $ disassemble initial >>= execStateT modification >>= assemble
 
 

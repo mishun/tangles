@@ -140,6 +140,7 @@ crossingCode dir d =
 
 
 class Knotted (knot :: * -> *) (cross :: * -> *) (dart :: * -> *) | knot -> cross, cross -> dart, dart -> knot where
+	numberOfFreeLoops :: knot ct -> Int
 	numberOfCrossings :: knot ct -> Int
 	numberOfEdges     :: knot ct -> Int
 	nthCrossing       :: knot ct -> Int -> cross ct

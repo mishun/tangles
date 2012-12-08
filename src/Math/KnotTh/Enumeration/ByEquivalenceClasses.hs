@@ -22,8 +22,8 @@ data SiftState k v = St
 
 siftByEquivalenceClasses ::
 	(Ord c, CrossingType ct, Knotted knot crossing dart, DiagramInfo info)
-		=> ((knot ct, Int) -> c)
-		-> [knot ct -> [(knot ct, Int)]]
+		=> (knot ct -> c)
+		-> [knot ct -> [knot ct]]
 		-> (forall m. (Monad m) => (knot ct -> m ()) -> m ())
 		-> [info (knot ct)]
 
@@ -60,13 +60,12 @@ siftByEquivalenceClasses isomorphismTest moves enumerateDiagrams =
 					put $! st { set = ds', vals = IM.insertWith' merge rootId current $! vals st }
 					return False
 
-		enumerateDiagrams $ \ !startDiagram ->
-			fix (\ dfs dc@(!diagram, !circles) !prevCode -> do
-				let code = isomorphismTest dc
-				inserted <- insert code $! wrap dc
+		enumerateDiagrams $
+			fix (\ dfs !prevCode !diagram -> do
+				let code = isomorphismTest diagram
+				inserted <- insert code $ wrap diagram
 				maybe (return ()) (declareEquivalent code) prevCode
 				when inserted $
-					forM_ [ (d, circles + c) | move <- moves, (d, c) <- move diagram ] $ \ child ->
-						dfs child $! Just code
-				) (startDiagram, 0) Nothing
+					forM_ (concatMap ($ diagram) moves) (dfs $! Just code)
+				) Nothing
 	in IM.elems $ vals final

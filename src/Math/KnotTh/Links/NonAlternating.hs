@@ -75,18 +75,18 @@ toDTCode _ = undefined
 
 
 singleCrossingUnknot :: NonAlternatingLink
-singleCrossingUnknot = fromList [([(1, 1), (1, 0), (1, 3), (1, 2)], overCrossing)]
+singleCrossingUnknot = fromList 0 [([(1, 1), (1, 0), (1, 3), (1, 2)], overCrossing)]
 
 
 hopfLink :: NonAlternatingLink
-hopfLink = fromList
+hopfLink = fromList 0
 	[ ([(2, 1), (2, 0), (2, 3), (2, 2)], overCrossing)
 	, ([(1, 1), (1, 0), (1, 3), (1, 2)], overCrossing)
 	]
 
 
 leftTrefoilKnot :: NonAlternatingLink
-leftTrefoilKnot = fromList
+leftTrefoilKnot = fromList 0
 	[ ([(3, 1), (2, 0), (2, 3), (3, 2)], overCrossing)
 	, ([(1, 1), (3, 0), (3, 3), (1, 2)], overCrossing)
 	, ([(2, 1), (1, 0), (1, 3), (2, 2)], overCrossing)
@@ -98,7 +98,7 @@ rightTrefoilKnot = invertCrossings leftTrefoilKnot
 
 
 figureEightKnot :: NonAlternatingLink
-figureEightKnot = fromList
+figureEightKnot = fromList 0
 	[ ([(3, 1), (2, 0), (2, 3), (4, 2)], overCrossing)
 	, ([(1, 1), (3, 0), (4, 3), (1, 2)], overCrossing)
 	, ([(2, 1), (1, 0), (4, 1), (4, 0)], overCrossing)
@@ -107,7 +107,7 @@ figureEightKnot = fromList
 
 
 leftCinquefoilKnot :: NonAlternatingLink
-leftCinquefoilKnot = fromList
+leftCinquefoilKnot = fromList 0
 	[ ([(5, 1), (2, 0), (2, 3), (5, 2)], overCrossing)
 	, ([(1, 1), (3, 0), (3, 3), (1, 2)], overCrossing)
 	, ([(2, 1), (4, 0), (4, 3), (2, 2)], overCrossing)

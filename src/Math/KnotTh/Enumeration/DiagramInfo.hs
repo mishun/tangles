@@ -13,17 +13,17 @@ import Math.KnotTh.Knotted
 
 class DiagramInfo info where
 	merge          :: (Knotted k c d) => info (k ct) -> info (k ct) -> info (k ct)
-	wrap           :: (Knotted k c d) => (k ct, Int) -> info (k ct)
-	representative :: (Knotted k c d) => info (k ct) -> (k ct, Int)
+	wrap           :: (Knotted k c d) => k ct -> info (k ct)
+	representative :: (Knotted k c d) => info (k ct) -> k ct
 
 
-data MinimalDiagramInfo k = DisconnectedDiagram !Int !k | CompositeMinimalDiagram !k | PrimeMinimalDiagram !k
+data MinimalDiagramInfo k = DisconnectedDiagram !k | CompositeMinimalDiagram !k | PrimeMinimalDiagram !k
 
 instance DiagramInfo MinimalDiagramInfo where
 
 	merge new old = case cmp new old of { LT -> new ; _ -> old } where
 
-		cmp (DisconnectedDiagram _ a) (DisconnectedDiagram _ b) =
+		cmp (DisconnectedDiagram a) (DisconnectedDiagram b) =
 			comparing numberOfCrossings a b
 
 		cmp DisconnectedDiagram {} _                      = LT
@@ -43,16 +43,16 @@ instance DiagramInfo MinimalDiagramInfo where
 		cmp (PrimeMinimalDiagram a) (PrimeMinimalDiagram b) =
 			comparing numberOfCrossings a b
 
-	wrap (!knot, !circles)
-		| circles > 0 || not (isConnected knot)  = DisconnectedDiagram circles knot
-		| not (isPrime knot)                     = CompositeMinimalDiagram knot
-		| otherwise                              = PrimeMinimalDiagram knot
+	wrap !knot
+		| not (isConnected knot)  = DisconnectedDiagram knot
+		| not (isPrime knot)      = CompositeMinimalDiagram knot
+		| otherwise               = PrimeMinimalDiagram knot
 
 	representative info =
 		case info of
-			DisconnectedDiagram c k   -> (k, c)
-			CompositeMinimalDiagram k -> (k, 0)
-			PrimeMinimalDiagram k     -> (k, 0)
+			DisconnectedDiagram k     -> k
+			CompositeMinimalDiagram k -> k
+			PrimeMinimalDiagram k     -> k
 
 maybePrimeDiagram :: MinimalDiagramInfo k -> Maybe k
 maybePrimeDiagram info =
@@ -61,7 +61,7 @@ maybePrimeDiagram info =
 		_                     -> Nothing
 
 
-newtype AllDiagramsInfo k = AllDiagramsInfo [(k, Int)]
+newtype AllDiagramsInfo k = AllDiagramsInfo [k]
 
 instance DiagramInfo AllDiagramsInfo where
 	merge (AllDiagramsInfo a) (AllDiagramsInfo b) = AllDiagramsInfo $ a ++ b
@@ -70,5 +70,5 @@ instance DiagramInfo AllDiagramsInfo where
 
 	representative (AllDiagramsInfo l) = head l
 
-allDiagrams :: AllDiagramsInfo k -> [(k, Int)]
+allDiagrams :: AllDiagramsInfo k -> [k]
 allDiagrams (AllDiagramsInfo l) = l

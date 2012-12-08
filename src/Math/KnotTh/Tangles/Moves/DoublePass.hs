@@ -8,7 +8,7 @@ import Math.KnotTh.Tangles.NonAlternating
 import Math.KnotTh.Tangles.Moves.Resting
 
 
-neighbours :: Tangle ArbitraryCrossing -> [(Tangle ArbitraryCrossing, Int)]
+neighbours :: NonAlternatingTangle -> [NonAlternatingTangle]
 neighbours tangle = mapMaybe tryDoublePass $ allDarts tangle
 	where
 		tryDoublePass ab
