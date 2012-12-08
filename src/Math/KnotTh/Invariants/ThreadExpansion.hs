@@ -56,4 +56,4 @@ processThreadSet invariant tangle threads = (ecode, invariant (threadTangle, cir
 				l = numberOfLegs tangle
 				dist a b =
 					let d = legPlace a - legPlace b
-					in min (mod (l + d) l) (mod (l - d) l)
+					in min (mod d l) (mod (-d) l)

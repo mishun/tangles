@@ -48,7 +48,7 @@ drawTangle lineWidth tangle =
 	let	g =
 			let	l = numberOfLegs tangle
 				(b, r) = toLists tangle
-				change (0, j) = (0, (l - j) `mod` l)
+				change (0, j) = (0, (-j) `mod` l)
 				change p = p
 			in G.constructFromList $ map (map change) ((head b : reverse (tail b)) : map fst r)
 		e = embeddingWithVertexRooting (3 :: Int) (G.nthVertex g 0)

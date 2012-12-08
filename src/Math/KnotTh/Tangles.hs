@@ -236,7 +236,9 @@ legPlace (Dart _ c i)
 
 {-# INLINE nthLeg #-}
 nthLeg :: Tangle ct -> Int -> Dart ct
-nthLeg t i = let l = numberOfLegs t in Dart t 0 ((l + mod i l) `mod` l)
+nthLeg t i =
+	let l = numberOfLegs t
+	in Dart t 0 (mod i l)
 
 
 {-# INLINE firstLeg #-}
@@ -362,7 +364,7 @@ glueToBorderST leg legsToGlue crossingToGlue
 				let c = arr' `unsafeAt` (2 * index')
 				let p = arr' `unsafeAt` (2 * index' + 1)
 				if c == 0 then do
-					let ml = (oldL + p - lp - 1) `mod` oldL
+					let ml = (p - lp - 1) `mod` oldL
 					if ml < oldL - legsToGlue
 						then writePair arr index 0 (4 - legsToGlue + ml)
 						else writePair arr index newC (oldL - 1 - ml)
@@ -372,7 +374,7 @@ glueToBorderST leg legsToGlue crossingToGlue
 			copyModified cr i (crossingsArray tangle) i
 
 		forM_ [0 .. legsToGlue - 1] $ \ !i ->
-			copyModified cr (4 * (newC - 1) + i) (borderArray tangle) ((oldL + lp - i) `mod` oldL)
+			copyModified cr (4 * (newC - 1) + i) (borderArray tangle) ((lp - i) `mod` oldL)
 
 		forM_ [0 .. 3 - legsToGlue] $ \ !i -> do
 			let j = i + legsToGlue

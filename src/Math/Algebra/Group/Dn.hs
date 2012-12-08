@@ -68,28 +68,28 @@ inverse g
 fromRotation :: Int -> Int -> Dn
 fromRotation n p
 	| n <= 0    = error "fromRotation: order is non-positive"
-	| otherwise = Dn { pointsUnderGroup = n, rotation = mod (n + mod p n) n, reflection = False }
+	| otherwise = Dn { pointsUnderGroup = n, rotation = mod p n, reflection = False }
 
 
 {-# INLINE fromReflectionRotation #-}
 fromReflectionRotation :: Int -> (Bool, Int) -> Dn
 fromReflectionRotation n (m, r)
 	| n <= 0     = error "fromReflectionRotation: order is non-positive"
-	| otherwise  = Dn { pointsUnderGroup = n, rotation = mod (n + mod r n) n , reflection = m }
+	| otherwise  = Dn { pointsUnderGroup = n, rotation = mod r n , reflection = m }
 
 
 {-# INLINE fromRotationReflection #-}
 fromRotationReflection :: Int -> (Int, Bool) -> Dn
 fromRotationReflection n (r, m)
 	| n <= 0     = error "fromRotationReflection: order is non-positive"
-	| otherwise  = Dn { pointsUnderGroup = n, rotation = mod (n + mod (if m then -r else r) n) n, reflection = m }
+	| otherwise  = Dn { pointsUnderGroup = n, rotation = mod (if m then -r else r) n, reflection = m }
 
 
 {-# INLINE permute #-}
 permute :: Dn -> Int -> Int
 permute g i
-	| reflection g  = (p - (i + rotation g) `mod` p) `mod` p
-	| otherwise     = (p + (i + rotation g) `mod` p) `mod` p
+	| reflection g  = (p - (i + rotation g)) `mod` p
+	| otherwise     = (p + (i + rotation g)) `mod` p
 	where
 		p = pointsUnderGroup g
 
@@ -132,7 +132,7 @@ fromPeriodAndMirroredZero n p mz
 	| n <= 0        = error "fromPeriodAndMirroredZero: order is non-positive"
 	| p <= 0        = error "fromPeriodAndMirroredZero: period is non-positive"
 	| mod n p /= 0  = error "fromPeriodAndMirroredZero: period does not divide order"
-	| otherwise     = Mirr { pointsUnderSubGroup = n, rotationPeriod = p, mirroredZero = mod (p + mod mz p) p }
+	| otherwise     = Mirr { pointsUnderSubGroup = n, rotationPeriod = p, mirroredZero = mod mz p }
 
 
 hasReflectionPart :: DnSubGroup -> Bool
