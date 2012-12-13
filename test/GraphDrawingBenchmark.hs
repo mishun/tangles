@@ -19,6 +19,6 @@ main = do
 		transformed [shifted (0.5 * a4Width, 0.5 * a4Height), scaled 250] $ do
 			forM_ (graphEdges g) $ \ (a, _) -> do
 				stroke [withLineWidth 0.003] $ chain $ e ! a
-				forM_ [head (e ! a), last (e ! a)] $ \ p ->
+				forM_ (e ! a) $ \ p ->
 					transformed [shifted p, scaled 0.006] $ fill [] circumference
 			stroke [withLineWidth 0.001] circumference

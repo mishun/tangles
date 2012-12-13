@@ -14,22 +14,22 @@ import qualified Data.Array.IO as IOArray
 import qualified Data.IORef as IORef
 import Control.Monad
 import Foreign.Ptr (Ptr)
-import Foreign.C.Types (CInt(..), CSize(..), CDouble(..))
+import Foreign.C.Types (CSize(..), CDouble(..))
 import qualified Foreign.Marshal.Array as FMA
 import Foreign.Marshal.Alloc (free)
 import Math.Manifolds.SurfaceGraph
 import Math.Manifolds.SurfaceGraph.Util
 
 
-embeddingWithVertexRooting :: (Integral int) => int -> Vertex -> Array Dart [(Double, Double)]
+embeddingWithVertexRooting :: Int -> Vertex -> Array Dart [(Double, Double)]
 embeddingWithVertexRooting n v = smoothEmbedding n (Left v)
 
 
-embeddingWithFaceRooting :: (Integral int) => int -> Face -> Array Dart [(Double, Double)]
+embeddingWithFaceRooting :: Int -> Face -> Array Dart [(Double, Double)]
 embeddingWithFaceRooting n f = smoothEmbedding n (Right f)
 
 
-smoothEmbedding :: (Integral int) => int -> Either Vertex Face -> Array Dart [(Double, Double)]
+smoothEmbedding :: Int -> Either Vertex Face -> Array Dart [(Double, Double)]
 smoothEmbedding subdivisionOrder root =
 	relaxEmbedding root $!
 		barycentricImproving
@@ -38,7 +38,7 @@ smoothEmbedding subdivisionOrder root =
 			root
 
 
-barycentricImproving :: (Integral int) => (Either Vertex Face -> Array Dart [(Double, Double)]) -> int -> Either Vertex Face -> Array Dart [(Double, Double)]
+barycentricImproving :: (Either Vertex Face -> Array Dart [(Double, Double)]) -> Int -> Either Vertex Face -> Array Dart [(Double, Double)]
 barycentricImproving f n root
 	| n <= 0     = f root
 	| otherwise  =
@@ -160,8 +160,8 @@ quadraticInitialization seed s brd
 		return $! listArray (dartsRange g) result
 
 
-foreign import ccall "_ZN4Math9Manifolds9Embedding14relaxEmbeddingERKNS1_16InteractionConstEijjPNS_7Numeric7Vector2EjPKjPKS9_jS9_SB_"
-	c_relaxEmbedding :: Ptr CDouble -> CInt
+foreign import ccall "_ZN4Math9Manifolds9Embedding14relaxEmbeddingERKNS1_16InteractionConstEjjPNS_7Numeric7Vector2EjPKjPKS9_jS9_SB_"
+	c_relaxEmbedding :: Ptr CDouble
 		-> CSize -> CSize -> Ptr CDouble
 		-> CSize -> Ptr CSize -> Ptr (Ptr CSize)
 		-> CSize -> Ptr CSize -> Ptr (Ptr CSize)
@@ -239,11 +239,11 @@ relaxEmbedding root initial
 		let numberOfThreads = length threads
 
 		let interaction =
-			[ 3   -- border
-			, 0   -- electric
-			, 0.5 -- bend
-			, 15  -- elastic
-			, 5   -- cross
+			[ 3    -- border
+			, 0.5  -- electric
+			, 30   -- bend
+			, 15   -- elastic
+			, 1.5  -- cross
 			]
 
 		FMA.withArray interaction $ \ interactionPtr -> do
@@ -263,11 +263,12 @@ relaxEmbedding root initial
 						let aliveVertices = filter ((/= root) . Left) $! graphVertices g
 						FMA.withArray (map (fromIntegral . vertexDegree) aliveVertices) $ \ vertexDegreePtr -> do
 							adjPtrs <- newArray_ (0, length aliveVertices - 1)
-							forM_ (zip aliveVertices [0 ..]) $ \ (v, i) -> do
-								(FMA.newArray $! map (fromIntegral . (!! 1) . (dartIndices !)) (dartsIncidentToVertex v)) >>= writeArray adjPtrs i
+							forM_ (zip aliveVertices [0 ..]) $ \ (v, i) ->
+								(FMA.newArray $! map (fromIntegral . (!! 1) . (dartIndices !)) (dartsIncidentToVertex v))
+									>>= writeArray adjPtrs i
 
 							withStorableArray adjPtrs $ \ adjPtrsPtr ->
-								c_relaxEmbedding interactionPtr 0
+								c_relaxEmbedding interactionPtr
 									(fromIntegral numberOfMovablePoints) (fromIntegral numberOfFrozenPoints) xPtr
 									(fromIntegral numberOfThreads) lensPtr threadsPtrsPtr
 									(fromIntegral $ length aliveVertices) vertexDegreePtr adjPtrsPtr

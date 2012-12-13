@@ -56,7 +56,7 @@ barycentricSubdivision' g = (bs, zip (x [0 ..]) (graphVertices g), zip (x [v ..]
 		x = map (nthVertex bs)
 
 
-nthBarycentricSubdivision :: (Integral int) => int -> SurfaceGraph -> SurfaceGraph
+nthBarycentricSubdivision :: Int -> SurfaceGraph -> SurfaceGraph
 nthBarycentricSubdivision n g
 	| n > 0      = nthBarycentricSubdivision (n - 1) $ barycentricSubdivision g
 	| otherwise  = g

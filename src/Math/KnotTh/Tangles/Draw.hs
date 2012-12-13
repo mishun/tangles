@@ -51,9 +51,9 @@ drawTangle lineWidth tangle =
 				change (0, j) = (0, (-j) `mod` l)
 				change p = p
 			in G.constructFromList $ map (map change) ((head b : reverse (tail b)) : map fst r)
-		e = embeddingWithVertexRooting (3 :: Int) (G.nthVertex g 0)
-	in crossingDependentImage lineWidth tangle $!
+		e = embeddingWithVertexRooting 2 (G.nthVertex g 0)
+	in crossingDependentImage lineWidth tangle $
 		let toGraphDart d
-			| isLeg d    = G.nthDartIncidentToVertex (G.nthVertex g 0) (let p = legPlace d in if p == 0 then 0 else numberOfLegs tangle - p)
-			| otherwise  = G.nthDartIncidentToVertex (G.nthVertex g $! crossingIndex $! incidentCrossing d) (dartPlace d)
-		in map (map (\ p@(a, _) -> (p, e ! toGraphDart a))) $! allThreads tangle
+			| isLeg d    = G.nthDartIncidentToVertex (G.nthVertex g 0) $ (-legPlace d) `mod` numberOfLegs tangle
+			| otherwise  = G.nthDartIncidentToVertex (G.nthVertex g $ crossingIndex $ incidentCrossing d) (dartPlace d)
+		in map (map (\ p@(a, _) -> (p, e ! toGraphDart a))) $ allThreads tangle
