@@ -5,8 +5,7 @@ module Math.KnotTh.Invariants.ThreadExpansion
 import Data.List (sort, elemIndex)
 import Data.Array (array, (!))
 import qualified Data.Set as Set
-import Math.KnotTh.Knotted
-import Math.KnotTh.Tangles
+import Math.KnotTh.Tangle
 
 
 threadExpansion :: (Ord inv, CrossingType ct) => (Tangle ct -> inv) -> Tangle ct -> [([Int], inv)]

@@ -6,10 +6,10 @@ import Control.Monad (forM_)
 import Test.HUnit
 import qualified Math.Combinatorics.ChordDiagrams.Generator as CDGen
 import qualified Math.KnotTh.Crossings.Projection as ProjectionCrossing
-import qualified Math.KnotTh.Tangles.BorderIncremental.IncrementalGluing as IncrementalGluing
-import qualified Math.KnotTh.Tangles.BorderIncremental.SimpleTypes as SimpleTypes
-import qualified Math.KnotTh.Tangles.BorderIncremental.FlypeGenerator as FlypeGenerator
-import qualified Math.KnotTh.Links.NonAlternating as NALinks
+import qualified Math.KnotTh.Tangle.BorderIncremental.IncrementalGluing as IncrementalGluing
+import qualified Math.KnotTh.Tangle.BorderIncremental.SimpleTypes as SimpleTypes
+import qualified Math.KnotTh.Tangle.BorderIncremental.FlypeGenerator as FlypeGenerator
+import qualified Math.KnotTh.Link.NonAlternating as NALinks
 import qualified Math.KnotTh.Invariants.Skein.JonesPolynomial as JP
 import qualified TestTangles.Table as Table
 

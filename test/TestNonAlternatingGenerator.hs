@@ -5,10 +5,10 @@ import Data.Function (on)
 import Data.List (sortBy, groupBy)
 import Control.Monad
 import Math.Algebra.Group.Dn (maximumSubGroup)
-import Math.KnotTh.Tangles.BorderIncremental.SimpleTypes
+import Math.KnotTh.Tangle.BorderIncremental.SimpleTypes
 import Math.KnotTh.Enumeration.ByEquivalenceClasses.NonAlternatingTangles
-import Math.KnotTh.Tangles.Draw
-import Math.KnotTh.Links.FromTangle
+import Math.KnotTh.Tangle.Draw
+import Math.KnotTh.Link.FromTangle
 import Math.KnotTh.Invariants.Skein.JonesPolynomial
 import Graphics.HP
 import TestTangles.Table

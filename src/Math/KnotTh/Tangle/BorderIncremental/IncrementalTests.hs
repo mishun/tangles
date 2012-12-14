@@ -1,4 +1,4 @@
-module Math.KnotTh.Tangles.BorderIncremental.IncrementalTests
+module Math.KnotTh.Tangle.BorderIncremental.IncrementalTests
 	( testNoMultiEdges
 	, testNo2ndReidemeisterReduction
 	, testFlow4
@@ -9,8 +9,8 @@ import Data.Array.ST (STArray, STUArray)
 import Data.STRef (newSTRef, readSTRef, writeSTRef)
 import Control.Monad.ST (ST, runST)
 import Control.Monad (when, forM_)
-import Math.KnotTh.Tangles
-import Math.KnotTh.Tangles.NonAlternating
+import Math.KnotTh.Tangle
+import Math.KnotTh.Tangle.NonAlternating
 
 
 testNoMultiEdges :: Dart ct -> Int -> Bool

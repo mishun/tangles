@@ -1,12 +1,12 @@
-module Math.KnotTh.Tangles.Projection
+module Math.KnotTh.Tangle.Projection
 	( module Math.KnotTh.Crossings.Projection
-	, module Math.KnotTh.Tangles
+	, module Math.KnotTh.Tangle
 	, TangleProjection
 	, lonerProjection
 	) where
 
 import Math.KnotTh.Crossings.Projection
-import Math.KnotTh.Tangles
+import Math.KnotTh.Tangle
 
 
 type TangleProjection = Tangle ProjectionCrossing

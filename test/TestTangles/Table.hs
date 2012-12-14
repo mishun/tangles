@@ -11,7 +11,7 @@ import Control.Monad.State.Strict (execState, get, put)
 import Text.Printf (printf)
 import System.CPUTime (getCPUTime)
 import Math.Algebra.Group.Dn (DnSubGroup, hasReflectionPart, rotationPeriod)
-import Math.KnotTh.Tangles
+import Math.KnotTh.Tangle
 
 
 generateTable :: Bool -> (forall m. (Monad m) => Int -> (Tangle ct -> DnSubGroup -> m ()) -> m ()) -> Int -> Map.Map (Int, Int) Int

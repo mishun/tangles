@@ -1,11 +1,11 @@
-module Math.KnotTh.Tangles.Moves.ReidemeisterIII
+module Math.KnotTh.Tangle.Moves.ReidemeisterIII
 	( neighbours
 	) where
 
 import Data.Maybe
 import Control.Monad (guard)
-import Math.KnotTh.Tangles.NonAlternating
-import Math.KnotTh.Tangles.Moves.Move
+import Math.KnotTh.Tangle.NonAlternating
+import Math.KnotTh.Tangle.Moves.Move
 
 
 neighbours :: NonAlternatingTangle -> [NonAlternatingTangle]

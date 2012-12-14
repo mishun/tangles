@@ -13,8 +13,8 @@ import qualified Math.Projects.KnotTheory.LaurentMPoly as LP
 import Math.Algebra.Group.Dn (fromReflectionRotation)
 import Math.KnotTh.Knotted
 import Math.KnotTh.Crossings.Arbitrary
-import qualified Math.KnotTh.Links.NonAlternating as L
-import qualified Math.KnotTh.Tangles.NonAlternating as T
+import qualified Math.KnotTh.Link.NonAlternating as L
+import qualified Math.KnotTh.Tangle.NonAlternating as T
 
 
 data Node a = Cross a a a a | Join a a deriving (Eq, Show, Read, Ord)

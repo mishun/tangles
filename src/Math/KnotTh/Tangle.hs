@@ -1,4 +1,4 @@
-module Math.KnotTh.Tangles
+module Math.KnotTh.Tangle
 	( module Math.KnotTh.Knotted
 	, Dart
 	, Crossing

@@ -1,4 +1,4 @@
-module Math.KnotTh.Links.FromTangle
+module Math.KnotTh.Link.FromTangle
 	( fromTangleAndStarByPlace
 	, fromTangleAndStarByOffset
 	, tangleDoubling
@@ -8,8 +8,8 @@ import Data.Array.IArray
 import Math.Algebra.Group.D4 (D4, ec, (<*>))
 import Math.KnotTh.Crossings.Arbitrary
 import Math.KnotTh.Knotted
-import qualified Math.KnotTh.Links as L
-import qualified Math.KnotTh.Tangles as T
+import qualified Math.KnotTh.Link as L
+import qualified Math.KnotTh.Tangle as T
 
 
 fromTangleAndStarByPlace :: (CrossingType ct, IArray a Int) => T.Tangle ct -> a Int Int -> L.Link ct

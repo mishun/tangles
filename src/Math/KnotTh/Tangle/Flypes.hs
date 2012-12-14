@@ -1,5 +1,5 @@
 {-# LANGUAGE UnboxedTuples #-}
-module Math.KnotTh.Tangles.Flypes
+module Math.KnotTh.Tangle.Flypes
 	( minimumFlypeCode
 	, additionalFlypeSymmetry
 	) where
@@ -11,7 +11,7 @@ import Math.Algebra.RotationDirection
 import Math.Algebra.Group.Dn (Dn, fromReflectionRotation)
 import Math.KnotTh.Crossings.Projection
 import Math.KnotTh.Crossings.SubTangle
-import Math.KnotTh.Tangles
+import Math.KnotTh.Tangle
 
 
 flypeCodeLeg :: Dart (SubTangleCrossing ProjectionCrossing) -> RotationDirection -> UArray Int Int

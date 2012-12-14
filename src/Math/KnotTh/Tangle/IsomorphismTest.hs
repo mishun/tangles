@@ -1,5 +1,5 @@
 {-# LANGUAGE UnboxedTuples #-}
-module Math.KnotTh.Tangles.IsomorphismTest
+module Math.KnotTh.Tangle.IsomorphismTest
 	( isomorphismTest
 	) where
 
@@ -13,7 +13,7 @@ import Data.Array.ST (STArray, STUArray, runSTUArray, newArray, newArray_)
 import Control.Monad.ST (ST)
 import Control.Monad (when, foldM_)
 import Math.Algebra.RotationDirection (RotationDirection, ccw, cw)
-import Math.KnotTh.Tangles
+import Math.KnotTh.Tangle
 
 
 isomorphismTest :: (CrossingType ct) => Tangle ct -> UArray Int Int

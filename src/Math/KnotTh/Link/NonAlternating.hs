@@ -1,6 +1,6 @@
-module Math.KnotTh.Links.NonAlternating
+module Math.KnotTh.Link.NonAlternating
 	( module Math.KnotTh.Crossings.Arbitrary
-	, module Math.KnotTh.Links
+	, module Math.KnotTh.Link
 	, NonAlternatingLink
 	, isAlternating
 	, alternatingDefect
@@ -23,7 +23,7 @@ import qualified Data.Map as Map
 import Data.Array.ST (STUArray, newArray_)
 import Control.Monad.ST (ST, runST)
 import Math.KnotTh.Crossings.Arbitrary
-import Math.KnotTh.Links
+import Math.KnotTh.Link
 
 
 type NonAlternatingLink = Link ArbitraryCrossing

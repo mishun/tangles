@@ -1,6 +1,6 @@
 {-# LANGUAGE Rank2Types #-}
 module Math.KnotTh.Enumeration.ByEquivalenceClasses.NonAlternatingTangles
-	( module Math.KnotTh.Tangles.NonAlternating
+	( module Math.KnotTh.Tangle.NonAlternating
 	, module Math.KnotTh.Enumeration.ByEquivalenceClasses
 	, siftTangles
 	, siftWeakTangles
@@ -11,13 +11,13 @@ module Math.KnotTh.Enumeration.ByEquivalenceClasses.NonAlternatingTangles
 import Data.Maybe (mapMaybe)
 import Math.KnotTh.Enumeration.ByEquivalenceClasses
 import Math.KnotTh.Enumeration.DiagramInfo
-import Math.KnotTh.Tangles.NonAlternating
-import Math.KnotTh.Tangles.IsomorphismTest
-import qualified Math.KnotTh.Tangles.Moves.Flype as Flype
-import qualified Math.KnotTh.Tangles.Moves.Pass as Pass
-import qualified Math.KnotTh.Tangles.Moves.ReidemeisterIII as ReidemeisterIII
-import qualified Math.KnotTh.Tangles.Moves.ReidemeisterReduction as ReidemeisterReduction
-import qualified Math.KnotTh.Tangles.Moves.Weak as Weak
+import Math.KnotTh.Tangle.NonAlternating
+import Math.KnotTh.Tangle.IsomorphismTest
+import qualified Math.KnotTh.Tangle.Moves.Flype as Flype
+import qualified Math.KnotTh.Tangle.Moves.Pass as Pass
+import qualified Math.KnotTh.Tangle.Moves.ReidemeisterIII as ReidemeisterIII
+import qualified Math.KnotTh.Tangle.Moves.ReidemeisterReduction as ReidemeisterReduction
+import qualified Math.KnotTh.Tangle.Moves.Weak as Weak
 
 
 sift :: (DiagramInfo info)

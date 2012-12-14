@@ -1,4 +1,4 @@
-module Math.KnotTh.Tangles.Moves.ReidemeisterReduction
+module Math.KnotTh.Tangle.Moves.ReidemeisterReduction
 	( greedy1st2ndReduction
 	, reduce1st
 	, reduce2nd
@@ -6,8 +6,8 @@ module Math.KnotTh.Tangles.Moves.ReidemeisterReduction
 
 import Control.Monad (when)
 import Control.Applicative
-import Math.KnotTh.Tangles.NonAlternating
-import Math.KnotTh.Tangles.Moves.Move
+import Math.KnotTh.Tangle.NonAlternating
+import Math.KnotTh.Tangle.Moves.Move
 
 
 greedy1st2ndReduction :: NonAlternatingTangle -> NonAlternatingTangle

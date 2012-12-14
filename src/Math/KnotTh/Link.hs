@@ -1,4 +1,4 @@
-module Math.KnotTh.Links
+module Math.KnotTh.Link
 	( module Math.KnotTh.Knotted
 	, Link
 	, Crossing

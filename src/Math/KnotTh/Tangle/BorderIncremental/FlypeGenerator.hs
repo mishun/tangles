@@ -1,4 +1,4 @@
-module Math.KnotTh.Tangles.BorderIncremental.FlypeGenerator
+module Math.KnotTh.Tangle.BorderIncremental.FlypeGenerator
 	( generateFlypeEquivalentDecomposition
 	, generateFlypeEquivalentDecompositionInTriangle
 	, generateFlypeEquivalent
@@ -13,11 +13,11 @@ import Control.Monad (forM_, when)
 import Math.Algebra.RotationDirection
 import Math.Algebra.Group.Dn (DnSubGroup, maximumSubGroup, addSymmetryToSubGroup)
 import Math.KnotTh.Crossings.SubTangle
-import Math.KnotTh.Tangles.Projection
-import Math.KnotTh.Tangles.Flypes
-import Math.KnotTh.Tangles.BorderIncremental.IncrementalGluing
-import Math.KnotTh.Tangles.BorderIncremental.RootingTest (rootCodeLeg, minimumRootCode)
-import Math.KnotTh.Tangles.BorderIncremental.IncrementalTests
+import Math.KnotTh.Tangle.Projection
+import Math.KnotTh.Tangle.Flypes
+import Math.KnotTh.Tangle.BorderIncremental.IncrementalGluing
+import Math.KnotTh.Tangle.BorderIncremental.RootingTest (rootCodeLeg, minimumRootCode)
+import Math.KnotTh.Tangle.BorderIncremental.IncrementalTests
 
 
 generateFlypeEquivalentDecomposition' :: (Monad m) => Bool -> Int -> (SubTangleTangle ProjectionCrossing -> DnSubGroup -> m ()) -> m ()

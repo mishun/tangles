@@ -1,11 +1,11 @@
 module Main (main) where
 
 import Control.Monad
-import Math.KnotTh.Tangles.Projection
-import Math.KnotTh.Tangles.NonAlternating
-import Math.KnotTh.Tangles.Draw
-import Math.KnotTh.Tangles.BorderIncremental.SimpleTypes
-import Math.KnotTh.Tangles.BorderIncremental.FlypeGenerator
+import Math.KnotTh.Tangle.Projection
+import Math.KnotTh.Tangle.NonAlternating
+import Math.KnotTh.Tangle.Draw
+import Math.KnotTh.Tangle.BorderIncremental.SimpleTypes
+import Math.KnotTh.Tangle.BorderIncremental.FlypeGenerator
 import Graphics.HP
 import TestTangles.Table
 

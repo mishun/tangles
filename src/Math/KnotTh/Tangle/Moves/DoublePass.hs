@@ -1,11 +1,11 @@
-module Math.KnotTh.Tangles.Moves.DoublePass
+module Math.KnotTh.Tangle.Moves.DoublePass
 	( neighbours
 	) where
 
 import Data.Maybe
 import Debug.Trace
-import Math.KnotTh.Tangles.NonAlternating
-import Math.KnotTh.Tangles.Moves.Resting
+import Math.KnotTh.Tangle.NonAlternating
+import Math.KnotTh.Tangle.Moves.Resting
 
 
 neighbours :: NonAlternatingTangle -> [NonAlternatingTangle]

@@ -1,6 +1,6 @@
-module Math.KnotTh.Tangles.NonAlternating
+module Math.KnotTh.Tangle.NonAlternating
 	( module Math.KnotTh.Crossings.Arbitrary
-	, module Math.KnotTh.Tangles
+	, module Math.KnotTh.Tangle
 	, NonAlternatingTangle
 	, isAlternating
 	, alternatingDefect
@@ -15,7 +15,7 @@ import Data.Array.ST (STUArray, newArray, readArray, writeArray)
 import Control.Monad.ST (ST, runST)
 import Control.Monad (when, forM_)
 import Math.KnotTh.Crossings.Arbitrary
-import Math.KnotTh.Tangles
+import Math.KnotTh.Tangle
 
 
 type NonAlternatingTangle = Tangle ArbitraryCrossing

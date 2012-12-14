@@ -1,4 +1,4 @@
-module Math.KnotTh.Tangles.Draw
+module Math.KnotTh.Tangle.Draw
 	( drawTangle
 	) where
 
@@ -6,7 +6,7 @@ import Data.Array.IArray ((!))
 import Control.Monad
 import Math.KnotTh.Crossings.Projection
 import Math.KnotTh.Crossings.Arbitrary
-import Math.KnotTh.Tangles
+import Math.KnotTh.Tangle
 import qualified Math.Manifolds.SurfaceGraph as G
 import Math.Manifolds.SurfaceGraph.Embedding
 import Graphics.HP

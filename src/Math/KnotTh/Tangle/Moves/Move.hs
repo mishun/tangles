@@ -1,5 +1,5 @@
 {-# LANGUAGE Rank2Types #-}
-module Math.KnotTh.Tangles.Moves.Move
+module Math.KnotTh.Tangle.Moves.Move
 	( MoveM
 	, move
 	, oppositeC
@@ -16,7 +16,7 @@ import Data.STRef (STRef, newSTRef, readSTRef, writeSTRef, modifySTRef)
 import Control.Monad.ST (ST, runST)
 import Control.Monad.State.Strict (StateT, execStateT, get, lift)
 import Control.Monad ((>=>), when, forM, forM_, foldM_, filterM)
-import Math.KnotTh.Tangles
+import Math.KnotTh.Tangle
 
 
 data CrossingFlag = Direct | Flipped | Masked deriving (Eq, Enum)

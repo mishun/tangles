@@ -1,14 +1,14 @@
-module Math.KnotTh.Tangles.Moves.Pass
+module Math.KnotTh.Tangle.Moves.Pass
 	( neighbours
 	) where
 
 import Data.Maybe
 import Data.List (sort, nub)
 import Control.Monad
-import Math.KnotTh.Tangles.NonAlternating
-import Math.KnotTh.Tangles.Moves.Resting
-import Math.KnotTh.Tangles.Moves.Move
-import Math.KnotTh.Tangles.Moves.ReidemeisterReduction
+import Math.KnotTh.Tangle.NonAlternating
+import Math.KnotTh.Tangle.Moves.Resting
+import Math.KnotTh.Tangle.Moves.Move
+import Math.KnotTh.Tangle.Moves.ReidemeisterReduction
 
 
 neighbours :: NonAlternatingTangle -> [NonAlternatingTangle]

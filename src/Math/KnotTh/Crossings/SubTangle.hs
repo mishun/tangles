@@ -22,7 +22,7 @@ import Data.Array.Unboxed (UArray, (!), listArray)
 import Math.Algebra.Group.Dn (DnSubGroup, pointsUnderSubGroup)
 import Math.Algebra.Group.D4 ((<*>), ec, D4SubGroup, fromDnSubGroup)
 import Math.KnotTh.Knotted
-import Math.KnotTh.Tangles
+import Math.KnotTh.Tangle
 
 
 data DirectSumDecompositionType = NonDirectSumDecomposable | DirectSum01_23 | DirectSum12_30 deriving (Eq, Show)

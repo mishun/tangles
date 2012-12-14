@@ -1,4 +1,4 @@
-module Math.KnotTh.Tangles.BorderIncremental.IncrementalGluing
+module Math.KnotTh.Tangle.BorderIncremental.IncrementalGluing
 	( GluingType(..)
 	, nextNumberOfLegs
 	, diagonalIndex
@@ -13,8 +13,8 @@ module Math.KnotTh.Tangles.BorderIncremental.IncrementalGluing
 import Control.Monad (when, guard)
 import Math.Algebra.Group.Dn (DnSubGroup, pointsUnderSubGroup, rotationPeriod, hasReflectionPart, mirroredZero)
 import Math.Algebra.Group.D4 (e, ec2, ec3, toDnSubGroup)
-import Math.KnotTh.Tangles
-import Math.KnotTh.Tangles.BorderIncremental.RootingTest
+import Math.KnotTh.Tangle
+import Math.KnotTh.Tangle.BorderIncremental.RootingTest
 
 
 data GluingType ct s = GluingType

@@ -1,4 +1,4 @@
-module Math.KnotTh.Tangles.Moves.Resting
+module Math.KnotTh.Tangle.Moves.Resting
 	( restingPart
 	) where
 
@@ -10,7 +10,7 @@ import qualified Data.Map as Map
 import Data.Array.Unboxed (UArray, (!), (//), array, listArray)
 import Control.Monad.State.Strict (execState, evalState, gets, modify)
 import Control.Monad (when, forM_)
-import Math.KnotTh.Tangles
+import Math.KnotTh.Tangle
 
 
 zeroFlow :: Tangle ct -> UArray Int Int

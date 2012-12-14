@@ -1,5 +1,5 @@
 {-# LANGUAGE UnboxedTuples #-}
-module Math.KnotTh.Tangles.BorderIncremental.RootingTest
+module Math.KnotTh.Tangle.BorderIncremental.RootingTest
 	( rootingTest
 	, rootCodeLeg
 	, minimumRootCode
@@ -14,9 +14,9 @@ import Data.STRef (newSTRef, readSTRef, writeSTRef)
 import Control.Monad.ST (ST, runST)
 import Control.Monad (when, foldM)
 import Control.Applicative ((<$>))
-import Math.Algebra.Group.Dn (DnSubGroup, fromPeriod, fromPeriodAndMirroredZero)
-import Math.KnotTh.Tangles
 import Math.Algebra.RotationDirection
+import Math.Algebra.Group.Dn (DnSubGroup, fromPeriod, fromPeriodAndMirroredZero)
+import Math.KnotTh.Tangle
 
 
 rootingTest :: (CrossingType ct) => Crossing ct -> Maybe DnSubGroup
