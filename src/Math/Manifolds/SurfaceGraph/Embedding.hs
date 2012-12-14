@@ -239,10 +239,10 @@ relaxEmbedding root initial
 		let numberOfThreads = length threads
 
 		let interaction =
-			[ 3    -- border
+			[ 2    -- border
 			, 0.5  -- electric
-			, 30   -- bend
-			, 15   -- elastic
+			, 15   -- bend
+			, 10   -- elastic
 			, 1.5  -- cross
 			]
 

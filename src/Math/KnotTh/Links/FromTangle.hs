@@ -45,31 +45,31 @@ fromTangleAndStar' withLeg tangle =
 
 tangleDoubling :: (D4 -> D4) -> T.Tangle ArbitraryCrossing -> L.Link ArbitraryCrossing
 tangleDoubling f tangle =
-	let resultCircles = 2 * (numberOfFreeLoops tangle) + div (length $ filter T.isLeg $ T.allLegOpposites tangle) 2
-	in L.fromList resultCircles $ do
-			let atTop d =
-				let c = incidentCrossing d
-				in (2 * crossingIndex c - 1, dartPlace d)
-			let atBottom d =
-				let c = incidentCrossing d
-				in (2 * crossingIndex c, 3 - dartPlace d)
+	let resultLoops = 2 * (numberOfFreeLoops tangle) + div (length $ filter T.isLeg $ T.allLegOpposites tangle) 2
+	in L.fromList resultLoops $ do
+		let atTop d =
+			let c = incidentCrossing d
+			in (2 * crossingIndex c - 1, dartPlace d)
+		let atBottom d =
+			let c = incidentCrossing d
+			in (2 * crossingIndex c, 3 - dartPlace d)
 
-			a <- allCrossings tangle
+		a <- allCrossings tangle
 
-			let top =
-				let pair ab
-					| T.isLeg ba  = atBottom ab
-					| otherwise   = atTop ba
-					where
-						ba = opposite ab
-				in (map pair $ incidentDarts a, crossingState a)
+		let top =
+			let pair ab
+				| T.isLeg ba  = atBottom ab
+				| otherwise   = atTop ba
+				where
+					ba = opposite ab
+			in (map pair $ incidentDarts a, crossingState a)
 
-			let bottom =
-				let pair ab
-					| T.isLeg ba  = atTop ab
-					| otherwise   = atBottom ba
-					where
-						ba = opposite ab
-				in (map pair $ reverse $ incidentDarts a, alterCrossingOrientation ((ec <*>) . f) $ crossingState a)
+		let bottom =
+			let pair ab
+				| T.isLeg ba  = atTop ab
+				| otherwise   = atBottom ba
+				where
+					ba = opposite ab
+			in (map pair $ reverse $ incidentDarts a, alterCrossingOrientation ((ec <*>) . f) $ crossingState a)
 
-			[top, bottom]
+		[top, bottom]

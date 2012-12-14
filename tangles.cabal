@@ -23,8 +23,8 @@ library
     build-depends:      base, array, deepseq, mtl, containers, disjoint-set, HaskellForMaths
     hs-source-dirs:     src
     c-sources:
-        src/Math/Manifolds/SurfaceGraph/Embedding.cpp
-        src/Math/Manifolds/SurfaceGraph/SphereStar.cpp
+        src/Math/Manifolds/SurfaceGraph/Embedding/Optimization.cpp
+        src/Math/Manifolds/SurfaceGraph/SphereStar/Backtrack.cpp
     extra-libraries:    stdc++ gsl gslcblas
     include-dirs:
         ext/gsl-1.15/include/
@@ -123,11 +123,13 @@ benchmark TangleGeneratorBenchmark
     hs-source-dirs:     test
     extra-lib-dirs:     ext/gsl-1.15/lib/
 
-executable TestNonAlternatingGenerator
+benchmark TestNonAlternatingGenerator
+    type:               exitcode-stdio-1.0
     default-language:   Haskell2010
     default-extensions: BangPatterns
     ghc-options:        -Wall -O2 -threaded
     ghc-prof-options:   -rtsopts -prof -auto-all -caf-all
+    ld-options:         -static
     build-depends:      base, mtl, containers, tangles
     main-is:            TestNonAlternatingGenerator.hs
     hs-source-dirs:     test
