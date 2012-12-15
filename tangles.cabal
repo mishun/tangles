@@ -63,6 +63,7 @@ library
         Math.KnotTh.Tangle.BorderIncremental.IncrementalTests
         Math.KnotTh.Tangle.BorderIncremental.RootingTest
         Math.KnotTh.Tangle.BorderIncremental.SimpleTypes
+        Math.KnotTh.Tangle.CascadeCode
         Math.KnotTh.Tangle.Draw
         Math.KnotTh.Tangle.Flypes
         Math.KnotTh.Tangle.IsomorphismTest

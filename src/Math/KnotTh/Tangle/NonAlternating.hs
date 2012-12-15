@@ -2,6 +2,8 @@ module Math.KnotTh.Tangle.NonAlternating
 	( module Math.KnotTh.Crossings.Arbitrary
 	, module Math.KnotTh.Tangle
 	, NonAlternatingTangle
+	, lonerOverCrossing
+	, lonerUnderCrossing
 	, isAlternating
 	, alternatingDefect
 	, selfWrithe
@@ -19,6 +21,14 @@ import Math.KnotTh.Tangle
 
 
 type NonAlternatingTangle = Tangle ArbitraryCrossing
+
+
+lonerOverCrossing :: NonAlternatingTangle
+lonerOverCrossing = lonerTangle overCrossing
+
+
+lonerUnderCrossing :: NonAlternatingTangle
+lonerUnderCrossing = lonerTangle underCrossing
 
 
 isAlternating :: NonAlternatingTangle -> Bool
