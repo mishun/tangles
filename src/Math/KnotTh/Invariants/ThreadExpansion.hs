@@ -46,10 +46,11 @@ processThreadSet invariant tangle threads = (ecode, invariant threadTangle)
 				v = opposite u
 				ix = indices ! crossingIndex (incidentCrossing v)
 
-		threadTangle = fromLists
-			(length $ filter (all (\ (_, d) -> (indices ! crossingIndex (incidentCrossing d)) == 0)) $ filter (not . isLeg . fst . head) threads)
-			(map findTarget targetLegs)
-			(map (\ c -> (map findTarget $ incidentDarts c, crossingState c)) targets)
+		threadTangle = fromList
+			( length $ filter (all (\ (_, d) -> (indices ! crossingIndex (incidentCrossing d)) == 0)) $ filter (not . isLeg . fst . head) threads
+			, map findTarget targetLegs
+			, map (\ c -> (map findTarget $ incidentDarts c, crossingState c)) targets
+			)
 
 		ecode = sort $ map (\ t -> dist (fst $ head t) (snd $ last t)) $ filter (isLeg . fst . head) threads
 			where

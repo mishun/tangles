@@ -22,10 +22,9 @@ module Math.KnotTh.Tangle
 	, transformTangle
 	, glueToBorder
 	, glueToBorderST
-	, fromLists
-	, fromListsST
-	, toPair
-	, toLists
+	, fromList
+	, fromListST
+	, toList
 	, containingDirectedPath
 	, containingUndirectedPath
 	, directedPathsDecomposition
@@ -34,7 +33,7 @@ module Math.KnotTh.Tangle
 	, allThreads
 	, containingFaceLeft
 	, containingFaceRight
-	, allFaces
+	, allTangleFaces
 	) where
 
 import Data.List (intercalate, nub, foldl', sort)
@@ -74,8 +73,8 @@ instance Show (Dart ct) where
 	show d
 		| isLeg d    = concat ["(Leg ", show $ legPlace d, ")"]
 		| otherwise  =
-			let (c, p) = begin d
-			in concat ["(Dart ", show $ crossingIndex c, " ", show p, ")"]
+			let (c, p) = toPair d
+			in concat ["(Dart ", show c, " ", show p, ")"]
 
 
 data Crossing ct = Crossing !(Tangle ct) {-# UNPACK #-} !Int
@@ -176,16 +175,6 @@ instance Knotted Tangle Crossing Dart where
 		| c == 0     = let n = numberOfCrossings t in 4 * n + i
 		| otherwise  = 4 * (c - 1) + i
 
-	forMIncidentDarts (Crossing t c) f = do { f $! Dart t c 0 ; f $! Dart t c 1 ; f $! Dart t c 2 ; f $! Dart t c 3 }
-
-	foldMIncidentDarts (Crossing t c) f s = f (Dart t c 0) s >>= f (Dart t c 1) >>= f (Dart t c 2) >>= f (Dart t c 3)
-
-	foldMIncidentDartsFrom dart@(Dart t c i) !direction f s
-		| isLeg dart  = error "foldMIncidentDartsFrom: from leg"
-		| otherwise   =
-			let d = directionSign direction
-			in f dart s >>= f (Dart t c $! (i + d) .&. 3) >>= f (Dart t c $! (i + 2 * d) .&. 3) >>= f (Dart t c $! (i + 3 * d) .&. 3)
-
 	isConnected tangle
 		| numberOfFreeLoops tangle /= 0  = False
 		| otherwise                      = all (\ (a, b) -> Set.member a con && Set.member b con) edges
@@ -202,7 +191,7 @@ instance Knotted Tangle Crossing Dart where
 
 	isPrime tangle = connections == nub connections
 		where
-			idm =	let faces = allFaces tangle
+			idm =	let faces = allTangleFaces tangle
 				in Map.fromList $ concatMap (\ (face, i) -> zip face $ repeat i) $ zip faces [(0 :: Int) ..]
 
 			connections = sort $ map getPair $ allEdges tangle
@@ -211,6 +200,35 @@ instance Knotted Tangle Crossing Dart where
 						where
 							a = idm Map.! da
 							b = idm Map.! db
+
+
+instance KnottedWithAccel Tangle Crossing Dart where
+	forMIncidentDarts (Crossing t c) f = do
+		f $! Dart t c 0
+		f $! Dart t c 1
+		f $! Dart t c 2
+		f $! Dart t c 3
+
+	foldMIncidentDarts (Crossing t c) f s =
+		f (Dart t c 0) s >>= f (Dart t c 1) >>= f (Dart t c 2) >>= f (Dart t c 3)
+
+	foldMIncidentDartsFrom dart@(Dart t c i) !dir f s
+		| isLeg dart  = error "foldMIncidentDartsFrom: from leg"
+		| otherwise   =
+			let d = directionSign dir
+			in f dart s >>= f (Dart t c $! (i + d) .&. 3)
+				>>= f (Dart t c $! (i + 2 * d) .&. 3) >>= f (Dart t c $! (i + 3 * d) .&. 3)
+
+
+instance KnottedWithToPair Tangle Crossing Dart where
+	toPair d
+		| isLeg d    =
+			let p = legPlace d
+			in p `seq` (0, p)
+		| otherwise  =
+			let c = crossingIndex $ incidentCrossing d
+			    p = dartPlace d
+			in c `seq` p `seq` (c, p)
 
 
 {-# INLINE crossingTangle #-}
@@ -304,7 +322,7 @@ transformTangle :: (CrossingType ct) => Dn -> Tangle ct -> Tangle ct
 transformTangle g tangle
 	| l /= pointsUnderGroup g                   = error "transformTangle: order conflict"
 	| reflection g == False && rotation g == 0  = tangle
-	| otherwise                                 = fromLists (numberOfFreeLoops tangle) border (map crossing $ allCrossings tangle)
+	| otherwise                                 = fromList (numberOfFreeLoops tangle, border, map crossing $ allCrossings tangle)
 	where
 		l = numberOfLegs tangle
 
@@ -411,12 +429,12 @@ glueToBorderST leg legsToGlue crossingToGlue
 		return $! nthCrossing result newC
 
 
-fromLists :: Int -> [(Int, Int)] -> [([(Int, Int)], CrossingState ct)] -> Tangle ct
-fromLists loops border list = runST $ fromListsST loops border list
+fromList :: (Int, [(Int, Int)], [([(Int, Int)], CrossingState ct)]) -> Tangle ct
+fromList list = runST $ fromListST list
 
 
-fromListsST :: Int -> [(Int, Int)] -> [([(Int, Int)], CrossingState ct)] -> ST s (Tangle ct)
-fromListsST loops border list = do
+fromListST :: (Int, [(Int, Int)], [([(Int, Int)], CrossingState ct)]) -> ST s (Tangle ct)
+fromListST (!loops, !border, !list) = do
 	when (loops < 0) (fail "fromListST: number of free loops is negative")
 
 	let n = length list
@@ -471,16 +489,10 @@ fromListsST loops border list = do
 		}
 
 
-toPair :: Dart ct -> (Int, Int)
-toPair d
-	| isLeg d    = (0, legPlace d)
-	| otherwise  = (crossingIndex $ incidentCrossing d, dartPlace d)
-
-
-toLists :: (CrossingType ct) => Tangle ct -> ([(Int, Int)], [([(Int, Int)], CrossingState ct)])
-toLists tangle =
+toList :: (CrossingType ct) => Tangle ct -> (Int, [(Int, Int)], [([(Int, Int)], CrossingState ct)])
+toList tangle =
 	let crToList c = (map (toPair . opposite) $ incidentDarts c, crossingState c)
-	in (map (toPair . opposite) $ allLegs tangle, map crToList $ allCrossings tangle)
+	in (numberOfFreeLoops tangle, map (toPair . opposite) $ allLegs tangle, map crToList $ allCrossings tangle)
 
 
 containingDirectedPath :: (Dart ct -> Dart ct, Dart ct -> Dart ct) -> Dart ct -> [Dart ct]
@@ -546,5 +558,5 @@ containingFaceRight :: Dart ct -> [Dart ct]
 containingFaceRight = containingDirectedPath (nextCCW, nextCW)
 
 
-allFaces :: Tangle ct -> [[Dart ct]]
-allFaces = directedPathsDecomposition (nextCW, nextCCW)
+allTangleFaces :: Tangle ct -> [[Dart ct]]
+allTangleFaces = directedPathsDecomposition (nextCW, nextCCW)

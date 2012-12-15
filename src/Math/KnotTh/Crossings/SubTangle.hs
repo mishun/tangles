@@ -11,7 +11,6 @@ module Math.KnotTh.Crossings.SubTangle
 	, isLoner
 	, isLonerInside
 	, numberOfCrossingsAfterSubstitution
-	, isCrossingOrientationInverted'
 	, subTangleLegFromDart
 	, directSumDecompositionTypeInside
 	, directSumDecompositionType
@@ -127,7 +126,7 @@ directSumDecompositionTypeInside d
 	| otherwise  = st
 	where
 		st = _sumType $ crossingTypeInside $ incidentCrossing d
-		f = isCrossingOrientationInverted (incidentCrossing d) /= odd (crossingLegIdByDart d)
+		f = isCrossingOrientationInvertedInside (incidentCrossing d) /= odd (crossingLegIdByDart d)
 
 
 directSumDecompositionType :: (CrossingType ct) => CrossingState (SubTangleCrossing ct) -> DirectSumDecompositionType
@@ -136,14 +135,14 @@ directSumDecompositionType c
 	| otherwise  = st
 	where
 		st = _sumType $ crossingType c
-		f = isCrossingOrientationInverted' c /= odd (crossingLegIdByDartId c 0)
+		f = isCrossingOrientationInverted c /= odd (crossingLegIdByDartId c 0)
 
 
 substituteTangle :: (CrossingType ct) => Tangle (SubTangleCrossing ct) -> Tangle ct
 substituteTangle tangle =
-	fromLists (numberOfFreeLoops tangle) (map oppositeExt $! allLegs tangle) $!
+	fromList (numberOfFreeLoops tangle, map oppositeExt $ allLegs tangle,
 		let connections b = do
-			let rev = isCrossingOrientationInverted b
+			let rev = isCrossingOrientationInvertedInside b
 			!c <- allCrossings $! tangleInside b
 			let nb = map (oppositeInt b) $! incidentDarts c
 			let st
@@ -151,14 +150,15 @@ substituteTangle tangle =
 				| otherwise  = crossingState c
 			return $! (if rev then reverse nb else nb, st)
 		in concatMap connections $! allCrossings tangle
+		)
 	where
 		offset :: UArray Int Int
 		offset = listArray (1, numberOfCrossings tangle) $! scanl (\ !i !c -> i + numberOfCrossingsInside c) 0 $! allCrossings tangle
 
 		oppositeInt b u
-			| isLeg v                          = oppositeExt $! dartByCrossingLegId b (legPlace v)
-			| isCrossingOrientationInverted b  = (w, 3 - dartPlace v)
-			| otherwise                        = (w, dartPlace v)
+			| isLeg v                                = oppositeExt $! dartByCrossingLegId b (legPlace v)
+			| isCrossingOrientationInvertedInside b  = (w, 3 - dartPlace v)
+			| otherwise                              = (w, dartPlace v)
 			where
 				v = opposite u
 				c = incidentCrossing v

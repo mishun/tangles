@@ -7,7 +7,6 @@ module Math.KnotTh.Link
 	, dartLink
 	, fromList
 	, fromListST
-	, toPair
 	, toList
 	, allThreads
 	) where
@@ -39,8 +38,8 @@ instance Ord (Dart ct) where
 
 instance Show (Dart ct) where
 	show d =
-		let (c, p) = begin d
-		in concat ["(Dart ", show (crossingIndex c), " ", show p, ")"]
+		let (c, p) = toPair d
+		in concat ["(Dart ", show c, " ", show p, ")"]
 
 
 data Crossing ct = Crossing !(Link ct) {-# UNPACK #-} !Int
@@ -79,11 +78,11 @@ instance Knotted Link Crossing Dart where
 
 	numberOfCrossings = crossCount
 
-	numberOfEdges l = 2 * (numberOfCrossings l)
+	numberOfEdges link = 2 * (numberOfCrossings link)
 
-	nthCrossing l i
-		| i < 1 || i > numberOfCrossings l  = error "nthCrossing: out of bound"
-		| otherwise                         = Crossing l (i - 1)
+	nthCrossing link i
+		| i < 1 || i > numberOfCrossings link  = error "nthCrossing: out of bound"
+		| otherwise                            = Crossing link (i - 1)
 
 	mapCrossingStates f link = link
 		{ stateArray = runSTArray $ do
@@ -116,6 +115,8 @@ instance Knotted Link Crossing Dart where
 
 	dartArrIndex (Dart _ i) = i
 
+
+instance KnottedWithAccel Link Crossing Dart where
 	forMIncidentDarts (Crossing l c) f =
 		let b = c `shiftL` 2
 		in f (Dart l b) >> f (Dart l $! b + 1) >> f (Dart l $! b + 2) >> f (Dart l $! b + 3)
@@ -130,6 +131,9 @@ instance Knotted Link Crossing Dart where
 		in f dart s >>= f (Dart l $! r + ((i + d) .&. 3)) >>= f (Dart l $! r + ((i + 2 * d) .&. 3)) >>= f (Dart l $! r + ((i + 3 * d) .&. 3))
 
 
+instance KnottedWithToPair Link Crossing Dart
+
+
 {-# INLINE crossingLink #-}
 crossingLink :: Crossing ct -> Link ct
 crossingLink (Crossing l _) = l
@@ -140,12 +144,12 @@ dartLink :: Dart ct -> Link ct
 dartLink (Dart l _) = l
 
 
-fromList :: Int -> [([(Int, Int)], CrossingState ct)] -> Link ct
-fromList loops list = runST $ fromListST loops list
+fromList :: (Int, [([(Int, Int)], CrossingState ct)]) -> Link ct
+fromList list = runST $ fromListST list
 
 
-fromListST :: Int -> [([(Int, Int)], CrossingState ct)] -> ST s (Link ct)
-fromListST loops list = do
+fromListST :: (Int, [([(Int, Int)], CrossingState ct)]) -> ST s (Link ct)
+fromListST (!loops, !list) = do
 	when (loops < 0) (fail "fromListST: number of free loops is negative")
 
 	let n = length list
@@ -173,10 +177,6 @@ fromListST loops list = do
 		, stateArray     = st'
 		, loopsCount     = loops
 		}
-
-
-toPair :: Dart ct -> (Int, Int)
-toPair d = (crossingIndex $ incidentCrossing d, dartPlace d)
 
 
 toList :: (CrossingType ct) => Link ct -> [([(Int, Int)], CrossingState ct)]

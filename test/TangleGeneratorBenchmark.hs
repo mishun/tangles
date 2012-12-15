@@ -12,10 +12,10 @@ import TestTangles.Table
 
 main :: IO ()
 main = do
-	printTable "Prime projections" False (simpleIncrementalGenerator primeProjectionType [ProjectionCrossing]) 8
-	printTable "Template projections" False (simpleIncrementalGenerator templateProjectionType [ProjectionCrossing]) 9
-	printTable "Alternating tangles" False generateFlypeEquivalent 8
-	printTable "Prime diagrams" False (simpleIncrementalGenerator primeDiagramType [ArbitraryCrossing]) 6
+	printTable "Prime projections"    $ generateTable False $ simpleIncrementalGenerator primeProjectionType [ProjectionCrossing] 8
+	printTable "Template projections" $ generateTable False $ simpleIncrementalGenerator templateProjectionType [ProjectionCrossing] 9
+	printTable "Alternating tangles"  $ generateTable False $ generateFlypeEquivalent 8
+	printTable "Prime diagrams"       $ generateTable False $ simpleIncrementalGenerator primeDiagramType [ArbitraryCrossing] 6
 
 	writePostScriptFile "tangles.ps" $ do
 		let a4Width = 595

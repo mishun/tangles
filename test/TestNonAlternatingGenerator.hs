@@ -4,7 +4,6 @@ import Data.Ord
 import Data.Function (on)
 import Data.List (sortBy, groupBy)
 import Control.Monad
-import Math.Algebra.Group.Dn (maximumSubGroup)
 import Math.KnotTh.Tangle.BorderIncremental.SimpleTypes
 import Math.KnotTh.Enumeration.ByEquivalenceClasses.NonAlternatingTangles
 import Math.KnotTh.Tangle.Draw
@@ -16,12 +15,15 @@ import TestTangles.Table
 
 main :: IO ()
 main = do
-	--printTable "Diagrams" False (simpleIncrementalGenerator (triangleBoundedType 6 primeIrreducibleDiagramType) [ArbitraryCrossing]) 6
+	let diagrams n =
+		simpleIncrementalGenerator
+			(triangleBoundedType n primeIrreducibleDiagramType)
+			[ArbitraryCrossing]
+			n
 
-{-	let classes maxN = siftWeakTangleClasses $ \ yieldDiagram ->
-			simpleIncrementalGenerator
-				(triangleBoundedType maxN primeIrreducibleDiagramType)
-				[ArbitraryCrossing] maxN (\ t _ -> yieldDiagram t)
+	printTable "Diagrams" $ generateTable False $ diagrams 6
+
+{-	let classes maxN = siftWeakTangleClasses $ \ yieldDiagram -> diagrams maxN (\ t _ -> yieldDiagram t)
 
 	forM_ (classes 7) $ \ cl -> do
 		let poly = map (jonesPolynomialOfLink' . tangleDoubling id) cl
@@ -29,24 +31,12 @@ main = do
 		print ok
 -}
 
-{-	let generate maxN =
-		let list = siftWeakTangles $ \ yieldDiagram ->
-			simpleIncrementalGenerator
-				(triangleBoundedType maxN primeIrreducibleDiagramType)
-				[ArbitraryCrossing] maxN (\ t _ -> yieldDiagram t)
-		in forM_ list
+	printTable "Arbitrary tangles" $ generateTable' $
+		let generate n = forM_ (siftTangles $ \ yieldDiagram -> diagrams n (\ t _ -> yieldDiagram t))
+		in generate 6
 
-	printTable "Arbitrary tangles" False
-		(\ maxN yieldTangle -> generate maxN (\ tangle -> yieldTangle tangle $ maximumSubGroup $ numberOfLegs tangle)) 7
--}
-
-	let gen maxN = siftWeakTangles $ \ yieldDiagram ->
-		simpleIncrementalGenerator
-			(triangleBoundedType maxN primeIrreducibleDiagramType)
-			[ArbitraryCrossing] maxN (\ t _ -> when (numberOfLegs t == 4) $ yieldDiagram t)
-
+	let gen maxN = siftWeakTangles $ \ yieldDiagram -> diagrams maxN (\ t _ -> when (numberOfLegs t == 4) $ yieldDiagram t)
 	let res = sortBy (comparing fst) $ map (\ t -> ((numberOfCrossings t, length $ allThreads t), t)) $ filter ((<= 7) . numberOfCrossings) $ gen 8
-
 	forM_ res $ \ (i, t) -> do
 		let p = jonesPolynomialOfLink $ tangleDoubling id t
 		putStrLn $ show i ++ ": " ++ show p

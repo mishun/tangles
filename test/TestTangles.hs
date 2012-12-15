@@ -21,7 +21,12 @@ tests = test
 			assertEqual (printf "for n = %i" n) t (CDGen.generateNonPlanar n (\ c _ -> return $! c + 1) 0)
 
 	, "Numbers of prime tangle projections" ~: do
-		let table = Table.generateTable False (IncrementalGluing.simpleIncrementalGenerator SimpleTypes.primeProjectionType [ProjectionCrossing.ProjectionCrossing]) 8
+		let table = Table.generateTable False $
+			IncrementalGluing.simpleIncrementalGenerator
+				SimpleTypes.primeProjectionType
+				[ProjectionCrossing.ProjectionCrossing]
+				8
+
 		let target = Map.fromList
 			[ ((1, 4), 1)
 			, ((2, 4), 1), ((2, 6), 1)
@@ -37,7 +42,12 @@ tests = test
 			assertEqual (printf "for n = %i and l = %i" n l) (Map.lookup (n, l) target) (Just actual)
 
 	, "Numbers of tangle templates" ~: do
-		let table = Table.generateTable False (IncrementalGluing.simpleIncrementalGenerator SimpleTypes.templateProjectionType [ProjectionCrossing.ProjectionCrossing]) 8
+		let table = Table.generateTable False $
+			IncrementalGluing.simpleIncrementalGenerator
+				SimpleTypes.templateProjectionType
+				[ProjectionCrossing.ProjectionCrossing]
+				8
+
 		let target = Map.fromList
 			[ ((1, 4), 1)
 			, ((2, 4), 0), ((2, 6), 1)
@@ -53,7 +63,7 @@ tests = test
 			assertEqual (printf "for n = %i and l = %i" n l) (Map.lookup (n, l) target) (Just actual)
 
 	, "Numbers of aternating tangles" ~: do
-		let table = Table.generateTable False FlypeGenerator.generateFlypeEquivalent 9
+		let table = Table.generateTable False (FlypeGenerator.generateFlypeEquivalent 9)
 		let target = Map.fromList
 			[ ((1, 4), 1)
 			, ((2, 4), 1), ((2, 6), 1)
@@ -70,7 +80,7 @@ tests = test
 			assertEqual (printf "for n = %i and l = %i" n l) (Map.lookup (n, l) target) (Just actual)
 
 	, "Numbers of 4-leg alternating tangles without symmetry" ~: do
-		let table = Table.generateTable True FlypeGenerator.generateFlypeEquivalent 10
+		let table = Table.generateTable True (FlypeGenerator.generateFlypeEquivalent 10)
 		forM_ [(1, 1), (2, 2), (3, 4), (4, 10), (5, 29), (6, 98), (7, 372), (8, 1538), (9, 6755), (10, 30996)] $ \ (n, t) ->
 			assertEqual (printf "for n = %i and l = 4" n) t (table Map.! (n, 4))
 

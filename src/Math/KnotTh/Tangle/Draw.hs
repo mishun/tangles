@@ -47,7 +47,7 @@ drawTangle :: (DrawableCrossingType ct) => Double -> Tangle ct -> Image ()
 drawTangle lineWidth tangle =
 	let	g =
 			let	l = numberOfLegs tangle
-				(b, r) = toLists tangle
+				(0, b, r) = toList tangle
 				change (0, j) = (0, (-j) `mod` l)
 				change p = p
 			in G.constructFromList $ map (map change) ((head b : reverse (tail b)) : map fst r)

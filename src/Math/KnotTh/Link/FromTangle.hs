@@ -1,52 +1,17 @@
 module Math.KnotTh.Link.FromTangle
-	( fromTangleAndStarByPlace
-	, fromTangleAndStarByOffset
-	, tangleDoubling
+	( tangleDoubling
 	) where
 
-import Data.Array.IArray
 import Math.Algebra.Group.D4 (D4, ec, (<*>))
-import Math.KnotTh.Crossings.Arbitrary
 import Math.KnotTh.Knotted
 import qualified Math.KnotTh.Link as L
 import qualified Math.KnotTh.Tangle as T
 
 
-fromTangleAndStarByPlace :: (CrossingType ct, IArray a Int) => T.Tangle ct -> a Int Int -> L.Link ct
-fromTangleAndStarByPlace tangle star
-	| bounds star /= (0, T.numberOfLegs tangle - 1)  = error "fromTangleAndStarByPlace: size conflict"
-	| otherwise                                      =
-		let changeLeg d = T.nthLeg tangle $ star ! T.legPlace d
-		in fromTangleAndStar' changeLeg tangle
-
-
-fromTangleAndStarByOffset :: (CrossingType ct, IArray a Int) => T.Tangle ct -> a Int Int -> L.Link ct
-fromTangleAndStarByOffset tangle star
-	| bounds star /= (0, T.numberOfLegs tangle - 1)  = error "fromTangleAndStarByOffset: size conflict"
-	| otherwise                                      =
-		let	l = T.numberOfLegs tangle
-			changeLeg d =
-				let	i = T.legPlace d
-					j = (i + star ! i) `mod` l
-				in T.nthLeg tangle j
-		in fromTangleAndStar' changeLeg tangle
-
-
-{-# INLINE fromTangleAndStar' #-}
-fromTangleAndStar' :: (CrossingType ct) => (T.Dart ct -> T.Dart ct) -> T.Tangle ct -> L.Link ct
-fromTangleAndStar' withLeg tangle =
-	let watch d
-		| T.isDart d  = T.toPair d
-		| otherwise   = watch $ opposite $ withLeg d
-	in L.fromList
-		(numberOfFreeLoops tangle + div (length $ filter (\ l -> opposite l == withLeg l) $ T.allLegs tangle) 2)
-		(map (\ c -> (map watch $ adjacentDarts c, crossingState c)) $ allCrossings tangle)
-
-
-tangleDoubling :: (D4 -> D4) -> T.Tangle ArbitraryCrossing -> L.Link ArbitraryCrossing
+tangleDoubling :: (CrossingType ct) => (D4 -> D4) -> T.Tangle ct -> L.Link ct
 tangleDoubling f tangle =
 	let resultLoops = 2 * (numberOfFreeLoops tangle) + div (length $ filter T.isLeg $ T.allLegOpposites tangle) 2
-	in L.fromList resultLoops $ do
+	in L.fromList (resultLoops, do
 		let atTop d =
 			let c = incidentCrossing d
 			in (2 * crossingIndex c - 1, dartPlace d)
@@ -73,3 +38,4 @@ tangleDoubling f tangle =
 			in (map pair $ reverse $ incidentDarts a, alterCrossingOrientation ((ec <*>) . f) $ crossingState a)
 
 		[top, bottom]
+		)

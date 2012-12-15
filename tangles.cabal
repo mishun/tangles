@@ -6,7 +6,7 @@ stability:          Experimental
 license:            LGPL-3
 license-file:       LICENSE
 synopsis:           Enumeration algorithms for knot theory objects
-description:
+description:        http://arxiv.org/abs/0712.3859
 category:           Math
 build-type:         Simple
 cabal-version:      >=1.14
@@ -17,7 +17,7 @@ source-repository head
 
 library
     default-language:   Haskell2010
-    default-extensions: BangPatterns, FlexibleContexts, FlexibleInstances, MultiParamTypeClasses
+    default-extensions: BangPatterns, FlexibleContexts, FlexibleInstances, MultiParamTypeClasses, FunctionalDependencies
     ghc-options:        -Wall
     ghc-prof-options:   -prof -auto-all -caf-all
     cc-options:         -Wall -std=c++11
@@ -52,8 +52,8 @@ library
         Math.KnotTh.Link.FromTangle
         Math.KnotTh.Link.NonAlternating
         Math.KnotTh.Link.Projection
-        Math.KnotTh.SurfaceKnotted
         Math.KnotTh.SurfaceLink
+        Math.KnotTh.SurfaceLink.FromTangle
         Math.KnotTh.SurfaceLink.IsomorphismTest
         Math.KnotTh.SurfaceLink.NonAlternating
         Math.KnotTh.SurfaceLink.Projection
@@ -92,6 +92,11 @@ library
         Graphics.HP.PostScript.Transform
         Graphics.HP.Transform
         Graphics.HP.Units
+        Math.KnotTh.Knotted.Knotted
+        Math.KnotTh.Knotted.KnottedWithAccel
+        Math.KnotTh.Knotted.KnottedWithToPair
+        Math.KnotTh.Knotted.SurfaceKnotted
+        Math.KnotTh.Knotted.Util
         Math.KnotTh.Tangle.Moves.Resting
 
 test-suite TestTangles

@@ -1,6 +1,7 @@
 {-# LANGUAGE Rank2Types #-}
 module TestTangles.Table
 	( generateTable
+	, generateTable'
 	, printTable
 	) where
 
@@ -14,22 +15,28 @@ import Math.Algebra.Group.Dn (DnSubGroup, hasReflectionPart, rotationPeriod)
 import Math.KnotTh.Tangle
 
 
-generateTable :: Bool -> (forall m. (Monad m) => Int -> (Tangle ct -> DnSubGroup -> m ()) -> m ()) -> Int -> Map.Map (Int, Int) Int
-generateTable isLabelled generator maxN =
+generateTable :: Bool -> (forall m. (Monad m) => (Tangle ct -> DnSubGroup -> m ()) -> m ()) -> Map.Map (Int, Int) Int
+generateTable isLabelled generator =
 	let yield !tangle !symmetry = do
 		let weight
 			| isLabelled  = rotationPeriod symmetry * (if hasReflectionPart symmetry then 1 else 2)
 			| otherwise   = 1
 		get >>= (\ !m -> put $! Map.insertWith (+) (numberOfCrossings tangle, numberOfLegs tangle) weight m)
-	in execState (generator maxN yield) Map.empty
+	in execState (generator yield) Map.empty
 
 
-printTable :: String -> Bool -> (forall m. (Monad m) => Int -> (Tangle ct -> DnSubGroup -> m ()) -> m ()) -> Int -> IO ()
-printTable name isLabelled generator maxN = do
-	putStrLn $ name ++ ":"
+generateTable' :: (forall m. (Monad m) => (Tangle ct -> m ()) -> m ()) -> Map.Map (Int, Int) Int
+generateTable' generator =
+	let yield !tangle = get >>= (\ !m -> put $! Map.insertWith (+) (numberOfCrossings tangle, numberOfLegs tangle) 1 m)
+	in execState (generator yield) Map.empty
+
+
+printTable :: String -> Map.Map (Int, Int) Int -> IO ()
+printTable name table = do
 	beginTime <- getCPUTime
-	let table = generateTable isLabelled generator maxN
-	let totalTangles = sum $ map snd $ Map.assocs table
+	putStrLn $ name ++ ":"
+	let maxN = maximum $ map fst $ Map.keys table
+	let totalTangles = sum $ Map.elems table
 	putStr $
 		let	possibleLegs = [ 2 * (i + 1) | i <- [0 .. maxN] ]
 
