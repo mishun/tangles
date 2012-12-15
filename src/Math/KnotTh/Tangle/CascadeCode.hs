@@ -2,26 +2,33 @@ module Math.KnotTh.Tangle.CascadeCode
 	( CascadeCodePattern(..)
 	, decodeCascadeCode
 	, ProjPattern(..)
-	, Pattern(..)
+	, DiagPattern(..)
 	) where
 
+import Data.Char (isSpace)
+import Math.Algebra.Group.Dn (fromRotation)
 import Math.KnotTh.Tangle.Projection
 import Math.KnotTh.Tangle.NonAlternating
 
 
 class (Enum pattern, CrossingType ct) => CascadeCodePattern pattern ct | pattern -> ct where
 	cascadeCodeRoot :: [(pattern, Int)] -> Tangle ct
-	decodeCrossing  :: pattern -> (Int, CrossingState ct)
+	decodeCrossing  :: pattern -> (ProjPattern, Int, Int, CrossingState ct)
 
 
 decodeCascadeCode :: (CascadeCodePattern p ct) => [(p, Int)] -> Tangle ct
 decodeCascadeCode code =
 	foldl
 		(\ prev (pattern, offset) ->
-			let (gl, c) = decodeCrossing pattern
-			in if gl < 1 || gl > 3
-				then error $ "decodeCascadeCode: expected 1, 2 or 3 for number of legs, found " ++ show gl
-				else crossingTangle $ glueToBorder (nthLeg prev $ offset + gl - 1) gl c
+			let	(gl, shift, rot, c) = decodeCrossing pattern
+				p	| rot == 0   = id
+					| otherwise  = \ t ->
+						let l = numberOfLegs t
+						in transformTangle (fromRotation l rot) t
+			in p $ crossingTangle $ glueToBorder
+				(nthLeg prev $ offset + shift)
+				(case gl of { W -> 3 ; X -> 2 ; M -> 1 })
+				c
 		)
 		(cascadeCodeRoot code)
 		code
@@ -31,7 +38,7 @@ data ProjPattern = W | X | M deriving (Eq, Enum, Show)
 
 
 instance Read ProjPattern where
-	readsPrec _ s = case s of
+	readsPrec _ s = case dropWhile isSpace s of
 		'W' : t -> [(W, t)]
 		'X' : t -> [(X, t)]
 		'M' : t -> [(M, t)]
@@ -41,15 +48,15 @@ instance Read ProjPattern where
 instance CascadeCodePattern ProjPattern ProjectionCrossing where
 	cascadeCodeRoot _ = lonerProjection
 
-	decodeCrossing W = (3, projectionCrossing)
-	decodeCrossing X = (2, projectionCrossing)
-	decodeCrossing M = (1, projectionCrossing)
+	decodeCrossing W = (W, 1, 0, projectionCrossing)
+	decodeCrossing X = (X, 1, 0, projectionCrossing)
+	decodeCrossing M = (M, 0, -1, projectionCrossing)
 
 
-data Pattern = WO | WU | XO | XU | MO | MU deriving (Eq, Enum)
+data DiagPattern = WO | WU | XO | XU | MO | MU deriving (Eq, Enum)
 
 
-instance Show Pattern where
+instance Show DiagPattern where
 	show p = case p of
 		WO -> "W+"
 		WU -> "W-"
@@ -59,8 +66,8 @@ instance Show Pattern where
 		MU -> "M-"
 
 
-instance Read Pattern where
-	readsPrec _ s = case s of
+instance Read DiagPattern where
+	readsPrec _ s = case dropWhile isSpace s of
 		'W' : '+' : t -> [(WO, t)]
 		'W' : '-' : t -> [(WU, t)]
 		'X' : '+' : t -> [(XO, t)]
@@ -70,12 +77,12 @@ instance Read Pattern where
 		_             -> []
 
 
-instance CascadeCodePattern Pattern ArbitraryCrossing where
+instance CascadeCodePattern DiagPattern ArbitraryCrossing where
 	cascadeCodeRoot _ = lonerOverCrossing
 
-	decodeCrossing WO = (3, underCrossing)
-	decodeCrossing WU = (3, overCrossing)
-	decodeCrossing XO = (2, overCrossing)
-	decodeCrossing XU = (2, underCrossing)
-	decodeCrossing MO = (1, overCrossing)
-	decodeCrossing MU = (1, underCrossing)
+	decodeCrossing WO = (W, 1, 0, underCrossing)
+	decodeCrossing WU = (W, 1, 0, overCrossing)
+	decodeCrossing XO = (X, 1, 0, overCrossing)
+	decodeCrossing XU = (X, 1, 0, underCrossing)
+	decodeCrossing MO = (M, 0, -1, overCrossing)
+	decodeCrossing MU = (M, 0, -1, underCrossing)
