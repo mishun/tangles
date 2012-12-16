@@ -1,3 +1,4 @@
+{-# LANGUAGE TemplateHaskell #-}
 module Math.KnotTh.Tangle
 	( module Math.KnotTh.Knotted
 	, Dart
@@ -49,14 +50,15 @@ import Data.Bits ((.&.))
 import Control.DeepSeq
 import Control.Monad.ST (ST, runST)
 import Control.Monad (forM_, when)
+import Text.Printf (printf)
 import Math.Algebra.RotationDirection
 import Math.Algebra.Group.Dn (Dn, pointsUnderGroup, reflection, rotation, permute)
 import Math.Algebra.Group.D4 ((<*>), ec)
 import Math.KnotTh.Knotted
+import Math.KnotTh.Knotted.TH.Link
 
 
 data Dart ct = Dart !(Tangle ct) {-# UNPACK #-} !Int {-# UNPACK #-} !Int
-
 
 instance Eq (Dart ct) where
 	(==) (Dart _ c1 p1) (Dart _ c2 p2) = (c1 == c2) && (p1 == p2)
@@ -68,30 +70,19 @@ instance Ord (Dart ct) where
 			EQ -> compare p1 p2
 			r  -> r
 
-
 instance Show (Dart ct) where
 	show d
-		| isLeg d    = concat ["(Leg ", show $ legPlace d, ")"]
-		| otherwise  =
-			let (c, p) = toPair d
-			in concat ["(Dart ", show c, " ", show p, ")"]
+		| isLeg d    = printf "(Leg %i)" (legPlace d)
+		| otherwise  = let (c, p) = toPair d in printf "(Dart %i %i)" c p
 
 
 data Crossing ct = Crossing !(Tangle ct) {-# UNPACK #-} !Int
 
-
 instance Eq (Crossing ct) where
 	(==) (Crossing _ c1) (Crossing _ c2) = (c1 == c2)
 
-
 instance Ord (Crossing ct) where
 	compare (Crossing _ c1) (Crossing _ c2) = compare c1 c2
-
-
-instance (Show ct, CrossingType ct) => Show (Crossing ct) where
-	show c =
-		let d = map (show . opposite) $ incidentDarts c
-		in concat ["(Crossing ", show (crossingIndex c), " ",  show $ crossingState c, " [ ", intercalate " " d, " ])"]
 
 
 data Tangle ct = Tangle
@@ -110,9 +101,10 @@ instance (NFData ct) => NFData (Tangle ct) where
 
 instance (Show ct, CrossingType ct) => Show (Tangle ct) where
 	show tangle =
-		let	b = concat ["(Border [ ", intercalate " " (map show $ allLegOpposites tangle), " ])"]
-			d = map show $ allCrossings tangle
-		in concat ["(Tangle (", show (numberOfFreeLoops tangle), " O) ", intercalate " " (b : d), ")"]
+		printf "(Tangle (%i O) (Border [ %s ]) %s)"
+			(numberOfFreeLoops tangle)
+			(intercalate " " $ (map show $ allLegOpposites tangle))
+			(intercalate " " $ map show $ allCrossings tangle)
 
 
 instance Knotted Tangle Crossing Dart where
@@ -560,3 +552,6 @@ containingFaceRight = containingDirectedPath (nextCCW, nextCW)
 
 allTangleFaces :: Tangle ct -> [[Dart ct]]
 allTangleFaces = directedPathsDecomposition (nextCW, nextCCW)
+
+
+$(mapM (\ (f, x) -> f x) [(produceShowCrossing, ''Crossing)])

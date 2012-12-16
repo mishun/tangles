@@ -3,6 +3,7 @@ module Math.KnotTh.Tangle.CascadeCode
 	, decodeCascadeCode
 	, ProjPattern(..)
 	, DiagPattern(..)
+	, decodeCascadeCodeFromPairs
 	) where
 
 import Data.Char (isSpace)
@@ -86,3 +87,13 @@ instance CascadeCodePattern DiagPattern ArbitraryCrossing where
 	decodeCrossing XU = (X, 1, 0, underCrossing)
 	decodeCrossing MO = (M, 0, -1, overCrossing)
 	decodeCrossing MU = (M, 0, -1, underCrossing)
+
+
+decodeCascadeCodeFromPairs :: [(Int, Int)] -> TangleProjection
+decodeCascadeCodeFromPairs = decodeCascadeCode . map (\ (p, off) ->
+		( case p of
+			-1 -> W
+			0  -> X
+			1  -> M
+			_  -> error "decodeCascadeCodeFromPairs: expected -1, 0 or 1"
+		, off))

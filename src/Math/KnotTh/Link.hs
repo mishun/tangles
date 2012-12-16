@@ -1,3 +1,4 @@
+{-# LANGUAGE TemplateHaskell #-}
 module Math.KnotTh.Link
 	( module Math.KnotTh.Knotted
 	, Link
@@ -11,7 +12,7 @@ module Math.KnotTh.Link
 	, allThreads
 	) where
 
-import Data.List (intercalate, foldl')
+import Data.List (foldl')
 import Data.Bits ((.&.), shiftL, shiftR, complement)
 import qualified Data.Set as Set
 import Data.Array (Array)
@@ -23,6 +24,7 @@ import Control.Monad.ST (ST, runST)
 import Control.Monad (when, forM_)
 import Math.Algebra.RotationDirection
 import Math.KnotTh.Knotted
+import Math.KnotTh.Knotted.TH.Link
 
 
 data Dart ct = Dart !(Link ct) {-# UNPACK #-} !Int
@@ -36,12 +38,6 @@ instance Ord (Dart ct) where
 	compare (Dart _ d1) (Dart _ d2) = compare d1 d2
 
 
-instance Show (Dart ct) where
-	show d =
-		let (c, p) = toPair d
-		in concat ["(Dart ", show c, " ", show p, ")"]
-
-
 data Crossing ct = Crossing !(Link ct) {-# UNPACK #-} !Int
 
 
@@ -53,24 +49,12 @@ instance Ord (Crossing ct) where
 	compare (Crossing _ c1) (Crossing _ c2) = compare c1 c2
 
 
-instance (Show ct, CrossingType ct) => Show (Crossing ct) where
-	show c =
-		let d = map (show . opposite) $ incidentDarts c
-		in concat ["(Crossing ", show (crossingIndex c), " ",  show $ crossingState c, " [ ", intercalate " " d, " ])"]
-
-
 data Link ct = Link
 	{ crossCount     :: {-# UNPACK #-} !Int
 	, crossingsArray :: {-# UNPACK #-} !(UArray Int Int)
 	, stateArray     :: {-# UNPACK #-} !(Array Int (CrossingState ct))
 	, loopsCount     :: {-# UNPACK #-} !Int
 	}
-
-
-instance (Show ct, CrossingType ct) => Show (Link ct) where
-	show link =
-		let d = map show $ allCrossings link
-		in concat ["(Link (", show (numberOfFreeLoops link), " O) ", intercalate " " d, " )"]
 
 
 instance Knotted Link Crossing Dart where
@@ -195,3 +179,6 @@ allThreads =
 				in walk [(opposite start, start)] $ continuation $ opposite start
 			in (thread : threads, foldl' (\ s (a, b) -> Set.insert b $ Set.insert a s) vis thread)
 	in fst . foldl extractThread ([], Set.empty) . allDarts
+
+
+$(mapM (\ (f, x) -> f x) [(produceShowDart, ''Dart), (produceShowCrossing, ''Crossing), (produceShowKnot, ''Link)])

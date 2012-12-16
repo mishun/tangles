@@ -1,3 +1,4 @@
+{-# LANGUAGE TemplateHaskell #-}
 module Math.KnotTh.SurfaceLink
 	( module Math.KnotTh.Knotted
 	, SurfaceLink
@@ -11,7 +12,6 @@ module Math.KnotTh.SurfaceLink
 	, fromListST
 	) where
 
-import Data.List (intercalate)
 import Data.Bits ((.&.), shiftL, shiftR, complement)
 import Data.Array (Array)
 import Data.Array.Unboxed (UArray)
@@ -22,6 +22,7 @@ import Control.Monad.ST (ST, runST)
 import Control.Monad (when, forM_)
 import Math.Algebra.RotationDirection
 import Math.KnotTh.Knotted
+import Math.KnotTh.Knotted.TH.Link
 
 
 data Dart ct = Dart !(SurfaceLink ct) {-# UNPACK #-} !Int
@@ -35,12 +36,6 @@ instance Ord (Dart ct) where
 	compare (Dart _ d1) (Dart _ d2) = compare d1 d2
 
 
-instance Show (Dart ct) where
-	show d =
-		let (c, p) = begin d
-		in concat ["(Dart ", show (crossingIndex c), " ", show p, ")"]
-
-
 data Crossing ct = Crossing !(SurfaceLink ct) {-# UNPACK #-} !Int
 
 
@@ -52,13 +47,14 @@ instance Ord (Crossing ct) where
 	compare (Crossing _ c1) (Crossing _ c2) = compare c1 c2
 
 
-instance (Show ct, CrossingType ct) => Show (Crossing ct) where
-	show c =
-		let d = map (show . opposite) $ incidentDarts c
-		in concat ["(Crossing ", show (crossingIndex c), " ",  show $ crossingState c, " [ ", intercalate " " d, " ])"]
+{-# INLINE crossingLink #-}
+crossingLink :: Crossing ct -> SurfaceLink ct
+crossingLink (Crossing l _) = l
 
 
-data Face ct = Face !(SurfaceLink ct) {-# UNPACK #-} !Int
+{-# INLINE dartLink #-}
+dartLink :: Dart ct -> SurfaceLink ct
+dartLink (Dart l _) = l
 
 
 data SurfaceLink ct = SurfaceLink
@@ -68,6 +64,9 @@ data SurfaceLink ct = SurfaceLink
 	, stateArray     :: {-# UNPACK #-} !(Array Int (CrossingState ct))
 	, loopsCount     :: {-# UNPACK #-} !Int
 	}
+
+
+data Face ct = Face !(SurfaceLink ct) {-# UNPACK #-} !Int
 
 
 instance Knotted SurfaceLink Crossing Dart where
@@ -141,20 +140,9 @@ instance SurfaceKnotted SurfaceLink Crossing Face Dart where
 	faceIndex (Face _ i) = i + 1
 
 
-{-# INLINE crossingLink #-}
-crossingLink :: Crossing ct -> SurfaceLink ct
-crossingLink (Crossing l _) = l
-
-
 {-# INLINE faceLink #-}
 faceLink :: Face ct -> SurfaceLink ct
 faceLink (Face l _) = l
-
-
-{-# INLINE dartLink #-}
-dartLink :: Dart ct -> SurfaceLink ct
-dartLink (Dart l _) = l
-
 
 fromList :: (Int, [([(Int, Int)], CrossingState ct)]) -> SurfaceLink ct
 fromList list = runST $ fromListST list
@@ -190,3 +178,6 @@ fromListST (!loops, !list) = do
 		, stateArray     = st'
 		, loopsCount     = loops
 		}
+
+
+$(mapM (\ (f, x) -> f x) [(produceShowDart, ''Dart), (produceShowCrossing, ''Crossing), (produceShowKnot, ''SurfaceLink)])
