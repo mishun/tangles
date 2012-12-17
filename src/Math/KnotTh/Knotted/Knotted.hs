@@ -102,9 +102,6 @@ class Knotted (knot :: * -> *) (cross :: * -> *) (dart :: * -> *) | knot -> cros
 	dartOwner         :: dart ct -> knot ct
 	dartArrIndex      :: dart ct -> Int
 
-	isConnected :: knot ct -> Bool
-	isPrime     :: knot ct -> Bool
-
 
 {-# INLINE crossingCode #-}
 crossingCode :: (CrossingType ct, Knotted k c d) => RotationDirection -> d ct -> (# Int, Int #)

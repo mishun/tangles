@@ -1,141 +1,316 @@
 {-# LANGUAGE TemplateHaskell #-}
 module Math.KnotTh.Knotted.TH.Link
-	( produceShowDart
-	, produceShowCrossing
-	, produceShowKnot
-	, produceKnottedInstance
+	( produceKnottedInstance
 	) where
 
 import Language.Haskell.TH
---import Data.Bits ((.&.), shiftL, shiftR, complement)
-import Data.List (intercalate)
-import Text.Printf (printf)
---import Data.Array.Base (unsafeAt, unsafeWrite, unsafeRead)
---import Data.Array (Array)
---import Data.Array.Unboxed (UArray)
---import Data.Array.Unsafe (unsafeFreeze)
---import Data.Array.ST (STArray, STUArray, runSTArray, newArray_)
---import Control.Monad.ST (ST, runST)
---import Control.Monad (when, forM_)
+import Data.Bits ((.&.), shiftL, shiftR, complement)
+import Data.Array.Base (unsafeAt, unsafeWrite, unsafeRead)
+import Data.Array (Array)
+import Data.Array.Unboxed (UArray)
+import Data.Array.Unsafe (unsafeFreeze)
+import Data.Array.ST (STArray, STUArray, runSTArray, newArray_)
+import Control.Monad.ST (ST, runST)
+import Control.Monad (when, forM_)
+import Math.Algebra.RotationDirection
 import Math.KnotTh.Knotted
+import Math.KnotTh.Knotted.TH.Show
 
 
-produceShowDart :: Name -> DecQ
-produceShowDart dartN = do
-	ct <- varT `fmap` newName "ct"
-	instanceD (cxt []) (conT ''Show `appT` (conT dartN `appT` ct))
-		[ valD (varP 'show)
-			(normalB [| \ d -> let (c, p) = begin d in printf "(Dart %i %i)" (crossingIndex c) p |])
-			[]
-		]
+produceKnottedInstance :: DecsQ -> DecsQ
+produceKnottedInstance knotDeclaration = do
+	[DataD [] knotTN [PlainTV crossType] [RecC knotCN knotFields] []] <- knotDeclaration
 
-
-produceShowCrossing :: Name -> DecQ
-produceShowCrossing crosN = do
-	ct <- varT `fmap` newName "ct"
-	instanceD (cxt [classP ''Show [ct], classP ''CrossingType [ct]]) (conT ''Show `appT` (conT crosN `appT` ct))
-		[ valD (varP 'show)
-			(normalB [| \ c ->
-				printf "(Crossing %i %s [ %s ])"
-					(crossingIndex c)
-					(show $ crossingState c)
-					(intercalate " " $ map (show . opposite) $ incidentDarts c)
-				|])
-			[]
-		]
-
-
-produceShowKnot :: Name -> DecQ
-produceShowKnot knotN = do
-	ct <- varT `fmap` newName "ct"
-	instanceD (cxt [classP ''Show [ct], classP ''CrossingType [ct]]) (conT ''Show `appT` (conT knotN `appT` ct))
-		[ valD (varP 'show)
-			(normalB [| \ knot ->
-				printf "(%s (%i O) %s)"
-					$(litE $ stringL $ nameBase knotN)
-					(numberOfFreeLoops knot)
-					(intercalate " " $ map show $ allCrossings knot)
-				|])
-			[]
-		]
-
-
-produceKnottedInstance :: Name -> DecsQ
-produceKnottedInstance knotN = do
-	--let knotT = conT knottedName
 	let dartN = mkName "Dart"
 	let crosN = mkName "Crossing"
 
-	--dartD <- do
-	--	ct <- newName "ct"
-	--	return $! DataD [] dartN [PlainTV ct] [NormalC dartN [(IsStrict, ConT knotN `AppT` ConT ct), (Unpacked, ConT ''Int)]] []
+	loopsCount <- newName "loopsCount"
+	crossCount <- newName "crossCount"
+	stateArray <- newName "stateArray"
+	crossArray <- newName "crossArray"
 
-	h <- [d|
-		--DataD [] dartN [PlainTV ct] [NormalC dartN [(IsStrict, ConT knotN `AppT` ConT ct), (Unpacked, ConT ''Int)]] []
-		data Dart ct = Dart !($(conT knotN) ct) {-# UNPACK #-} !Int
+	let dartKnotN = mkName $ "dart" ++ nameBase knotTN
+	let crosKnotN = mkName $ "crossing" ++ nameBase knotTN
 
-		instance Eq (Dart ct) where
-			(==) (Dart _ d1) (Dart _ d2) = (d1 == d2)
+	sequence
+		[ dataD (cxt []) knotTN [PlainTV crossType] [recC knotCN $ map return (
+			[ (loopsCount, Unpacked, ConT ''Int)
+			, (crossCount, Unpacked, ConT ''Int)
+			, (crossArray, Unpacked, ConT ''UArray `AppT` ConT ''Int `AppT` ConT ''Int)
+			, (stateArray, Unpacked, ConT ''Array `AppT` ConT ''Int `AppT` (ConT ''CrossingState `AppT` VarT crossType))
+			] ++ knotFields)] []
+		
+		, do
+			ct <- newName "ct"
+			dataD (cxt []) dartN [PlainTV ct] [normalC dartN 
+				[ (,) IsStrict `fmap` (conT knotTN `appT` varT ct)
+				, (,) Unpacked `fmap` conT ''Int
+				]] []
 
-		instance Ord (Dart ct) where
-			compare (Dart _ d1) (Dart _ d2) = compare d1 d2
+		, do
+			ct <- newName "ct"
+			sigD dartKnotN $ forallT [PlainTV ct] (cxt [])
+				[t| $(conT dartN) $(varT ct) -> $(conT knotTN) $(varT ct) |]
 
-		{-# INLINE dartLink #-}
-		dartLink :: Dart ct -> $(conT knotN) ct
-		dartLink (Dart l _) = l
+		, return $ PragmaD $ InlineP dartKnotN $ InlineSpec True False Nothing
+
+		, funD dartKnotN $ (:[]) $ do
+			k <- newName "k"
+			clause [conP dartN [varP k, wildP]] (normalB $ varE k) []
+
+		, instanceD (cxt []) (appT [t|Eq|] $ conT dartN `appT` varT (mkName "ct"))
+			[ funD '(==) $ (:[]) $ do
+				a <- newName "a"
+				b <- newName "b"
+				clause [conP dartN [wildP, varP a], conP dartN [wildP, varP b]] (normalB [|
+					$(varE a) == $(varE b)
+					|]) []
+			]
+
+		, instanceD (cxt []) (appT [t|Ord|] $ conT dartN `appT` varT (mkName "ct"))
+			[ funD 'compare $ (:[]) $ do
+				a <- newName "a"
+				b <- newName "b"
+				clause [conP dartN [wildP, varP a], conP dartN [wildP, varP b]] (normalB [|
+					$(varE a) `compare` $(varE b)
+					|]) []
+			]
 
 
-		data Crossing ct = Crossing !($(conT knotN) ct) {-# UNPACK #-} !Int
+		, do
+			ct <- newName "ct"
+			dataD (cxt []) crosN [PlainTV ct] [normalC crosN
+				[ (,) IsStrict `fmap` (conT knotTN `appT` varT ct)
+				, (,) Unpacked `fmap` conT ''Int
+				]] []
 
-		instance Eq (Crossing ct) where
-			(==) (Crossing _ c1) (Crossing _ c2) = (c1 == c2)
+		, do
+			ct <- newName "ct"
+			sigD crosKnotN $ forallT [PlainTV ct] (cxt [])
+				[t| $(conT crosN) $(varT ct) -> $(conT knotTN) $(varT ct) |]
 
-		instance Ord (Crossing ct) where
-			compare (Crossing _ c1) (Crossing _ c2) = compare c1 c2
+		, return $ PragmaD $ InlineP crosKnotN $ InlineSpec True False Nothing
 
-		{-# INLINE crossingLink #-}
-		crossingLink :: Crossing ct -> $(conT knotN) ct
-		crossingLink (Crossing l _) = l
+		, funD crosKnotN $ (:[]) $ do
+			k <- newName "k"
+			clause [conP crosN [varP k, wildP]] (normalB $ varE k) []
+
+		, instanceD (cxt []) (appT [t|Eq|] $ conT crosN `appT` varT (mkName "ct"))
+			[ funD '(==) $ (:[]) $ do
+				a <- newName "a"
+				b <- newName "b"
+				clause [conP crosN [wildP, varP a], conP crosN [wildP, varP b]] (normalB [|
+					$(varE a) == $(varE b)
+					|]) []
+			]
+
+		, instanceD (cxt []) (appT [t|Ord|] $ conT crosN `appT` varT (mkName "ct"))
+			[ funD 'compare $ (:[]) $ do
+				a <- newName "a"
+				b <- newName "b"
+				clause [conP crosN [wildP, varP a], conP crosN [wildP, varP b]] (normalB [|
+					$(varE a) `compare` $(varE b)
+					|]) []
+			]
 
 
-		instance (Show ct, CrossingType ct) => Show ($(conT knotN) ct) where
-			show link =
-				let d = map show $ allCrossings link
-				in concat
-					[ "("
-					, $(litE $ stringL $ nameBase knotN)
-					, " ("
-					, show $ numberOfFreeLoops link
-					, " O) "
-					, intercalate " " d
-					, " )"
-					]
+		, instanceD (cxt []) ([t|Knotted|] `appT` conT knotTN `appT` conT crosN `appT` conT dartN)
+			[ funD 'numberOfFreeLoops $ (:[]) $ clause [] (normalB $ varE loopsCount) []
 
-		|]
+			, funD 'numberOfCrossings $ (:[]) $ clause [] (normalB $ varE crossCount) []
 
-	kd <- InstanceD [] (ConT ''Knotted `AppT` ConT knotN `AppT` ConT (mkName "Crossing") `AppT` ConT dartN)
-		`fmap` [d|
-			--crossingOwner = crossingLink
+			, funD 'numberOfEdges $ (:[]) $ do
+				k <- newName "k"
+				clause [varP k] (normalB [|
+					numberOfCrossings $(varE k) * (2 :: Int)
+					|]) []
 
-			--crossingIndex (Crossing _ c) = c + 1
+			, funD 'crossingOwner $ (:[]) $ do
+				k <- newName "k"
+				clause [conP crosN [varP k, wildP]] (normalB $ varE k) []
 
-			--crossingState (Crossing l c) = stateArray l `unsafeAt` c
+			, funD 'crossingIndex $ (:[]) $ do
+				c <- newName "c"
+				clause [conP crosN [wildP, varP c]] (normalB [| $(varE c) + (1 :: Int) |]) []
 
-			--nthIncidentDart (Crossing l c) i = $(conE dartN) l $! (c `shiftL` 2) + (i .&. 3)
+			, funD 'crossingState $ (:[]) $ do
+				k <- newName "k"
+				c <- newName "c"
+				clause [conP crosN [varP k, varP c]] (normalB [|
+					$(varE stateArray) $(varE k) `unsafeAt` $(varE c)
+					|]) []
 
-			--opposite (Dart l d) = $(conE dartN) l $! crossingsArray l `unsafeAt` d
+			, funD 'nthCrossing $ (:[]) $ do
+				k <- newName "k"
+				i <- newName "i"
+				clause [varP k, varP i] (normalB [|
+					if $(varE i) < (1 :: Int) || $(varE i) > numberOfCrossings $(varE k)
+						then error "nthCrossing: out of bound"
+						else $(conE crosN) $(varE k) ($(varE i) - (1 :: Int))
+					|]) []
 
-			--nextCCW (Dart l d) = $(conE dartN) l $! (d .&. complement 3) + ((d + 1) .&. 3)
+			, funD 'mapCrossingStates $ (:[]) $ do
+				f <- newName "f"
+				k <- newName "k"
+				clause [varP f, varP k] (normalB $ recUpdE (varE k) [(,) stateArray `fmap` [|
+					runSTArray $ do
+						let n = numberOfCrossings $(varE k)
+						st <- newArray_ (0, n - 1)
+						forM_ [0 .. n - 1] $ \ !i ->
+							unsafeWrite st i $! $(varE f) $! $(varE stateArray) $(varE k) `unsafeAt` i
+						return $! st
+					|]]) []
 
-			--nextCW (Dart l d) = $(conE dartN) l $! (d .&. complement 3) + ((d - 1) .&. 3)
+			, funD 'nthIncidentDart $ (:[]) $ do
+				k <- newName "k"
+				c <- newName "c"
+				i <- newName "i"
+				clause [conP crosN [varP k, varP c], varP i] (normalB [|
+					$(conE dartN) $(varE k) $! ($(varE c) `shiftL` 2 :: Int) + ($(varE i) .&. 3 :: Int)
+					|]) []
 
-			--incidentCrossing (Dart l d) = Crossing l $! d `shiftR` 2
+			, funD 'dartOwner $ (:[]) $ do
+				k <- newName "k"
+				clause [conP dartN [varP k, wildP]] (normalB $ varE k) []
 
-			--dartPlace (Dart _ d) = d .&. 3
+			, funD 'dartPlace $ (:[]) $ do
+				d <- newName "d"
+				clause [conP dartN [wildP, varP d]] (normalB [|
+					$(varE d) .&. (3 :: Int)
+					|]) []
 
-			--dartOwner = dartLink
+			, funD 'incidentCrossing $ (:[]) $ do
+				k <- newName "k"
+				d <- newName "d"
+				clause [conP dartN [varP k, varP d]] (normalB [|
+					$(conE crosN) $(varE k) $! $(varE d) `shiftR` (2 :: Int)
+					|]) []
 
-			--dartArrIndex $(conP dartN [wildP]) = i
-		|]
+			, funD 'opposite $ (:[]) $ do
+				k <- newName "k"
+				d <- newName "d"
+				clause [conP dartN [varP k, varP d]] (normalB [|
+					$(conE dartN) $(varE k) $! $(varE crossArray) $(varE k) `unsafeAt` $(varE d)
+					|]) []
 
-	return $! h ++ [kd]
+			, funD 'nextCCW $ (:[]) $ do
+				k <- newName "k"
+				d <- newName "d"
+				clause [conP dartN [varP k, varP d]] (normalB [|
+					$(conE dartN) $(varE k) $! ($(varE d) .&. complement 3 :: Int) + (($(varE d) + 1) .&. 3 :: Int)
+					|]) []
+
+			, funD 'nextCW $ (:[]) $ do
+				k <- newName "k"
+				d <- newName "d"
+				clause [conP dartN [varP k, varP d]] (normalB [|
+					$(conE dartN) $(varE k) $! ($(varE d) .&. complement 3 :: Int) + (($(varE d) - 1) .&. 3 :: Int)
+					|]) []
+
+			, funD 'dartArrIndex $ (:[]) $ do
+				d <- newName "d"
+				clause [conP dartN [wildP, varP d]] (normalB $ varE d) []
+			]
+
+		, instanceD (cxt []) ([t|KnottedWithAccel|] `appT` conT knotTN `appT` conT crosN `appT` conT dartN)
+			[ funD 'forMIncidentDarts $ (:[]) $ do
+				k <- newName "k"
+				c <- newName "c"
+				f <- newName "f"
+				clause [conP crosN [varP k, varP c], varP f] (normalB [|
+					let b = $(varE c) `shiftL` 2
+					in $(varE f) ($(conE dartN) $(varE k) b) >> $(varE f) ($(conE dartN) $(varE k) $! b + 1)
+						>> $(varE f) ($(conE dartN) $(varE k) $! b + 2) >> $(varE f) ($(conE dartN) $(varE k) $! b + 3)
+					|]) []
+
+			, funD 'foldMIncidentDarts $ (:[]) $ do
+				k <- newName "k"
+				c <- newName "c"
+				f <- newName "f"
+				s <- newName "s"
+				clause [conP crosN [varP k, varP c], varP f, varP s] (normalB [|
+					let b = $(varE c) `shiftL` 2
+					in $(varE f) ($(conE dartN) $(varE k) b) $(varE s) >>= $(varE f) ($(conE dartN) $(varE k) $! b + 1)
+						>>= $(varE f) ($(conE dartN) $(varE k) $! b + 2) >>= $(varE f) ($(conE dartN) $(varE k) $! b + 3)
+					|]) []
+
+			, funD 'foldMIncidentDartsFrom $ (:[]) $ do  --'
+				dart <- newName "dart"
+				k <- newName "k"
+				i <- newName "i"
+				dir <- newName "dir"
+				f <- newName "f"
+				s <- newName "s"
+				clause [asP dart $ conP dartN [varP k, varP i], bangP $ varP dir, varP f, bangP $ varP s] (normalB [|
+					let	d = directionSign $(varE dir)
+						r = $(varE i) .&. complement 3
+					in $(varE f) $(varE dart) $(varE s) >>= $(varE f) ($(conE dartN) $(varE k) $! r + (($(varE i) + d) .&. 3))
+						>>= $(varE f) ($(conE dartN) $(varE k) $! r + (($(varE i) + 2 * d) .&. 3))
+							>>= $(varE f) ($(conE dartN) $(varE k) $! r + (($(varE i) + 3 * d) .&. 3))
+					|]) []
+			]
+
+{-instance KnottedWithAccel SurfaceLink Crossing Dart where
+
+	foldMIncidentDartsFrom dart@(Dart l i) !direction f s =
+		let	d = directionSign direction
+			r = i .&. complement 3
+		in f dart s >>= f (Dart l $! r + ((i + d) .&. 3)) >>= f (Dart l $! r + ((i + 2 * d) .&. 3)) >>= f (Dart l $! r + ((i + 3 * d) .&. 3))
+-}
+
+		, do
+			ct <- newName "ct"
+			s <- newName "s"
+			sigD (mkName "fromListST") $ forallT [PlainTV s, PlainTV ct] (cxt [])
+				[t| (Int, [([(Int, Int)], CrossingState $(varT ct))]) -> ST $(varT s) ($(conT knotTN) $(varT ct)) |]
+
+		, funD (mkName "fromListST") $ (:[]) $ do
+			loops <- newName "loops"
+			list <- newName "list"
+			clause [tupP [bangP $ varP loops, bangP $ varP list]] (normalB [|
+				do
+					when ($(varE loops) < (0 :: Int)) (fail "fromListST: number of free loops is negative")
+
+					let n = length $(varE list)
+					cr <- newArray_ (0, 4 * n - 1) :: ST s (STUArray s Int Int)
+					st <- newArray_ (0, n - 1) :: ST s (STArray s Int a)
+
+					forM_ (zip $(varE list) [0 ..]) $ \ ((!ns, !state), !i) -> do
+						unsafeWrite st i state
+						when (length ns /= 4) (fail "fromList: there must be 4 neighbours for every crossing")
+						forM_ (zip ns [0 ..]) $ \ ((!c, !p), !j) -> do
+							when (c < 1 || c > n || p < 0 || p > 3) (fail "fromList: out of bound")
+							let a = 4 * i + j
+							let b = 4 * (c - 1) + p
+							when (a == b) (fail "fromList: dart connected to itself")
+							unsafeWrite cr a b
+							when (b < a) $ do
+								x <- unsafeRead cr b
+								when (x /= a) (fail "fromList: unconsistent data")
+
+					cr' <- unsafeFreeze cr
+					st' <- unsafeFreeze st
+
+					return $! $(recConE knotCN
+						[ (,) crossCount `fmap` [|n|]
+						, (,) crossArray `fmap` [|cr'|]
+						, (,) stateArray `fmap` [|st'|]
+						, (,) loopsCount `fmap` varE loops
+						])
+				|]) []
+
+		, do
+			ct <- newName "ct"
+			sigD (mkName "fromList") $ forallT [PlainTV ct] (cxt [])
+				[t| (Int, [([(Int, Int)], CrossingState $(varT ct))]) -> $(conT knotTN) $(varT ct) |]
+
+		, funD (mkName "fromList") $ (:[]) $ do
+			list <- newName "list"
+			clause [varP list] (normalB [| runST $ $(varE $ mkName "fromListST") $(varE list) |]) []
+
+		, produceShowDart dartN
+
+		, produceShowCrossing crosN
+
+		, produceShowKnot knotTN
+		]

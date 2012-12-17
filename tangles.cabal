@@ -5,8 +5,8 @@ maintainer:         alexander.mishunin@gmail.com
 stability:          Experimental
 license:            LGPL-3
 license-file:       LICENSE
-synopsis:           Enumeration algorithms for knot theory objects
-description:        http://arxiv.org/abs/0712.3859
+synopsis:           Enumeration algorithms for some knot theory objects
+description:        See http://arxiv.org/abs/0712.3859
 category:           Math
 build-type:         Simple
 cabal-version:      >=1.14
@@ -103,9 +103,11 @@ library
         Graphics.HP.Units
         Math.KnotTh.Knotted.Knotted
         Math.KnotTh.Knotted.KnottedWithAccel
+        Math.KnotTh.Knotted.KnottedWithConnectivity
         Math.KnotTh.Knotted.KnottedWithToPair
         Math.KnotTh.Knotted.SurfaceKnotted
         Math.KnotTh.Knotted.TH.Link
+        Math.KnotTh.Knotted.TH.Show
         Math.KnotTh.Knotted.Util
         Math.KnotTh.Tangle.Moves.Resting
 

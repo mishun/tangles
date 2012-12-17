@@ -12,9 +12,9 @@ import Math.KnotTh.Knotted
 
 
 class DiagramInfo info where
-	merge          :: (Knotted k c d) => info (k ct) -> info (k ct) -> info (k ct)
-	wrap           :: (Knotted k c d) => k ct -> info (k ct)
-	representative :: (Knotted k c d) => info (k ct) -> k ct
+	merge          :: (KnottedWithConnectivity k c d) => info (k ct) -> info (k ct) -> info (k ct)
+	wrap           :: (KnottedWithConnectivity k c d) => k ct -> info (k ct)
+	representative :: (KnottedWithConnectivity k c d) => info (k ct) -> k ct
 
 
 data MinimalDiagramInfo k = DisconnectedDiagram !k | CompositeMinimalDiagram !k | PrimeMinimalDiagram !k

@@ -21,7 +21,7 @@ data SiftState k v = St
 
 
 siftByEquivalenceClasses ::
-	(Ord c, CrossingType ct, Knotted knot crossing dart, DiagramInfo info)
+	(Ord c, CrossingType ct, KnottedWithConnectivity knot crossing dart, DiagramInfo info)
 		=> (knot ct -> c)
 		-> [knot ct -> [knot ct]]
 		-> (forall m. (Monad m) => (knot ct -> m ()) -> m ())

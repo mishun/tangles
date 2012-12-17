@@ -55,7 +55,7 @@ import Math.Algebra.RotationDirection
 import Math.Algebra.Group.Dn (Dn, pointsUnderGroup, reflection, rotation, permute)
 import Math.Algebra.Group.D4 ((<*>), ec)
 import Math.KnotTh.Knotted
-import Math.KnotTh.Knotted.TH.Link
+import Math.KnotTh.Knotted.TH.Show
 
 
 data Dart ct = Dart !(Tangle ct) {-# UNPACK #-} !Int {-# UNPACK #-} !Int
@@ -167,6 +167,8 @@ instance Knotted Tangle Crossing Dart where
 		| c == 0     = let n = numberOfCrossings t in 4 * n + i
 		| otherwise  = 4 * (c - 1) + i
 
+
+instance KnottedWithConnectivity Tangle Crossing Dart where
 	isConnected tangle
 		| numberOfFreeLoops tangle /= 0  = False
 		| otherwise                      = all (\ (a, b) -> Set.member a con && Set.member b con) edges
@@ -554,4 +556,4 @@ allTangleFaces :: Tangle ct -> [[Dart ct]]
 allTangleFaces = directedPathsDecomposition (nextCW, nextCCW)
 
 
-$(mapM (\ (f, x) -> f x) [(produceShowCrossing, ''Crossing)])
+$((:[]) `fmap` produceShowCrossing ''Crossing)
