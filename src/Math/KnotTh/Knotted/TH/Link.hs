@@ -234,7 +234,7 @@ produceKnottedInstance knotDeclaration = do
 						>>= $(varE f) ($(conE dartN) $(varE k) $! b + 2) >>= $(varE f) ($(conE dartN) $(varE k) $! b + 3)
 					|]) []
 
-			, funD 'foldMIncidentDartsFrom $ (:[]) $ do  --'
+			, funD 'foldMIncidentDartsFrom $ (:[]) $ do
 				dart <- newName "dart"
 				k <- newName "k"
 				i <- newName "i"
@@ -249,14 +249,6 @@ produceKnottedInstance knotDeclaration = do
 							>>= $(varE f) ($(conE dartN) $(varE k) $! r + (($(varE i) + 3 * d) .&. 3))
 					|]) []
 			]
-
-{-instance KnottedWithAccel SurfaceLink Crossing Dart where
-
-	foldMIncidentDartsFrom dart@(Dart l i) !direction f s =
-		let	d = directionSign direction
-			r = i .&. complement 3
-		in f dart s >>= f (Dart l $! r + ((i + d) .&. 3)) >>= f (Dart l $! r + ((i + 2 * d) .&. 3)) >>= f (Dart l $! r + ((i + 3 * d) .&. 3))
--}
 
 		, do
 			ct <- newName "ct"

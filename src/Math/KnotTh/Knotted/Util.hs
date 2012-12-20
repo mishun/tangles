@@ -7,10 +7,14 @@ module Math.KnotTh.Knotted.Util
 	, nextDir
 	, continuation
 	, begin
-	, adjacentCrossing
 	, incidentDarts
+	, incidentDartsWithIds
 	, nthAdjacentDart
 	, adjacentDarts
+	, adjacentDartsWithIds
+	, adjacentCrossing
+	, adjacentCrossings
+	, adjacentCrossingsWithIds
 	, allCrossings
 	, allDarts
 	) where
@@ -65,14 +69,14 @@ begin d =
 	in c `seq` p `seq` (c, p)
 
 
-{-# INLINE adjacentCrossing #-}
-adjacentCrossing :: (Knotted k c d) => d ct -> c ct
-adjacentCrossing = incidentCrossing . opposite
-
-
 {-# INLINE incidentDarts #-}
 incidentDarts :: (Knotted k c d) => c ct -> [d ct]
 incidentDarts c = map (nthIncidentDart c) [0 .. 3]
+
+
+{-# INLINE incidentDartsWithIds #-}
+incidentDartsWithIds :: (Knotted k c d) => c ct -> [(d ct, Int)]
+incidentDartsWithIds c = zip (incidentDarts c) [0 ..]
 
 
 {-# INLINE nthAdjacentDart #-}
@@ -83,6 +87,26 @@ nthAdjacentDart c = opposite . nthIncidentDart c
 {-# INLINE adjacentDarts #-}
 adjacentDarts :: (Knotted k c d) => c ct -> [d ct]
 adjacentDarts c = map (nthAdjacentDart c) [0 .. 3]
+
+
+{-# INLINE adjacentDartsWithIds #-}
+adjacentDartsWithIds :: (Knotted k c d) => c ct -> [(d ct, Int)]
+adjacentDartsWithIds c = zip (adjacentDarts c) [0 ..]
+
+
+{-# INLINE adjacentCrossing #-}
+adjacentCrossing :: (Knotted k c d) => d ct -> c ct
+adjacentCrossing = incidentCrossing . opposite
+
+
+{-# INLINE adjacentCrossings #-}
+adjacentCrossings :: (Knotted k c d) => c ct -> [c ct]
+adjacentCrossings c = map (incidentCrossing . opposite . nthIncidentDart c) [0 .. 3]
+
+
+{-# INLINE adjacentCrossingsWithIds #-}
+adjacentCrossingsWithIds :: (Knotted k c d) => c ct -> [(c ct, Int)]
+adjacentCrossingsWithIds c = zip (adjacentCrossings c) [0 ..]
 
 
 {-# INLINE allCrossings #-}
