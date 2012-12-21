@@ -1,6 +1,8 @@
 {-# LANGUAGE TemplateHaskell #-}
-module Math.KnotTh.Knotted.TH.Link
-	( produceKnottedInstance
+module Math.KnotTh.Knotted.TH.Knotted
+	( KnottedInstance(..)
+	, defaultKnottedInstance
+	, produceKnottedInstance
 	) where
 
 import Language.Haskell.TH
@@ -17,9 +19,22 @@ import Math.KnotTh.Knotted
 import Math.KnotTh.Knotted.TH.Show
 
 
-produceKnottedInstance :: DecsQ -> DecsQ
-produceKnottedInstance knotDeclaration = do
-	[DataD [] knotTN [PlainTV crossType] [RecC knotCN knotFields] []] <- knotDeclaration
+data KnottedInstance = KnottedInstance
+	{ modifyNumberOfEdges :: ExpQ -> ExpQ -> ExpQ
+	, toListExtra         :: ([StmtQ], [Q (Name, Exp)])
+	}
+
+
+defaultKnottedInstance :: KnottedInstance
+defaultKnottedInstance = KnottedInstance
+	{ modifyNumberOfEdges = const id
+	, toListExtra         = ([], [])
+	}
+
+
+produceKnottedInstance :: DecsQ -> KnottedInstance -> DecsQ
+produceKnottedInstance knotPattern inst = do
+	[DataD [] knotTN [PlainTV crossType] [RecC knotCN knotFields] []] <- knotPattern
 
 	let dartN = mkName "Dart"
 	let crosN = mkName "Crossing"
@@ -121,9 +136,7 @@ produceKnottedInstance knotDeclaration = do
 
 			, funD 'numberOfEdges $ (:[]) $ do
 				k <- newName "k"
-				clause [varP k] (normalB [|
-					numberOfCrossings $(varE k) * (2 :: Int)
-					|]) []
+				clause [varP k] (normalB $ modifyNumberOfEdges inst (varE k) [| numberOfCrossings $(varE k) * (2 :: Int) |]) []
 
 			, funD 'crossingOwner $ (:[]) $ do
 				k <- newName "k"
@@ -149,7 +162,7 @@ produceKnottedInstance knotDeclaration = do
 						else $(conE crosN) $(varE k) ($(varE i) - (1 :: Int))
 					|]) []
 
-			, funD 'mapCrossingStates $ (:[]) $ do
+			, funD 'mapCrossings $ (:[]) $ do
 				f <- newName "f"
 				k <- newName "k"
 				clause [varP f, varP k] (normalB $ recUpdE (varE k) [(,) stateArray `fmap` [|
@@ -252,15 +265,14 @@ produceKnottedInstance knotDeclaration = do
 
 		, do
 			ct <- newName "ct"
-			s <- newName "s"
-			sigD (mkName "fromListST") $ forallT [PlainTV s, PlainTV ct] (cxt [])
-				[t| (Int, [([(Int, Int)], CrossingState $(varT ct))]) -> ST $(varT s) ($(conT knotTN) $(varT ct)) |]
+			sigD (mkName "fromList") $ forallT [PlainTV ct] (cxt [])
+				[t| (Int, [([(Int, Int)], CrossingState $(varT ct))]) -> $(conT knotTN) $(varT ct) |]
 
-		, funD (mkName "fromListST") $ (:[]) $ do
+		, funD (mkName "fromList") $ (:[]) $ do
 			loops <- newName "loops"
 			list <- newName "list"
 			clause [tupP [bangP $ varP loops, bangP $ varP list]] (normalB [|
-				do
+				runST $ do
 					when ($(varE loops) < (0 :: Int)) (fail "fromListST: number of free loops is negative")
 
 					let n = length $(varE list)
@@ -283,22 +295,15 @@ produceKnottedInstance knotDeclaration = do
 					cr' <- unsafeFreeze cr
 					st' <- unsafeFreeze st
 
-					return $! $(recConE knotCN
-						[ (,) crossCount `fmap` [|n|]
-						, (,) crossArray `fmap` [|cr'|]
-						, (,) stateArray `fmap` [|st'|]
-						, (,) loopsCount `fmap` varE loops
-						])
+					$(doE $ fst (toListExtra inst) ++
+						[ noBindS $ [| return $! $(recConE knotCN $
+							[ (,) crossCount `fmap` [|n|]
+							, (,) crossArray `fmap` [|cr'|]
+							, (,) stateArray `fmap` [|st'|]
+							, (,) loopsCount `fmap` varE loops
+							] ++ snd (toListExtra inst))
+						|] ])
 				|]) []
-
-		, do
-			ct <- newName "ct"
-			sigD (mkName "fromList") $ forallT [PlainTV ct] (cxt [])
-				[t| (Int, [([(Int, Int)], CrossingState $(varT ct))]) -> $(conT knotTN) $(varT ct) |]
-
-		, funD (mkName "fromList") $ (:[]) $ do
-			list <- newName "list"
-			clause [varP list] (normalB [| runST $ $(varE $ mkName "fromListST") $(varE list) |]) []
 
 		, produceShowDart dartN
 

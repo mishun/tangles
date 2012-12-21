@@ -12,6 +12,9 @@ import Math.KnotTh.Tangle.Projection
 import Math.KnotTh.Tangle.NonAlternating
 
 
+data ProjPattern = W | X | M deriving (Eq, Enum, Show, Read)
+
+
 class (Enum pattern, CrossingType ct) => CascadeCodePattern pattern ct | pattern -> ct where
 	cascadeCodeRoot :: [(pattern, Int)] -> Tangle ct
 	decodeCrossing  :: pattern -> (ProjPattern, Int, Int, CrossingState ct)
@@ -22,10 +25,10 @@ decodeCascadeCode code =
 	foldl
 		(\ prev (pattern, offset) ->
 			let	(gl, shift, rot, c) = decodeCrossing pattern
-				p	| rot == 0   = id
-					| otherwise  = \ t ->
-						let l = numberOfLegs t
-						in transformTangle (fromRotation l rot) t
+				p | rot == 0   = id
+				  | otherwise  = \ t ->
+				  	let l = numberOfLegs t
+				  	in transformTangle (fromRotation l rot) t
 			in p $ crossingTangle $ glueToBorder
 				(nthLeg prev $ offset + shift)
 				(case gl of { W -> 3 ; X -> 2 ; M -> 1 })
@@ -33,17 +36,6 @@ decodeCascadeCode code =
 		)
 		(cascadeCodeRoot code)
 		code
-
-
-data ProjPattern = W | X | M deriving (Eq, Enum, Show)
-
-
-instance Read ProjPattern where
-	readsPrec _ s = case dropWhile isSpace s of
-		'W' : t -> [(W, t)]
-		'X' : t -> [(X, t)]
-		'M' : t -> [(M, t)]
-		_       -> []
 
 
 instance CascadeCodePattern ProjPattern ProjectionCrossing where
@@ -90,10 +82,9 @@ instance CascadeCodePattern DiagPattern ArbitraryCrossing where
 
 
 decodeCascadeCodeFromPairs :: [(Int, Int)] -> TangleProjection
-decodeCascadeCodeFromPairs = decodeCascadeCode . map (\ (p, off) ->
-		( case p of
-			-1 -> W
-			0  -> X
-			1  -> M
-			_  -> error "decodeCascadeCodeFromPairs: expected -1, 0 or 1"
-		, off))
+decodeCascadeCodeFromPairs = (decodeCascadeCode .) $ map $ \ (p, off) ->
+	flip (,) off $ case p of
+		-1 -> W
+		0  -> X
+		1  -> M
+		_  -> error "decodeCascadeCodeFromPairs: expected -1, 0 or 1 as pattern"

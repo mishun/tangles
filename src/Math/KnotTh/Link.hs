@@ -7,7 +7,6 @@ module Math.KnotTh.Link
 	, crossingLink
 	, dartLink
 	, fromList
-	, fromListST
 	, toList
 	, allThreads
 	) where
@@ -15,11 +14,12 @@ module Math.KnotTh.Link
 import Data.List (foldl')
 import qualified Data.Set as Set
 import Math.KnotTh.Knotted
-import Math.KnotTh.Knotted.TH.Link
+import Math.KnotTh.Knotted.TH.Knotted
 
 
 produceKnottedInstance
 	[d| data Link ct = Link {} |]
+	defaultKnottedInstance
 
 
 instance KnottedWithToPair Link Crossing Dart

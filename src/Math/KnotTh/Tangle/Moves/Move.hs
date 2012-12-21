@@ -87,7 +87,7 @@ assemble st = do
 			)
 
 	circles <- readSTRef (stateCircles st)
-	fromListST (circles, border, connections)
+	return $! fromList (circles, border, connections)
 
 
 reconnect :: MoveState s ct -> [(Dart ct, Dart ct)] -> ST s ()

@@ -35,4 +35,4 @@ projectionCrossings = [projectionCrossing]
 
 
 projection :: (CrossingType ct, Knotted k c d) => k ct -> k ProjectionCrossing
-projection = mapCrossingStates (const projectionCrossing)
+projection = mapCrossings (const projectionCrossing)

@@ -9,23 +9,26 @@ module Math.KnotTh.SurfaceLink
 	, faceSurfaceLink
 	, dartSurfaceLink
 	, fromList
-	, fromListST
 	, testPrime
 	) where
 
+import Language.Haskell.TH
 import Data.Function (fix)
 import Data.Array.ST (STUArray, newArray, newArray_, readArray, writeArray)
 import Control.Monad.ST (ST, runST)
-import Control.Monad (forM_)
+import Control.Monad (when, forM_, liftM)
 import Math.KnotTh.Knotted
-import Math.KnotTh.Knotted.TH.Link
+import Math.KnotTh.Knotted.TH.Knotted
 
 
-produceKnottedInstance [d|
-	data SurfaceLink ct = SurfaceLink
-		{ --faceCount :: {-# UNPACK #-} !Int
+produceKnottedInstance
+	[d| data SurfaceLink ct = SurfaceLink
+		{ faceCount :: Int
 		}
 	|]
+	defaultKnottedInstance
+		{ toListExtra = ([], [liftM ((,) (mkName "faceCount")) $ litE (integerL 0)])
+		}
 
 
 data Face ct = Face !(SurfaceLink ct) {-# UNPACK #-} !Int
@@ -37,8 +40,7 @@ faceSurfaceLink (Face l _) = l
 
 
 instance SurfaceKnotted SurfaceLink Crossing Face Dart where
-
-	numberOfFaces _ = 0 --faceCount
+	numberOfFaces = faceCount
 
 	nthFace link i
 		| i < 1 || i > numberOfFaces link  = error "nthFace: out of bound"
@@ -47,6 +49,8 @@ instance SurfaceKnotted SurfaceLink Crossing Face Dart where
 	faceOwner = faceSurfaceLink
 
 	faceIndex (Face _ i) = i + 1
+
+	faceDegree = undefined
 
 
 testPrime :: SurfaceLink ct -> Bool
@@ -72,16 +76,16 @@ testPrime link = runST $ do
 		j <- readArray v i
 		writeArray a j x
 
-	cut <- flip fix sz $ \ loop n -> do
+	flip fix sz $ \ loop !n -> do
 		setA 1 True
 		forM_ [2 .. n] $ \ i -> do
 			setA i False
 			writeArray na (i - 1) i
 			writeArray w i =<< do
-				a <- readArray v 1
-				b <- readArray v i
-				readArray g (a, b)
+				p <- readArray v 1
+				q <- readArray v i
+				readArray g (p, q)
 
-		return 0
+		when (n > 1) $ loop (n - 1)
 
 	return True

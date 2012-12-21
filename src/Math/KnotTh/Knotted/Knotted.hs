@@ -6,8 +6,9 @@ module Math.KnotTh.Knotted.Knotted
 	, isCrossingOrientationInverted
 	, crossingLegIdByDartId
 	, dartIdByCrossingLegId
-	, alterCrossingOrientation
+	, mapOrientation
 	, makeCrossing
+	, mapCrossing
 	, Knotted(..)
 	, crossingCode
 	) where
@@ -70,8 +71,8 @@ dartIdByCrossingLegId :: CrossingState ct -> Int -> Int
 dartIdByCrossingLegId cr = permute (orientation cr)
 
 
-alterCrossingOrientation :: (D4 -> D4) -> CrossingState ct -> CrossingState ct
-alterCrossingOrientation f crossing = crossing { orientation = f $ orientation crossing }
+mapOrientation :: (D4 -> D4) -> CrossingState ct -> CrossingState ct
+mapOrientation f crossing = crossing { orientation = f $ orientation crossing }
 
 
 makeCrossing :: (CrossingType ct) => ct -> D4 -> CrossingState ct
@@ -83,12 +84,16 @@ makeCrossing !ct !g = Crossing
 	}
 
 
+mapCrossing :: (CrossingType a, CrossingType b) => (a -> b) -> CrossingState a -> CrossingState b
+mapCrossing f x = makeCrossing (f $ crossingType x) (orientation x)
+
+
 class Knotted (knot :: * -> *) (cross :: * -> *) (dart :: * -> *) | knot -> cross, cross -> dart, dart -> knot where
 	numberOfFreeLoops :: knot ct -> Int
 	numberOfCrossings :: knot ct -> Int
 	numberOfEdges     :: knot ct -> Int
 	nthCrossing       :: knot ct -> Int -> cross ct
-	mapCrossingStates :: (CrossingType a, CrossingType b) => (CrossingState a -> CrossingState b) -> knot a -> knot b
+	mapCrossings      :: (CrossingType a, CrossingType b) => (CrossingState a -> CrossingState b) -> knot a -> knot b
 
 	crossingOwner     :: cross ct -> knot ct
 	crossingIndex     :: cross ct -> Int

@@ -84,4 +84,4 @@ writhe a b
 
 
 invertCrossings :: (Knotted k c d) => k ArbitraryCrossing -> k ArbitraryCrossing
-invertCrossings = mapCrossingStates (alterCrossingOrientation (c <*>))
+invertCrossings = mapCrossings $ mapOrientation (c <*>)

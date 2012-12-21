@@ -22,9 +22,7 @@ module Math.KnotTh.Tangle
 	, lonerTangle
 	, transformTangle
 	, glueToBorder
-	, glueToBorderST
 	, fromList
-	, fromListST
 	, toList
 	, containingDirectedPath
 	, containingUndirectedPath
@@ -118,7 +116,7 @@ instance Knotted Tangle Crossing Dart where
 		| i < 1 || i > numberOfCrossings t  = error "nthCrossing: out of bound"
 		| otherwise                         = Crossing t i
 
-	mapCrossingStates f tangle = tangle
+	mapCrossings f tangle = tangle
 		{ stateArray = runSTArray $ do
 			let n = numberOfCrossings tangle
 			st <- newArray_ (0, n - 1)
@@ -254,9 +252,7 @@ legPlace (Dart _ c i)
 
 {-# INLINE nthLeg #-}
 nthLeg :: Tangle ct -> Int -> Dart ct
-nthLeg t i =
-	let l = numberOfLegs t
-	in Dart t 0 (mod i l)
+nthLeg t i = Dart t 0 (mod i $ numberOfLegs t)
 
 
 {-# INLINE firstLeg #-}
@@ -327,7 +323,7 @@ transformTangle g tangle
 				in (crossingIndex c, if reflection g then 3 - dartPlace d else dartPlace d)
 
 		crossing c
-			| reflection g  = (reverse $ map pair $ adjacentDarts c, alterCrossingOrientation (ec <*>) $ crossingState c)
+			| reflection g  = (reverse $ map pair $ adjacentDarts c, mapOrientation (ec <*>) $ crossingState c)
 			| otherwise     = (map pair $ adjacentDarts c, crossingState c)
 
 		border
@@ -350,14 +346,10 @@ transformTangle g tangle
 -- ........|  |   \-----|--0       ........|                       (leg-2)-|--|-----/   |
 -- ........|  +=========+          ........|                       ........|  +=========+
 glueToBorder :: (CrossingType ct) => Dart ct -> Int -> CrossingState ct -> Crossing ct
-glueToBorder leg legsToGlue crossingToGlue = runST $ glueToBorderST leg legsToGlue crossingToGlue
-
-
-glueToBorderST :: (CrossingType ct) => Dart ct -> Int -> CrossingState ct -> ST s (Crossing ct)
-glueToBorderST leg legsToGlue crossingToGlue
+glueToBorder leg legsToGlue crossingToGlue
 	| not (isLeg leg)                   = error "glueToBorder: leg expected"
 	| legsToGlue < 1 || legsToGlue > 3  = error "glueToBorder: legsToGlue must be 1, 2 or 3"
-	| otherwise                         = do
+	| otherwise                         = runST $ do
 		let tangle = dartTangle leg
 		let oldL = numberOfLegs tangle
 		when (oldL <= legsToGlue) (fail "glueToBorder: not enough legs to glue")
@@ -424,11 +416,7 @@ glueToBorderST leg legsToGlue crossingToGlue
 
 
 fromList :: (Int, [(Int, Int)], [([(Int, Int)], CrossingState ct)]) -> Tangle ct
-fromList list = runST $ fromListST list
-
-
-fromListST :: (Int, [(Int, Int)], [([(Int, Int)], CrossingState ct)]) -> ST s (Tangle ct)
-fromListST (!loops, !border, !list) = do
+fromList (!loops, !border, !list) = runST $ do
 	when (loops < 0) (fail "fromListST: number of free loops is negative")
 
 	let n = length list
@@ -462,7 +450,9 @@ fromListST (!loops, !border, !list) = do
 			testPair c p
 			when (c == i + 1 && p == j) (fail "fromLists: dart connected to itself")
 			when (c <= i || (c == i + 1 && p < j)) $ do
-				let (a, offset) = if c == 0 then (ls, p) else (cr, 4 * (c - 1) + p)
+				let (a, offset)
+					| c == 0     = (ls, p)
+					| otherwise  = (cr, 4 * (c - 1) + p)
 				c' <- unsafeRead a (2 * offset)
 				p' <- unsafeRead a (2 * offset + 1)
 				when (c' /= i + 1 || p' /= j) (fail "fromLists: unconsistent data")

@@ -35,7 +35,7 @@ tangleDoubling f tangle =
 				| otherwise   = atBottom ba
 				where
 					ba = opposite ab
-			in (map pair $ reverse $ incidentDarts a, alterCrossingOrientation ((ec <*>) . f) $ crossingState a)
+			in (map pair $ reverse $ incidentDarts a, mapOrientation ((ec <*>) . f) $ crossingState a)
 
 		[top, bottom]
 		)
