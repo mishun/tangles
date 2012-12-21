@@ -1,5 +1,6 @@
 module Math.KnotTh.Tangle.BorderIncremental.IncrementalGluing
 	( GluingType(..)
+	, append
 	, nextNumberOfLegs
 	, diagonalIndex
 	, allGluingSites'
@@ -10,6 +11,7 @@ module Math.KnotTh.Tangle.BorderIncremental.IncrementalGluing
 	, simpleIncrementalGenerator
 	) where
 
+import Data.Monoid (Monoid(..))
 import Control.Monad (when, guard)
 import Math.Algebra.Group.Dn (DnSubGroup, pointsUnderSubGroup, rotationPeriod, hasReflectionPart, mirroredZero)
 import Math.Algebra.Group.D4 (e, ec2, ec3, toDnSubGroup)
@@ -17,10 +19,30 @@ import Math.KnotTh.Tangle
 import Math.KnotTh.Tangle.BorderIncremental.RootingTest
 
 
-data GluingType ct s = GluingType
+data GluingType ct s t = GluingType
 	{ preGlueTest  :: CrossingState ct -> Dart ct -> Int -> Bool
-	, postGlueTest :: Crossing ct -> Int -> Dart ct -> DnSubGroup -> Maybe s
+	, postGlueTest :: Crossing ct -> Int -> Dart ct -> s -> Maybe t
 	}
+
+
+append :: GluingType ct a b -> GluingType ct b c -> GluingType ct a c
+append a b = GluingType
+	{ preGlueTest  = \ cs leg gl -> preGlueTest a cs leg gl && preGlueTest b cs leg gl
+	, postGlueTest = \ cr gl leg s -> postGlueTest a cr gl leg s >>= postGlueTest b cr gl leg
+	}
+
+
+instance Monoid (GluingType ct s s) where
+	mappend = append
+
+	mempty = GluingType
+		{ preGlueTest  = \ _ _ _ -> True
+		, postGlueTest = \ _ _ _ s -> return $! s
+		}
+
+
+instance Functor (GluingType ct s) where
+	fmap f x = x { postGlueTest = \ cr gl leg s -> f `fmap` postGlueTest x cr gl leg s }
 
 
 {-# INLINE nextNumberOfLegs #-}
@@ -96,7 +118,7 @@ representativeGluingSites crossingsToGlue ts@(tangle, _) = do
 	representativeGluingSites' crossingsToGlue gl ts
 
 
-canonicalGluing :: (CrossingType ct) => GluingType ct s -> [(Int, Dart ct, CrossingState ct)] -> [(Tangle ct, s)]
+canonicalGluing :: (CrossingType ct) => GluingType ct DnSubGroup s -> [(Int, Dart ct, CrossingState ct)] -> [(Tangle ct, s)]
 canonicalGluing gluing sites = do
 	(!gl, !leg, !st) <- sites
 	guard $ preGlueTest gluing st leg gl
@@ -106,7 +128,7 @@ canonicalGluing gluing sites = do
 		Just r  -> return $! (crossingTangle root, r)
 
 
-simpleIncrementalGenerator :: (Monad m, CrossingType ct) => GluingType ct DnSubGroup -> [ct] -> Int -> (Tangle ct -> DnSubGroup -> m ()) -> m ()
+simpleIncrementalGenerator :: (Monad m, CrossingType ct) => GluingType ct DnSubGroup DnSubGroup -> [ct] -> Int -> (Tangle ct -> DnSubGroup -> m ()) -> m ()
 simpleIncrementalGenerator gluing crossingsToGlue maxN yield =
 	let dfs node@(!tangle, !symmetry) = do
 		yield tangle symmetry

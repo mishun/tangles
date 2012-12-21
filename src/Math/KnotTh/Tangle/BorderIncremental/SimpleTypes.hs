@@ -15,21 +15,21 @@ import Math.KnotTh.Tangle.BorderIncremental.IncrementalGluing
 import Math.KnotTh.Tangle.BorderIncremental.IncrementalTests
 
 
-primeProjectionType :: GluingType ProjectionCrossing DnSubGroup
+primeProjectionType :: GluingType ProjectionCrossing DnSubGroup DnSubGroup
 primeProjectionType = GluingType
 	{ preGlueTest  = \ _ _ _ -> True
 	, postGlueTest = \ _ _ _ s -> return $! s
 	}
 
 
-reducedProjectionType :: GluingType ProjectionCrossing DnSubGroup
+reducedProjectionType :: GluingType ProjectionCrossing DnSubGroup DnSubGroup
 reducedProjectionType = GluingType
 	{ preGlueTest  = const testNoMultiEdges
 	, postGlueTest = \ _ _ _ s -> return $! s
 	}
 
 
-templateProjectionType :: GluingType ProjectionCrossing DnSubGroup
+templateProjectionType :: GluingType ProjectionCrossing DnSubGroup DnSubGroup
 templateProjectionType = GluingType
 	{ preGlueTest  = \ _ leg gl ->
 		let	t = dartTangle leg
@@ -43,21 +43,21 @@ templateProjectionType = GluingType
 	}
 
 
-primeDiagramType :: GluingType ArbitraryCrossing DnSubGroup
+primeDiagramType :: GluingType ArbitraryCrossing DnSubGroup DnSubGroup
 primeDiagramType = GluingType
 	{ preGlueTest  = \ _ _ _ -> True
 	, postGlueTest = \ _ _ _ s -> return $! s
 	}
 
 
-primeIrreducibleDiagramType :: GluingType ArbitraryCrossing DnSubGroup
+primeIrreducibleDiagramType :: GluingType ArbitraryCrossing DnSubGroup DnSubGroup
 primeIrreducibleDiagramType = GluingType
 	{ preGlueTest  = testNo2ndReidemeisterReduction
 	, postGlueTest = \ _ _ _ s -> return $! s
 	}
 
 
-triangleBoundedType :: Int -> GluingType ct a -> GluingType ct a
+triangleBoundedType :: Int -> GluingType ct a b -> GluingType ct a b
 triangleBoundedType maxN gt = gt
 	{ preGlueTest = \ cr leg gl ->
 		let t = dartTangle leg
