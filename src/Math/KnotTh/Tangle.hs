@@ -22,8 +22,8 @@ module Math.KnotTh.Tangle
 	, lonerTangle
 	, transformTangle
 	, glueToBorder
-	, fromList
-	, toList
+	, implode
+	, explode
 	, containingDirectedPath
 	, containingUndirectedPath
 	, directedPathsDecomposition
@@ -312,7 +312,7 @@ transformTangle :: (CrossingType ct) => Dn -> Tangle ct -> Tangle ct
 transformTangle g tangle
 	| l /= pointsUnderGroup g                   = error "transformTangle: order conflict"
 	| reflection g == False && rotation g == 0  = tangle
-	| otherwise                                 = fromList (numberOfFreeLoops tangle, border, map crossing $ allCrossings tangle)
+	| otherwise                                 = implode (numberOfFreeLoops tangle, border, map crossing $ allCrossings tangle)
 	where
 		l = numberOfLegs tangle
 
@@ -415,8 +415,8 @@ glueToBorder leg legsToGlue crossingToGlue
 		return $! nthCrossing result newC
 
 
-fromList :: (Int, [(Int, Int)], [([(Int, Int)], CrossingState ct)]) -> Tangle ct
-fromList (!loops, !border, !list) = runST $ do
+implode :: (Int, [(Int, Int)], [([(Int, Int)], CrossingState ct)]) -> Tangle ct
+implode (!loops, !border, !list) = runST $ do
 	when (loops < 0) (fail "fromListST: number of free loops is negative")
 
 	let n = length list
@@ -473,8 +473,8 @@ fromList (!loops, !border, !list) = runST $ do
 		}
 
 
-toList :: (CrossingType ct) => Tangle ct -> (Int, [(Int, Int)], [([(Int, Int)], CrossingState ct)])
-toList tangle =
+explode :: (CrossingType ct) => Tangle ct -> (Int, [(Int, Int)], [([(Int, Int)], CrossingState ct)])
+explode tangle =
 	let crToList c = (map (toPair . opposite) $ incidentDarts c, crossingState c)
 	in (numberOfFreeLoops tangle, map (toPair . opposite) $ allLegs tangle, map crToList $ allCrossings tangle)
 

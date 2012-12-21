@@ -140,7 +140,7 @@ directSumDecompositionType c
 
 substituteTangle :: (CrossingType ct) => Tangle (SubTangleCrossing ct) -> Tangle ct
 substituteTangle tangle =
-	fromList (numberOfFreeLoops tangle, map oppositeExt $ allLegs tangle,
+	implode (numberOfFreeLoops tangle, map oppositeExt $ allLegs tangle,
 		let connections b = do
 			let rev = isCrossingOrientationInvertedInside b
 			!c <- allCrossings $! tangleInside b
