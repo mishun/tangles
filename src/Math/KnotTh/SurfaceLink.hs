@@ -9,6 +9,7 @@ module Math.KnotTh.SurfaceLink
 	, faceSurfaceLink
 	, dartSurfaceLink
 	, fromList
+	, toList
 	, testPrime
 	) where
 

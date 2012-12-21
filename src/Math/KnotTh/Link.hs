@@ -22,13 +22,6 @@ produceKnottedInstance
 	defaultKnottedInstance
 
 
-instance KnottedWithToPair Link Crossing Dart
-
-
-toList :: (CrossingType ct) => Link ct -> [([(Int, Int)], CrossingState ct)]
-toList = map (\ c -> (map (toPair . opposite) $ incidentDarts c, crossingState c)) . allCrossings
-
-
 allThreads :: Link ct -> [[(Dart ct, Dart ct)]]
 allThreads =
 	let extractThread (threads, vis) start

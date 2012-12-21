@@ -263,6 +263,8 @@ produceKnottedInstance knotPattern inst = do
 					|]) []
 			]
 
+		, instanceD (cxt []) ([t|KnottedWithToPair|] `appT` conT knotTN `appT` conT crosN `appT` conT dartN) []
+
 		, do
 			ct <- newName "ct"
 			sigD (mkName "fromList") $ forallT [PlainTV ct] (cxt [])
@@ -303,6 +305,17 @@ produceKnottedInstance knotPattern inst = do
 							, (,) loopsCount `fmap` varE loops
 							] ++ snd (toListExtra inst))
 						|] ])
+				|]) []
+
+		, do
+			ct <- newName "ct"
+			sigD (mkName "toList") $ forallT [PlainTV ct] (cxt [classP ''CrossingType [varT ct]])
+				[t| $(conT knotTN) $(varT ct) -> (Int, [([(Int, Int)], CrossingState $(varT ct))]) |]
+
+		, funD (mkName "toList") $ (:[]) $ do
+			l <- newName "l"
+			clause [varP l] (normalB [|
+				(numberOfFreeLoops $(varE l), map (\ c -> (map (toPair . opposite) $ incidentDarts c, crossingState c)) $ allCrossings $(varE l))
 				|]) []
 
 		, produceShowDart dartN
