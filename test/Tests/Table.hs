@@ -1,5 +1,5 @@
 {-# LANGUAGE Rank2Types #-}
-module TestTangles.Table
+module Tests.Table
 	( generateTable
 	, generateTable'
 	, printTable

@@ -49,9 +49,10 @@ library
         Math.KnotTh.Crossings.Arbitrary
         Math.KnotTh.Crossings.Projection
         Math.KnotTh.Crossings.SubTangle
-        Math.KnotTh.Enumeration.ByEquivalenceClasses
-        Math.KnotTh.Enumeration.ByEquivalenceClasses.NonAlternatingTangles
+        Math.KnotTh.Enumeration.Applied.NonAlternatingTangles
         Math.KnotTh.Enumeration.DiagramInfo
+        Math.KnotTh.Enumeration.EquivalenceClasses
+        Math.KnotTh.Enumeration.SiftByInvariant
         Math.KnotTh.Invariants.LinkingNumber
         Math.KnotTh.Invariants.Skein.JonesPolynomial
         Math.KnotTh.Invariants.ThreadExpansion
@@ -121,6 +122,13 @@ test-suite TestTangles
     build-depends:      base, containers, mtl, HUnit, tangles
     main-is:            TestTangles.hs
     hs-source-dirs:     test
+    other-modules:
+        Tests.Table
+        Tests.Tests
+        Tests.TestChordDiagrams
+        Tests.TestLinkInvariants
+        Tests.TestTangleGenerators
+        Tests.TestTangleInvariants
     extra-lib-dirs:     ext/gsl-1.15/lib/
 
 benchmark GraphDrawingBenchmark
@@ -133,6 +141,8 @@ benchmark GraphDrawingBenchmark
     build-depends:      base, array, tangles
     main-is:            GraphDrawingBenchmark.hs
     hs-source-dirs:     test
+    other-modules:
+        Tests.Table
     extra-lib-dirs:     ext/gsl-1.15/lib/
 
 benchmark TangleGeneratorBenchmark
@@ -145,6 +155,8 @@ benchmark TangleGeneratorBenchmark
     build-depends:      base, mtl, containers, tangles
     main-is:            TangleGeneratorBenchmark.hs
     hs-source-dirs:     test
+    other-modules:
+        Tests.Table
     extra-lib-dirs:     ext/gsl-1.15/lib/
 
 benchmark TestNonAlternatingGenerator
@@ -157,4 +169,6 @@ benchmark TestNonAlternatingGenerator
     build-depends:      base, mtl, containers, tangles
     main-is:            TestNonAlternatingGenerator.hs
     hs-source-dirs:     test
+    other-modules:
+        Tests.Table
     extra-lib-dirs:     ext/gsl-1.15/lib/

@@ -1,6 +1,6 @@
 {-# LANGUAGE Rank2Types #-}
-module Math.KnotTh.Enumeration.ByEquivalenceClasses
-	( siftByEquivalenceClasses
+module Math.KnotTh.Enumeration.EquivalenceClasses
+	( equivalenceClasses
 	) where
 
 import Data.Function (fix)
@@ -13,22 +13,22 @@ import Math.KnotTh.Knotted
 import Math.KnotTh.Enumeration.DiagramInfo
 
 
-data SiftState k v = St
+data State k v = St
 	{ set  :: !DS.IntDisjointSet
 	, keys :: !(M.Map k Int)
 	, vals :: !(IM.IntMap v)
 	}
 
 
-siftByEquivalenceClasses ::
-	(Ord c, CrossingType ct, KnottedWithConnectivity knot crossing dart, DiagramInfo info)
-		=> (knot ct -> c)
+equivalenceClasses ::
+	(CrossingType ct, KnottedWithConnectivity knot crossing dart, Ord code, DiagramInfo info)
+		=> (knot ct -> code)
 		-> [knot ct -> [knot ct]]
 		-> (forall m. (Monad m) => (knot ct -> m ()) -> m ())
 		-> [info (knot ct)]
 
-siftByEquivalenceClasses isomorphismTest moves enumerateDiagrams =
-	let final = flip execState (St { set = DS.empty, keys = M.empty, vals = IM.empty }) $ do
+equivalenceClasses isomorphismTest moves enumerateDiagrams =
+	IM.elems $ vals $ flip execState (St { set = DS.empty, keys = M.empty, vals = IM.empty }) $ do
 		let declareEquivalent !a !b = do
 			eq <- do
 				!st <- get
@@ -53,7 +53,11 @@ siftByEquivalenceClasses isomorphismTest moves enumerateDiagrams =
 			case M.lookup code $! keys st of
 				Nothing   -> do
 					let !rootId = DS.size ds
-					put $! st { set = DS.insert rootId ds, keys = M.insert code rootId $! keys st, vals = IM.insert rootId current $! vals st }
+					put $! st
+						{ set  = DS.insert rootId ds
+						, keys = M.insert code rootId $! keys st
+						, vals = IM.insert rootId current $! vals st
+						}
 					return True
 				Just elId -> do
 					let (Just rootId, ds') = DS.lookup elId ds
@@ -68,4 +72,3 @@ siftByEquivalenceClasses isomorphismTest moves enumerateDiagrams =
 				when inserted $
 					forM_ (concatMap ($ diagram) moves) (dfs $! Just code)
 				) Nothing
-	in IM.elems $ vals final

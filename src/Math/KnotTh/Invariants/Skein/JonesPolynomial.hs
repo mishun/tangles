@@ -17,6 +17,9 @@ import qualified Math.KnotTh.Link.NonAlternating as L
 import qualified Math.KnotTh.Tangle.NonAlternating as T
 
 
+type Poly = LP.LaurentMPoly Int
+
+
 data Node a = Cross a a a a | Join a a deriving (Eq, Show, Read, Ord)
 
 instance Functor Node where
@@ -59,7 +62,7 @@ kauffmanBracket calculateWrithe a b d link = writheFactor * (b ^ numberOfCrossin
 			fromIntegral k * (a ^ (u + u)) * (d ^ (v + numberOfFreeLoops link - 1))
 
 
-jonesPolynomialOfLink :: L.NonAlternatingLink -> LP.LaurentMPoly Int
+jonesPolynomialOfLink :: L.NonAlternatingLink -> Poly
 jonesPolynomialOfLink = kauffmanBracket L.selfWrithe a b d
 	where
 		a = LP.LP [(LP.LM $ Map.fromList [("t", -1 / 4)], 1)]
@@ -67,7 +70,7 @@ jonesPolynomialOfLink = kauffmanBracket L.selfWrithe a b d
 		d = -((a * a) + (b * b))
 
 
-kauffmanXPolynomialOfLink :: L.NonAlternatingLink -> LP.LaurentMPoly Int
+kauffmanXPolynomialOfLink :: L.NonAlternatingLink -> Poly
 kauffmanXPolynomialOfLink = kauffmanBracket L.selfWrithe a b d
 	where
 		a = LP.LP [(LP.LM $ Map.fromList [("A",  1)], 1)]
@@ -75,52 +78,11 @@ kauffmanXPolynomialOfLink = kauffmanBracket L.selfWrithe a b d
 		d = -((a * a) + (b * b))
 
 
-
-jonesPolynomialOfTangle :: T.NonAlternatingTangle -> [(Scheme, Poly)]
-jonesPolynomialOfTangle = jonesPolynomial
-
-
-type Poly = [(Int, Int)]
-
-
-normalize :: [(Int, Int)] -> Poly
-normalize list = sort $ filter ((/= 0) . snd) $ Map.assocs res
-	where
-		update new prev = case prev of
-			Nothing  -> Just new
-			Just !pv -> Just $! (pv + new)
-
-		res = foldl (\ m (p, e) -> Map.alter (update e) p m) Map.empty list
-
-
-negative :: Poly -> Poly
-negative = normalize . map (\ (p, e) -> (p, -e))
-
-
-(<+>), (<*>) :: Poly -> Poly -> Poly
-(<+>) l r = normalize (l ++ r)
-(<*>) l r = normalize [ (ap + bp, ae * be) | (ap, ae) <- l, (bp, be) <- r ]
-
-
-power :: (Integral ord) => ord -> Poly -> Poly
-power p x
-	| p == 0    = []
-	| p < 0     = error "power for ring must be non-negative"
-	| otherwise = mul p [(0, 1)] x
-	where
-		mul 0 acc _ = acc
-		mul n acc sq = mul half newAcc (sq <*> sq)
-			where
-				(half, rest) = divMod n 2
-				newAcc
-					| rest == 1  = sq <*> acc
-					| otherwise  = acc
-
 type Scheme = [(Int, Int)]
 
 
-jonesPolynomial :: T.NonAlternatingTangle -> [(Scheme, Poly)]
-jonesPolynomial tangle
+jonesPolynomialOfTangle :: T.NonAlternatingTangle -> [(Scheme, Poly)]
+jonesPolynomialOfTangle tangle
 	| l == 0     = bruteForceJones tangle
 	| otherwise  =
 		minimum $ map bruteForceJones $ do
@@ -134,57 +96,52 @@ jonesPolynomial tangle
 
 
 bruteForceJones :: T.NonAlternatingTangle -> [(Scheme, Poly)]
-bruteForceJones tangle = map (\ (sch, poly) -> (sch, wm <*> cm <*> poly)) $ skein (allCrossings tangle) [] [(0, 1)]
+bruteForceJones tangle = map (\ (sch, poly) -> (sch, wm * cm * poly)) $ skein (allCrossings tangle) [] 1
 	where
-		cm = power (numberOfFreeLoops tangle) d
+		cm = d ^ numberOfFreeLoops tangle
 
 		wm =	let w = T.selfWrithe tangle
-			in power ((* 3) $ abs w) (negative $ if w >= 0 then b else a)
+			in (if w >= 0 then -b else -a) ^ (3 * abs w)
 
 		skein [] assocs mul =
-			let (sch, poly) = reductionOutcome tangle (array (1, numberOfCrossings tangle) assocs)
-			in [(sch, mul <*> poly)]
+			let (sch, poly) = reductionOutcome (array (1, numberOfCrossings tangle) assocs)
+			in [(sch, mul * poly)]
 
-		skein (c : rest) assocs mul = merge sa sb
+		skein (c : rest) assocs mul = merge
+			(skein rest ((crossingIndex c, False) : assocs) (a * mul))
+			(skein rest ((crossingIndex c, True) : assocs) (b * mul))
 			where
-				sa = skein rest ((crossingIndex c, False) : assocs) (a <*> mul)
-				sb = skein rest ((crossingIndex c, True) : assocs) (b <*> mul)
-
 				merge [] bl = bl
 				merge al [] = al
-				merge ((as, ap) : al) ((bs, bp) : bl) =
+				merge al@(ae@(as, ap) : at) bl@(be@(bs, bp) : bt) =
 					case compare as bs of
-						LT -> (as, ap) : merge al ((bs, bp) : bl)
-						GT -> (bs, bp) : merge ((as, ap) : al) bl
-						EQ ->	let s = ap <+> bp
-							in if s == []
-								then merge al bl
-								else (as, s) : merge al bl
-
-		a = [(1, 1)]
-		b = [(-1, 1)]
-		d = [(-2, -1), (2, -1)]
-
-
-reductionOutcome :: T.NonAlternatingTangle -> UArray Int Bool -> (Scheme, Poly)
-reductionOutcome tangle reduction = (scheme, power circles d)
-	where
-		circles = (length paths) - (length pairs)
-
-		scheme = sort $ map toPositionPair pairs
-			where
-				toPositionPair (al, bl) = (min ap bp, max ap bp)
+						LT             -> ae : merge at bl
+						GT             -> be : merge al bt
+						EQ | s == 0    -> merge at bt
+						   | otherwise -> (as, s) : merge at bt
 					where
-						ap = T.legPlace al
-						bp = T.legPlace bl
+						s = ap + bp
 
-		pairs = map (\ path -> (fst $ head path, snd $ last path)) $ filter (T.isLeg . fst . head) paths
+		a = LP.LP [(LP.LM $ Map.fromList [("t", -1 / 4)], 1)]
+		b = LP.LP [(LP.LM $ Map.fromList [("t",  1 / 4)], 1)]
+		d = -((a * a) + (b * b))
 
-		paths = T.undirectedPathsDecomposition smooting tangle
+		reductionOutcome :: UArray Int Bool -> (Scheme, Poly)
+		reductionOutcome reduction = (scheme, d ^ circles)
 			where
-				smooting drt =
-					if (passOver drt) == (reduction ! crossingIndex (incidentCrossing drt))
-						then nextCCW drt
-						else nextCW drt
+				circles = (length paths) - (length pairs)
 
-		d = [(-2, -1), (2, -1)]
+				scheme = sort $ map toPositionPair pairs
+					where
+						toPositionPair (al, bl) = (min ap bp, max ap bp)
+							where
+								ap = T.legPlace al
+								bp = T.legPlace bl
+
+				pairs = map (\ path -> (fst $ head path, snd $ last path)) $ filter (T.isLeg . fst . head) paths
+
+				paths = T.undirectedPathsDecomposition smooting tangle
+					where
+						smooting drt
+							| passOver drt == (reduction ! crossingIndex (incidentCrossing drt))  = nextCCW drt
+							| otherwise                                                           = nextCW drt

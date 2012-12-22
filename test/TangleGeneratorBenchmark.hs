@@ -7,7 +7,7 @@ import Math.KnotTh.Tangle.Draw
 import Math.KnotTh.Tangle.BorderIncremental.SimpleTypes
 import Math.KnotTh.Tangle.BorderIncremental.FlypeGenerator
 import Graphics.HP
-import TestTangles.Table
+import Tests.Table
 
 
 main :: IO ()

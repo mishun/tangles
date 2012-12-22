@@ -17,7 +17,8 @@ class DiagramInfo info where
 	representative :: (KnottedWithConnectivity k c d) => info (k ct) -> k ct
 
 
-data MinimalDiagramInfo k = DisconnectedDiagram !k | CompositeMinimalDiagram !k | PrimeMinimalDiagram !k
+data MinimalDiagramInfo k = DisconnectedDiagram !k | CompositeMinimalDiagram !k | PrimeMinimalDiagram !k deriving (Show)
+
 
 instance DiagramInfo MinimalDiagramInfo where
 
@@ -54,6 +55,7 @@ instance DiagramInfo MinimalDiagramInfo where
 			CompositeMinimalDiagram k -> k
 			PrimeMinimalDiagram k     -> k
 
+
 maybePrimeDiagram :: MinimalDiagramInfo k -> Maybe k
 maybePrimeDiagram info =
 	case info of
@@ -61,7 +63,8 @@ maybePrimeDiagram info =
 		_                     -> Nothing
 
 
-newtype AllDiagramsInfo k = AllDiagramsInfo [k]
+newtype AllDiagramsInfo k = AllDiagramsInfo [k] deriving (Show)
+
 
 instance DiagramInfo AllDiagramsInfo where
 	merge (AllDiagramsInfo a) (AllDiagramsInfo b) = AllDiagramsInfo $ a ++ b
@@ -69,6 +72,7 @@ instance DiagramInfo AllDiagramsInfo where
 	wrap x = AllDiagramsInfo [x]
 
 	representative (AllDiagramsInfo l) = head l
+
 
 allDiagrams :: AllDiagramsInfo k -> [k]
 allDiagrams (AllDiagramsInfo l) = l
