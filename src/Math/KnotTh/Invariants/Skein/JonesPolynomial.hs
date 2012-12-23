@@ -1,7 +1,10 @@
 module Math.KnotTh.Invariants.Skein.JonesPolynomial
 	( jonesPolynomialOfLink
+	, minimalJonesPolynomialOfLink
 	, kauffmanXPolynomialOfLink
+	, minimalKauffmanXPolynomialOfLink
 	, jonesPolynomialOfTangle
+	, minimalJonesPolynomialOfTangle
 	) where
 
 import Data.List (sort)
@@ -10,7 +13,6 @@ import Data.Array.ST (STUArray, newArray, getAssocs, readArray, writeArray)
 import qualified Data.Map as Map
 import Control.Monad.ST (ST, runST)
 import qualified Math.Projects.KnotTheory.LaurentMPoly as LP
-import Math.Algebra.Group.Dn (fromReflectionRotation)
 import Math.KnotTh.Knotted
 import Math.KnotTh.Crossings.Arbitrary
 import qualified Math.KnotTh.Link.NonAlternating as L
@@ -18,6 +20,35 @@ import qualified Math.KnotTh.Tangle.NonAlternating as T
 
 
 type Poly = LP.LaurentMPoly Int
+
+
+jonesVar :: String
+jonesVar = "t"
+
+
+jonesA, jonesB, jonesD :: Poly
+jonesA = LP.LP [(LP.LM $ Map.fromList [(jonesVar, -1 / 4)], 1)]
+jonesB = LP.LP [(LP.LM $ Map.fromList [(jonesVar,  1 / 4)], 1)]
+jonesD = -((jonesA * jonesA) + (jonesB * jonesB))
+
+
+kauffmanXVar :: String
+kauffmanXVar = "A"
+
+
+kauffmanXA, kauffmanXB, kauffmanXD :: Poly
+kauffmanXA = LP.LP [(LP.LM $ Map.fromList [(kauffmanXVar,  1)], 1)]
+kauffmanXB = LP.LP [(LP.LM $ Map.fromList [(kauffmanXVar, -1)], 1)]
+kauffmanXD = -((kauffmanXA * kauffmanXA) + (kauffmanXB * kauffmanXB))
+
+
+invert :: String -> Poly -> Poly
+invert var (LP.LP monomials) = sum $ do
+	(LP.LM vars, coeff) <- monomials
+	let modify p@(x, d)
+		| x == var   = (x, -d)
+		| otherwise  = p
+	return $! LP.LP [(LP.LM $ Map.fromList $ map modify $ Map.toList vars, coeff)]
 
 
 data Node a = Cross a a a a | Join a a deriving (Eq, Show, Read, Ord)
@@ -63,53 +94,43 @@ kauffmanBracket calculateWrithe a b d link = writheFactor * (b ^ numberOfCrossin
 
 
 jonesPolynomialOfLink :: L.NonAlternatingLink -> Poly
-jonesPolynomialOfLink = kauffmanBracket L.selfWrithe a b d
-	where
-		a = LP.LP [(LP.LM $ Map.fromList [("t", -1 / 4)], 1)]
-		b = LP.LP [(LP.LM $ Map.fromList [("t",  1 / 4)], 1)]
-		d = -((a * a) + (b * b))
+jonesPolynomialOfLink = kauffmanBracket L.selfWrithe jonesA jonesB jonesD
+
+
+minimalJonesPolynomialOfLink :: L.NonAlternatingLink -> Poly
+minimalJonesPolynomialOfLink link =
+	let jp = jonesPolynomialOfLink link
+	in min jp (invert jonesVar jp)
 
 
 kauffmanXPolynomialOfLink :: L.NonAlternatingLink -> Poly
-kauffmanXPolynomialOfLink = kauffmanBracket L.selfWrithe a b d
-	where
-		a = LP.LP [(LP.LM $ Map.fromList [("A",  1)], 1)]
-		b = LP.LP [(LP.LM $ Map.fromList [("A", -1)], 1)]
-		d = -((a * a) + (b * b))
+kauffmanXPolynomialOfLink = kauffmanBracket L.selfWrithe kauffmanXA kauffmanXB kauffmanXD
+
+
+minimalKauffmanXPolynomialOfLink :: L.NonAlternatingLink -> Poly
+minimalKauffmanXPolynomialOfLink link =
+	let kp = kauffmanXPolynomialOfLink link
+	in min kp (invert kauffmanXVar kp)
 
 
 type Scheme = [(Int, Int)]
 
 
 jonesPolynomialOfTangle :: T.NonAlternatingTangle -> [(Scheme, Poly)]
-jonesPolynomialOfTangle tangle
-	| l == 0     = bruteForceJones tangle
-	| otherwise  =
-		minimum $ map bruteForceJones $ do
-			refl <- [False, True]
-			rot <- [0 .. l - 1]
-			let g = fromReflectionRotation l (refl, rot)
-			let t = T.transformTangle g tangle
-			[t, invertCrossings t]
+jonesPolynomialOfTangle tangle = map (\ (sch, poly) -> (sch, wm * cm * poly)) $ skein (allCrossings tangle) [] 1
 	where
-		l = T.numberOfLegs tangle
-
-
-bruteForceJones :: T.NonAlternatingTangle -> [(Scheme, Poly)]
-bruteForceJones tangle = map (\ (sch, poly) -> (sch, wm * cm * poly)) $ skein (allCrossings tangle) [] 1
-	where
-		cm = d ^ numberOfFreeLoops tangle
+		cm = jonesD ^ numberOfFreeLoops tangle
 
 		wm =	let w = T.selfWrithe tangle
-			in (if w >= 0 then -b else -a) ^ (3 * abs w)
+			in (if w >= 0 then -jonesB else -jonesA) ^ (3 * abs w)
 
 		skein [] assocs mul =
 			let (sch, poly) = reductionOutcome (array (1, numberOfCrossings tangle) assocs)
 			in [(sch, mul * poly)]
 
 		skein (c : rest) assocs mul = merge
-			(skein rest ((crossingIndex c, False) : assocs) (a * mul))
-			(skein rest ((crossingIndex c, True) : assocs) (b * mul))
+			(skein rest ((crossingIndex c, False) : assocs) (jonesA * mul))
+			(skein rest ((crossingIndex c, True) : assocs) (jonesB * mul))
 			where
 				merge [] bl = bl
 				merge al [] = al
@@ -122,26 +143,42 @@ bruteForceJones tangle = map (\ (sch, poly) -> (sch, wm * cm * poly)) $ skein (a
 					where
 						s = ap + bp
 
-		a = LP.LP [(LP.LM $ Map.fromList [("t", -1 / 4)], 1)]
-		b = LP.LP [(LP.LM $ Map.fromList [("t",  1 / 4)], 1)]
-		d = -((a * a) + (b * b))
-
 		reductionOutcome :: UArray Int Bool -> (Scheme, Poly)
-		reductionOutcome reduction = (scheme, d ^ circles)
+		reductionOutcome reduction = (scheme, jonesD ^ circles)
 			where
 				circles = (length paths) - (length pairs)
 
-				scheme = sort $ map toPositionPair pairs
-					where
-						toPositionPair (al, bl) = (min ap bp, max ap bp)
-							where
-								ap = T.legPlace al
-								bp = T.legPlace bl
+				scheme =
+					let toPositionPair (al, bl) = (min ap bp, max ap bp)
+						where
+							ap = T.legPlace al
+							bp = T.legPlace bl
+					in sort $ map toPositionPair pairs
 
 				pairs = map (\ path -> (fst $ head path, snd $ last path)) $ filter (T.isLeg . fst . head) paths
 
-				paths = T.undirectedPathsDecomposition smooting tangle
-					where
-						smooting drt
-							| passOver drt == (reduction ! crossingIndex (incidentCrossing drt))  = nextCCW drt
-							| otherwise                                                           = nextCW drt
+				paths =
+					let smooting drt
+						| passOver drt == (reduction ! crossingIndex (incidentCrossing drt))  = nextCCW drt
+						| otherwise                                                           = nextCW drt
+					in T.undirectedPathsDecomposition smooting tangle
+
+
+minimalJonesPolynomialOfTangle :: T.NonAlternatingTangle -> [(Scheme, Poly)]
+minimalJonesPolynomialOfTangle tangle = minimum $ do
+	let jp = jonesPolynomialOfTangle tangle
+	let l = T.numberOfLegs tangle
+	rot <- [0 .. l - 1]
+
+	f <-	let mapScheme f = map $ \ (a, b) -> 
+			let a' = f a `mod` l
+			    b' = f b `mod` l
+			in (min a' b', max a' b') -- '
+		in
+			[ \ (s, p) -> (sort $ mapScheme (+ rot) s, p)
+			, \ (s, p) -> (sort $ mapScheme (+ rot) s, invert jonesVar p)
+			, \ (s, p) -> (sort $ mapScheme (\ i -> rot - i) s, p)
+			, \ (s, p) -> (sort $ mapScheme (\ i -> rot - i) s, invert jonesVar p)
+			]
+
+	return $! sort $! map f jp

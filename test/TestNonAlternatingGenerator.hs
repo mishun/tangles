@@ -5,6 +5,7 @@ import Data.Function (on)
 import Data.List (sortBy, groupBy)
 import Control.Monad
 import Math.KnotTh.Tangle.BorderIncremental.SimpleTypes
+import Math.KnotTh.Enumeration.DiagramInfo.MinimalDiagramInfo
 import Math.KnotTh.Enumeration.Applied.NonAlternatingTangles
 import Math.KnotTh.Tangle.Draw
 import Math.KnotTh.Link.FromTangle
@@ -22,18 +23,13 @@ main = do
 			(triangleBoundedType n primeIrreducibleDiagramType)
 			[ArbitraryCrossing]
 			n
-			(\ t _ -> yield t)
+			(\ t _ -> when (numberOfLegs t == 4) $ yield t)
 
 	printTable "Diagrams" $ generateTable' $ diagrams 5
 
 	let classes = tangleClasses (diagrams 7) :: [MinimalDiagramInfo NonAlternatingTangle]
 	let sifted = siftTangles classes
-	print $ length $ snd sifted
-
-	--let invariant tangle =
-		--let inv t = (linkingNumber t, jonesPolynomialOfTangle t)
-		--in min (inv tangle) (inv $ invertCrossings tangle)
-	--	(linkingNumbersOfTangle tangle, min (jonesPolynomialOfTangle tangle) (jonesPolynomialOfTangle $ invertCrossings tangle))
+	print $ length $ collisionClasses sifted
 
 	{-forM_ tc $ \ cl -> do
 		let l = map invariant $ allDiagrams cl

@@ -51,6 +51,8 @@ library
         Math.KnotTh.Crossings.SubTangle
         Math.KnotTh.Enumeration.Applied.NonAlternatingTangles
         Math.KnotTh.Enumeration.DiagramInfo
+        Math.KnotTh.Enumeration.DiagramInfo.AllDiagramsInfo
+        Math.KnotTh.Enumeration.DiagramInfo.MinimalDiagramInfo
         Math.KnotTh.Enumeration.EquivalenceClasses
         Math.KnotTh.Enumeration.SiftByInvariant
         Math.KnotTh.Invariants.LinkingNumber

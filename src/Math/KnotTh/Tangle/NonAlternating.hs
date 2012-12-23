@@ -10,11 +10,7 @@ module Math.KnotTh.Tangle.NonAlternating
 	) where
 
 import qualified Data.Map as Map
-import Data.List (foldl', sort)
-import Data.Array (array, (!))
-import Data.Array.ST (STUArray, newArray, readArray, writeArray)
-import Control.Monad.ST (ST, runST)
-import Control.Monad (when, forM_)
+import Data.List (foldl')
 import Math.KnotTh.Crossings.Arbitrary
 import Math.KnotTh.Tangle
 

@@ -2,6 +2,7 @@
 module Math.KnotTh.Enumeration.Applied.NonAlternatingTangles
 	( module Math.KnotTh.Tangle.NonAlternating
 	, module Math.KnotTh.Enumeration.DiagramInfo
+	, module Math.KnotTh.Enumeration.SiftByInvariant
 	, tangleClasses
 	, weakTangleClasses
 	, siftTangles
@@ -46,11 +47,11 @@ weakTangleClasses =
 			])
 
 
-siftTangles :: (DiagramInfo info) => [info NonAlternatingTangle] -> ([info NonAlternatingTangle], [[info NonAlternatingTangle]])
+siftTangles :: (DiagramInfo info) => [info NonAlternatingTangle] -> SiftResult info NonAlternatingTangle
 siftTangles = siftByInvariant $ \ tangle ->
-	(linkingNumbersOfTangle tangle, min (jonesPolynomialOfTangle tangle) (jonesPolynomialOfTangle $ invertCrossings tangle))
+	(linkingNumbersOfTangle tangle, minimalJonesPolynomialOfTangle tangle)
 
 
-siftWeakTangles :: (DiagramInfo info) => [info NonAlternatingTangle] -> ([info NonAlternatingTangle], [[info NonAlternatingTangle]])
+siftWeakTangles :: (DiagramInfo info) => [info NonAlternatingTangle] -> SiftResult info NonAlternatingTangle
 siftWeakTangles = siftByInvariant $ \ tangle ->
 	(jonesPolynomialOfLink $ tangleDoubling id tangle)
