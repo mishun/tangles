@@ -1,5 +1,6 @@
 module Math.KnotTh.Crossings.Arbitrary
 	( ArbitraryCrossing(..)
+	, ArbitraryCrossingState
 	, overCrossing
 	, underCrossing
 	, arbitraryCrossings
@@ -37,19 +38,22 @@ instance Show ArbitraryCrossing where
 	show _ = "-|-"
 
 
-overCrossing :: CrossingState ArbitraryCrossing
+type ArbitraryCrossingState = CrossingState ArbitraryCrossing
+
+
+overCrossing :: ArbitraryCrossingState
 overCrossing = makeCrossing ArbitraryCrossing i
 
 
-underCrossing :: CrossingState ArbitraryCrossing
+underCrossing :: ArbitraryCrossingState
 underCrossing = makeCrossing ArbitraryCrossing c
 
 
-arbitraryCrossings :: [CrossingState ArbitraryCrossing]
+arbitraryCrossings :: [ArbitraryCrossingState]
 arbitraryCrossings = [overCrossing, underCrossing]
 
 
-overCrossingOnly :: [CrossingState ArbitraryCrossing]
+overCrossingOnly :: [ArbitraryCrossingState]
 overCrossingOnly = [overCrossing]
 
 
@@ -61,11 +65,11 @@ passUnder :: (Knotted k c d) => d ArbitraryCrossing -> Bool
 passUnder = odd . crossingLegIdByDart
 
 
-passOver' :: CrossingState ArbitraryCrossing -> Int -> Bool
+passOver' :: ArbitraryCrossingState -> Int -> Bool
 passOver' cr p = even $ crossingLegIdByDartId cr p
 
 
-passUnder' :: CrossingState ArbitraryCrossing -> Int -> Bool
+passUnder' :: ArbitraryCrossingState -> Int -> Bool
 passUnder' cr p = odd $ crossingLegIdByDartId cr p
 
 

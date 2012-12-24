@@ -1,5 +1,6 @@
 module Math.KnotTh.Crossings.Projection
 	( ProjectionCrossing(..)
+	, ProjectionCrossingState
 	, projectionCrossing
 	, projectionCrossings
 	, projection
@@ -26,11 +27,14 @@ instance Show ProjectionCrossing where
 	show _ = "+"
 
 
-projectionCrossing :: CrossingState ProjectionCrossing
+type ProjectionCrossingState = CrossingState ProjectionCrossing
+
+
+projectionCrossing :: ProjectionCrossingState
 projectionCrossing = makeCrossing' ProjectionCrossing
 
 
-projectionCrossings :: [CrossingState ProjectionCrossing]
+projectionCrossings :: [ProjectionCrossingState]
 projectionCrossings = [projectionCrossing]
 
 

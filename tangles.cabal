@@ -61,6 +61,8 @@ library
         Math.KnotTh.Knotted
         Math.KnotTh.Link
         Math.KnotTh.Link.FromTangle
+        Math.KnotTh.Link.GaussCode
+        Math.KnotTh.Link.LinkTable
         Math.KnotTh.Link.NonAlternating
         Math.KnotTh.Link.Projection
         Math.KnotTh.SurfaceLink
@@ -112,6 +114,7 @@ library
         Math.KnotTh.Knotted.TH.Knotted
         Math.KnotTh.Knotted.TH.Show
         Math.KnotTh.Knotted.Util
+        Math.KnotTh.Link.GaussCodesList
         Math.KnotTh.Tangle.Moves.Resting
 
 test-suite TestTangles

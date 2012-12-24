@@ -5,10 +5,6 @@ module Math.KnotTh.Link.NonAlternating
 	, isAlternating
 	, alternatingDefect
 	, selfWrithe
-	, fromGaussCode
-	, toGaussCode
-	, fromDTCode
-	, toDTCode
 	, singleCrossingUnknot
 	, hopfLink
 	, leftTrefoilKnot
@@ -20,8 +16,6 @@ module Math.KnotTh.Link.NonAlternating
 
 import Data.List (foldl')
 import qualified Data.Map as Map
-import Data.Array.ST (STUArray, newArray_)
-import Control.Monad.ST (ST, runST)
 import Math.KnotTh.Crossings.Arbitrary
 import Math.KnotTh.Link
 
@@ -53,25 +47,6 @@ selfWrithe =
 				cr = incidentCrossing d
 		in fst . foldl' edgeWrithe (0, Map.empty)
 	in sum . map threadWrithe . allThreads
-
-
-fromGaussCode :: [[Int]] -> NonAlternatingLink
-fromGaussCode _ = runST $ do
-	let n = undefined
-	sign <- newArray_ (1, n) :: ST s (STUArray s Int Bool)
-	return $! undefined
-
-
-toGaussCode :: NonAlternatingLink -> [[Int]]
-toGaussCode _ = undefined
-
-
-fromDTCode :: [Int] -> NonAlternatingLink
-fromDTCode _ = undefined
-
-
-toDTCode :: NonAlternatingLink -> [Int]
-toDTCode _ = undefined
 
 
 singleCrossingUnknot :: NonAlternatingLink

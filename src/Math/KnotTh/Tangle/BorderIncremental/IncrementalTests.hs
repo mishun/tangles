@@ -23,7 +23,7 @@ testNoMultiEdges leg gl =
 		) ls $! tail ls
 
 
-testNo2ndReidemeisterReduction :: CrossingState ArbitraryCrossing -> Dart ArbitraryCrossing -> Int -> Bool
+testNo2ndReidemeisterReduction :: ArbitraryCrossingState -> Dart ArbitraryCrossing -> Int -> Bool
 testNo2ndReidemeisterReduction cr leg gl =
 	let	legs = take gl $ iterate nextCW leg
 		test (i, a, b)

@@ -173,7 +173,7 @@ minimalJonesPolynomialOfTangle tangle = minimum $ do
 	f <-	let mapScheme f = map $ \ (a, b) -> 
 			let a' = f a `mod` l
 			    b' = f b `mod` l
-			in (min a' b', max a' b') -- '
+			in (min a' b', max a' b')
 		in
 			[ \ (s, p) -> (sort $ mapScheme (+ rot) s, p)
 			, \ (s, p) -> (sort $ mapScheme (+ rot) s, invert jonesVar p)
