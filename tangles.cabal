@@ -114,7 +114,9 @@ library
         Math.KnotTh.Knotted.TH.Knotted
         Math.KnotTh.Knotted.TH.Show
         Math.KnotTh.Knotted.Util
-        Math.KnotTh.Link.GaussCodesList
+        Math.KnotTh.Link.LinkTable.Access
+        Math.KnotTh.Link.LinkTable.List
+        Math.KnotTh.Link.LinkTable.Named
         Math.KnotTh.Tangle.Moves.Resting
 
 test-suite TestTangles
