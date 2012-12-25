@@ -65,7 +65,7 @@ splice i = go
 
 
 decode :: (Int, [[Int]]) -> NonAlternatingLink
-decode (n, threads) = fromList (length $ filter null threads, incidence)
+decode (n, threads) = implode (length $ filter null threads, incidence)
 	where
 		chords = foldl (\ l i -> splice i l) (filter (not . null) threads) [1 .. n]
 

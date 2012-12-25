@@ -11,7 +11,7 @@ import qualified Math.KnotTh.Tangle as T
 tangleDoubling :: (CrossingType ct) => (D4 -> D4) -> T.Tangle ct -> L.Link ct
 tangleDoubling f tangle =
 	let resultLoops = 2 * (numberOfFreeLoops tangle) + div (length $ filter T.isLeg $ T.allLegOpposites tangle) 2
-	in L.fromList (resultLoops, do
+	in L.implode (resultLoops, do
 		let atTop d =
 			let c = incidentCrossing d
 			in (2 * crossingIndex c - 1, dartPlace d)

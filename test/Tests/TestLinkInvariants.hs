@@ -25,5 +25,6 @@ tests = "Link invariants" ~:
 			, ("stevedore knot"     , stevedoreKnot       , "t^-4-t^-3+t^-2-2t^-1+2-t+t^2"             )
 			, ("6_2 knot"           , knot 6 2            , "t^-5-2t^-4+2t^-3-2t^-2+2t^-1-1+t"         )
 			, ("6_3 kont"           , knot 6 3            , "-t^-3+2t^-2-2t^-1+3-2t+2t^2-t^3"          )
+			, ("borromean rings"    , borromeanRingsLink  , "-t^-3+3t^-2-2t^-1+4-2t+3t^2-t^3"          )
 			]
 	]

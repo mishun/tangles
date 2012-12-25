@@ -6,8 +6,8 @@ module Math.KnotTh.Link
 	, Dart
 	, crossingLink
 	, dartLink
-	, fromList
-	, toList
+	, implode
+	, explode
 	, allThreads
 	) where
 

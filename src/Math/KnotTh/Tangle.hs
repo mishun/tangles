@@ -417,27 +417,27 @@ glueToBorder leg legsToGlue crossingToGlue
 
 implode :: (Int, [(Int, Int)], [([(Int, Int)], CrossingState ct)]) -> Tangle ct
 implode (!loops, !border, !list) = runST $ do
-	when (loops < 0) (fail "fromListST: number of free loops is negative")
+	when (loops < 0) (fail "implode: number of free loops is negative")
 
 	let n = length list
 	let l = length border
-	when (l <= 0 || odd l) (fail "fromLists: number of legs must be positive and even")
+	when (l <= 0 || odd l) (fail "implode: number of legs must be positive and even")
 
 	let	{-# INLINE testPair #-}
 		testPair c p =
 			case c of
-				0                  -> when (p < 0 || p >= l) (fail "fromLists: leg index is out of bound")
-				_ | c < 0 || c > n -> fail "fromLists: crossing index must be from 1 to number of crossings"
-				  | otherwise      -> when (p < 0 || p > 3) (fail "fromLists: place index is out of bound")
+				0                  -> when (p < 0 || p >= l) (fail "implode: leg index is out of bound")
+				_ | c < 0 || c > n -> fail "implode: crossing index must be from 1 to number of crossings"
+				  | otherwise      -> when (p < 0 || p > 3) (fail "implode: place index is out of bound")
 
 	ls <- newArray_ (0, 2 * l - 1)
 	forM_ (zip border [0 ..]) $ \ ((!c, !p), !i) -> do
 		testPair c p
-		when (c == 0 && p == i) (fail "fromLists: leg connected to itself")
+		when (c == 0 && p == i) (fail "implode: leg connected to itself")
 		when (c == 0 && p < i) $ do
 			c' <- unsafeRead ls (2 * p)
 			p' <- unsafeRead ls (2 * p + 1)
-			when (c' /= 0 || p' /= i) (fail "fromLists: unconsistent data")
+			when (c' /= 0 || p' /= i) (fail "implode: unconsistent data")
 		unsafeWrite ls (2 * i) c
 		unsafeWrite ls (2 * i + 1) p
 
@@ -445,17 +445,17 @@ implode (!loops, !border, !list) = runST $ do
 	st <- newArray_ (0, n - 1) :: ST s (STArray s Int a)
 	forM_ (zip list [0 ..]) $ \ ((!ns, !state), !i) -> do
 		unsafeWrite st i state
-		when (length ns /= 4) (fail "fromLists: there must be 4 neighbours for every crossing")
+		when (length ns /= 4) (fail "implode: there must be 4 neighbours for every crossing")
 		forM_ (zip ns [0 ..]) $ \ ((!c, !p), !j) -> do
 			testPair c p
-			when (c == i + 1 && p == j) (fail "fromLists: dart connected to itself")
+			when (c == i + 1 && p == j) (fail "implode: dart connected to itself")
 			when (c <= i || (c == i + 1 && p < j)) $ do
 				let (a, offset)
 					| c == 0     = (ls, p)
 					| otherwise  = (cr, 4 * (c - 1) + p)
 				c' <- unsafeRead a (2 * offset)
 				p' <- unsafeRead a (2 * offset + 1)
-				when (c' /= i + 1 || p' /= j) (fail "fromLists: unconsistent data")
+				when (c' /= i + 1 || p' /= j) (fail "implode: unconsistent data")
 			let offset = 4 * i + j
 			unsafeWrite cr (2 * offset) c
 			unsafeWrite cr (2 * offset + 1) p

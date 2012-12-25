@@ -267,15 +267,15 @@ produceKnottedInstance knotPattern inst = do
 
 		, do
 			ct <- newName "ct"
-			sigD (mkName "fromList") $ forallT [PlainTV ct] (cxt [])
+			sigD (mkName "implode") $ forallT [PlainTV ct] (cxt [])
 				[t| (Int, [([(Int, Int)], CrossingState $(varT ct))]) -> $(conT knotTN) $(varT ct) |]
 
-		, funD (mkName "fromList") $ (:[]) $ do
+		, funD (mkName "implode") $ (:[]) $ do
 			loops <- newName "loops"
 			list <- newName "list"
 			clause [tupP [bangP $ varP loops, bangP $ varP list]] (normalB [|
 				runST $ do
-					when ($(varE loops) < (0 :: Int)) (fail "fromListST: number of free loops is negative")
+					when ($(varE loops) < (0 :: Int)) (fail "implode: number of free loops is negative")
 
 					let n = length $(varE list)
 					cr <- newArray_ (0, 4 * n - 1) :: ST s (STUArray s Int Int)
@@ -283,16 +283,16 @@ produceKnottedInstance knotPattern inst = do
 
 					forM_ (zip $(varE list) [0 ..]) $ \ ((!ns, !state), !i) -> do
 						unsafeWrite st i state
-						when (length ns /= 4) (fail "fromList: there must be 4 neighbours for every crossing")
+						when (length ns /= 4) (fail "implode: there must be 4 neighbours for every crossing")
 						forM_ (zip ns [0 ..]) $ \ ((!c, !p), !j) -> do
-							when (c < 1 || c > n || p < 0 || p > 3) (fail "fromList: out of bound")
+							when (c < 1 || c > n || p < 0 || p > 3) (fail "implode: out of bound")
 							let a = 4 * i + j
 							let b = 4 * (c - 1) + p
-							when (a == b) (fail "fromList: dart connected to itself")
+							when (a == b) (fail "implode: dart connected to itself")
 							unsafeWrite cr a b
 							when (b < a) $ do
 								x <- unsafeRead cr b
-								when (x /= a) (fail "fromList: unconsistent data")
+								when (x /= a) (fail "implode: unconsistent data")
 
 					cr' <- unsafeFreeze cr
 					st' <- unsafeFreeze st
@@ -309,10 +309,10 @@ produceKnottedInstance knotPattern inst = do
 
 		, do
 			ct <- newName "ct"
-			sigD (mkName "toList") $ forallT [PlainTV ct] (cxt [classP ''CrossingType [varT ct]])
+			sigD (mkName "explode") $ forallT [PlainTV ct] (cxt [classP ''CrossingType [varT ct]])
 				[t| $(conT knotTN) $(varT ct) -> (Int, [([(Int, Int)], CrossingState $(varT ct))]) |]
 
-		, funD (mkName "toList") $ (:[]) $ do
+		, funD (mkName "explode") $ (:[]) $ do
 			l <- newName "l"
 			clause [varP l] (normalB [|
 				(numberOfFreeLoops $(varE l), map (\ c -> (map (toPair . opposite) $ incidentDarts c, crossingState c)) $ allCrossings $(varE l))
