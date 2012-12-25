@@ -35,7 +35,7 @@ fromTangleAndStar' withLeg tangle =
 	let watch d
 		| T.isDart d  = T.toPair d
 		| otherwise   = watch $ opposite $ withLeg d
-	in L.fromList
+	in L.implode
 		( numberOfFreeLoops tangle + div (length $ filter (\ l -> opposite l == withLeg l) $ T.allLegs tangle) 2
 		, map (\ c -> (map watch $ adjacentDarts c, crossingState c)) $ allCrossings tangle
 		)

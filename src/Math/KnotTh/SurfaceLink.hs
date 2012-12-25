@@ -8,8 +8,8 @@ module Math.KnotTh.SurfaceLink
 	, crossingSurfaceLink
 	, faceSurfaceLink
 	, dartSurfaceLink
-	, fromList
-	, toList
+	, implode
+	, explode
 	, testPrime
 	) where
 
