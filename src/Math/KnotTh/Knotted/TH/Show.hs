@@ -11,8 +11,8 @@ import Text.Printf (printf)
 import Math.KnotTh.Knotted
 
 
-produceShowDart :: Name -> DecQ
-produceShowDart dartN = do
+produceShowDart :: Name -> DecsQ
+produceShowDart dartN = (:[]) `fmap` do
 	ct <- varT `fmap` newName "ct"
 	instanceD (cxt []) (conT ''Show `appT` (conT dartN `appT` ct))
 		[ valD (varP 'show)
@@ -23,8 +23,8 @@ produceShowDart dartN = do
 		]
 
 
-produceShowCrossing :: Name -> DecQ
-produceShowCrossing crosN = do
+produceShowCrossing :: Name -> DecsQ
+produceShowCrossing crosN = (:[]) `fmap` do
 	ct <- varT `fmap` newName "ct"
 	instanceD (cxt [classP ''Show [ct], classP ''CrossingType [ct]]) (conT ''Show `appT` (conT crosN `appT` ct))
 		[ valD (varP 'show)
@@ -38,8 +38,8 @@ produceShowCrossing crosN = do
 		]
 
 
-produceShowKnot :: Name -> DecQ
-produceShowKnot knotN = do
+produceShowKnot :: Name -> DecsQ
+produceShowKnot knotN = (:[]) `fmap` do
 	ct <- varT `fmap` newName "ct"
 	instanceD (cxt [classP ''Show [ct], classP ''CrossingType [ct]]) (conT ''Show `appT` (conT knotN `appT` ct))
 		[ valD (varP 'show)

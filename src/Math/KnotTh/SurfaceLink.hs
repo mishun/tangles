@@ -20,16 +20,26 @@ import Control.Monad.ST (ST, runST)
 import Control.Monad (when, forM_, liftM)
 import Math.KnotTh.Knotted
 import Math.KnotTh.Knotted.TH.Knotted
+import Math.KnotTh.Knotted.TH.Show
 
 
-produceKnottedInstance
+produceKnotted
 	[d| data SurfaceLink ct = SurfaceLink
 		{ faceCount :: Int
 		}
 	|]
-	defaultKnottedInstance
-		{ toListExtra = ([], [liftM ((,) (mkName "faceCount")) $ litE (integerL 0)])
+	defaultKnotted
+		{ implodeExplodeSettings = Just $ defaultImplodeExplode
+			{ implodeInitializers = [liftM ((,) (mkName "faceCount")) $ litE (integerL 0)]
+			}
 		}
+
+produceShowDart ''Dart
+produceShowCrossing ''Crossing
+produceShowKnot ''SurfaceLink
+
+
+instance KnottedWithToPair SurfaceLink Crossing Dart
 
 
 data Face ct = Face !(SurfaceLink ct) {-# UNPACK #-} !Int

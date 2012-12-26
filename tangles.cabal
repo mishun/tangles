@@ -119,13 +119,16 @@ library
         Math.KnotTh.Link.LinkTable.Access
         Math.KnotTh.Link.LinkTable.List
         Math.KnotTh.Link.LinkTable.Named
+        Math.KnotTh.Tangle.Def.OldTangle
+        Math.KnotTh.Tangle.Def.Tangle
+        Math.KnotTh.Tangle.Def.Util
         Math.KnotTh.Tangle.Moves.Resting
 
 test-suite TestTangles
     type:               exitcode-stdio-1.0
     default-language:   Haskell2010
     default-extensions: BangPatterns
-    ghc-options:        -O2 -threaded
+    ghc-options:        -O -threaded
     ghc-prof-options:   -rtsopts -prof -auto-all -caf-all
     ld-options:         -static
     build-depends:      base, containers, mtl, HUnit, tangles
@@ -133,9 +136,10 @@ test-suite TestTangles
     hs-source-dirs:     test
     other-modules:
         Tests.Table
-        Tests.Tests
+        Tests.TestBasicTangle
         Tests.TestChordDiagrams
         Tests.TestLinkInvariants
+        Tests.Tests
         Tests.TestTangleGenerators
         Tests.TestTangleInvariants
     extra-lib-dirs:     ext/gsl-1.15/lib/
@@ -144,7 +148,7 @@ benchmark GraphDrawingBenchmark
     type:               exitcode-stdio-1.0
     default-language:   Haskell2010
     default-extensions: BangPatterns
-    ghc-options:        -Wall -O2 -threaded
+    ghc-options:        -O -threaded
     ghc-prof-options:   -rtsopts -prof -auto-all -caf-all
     ld-options:         -static
     build-depends:      base, array, tangles
@@ -158,7 +162,7 @@ benchmark TangleGeneratorBenchmark
     type:               exitcode-stdio-1.0
     default-language:   Haskell2010
     default-extensions: BangPatterns
-    ghc-options:        -Wall -O2 -threaded
+    ghc-options:        -O -threaded
     ghc-prof-options:   -rtsopts -prof -auto-all -caf-all
     ld-options:         -static
     build-depends:      base, mtl, containers, tangles
@@ -172,7 +176,7 @@ benchmark TestNonAlternatingGenerator
     type:               exitcode-stdio-1.0
     default-language:   Haskell2010
     default-extensions: BangPatterns
-    ghc-options:        -Wall -O2 -threaded
+    ghc-options:        -O -threaded
     ghc-prof-options:   -rtsopts -prof -auto-all -caf-all
     ld-options:         -static
     build-depends:      base, mtl, containers, tangles

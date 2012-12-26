@@ -15,11 +15,19 @@ import Data.List (foldl')
 import qualified Data.Set as Set
 import Math.KnotTh.Knotted
 import Math.KnotTh.Knotted.TH.Knotted
+import Math.KnotTh.Knotted.TH.Show
 
 
-produceKnottedInstance
+produceKnotted
 	[d| data Link ct = Link {} |]
-	defaultKnottedInstance
+	defaultKnotted
+
+produceShowDart ''Dart
+produceShowCrossing ''Crossing
+produceShowKnot ''Link
+
+
+instance KnottedWithToPair Link Crossing Dart
 
 
 allThreads :: Link ct -> [[(Dart ct, Dart ct)]]
