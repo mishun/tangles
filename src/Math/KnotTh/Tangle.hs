@@ -352,7 +352,8 @@ glueToBorder leg legsToGlue crossingToGlue
 	| otherwise                         = runST $ do
 		let tangle = dartTangle leg
 		let oldL = numberOfLegs tangle
-		when (oldL <= legsToGlue) (fail "glueToBorder: not enough legs to glue")
+		when (oldL <= legsToGlue) $ fail $
+			printf "glueToBorder: not enough legs to glue (l = %i, legsToGlue = %i)" oldL legsToGlue
 
 		let oldC = numberOfCrossings tangle
 		let newC = oldC + 1
@@ -417,27 +418,32 @@ glueToBorder leg legsToGlue crossingToGlue
 
 implode :: (Int, [(Int, Int)], [([(Int, Int)], CrossingState ct)]) -> Tangle ct
 implode (!loops, !border, !list) = runST $ do
-	when (loops < 0) (fail "implode: number of free loops is negative")
+	when (loops < 0) $ fail $
+		printf "implode: number of free loops is negative (%i)" loops
 
 	let n = length list
 	let l = length border
-	when (l <= 0 || odd l) (fail "implode: number of legs must be positive and even")
+	when (odd l) $ fail $
+		printf "implode: number of legs must be even (%i)" l
 
 	let	{-# INLINE testPair #-}
-		testPair c p =
-			case c of
-				0                  -> when (p < 0 || p >= l) (fail "implode: leg index is out of bound")
-				_ | c < 0 || c > n -> fail "implode: crossing index must be from 1 to number of crossings"
-				  | otherwise      -> when (p < 0 || p > 3) (fail "implode: place index is out of bound")
+		testPair c p = case c of
+			0 | p < 0 || p >= l -> fail $ printf "implode: leg index %i is out of bound" p
+			  | otherwise       -> return ()
+			_ | c < 0 || c > n  -> fail $ printf "implode: crossing index %i is out of bounds (1, %i)" c n
+			  | p < 0 || p > 3  -> fail $ printf "implode: place %i index is out of bound" p
+			  | otherwise       -> return ()
 
 	ls <- newArray_ (0, 2 * l - 1)
 	forM_ (zip border [0 ..]) $ \ ((!c, !p), !i) -> do
 		testPair c p
-		when (c == 0 && p == i) (fail "implode: leg connected to itself")
+		when (c == 0 && p == i) $ fail $
+			printf "implode: leg %i connected to itself" i
 		when (c == 0 && p < i) $ do
 			c' <- unsafeRead ls (2 * p)
 			p' <- unsafeRead ls (2 * p + 1)
-			when (c' /= 0 || p' /= i) (fail "implode: unconsistent data")
+			when (c' /= 0 || p' /= i) $ fail $
+				printf "implode: unconsistent data at leg %i" i
 		unsafeWrite ls (2 * i) c
 		unsafeWrite ls (2 * i + 1) p
 
@@ -445,17 +451,20 @@ implode (!loops, !border, !list) = runST $ do
 	st <- newArray_ (0, n - 1) :: ST s (STArray s Int a)
 	forM_ (zip list [0 ..]) $ \ ((!ns, !state), !i) -> do
 		unsafeWrite st i state
-		when (length ns /= 4) (fail "implode: there must be 4 neighbours for every crossing")
+		when (length ns /= 4) $ fail $
+			printf "implode: there must be 4 neighbours for every crossing, but got %i at %i" (length ns) (i + 1)
 		forM_ (zip ns [0 ..]) $ \ ((!c, !p), !j) -> do
 			testPair c p
-			when (c == i + 1 && p == j) (fail "implode: dart connected to itself")
+			when (c == i + 1 && p == j) $ fail $
+				printf "implode: dart (%i, %i) connected to itself" (i + 1) j
 			when (c <= i || (c == i + 1 && p < j)) $ do
 				let (a, offset)
 					| c == 0     = (ls, p)
 					| otherwise  = (cr, 4 * (c - 1) + p)
 				c' <- unsafeRead a (2 * offset)
 				p' <- unsafeRead a (2 * offset + 1)
-				when (c' /= i + 1 || p' /= j) (fail "implode: unconsistent data")
+				when (c' /= i + 1 || p' /= j) $ fail $
+					printf "implode: unconsistent data at dart (%i, %i)" (i + 1) j
 			let offset = 4 * i + j
 			unsafeWrite cr (2 * offset) c
 			unsafeWrite cr (2 * offset + 1) p

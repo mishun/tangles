@@ -22,7 +22,9 @@ minimumCyclicShift list = shift `seq` (shift, drop shift list ++ take shift list
 					EQ -> grow i (j + 1) lyn
 					LT -> (j, lyn)
 
-		scanChunk i = if ni < n then scanChunk ni else i
+		scanChunk i
+			| ni < n     = scanChunk ni
+			| otherwise  = i
 			where
 				(j, lyn) = grow i 1 1
 				ni = i + (j - mod j lyn)

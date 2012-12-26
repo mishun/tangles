@@ -14,6 +14,7 @@ import Data.Array.Unsafe (unsafeFreeze)
 import Data.Array.ST (STArray, STUArray, runSTArray, newArray_)
 import Control.Monad.ST (ST, runST)
 import Control.Monad (when, forM_)
+import Control.DeepSeq
 import Math.Algebra.RotationDirection
 import Math.KnotTh.Knotted
 import Math.KnotTh.Knotted.TH.Show
@@ -128,6 +129,14 @@ produceKnottedInstance knotPattern inst = do
 					|]) []
 			]
 
+		, do
+			ct <- newName "ct"
+			k <- newName "k"
+			instanceD (cxt [classP ''NFData [varT ct]]) ([t|NFData|] `appT` (conT knotTN `appT` varT ct))
+				[ funD 'rnf $ (:[]) $ clause [varP k] (normalB [|
+					rnf ($(varE stateArray) $(varE k)) `seq` $(varE k) `seq` ()
+					|]) []
+				]
 
 		, instanceD (cxt []) ([t|Knotted|] `appT` conT knotTN `appT` conT crosN `appT` conT dartN)
 			[ funD 'numberOfFreeLoops $ (:[]) $ clause [] (normalB $ varE loopsCount) []

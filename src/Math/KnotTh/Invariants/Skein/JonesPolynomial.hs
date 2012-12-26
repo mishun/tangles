@@ -17,6 +17,7 @@ import Math.KnotTh.Knotted
 import Math.KnotTh.Crossings.Arbitrary
 import qualified Math.KnotTh.Link.NonAlternating as L
 import qualified Math.KnotTh.Tangle.NonAlternating as T
+import qualified Math.KnotTh.Tangle.NonAlternating.Writhe as TW
 
 
 type Poly = LP.LaurentMPoly Int
@@ -121,7 +122,7 @@ jonesPolynomialOfTangle tangle = map (\ (sch, poly) -> (sch, wm * cm * poly)) $ 
 	where
 		cm = jonesD ^ numberOfFreeLoops tangle
 
-		wm =	let w = T.selfWrithe tangle
+		wm =	let w = TW.selfWrithe tangle
 			in (if w >= 0 then -jonesB else -jonesA) ^ (3 * abs w)
 
 		skein [] assocs mul =

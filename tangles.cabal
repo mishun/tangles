@@ -81,6 +81,8 @@ library
         Math.KnotTh.Tangle.Flypes
         Math.KnotTh.Tangle.IsomorphismTest
         Math.KnotTh.Tangle.NonAlternating
+        Math.KnotTh.Tangle.NonAlternating.TwistedDouble
+        Math.KnotTh.Tangle.NonAlternating.Writhe
         Math.KnotTh.Tangle.Moves.DoublePass
         Math.KnotTh.Tangle.Moves.Flype
         Math.KnotTh.Tangle.Moves.Move

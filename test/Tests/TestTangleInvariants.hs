@@ -5,6 +5,7 @@ module Tests.TestTangleInvariants
 import Control.Monad (forM_)
 import Test.HUnit
 import Math.KnotTh.Tangle.NonAlternating
+import Math.KnotTh.Tangle.NonAlternating.TwistedDouble
 import Math.KnotTh.Tangle.BorderIncremental.SimpleTypes
 import Math.KnotTh.Enumeration.DiagramInfo.AllDiagramsInfo
 import Math.KnotTh.Enumeration.Applied.NonAlternatingTangles
@@ -12,22 +13,26 @@ import Math.KnotTh.Invariants.LinkingNumber
 import Math.KnotTh.Invariants.Skein.JonesPolynomial
 
 
-classes n = map allDiagrams $ tangleClasses $ \ yield ->
-	simpleIncrementalGenerator
-		(triangleBoundedType n primeIrreducibleDiagramType)
-		[ArbitraryCrossing]
-		n
-		(\ t _ -> yield t)
+testInvariantness n f =
+	forM_ classes $ \ cls -> do
+		let inv = map f cls
+		mapM_ (@?= head inv) inv
+	where
+		classes = map allDiagrams $ tangleClasses $ \ yield ->
+			simpleIncrementalGenerator
+				(triangleBoundedType n primeIrreducibleDiagramType)
+				[ArbitraryCrossing]
+				n
+				(\ t _ -> yield t)
 
 
 tests = "Tangle invariants" ~: 
-	[ "Linking numbers" ~: do
-		forM_ (classes 6) $ \ cls -> do
-			let inv = map linkingNumbersOfTangle cls
-			mapM_ (@?= head inv) inv
+	[ "Linking numbers" ~:
+		testInvariantness 6 linkingNumbersOfTangle
 
-	, "Jones polynomial" ~: do
-		forM_ (classes 6) $ \ cls -> do
-			let inv = map minimalJonesPolynomialOfTangle cls
-			mapM_ (@?= head inv) inv
+	, "Jones polynomial" ~:
+		testInvariantness 6 minimalJonesPolynomialOfTangle
+
+	, "Jones polynomial of doubling" ~:
+		testInvariantness 3 (minimalJonesPolynomialOfTangle . twistedDouble)
 	]
