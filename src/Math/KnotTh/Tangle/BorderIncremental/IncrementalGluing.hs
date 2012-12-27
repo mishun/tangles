@@ -1,6 +1,5 @@
 module Math.KnotTh.Tangle.BorderIncremental.IncrementalGluing
 	( GluingType(..)
-	, append
 	, nextNumberOfLegs
 	, diagonalIndex
 	, allGluingSites'
@@ -11,6 +10,7 @@ module Math.KnotTh.Tangle.BorderIncremental.IncrementalGluing
 	, simpleIncrementalGenerator
 	) where
 
+import qualified Control.Category as Cat
 import Data.Monoid (Monoid(..))
 import Control.Monad (when, guard)
 import Math.Algebra.Group.Dn (DnSubGroup, pointsUnderSubGroup, rotationPeriod, hasReflectionPart, mirroredZero)
@@ -25,24 +25,31 @@ data GluingType ct s t = GluingType
 	}
 
 
-append :: GluingType ct a b -> GluingType ct b c -> GluingType ct a c
-append a b = GluingType
-	{ preGlueTest  = \ cs leg gl -> preGlueTest a cs leg gl && preGlueTest b cs leg gl
-	, postGlueTest = \ cr gl leg s -> postGlueTest a cr gl leg s >>= postGlueTest b cr gl leg
-	}
-
-
-instance Monoid (GluingType ct s s) where
-	mappend = append
-
-	mempty = GluingType
+instance Cat.Category (GluingType ct) where
+	id = GluingType
 		{ preGlueTest  = \ _ _ _ -> True
 		, postGlueTest = \ _ _ _ s -> return $! s
 		}
 
+	(.) b a = GluingType
+		{ preGlueTest  = \ cs leg gl ->
+			preGlueTest a cs leg gl && preGlueTest b cs leg gl
+
+		, postGlueTest = \ cr gl leg s ->
+			postGlueTest a cr gl leg s >>= postGlueTest b cr gl leg
+		}
+
+
+instance Monoid (GluingType ct s s) where
+	mappend a b = b Cat.. a
+	mempty = Cat.id
+
 
 instance Functor (GluingType ct s) where
-	fmap f x = x { postGlueTest = \ cr gl leg s -> f `fmap` postGlueTest x cr gl leg s }
+	fmap f x = x
+		{ postGlueTest = \ cr gl leg s ->
+			f `fmap` postGlueTest x cr gl leg s
+		}
 
 
 {-# INLINE nextNumberOfLegs #-}
