@@ -119,6 +119,7 @@ library
         Math.KnotTh.Link.LinkTable.Access
         Math.KnotTh.Link.LinkTable.List
         Math.KnotTh.Link.LinkTable.Named
+        Math.KnotTh.Tangle.Def.Construction
         Math.KnotTh.Tangle.Def.OldTangle
         Math.KnotTh.Tangle.Def.Tangle
         Math.KnotTh.Tangle.Def.Util

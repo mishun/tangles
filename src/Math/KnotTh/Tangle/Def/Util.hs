@@ -6,7 +6,6 @@ module Math.KnotTh.Tangle.Def.Util
 	, maybeAdjacentCrossing
 	, allLegsAndDarts
 	, allEdges
-	, transformTangle
 	, undirectedPathsDecomposition
 	, allThreads
 	) where
@@ -14,8 +13,6 @@ module Math.KnotTh.Tangle.Def.Util
 import Data.List (nub, sort, foldl')
 import qualified Data.Set as Set
 import qualified Data.Map as Map
-import Math.Algebra.Group.Dn (Dn, pointsUnderGroup, reflection, rotation, permute)
-import Math.Algebra.Group.D4 ((<*>), ec)
 import Math.KnotTh.Tangle.Def.Tangle
 
 
@@ -122,34 +119,6 @@ containingFaceRight = containingDirectedPath (nextCCW, nextCW)
 
 allTangleFaces :: Tangle ct -> [[Dart ct]]
 allTangleFaces = directedPathsDecomposition (nextCW, nextCCW)
-
-
-
-transformTangle :: (CrossingType ct) => Dn -> Tangle ct -> Tangle ct
-transformTangle g tangle
-	| l /= pointsUnderGroup g                   = error "transformTangle: order conflict"
-	| reflection g == False && rotation g == 0  = tangle
-	| otherwise                                 = implode (numberOfFreeLoops tangle, border, map crossing $ allCrossings tangle)
-	where
-		l = numberOfLegs tangle
-
-		pair d
-			| isLeg d    = (0, permute g $ legPlace d)
-			| otherwise  =
-				let c = incidentCrossing d
-				in (crossingIndex c, if reflection g then 3 - dartPlace d else dartPlace d)
-
-		crossing c
-			| reflection g  = (reverse $ map pair $ adjacentDarts c, mapOrientation (ec <*>) $ crossingState c)
-			| otherwise     = (map pair $ adjacentDarts c, crossingState c)
-
-		border
-			| reflection g  = head rotated : reverse (tail rotated)
-			| otherwise     = rotated
-			where
-				rotated =
-					let (pre, post) = splitAt (l - rotation g) $ map (pair . opposite) $ allLegs tangle
-					in post ++ pre
 
 
 instance KnottedWithConnectivity Tangle Crossing Dart where

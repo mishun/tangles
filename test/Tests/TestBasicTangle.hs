@@ -30,6 +30,10 @@ tests = "Basic tangle tests" ~:
 	, "Show loner" ~:
 		show lonerProjection ~?= "(Tangle (0 O) (Border [ (Dart 1 0) (Dart 1 1) (Dart 1 2) (Dart 1 3) ]) (Crossing 1 (I +) [ (Leg 0) (Leg 1) (Leg 2) (Leg 3) ]))"
 
+	, "Show empty" ~: do
+		show (zeroTangle :: TangleProjection) @?= "(Tangle (0 O) (Border [ (Leg 3) (Leg 2) (Leg 1) (Leg 0) ]))"
+		show (infinityTangle :: TangleProjection) @?= "(Tangle (0 O) (Border [ (Leg 1) (Leg 0) (Leg 3) (Leg 2) ]))"
+
 	, "Show implode 1" ~:
 		let t = implode
 			( 0

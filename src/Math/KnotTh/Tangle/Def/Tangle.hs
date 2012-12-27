@@ -13,14 +13,13 @@ module Math.KnotTh.Tangle.Def.Tangle
 	, nthLeg
 	, allLegs
 	, glueToBorder
-	, lonerTangle
 	, implode
 	, explode
 	) where
 
 import Language.Haskell.TH
 import Data.List (intercalate)
-import Data.Array.Base (listArray, unsafeAt, unsafeWrite, unsafeRead)
+import Data.Array.Base (unsafeAt, unsafeWrite, unsafeRead)
 import Data.Array.ST (STArray, STUArray, newArray_)
 import Data.Array.Unsafe (unsafeFreeze)
 import Control.Monad.ST (ST, runST)
@@ -177,16 +176,6 @@ glueToBorder leg legsToGlue crossingToGlue
 		return $! nthCrossing result newC
 
 
-lonerTangle :: (CrossingType ct) => CrossingState ct -> Tangle ct
-lonerTangle !cr = Tangle
-	{ loopsCount   = 0
-	, crossCount   = 1
-	, crossArray   = listArray (0, 7) [4, 5, 6, 7, 0, 1, 2, 3]
-	, stateArray   = listArray (0, 0) $! [cr]
-	, numberOfLegs = 4
-	}
-
-
 implode :: (Int, [(Int, Int)], [([(Int, Int)], CrossingState ct)]) -> Tangle ct
 implode (!loops, !border, !list) = runST $ do
 	when (loops < 0) $ fail $
@@ -276,10 +265,11 @@ produceShowCrossing ''Crossing
 
 instance (Show ct, CrossingType ct) => Show (Tangle ct) where
 	show tangle =
-		printf "(Tangle (%i O) (Border [ %s ]) %s)"
+		let border = printf "(Border [ %s ])" $
+			intercalate " " $ map (show . opposite) $ allLegs tangle
+		in printf "(Tangle (%i O) %s)"
 			(numberOfFreeLoops tangle)
-			(intercalate " " $ map (show . opposite) $ allLegs tangle)
-			(intercalate " " $ map show $ allCrossings tangle)
+			(intercalate " " $ border : map show (allCrossings tangle))
 
 
 instance KnottedWithToPair Tangle Crossing Dart where
