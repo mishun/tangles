@@ -19,6 +19,7 @@ module Math.KnotTh.Crossings.SubTangle
 
 import Data.Array.Unboxed (UArray, (!), listArray)
 import Control.DeepSeq
+import Text.Printf
 import Math.Algebra.Group.Dn (DnSubGroup, pointsUnderSubGroup)
 import Math.Algebra.Group.D4 ((<*>), ec, D4SubGroup, fromDnSubGroup)
 import Math.KnotTh.Knotted
@@ -57,7 +58,12 @@ instance (CrossingType ct) => CrossingType (SubTangleCrossing ct) where
 
 
 instance (Show ct, CrossingType ct) => Show (SubTangleCrossing ct) where
-	show cr = concat ["(SubTangle ", show $ _code cr, " ", show $ _symmetry cr, " ", show $ _sumType cr, " (", show $ subTangle cr, "))"]
+	show cr =
+		printf "(SubTangle %i %s %s (%s))"
+			(_code cr)
+			(show $ _symmetry cr)
+			(show $ _sumType cr)
+			(show $ subTangle cr)
 
 
 type SubTangleTangle ct = Tangle (SubTangleCrossing ct)
@@ -72,9 +78,9 @@ makeSubTangle :: (CrossingType a, CrossingType b)
 	-> SubTangleCrossing b
 
 makeSubTangle f tangle symmetry sumType code
-	| numberOfLegs tangle /= 4           = error "makeSubTangle: tangle must have 4 legs"
-	| pointsUnderSubGroup symmetry /= 4  = error "makeSubTangle: symmetry group must have 4 points"
-	| numberOfFreeLoops tangle /= 0      = error "makeSubTangle: tangle contains free loops"
+	| numberOfLegs tangle /= 4           = error $ printf "makeSubTangle: tangle must have 4 legs, %i found" $ numberOfLegs tangle
+	| pointsUnderSubGroup symmetry /= 4  = error $ printf "makeSubTangle: symmetry group must have 4 points, %i found" $ pointsUnderSubGroup symmetry
+	| numberOfFreeLoops tangle /= 0      = error $ printf "makeSubTangle: tangle contains %i free loops" $ numberOfFreeLoops tangle
 	| otherwise                          = SubTangle
 		{ _code     = code
 		, _symmetry = fromDnSubGroup symmetry

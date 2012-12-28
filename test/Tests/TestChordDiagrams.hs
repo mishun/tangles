@@ -2,7 +2,7 @@ module Tests.TestChordDiagrams
 	( tests
 	) where
 
-import Text.Printf (printf)
+import Text.Printf
 import Control.Monad (forM_)
 import Test.HUnit
 import Math.Combinatorics.ChordDiagrams.Generator

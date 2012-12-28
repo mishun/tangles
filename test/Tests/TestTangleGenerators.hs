@@ -3,7 +3,7 @@ module Tests.TestTangleGenerators
 	) where
 
 import qualified Data.Map as Map
-import Text.Printf (printf)
+import Text.Printf
 import Control.Monad (forM_)
 import Test.HUnit
 import Math.KnotTh.Tangle.Projection

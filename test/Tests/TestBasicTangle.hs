@@ -11,7 +11,7 @@ import Math.KnotTh.Tangle.CascadeCode
 
 tests = "Basic tangle tests" ~:
 	[ "Basic functions" ~: do
-		let t = crossingTangle $ glueToBorder (nthLeg lonerProjection 0) 1 projectionCrossing
+		let t = crossingTangle $ glueToBorder (firstLeg lonerProjection) 1 projectionCrossing
 		let c1 = nthCrossing t 1
 		crossingIndex c1 @?= 1
 		opposite (nthLeg t 3) @?= nthIncidentDart c1 1
@@ -44,7 +44,7 @@ tests = "Basic tangle tests" ~:
 		in show t ~?= "(Tangle (0 O) (Border [ (Dart 1 0) (Dart 1 1) (Dart 1 2) (Dart 1 3) ]) (Crossing 1 (I / D4 | +) [ (Leg 0) (Leg 1) (Leg 2) (Leg 3) ]))"
 
 	, "Show glue 1" ~:
-		let t = crossingTangle $ glueToBorder (nthLeg lonerProjection 0) 1 projectionCrossing
+		let t = crossingTangle $ glueToBorder (firstLeg lonerProjection) 1 projectionCrossing
 		in show t ~?= "(Tangle (0 O) (Border [ (Dart 2 1) (Dart 2 2) (Dart 2 3) (Dart 1 1) (Dart 1 2) (Dart 1 3) ]) (Crossing 1 (I / D4 | +) [ (Dart 2 0) (Leg 3) (Leg 4) (Leg 5) ]) (Crossing 2 (I / D4 | +) [ (Dart 1 0) (Leg 0) (Leg 1) (Leg 2) ]))"
 
 	, "Show glue 2" ~:

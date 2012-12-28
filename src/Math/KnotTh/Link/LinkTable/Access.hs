@@ -6,14 +6,14 @@ module Math.KnotTh.Link.LinkTable.Access
 	) where
 
 import qualified Data.Map as M
-import Text.Printf (printf)
+import Text.Printf
 import Math.KnotTh.Link.NonAlternating
 import Math.KnotTh.Link.GaussCode
 import Math.KnotTh.Link.LinkTable.List
 
 
-maxN :: Int
-maxN = maximum $ map (fst . fst) $ map (\ (n, l) -> ((n, 1), l)) listOfKnotCodes ++ listOfLinkCodes
+maxC :: Int
+maxC = maximum $ map (fst . fst) $ map (\ (n, l) -> ((n, 1), l)) listOfKnotCodes ++ listOfLinkCodes
 
 
 table :: M.Map (Int, Int, Int) NonAlternatingLink
@@ -31,18 +31,20 @@ sizes = M.fromList $ do
 
 numberOfLinks :: Int -> Int -> Int
 numberOfLinks comps cross
-	| cross < 1                      = error "crossing number is non-positive"
-	| comps < 1                      = error "components number is non-positive"
-	| cross > maxN                   = error $ printf "table contains only links with <= %i crossings" maxN
+	| cross < 1                      = error $ printf "numberOfLinks: crossing number %i is non-positive" cross
+	| comps < 1                      = error $ printf "numberOfLinks: components number %i is non-positive" comps
+	| cross > maxC                   = error $ printf "numberOfLinks: table contains only links with <= %i crossings, but %i crossings requested" maxC cross
 	| M.member (cross, comps) sizes  = sizes M.! (cross, comps)
 	| otherwise                      = 0
 
 
 link :: Int -> Int -> Int -> NonAlternatingLink
 link comps cross number
-	| number <= 0                         = error "link number is non-positive"
-	| number > numberOfLinks comps cross  = error "link number is out of bound"
-	| otherwise                           = table M.! (cross, comps, number)
+	| number <= 0    = error $ printf "link: link number %i is non-positive" number
+	| number > maxN  = error $ printf "link: link number %i is out of bound %i" number maxN
+	| otherwise      = table M.! (cross, comps, number)
+	where
+		maxN = numberOfLinks comps cross
 
 
 numberOfKnots :: Int -> Int

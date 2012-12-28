@@ -9,7 +9,7 @@ import Data.Maybe (isJust, fromJust)
 import Data.List (intercalate, foldl')
 import qualified Data.Map as Map
 import Control.Monad.State.Strict (execState, get, put)
-import Text.Printf (printf)
+import Text.Printf
 import System.CPUTime (getCPUTime)
 import Math.Algebra.Group.Dn (DnSubGroup, hasReflectionPart, rotationPeriod)
 import Math.KnotTh.Tangle

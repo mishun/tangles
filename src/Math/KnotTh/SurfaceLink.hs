@@ -18,6 +18,7 @@ import Data.Function (fix)
 import Data.Array.ST (STUArray, newArray, newArray_, readArray, writeArray)
 import Control.Monad.ST (ST, runST)
 import Control.Monad (when, forM_, liftM)
+import Text.Printf
 import Math.KnotTh.Knotted
 import Math.KnotTh.Knotted.TH.Knotted
 import Math.KnotTh.Knotted.TH.Show
@@ -54,7 +55,7 @@ instance SurfaceKnotted SurfaceLink Crossing Face Dart where
 	numberOfFaces = faceCount
 
 	nthFace link i
-		| i < 1 || i > numberOfFaces link  = error "nthFace: out of bound"
+		| i < 1 || i > numberOfFaces link  = error $ printf "nthFace: index %i is out of bounds (1, %i)" i (numberOfFaces link)
 		| otherwise                        = Face link (i - 1)
 
 	faceOwner = faceSurfaceLink

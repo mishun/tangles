@@ -25,6 +25,8 @@ module Math.Algebra.Group.Dn
 	, addSymmetryToSubGroup
 	) where
 
+import Text.Printf
+
 
 -- Dn = (E^mirror) * (C^rotation)
 data Dn = Dn
@@ -37,7 +39,7 @@ data Dn = Dn
 {-# INLINE identity #-}
 identity :: Int -> Dn
 identity n
-	| n <= 0     = error "identity: order is non-positive"
+	| n <= 0     = error $ printf "identity: order %i is non-positive" n
 	| otherwise  = Dn { pointsUnderGroup = n, rotation = 0, reflection = False }
 
 
@@ -56,7 +58,7 @@ inverse g
 {-# INLINE (<*>) #-}
 (<*>) :: Dn -> Dn -> Dn
 (<*>) g h
-	| pointsUnderGroup g /= pointsUnderGroup h  = error "(*): Dn order conflict"
+	| pointsUnderGroup g /= pointsUnderGroup h  = error $ printf "(*): Dn order conflict: %i and %i" (pointsUnderGroup g) (pointsUnderGroup h)
 	| otherwise                                 = Dn
 		{ pointsUnderGroup = pointsUnderGroup g
 		, rotation         = mod (if reflection h then pointsUnderGroup g + rotation h - rotation g else rotation g + rotation h) (pointsUnderGroup g)
@@ -67,21 +69,21 @@ inverse g
 {-# INLINE fromRotation #-}
 fromRotation :: Int -> Int -> Dn
 fromRotation n p
-	| n <= 0    = error "fromRotation: order is non-positive"
+	| n <= 0    = error $ printf "fromRotation: order %i is non-positive" n
 	| otherwise = Dn { pointsUnderGroup = n, rotation = mod p n, reflection = False }
 
 
 {-# INLINE fromReflectionRotation #-}
 fromReflectionRotation :: Int -> (Bool, Int) -> Dn
 fromReflectionRotation n (m, r)
-	| n <= 0     = error "fromReflectionRotation: order is non-positive"
+	| n <= 0     = error $ printf "fromReflectionRotation: order %i is non-positive" n
 	| otherwise  = Dn { pointsUnderGroup = n, rotation = mod r n , reflection = m }
 
 
 {-# INLINE fromRotationReflection #-}
 fromRotationReflection :: Int -> (Int, Bool) -> Dn
 fromRotationReflection n (r, m)
-	| n <= 0     = error "fromRotationReflection: order is non-positive"
+	| n <= 0     = error $ printf "fromRotationReflection: order %i is non-positive" n
 	| otherwise  = Dn { pointsUnderGroup = n, rotation = mod (if m then -r else r) n, reflection = m }
 
 
@@ -109,29 +111,29 @@ data DnSubGroup =
 
 singleElementSubGroup :: Int -> DnSubGroup
 singleElementSubGroup n
-	| n <= 0     = error "singleElementSubGroup: order is non-positive"
+	| n <= 0     = error $ printf "singleElementSubGroup: order %i is non-positive" n
 	| otherwise  = Rot { pointsUnderSubGroup = n, rotationPeriod = n }
 
 
 maximumSubGroup :: Int -> DnSubGroup
 maximumSubGroup n
-	| n <= 0     = error "maximumSubGroup: order is non-positive"
+	| n <= 0     = error $ printf "maximumSubGroup: order %i is non-positive" n
 	| otherwise  = Mirr { pointsUnderSubGroup = n, rotationPeriod = 1, mirroredZero = 0 }
 
 
 fromPeriod :: Int -> Int -> DnSubGroup
 fromPeriod n p
-	| n <= 0        = error "fromPeriod: order is non-positive"
-	| p <= 0        = error "fromPeriod: period is non-positive"
-	| mod n p /= 0  = error "fromPeriod: period does not divide order"
+	| n <= 0        = error $ printf "fromPeriod: order %i is non-positive" n
+	| p <= 0        = error $ printf "fromPeriod: period %i is non-positive" p
+	| mod n p /= 0  = error $ printf "fromPeriod: period %i does not divide order %i" p n
 	| otherwise     = Rot { pointsUnderSubGroup = n, rotationPeriod = p }
 
 
 fromPeriodAndMirroredZero :: Int -> Int -> Int -> DnSubGroup
 fromPeriodAndMirroredZero n p mz
-	| n <= 0        = error "fromPeriodAndMirroredZero: order is non-positive"
-	| p <= 0        = error "fromPeriodAndMirroredZero: period is non-positive"
-	| mod n p /= 0  = error "fromPeriodAndMirroredZero: period does not divide order"
+	| n <= 0        = error $ printf "fromPeriodAndMirroredZero: order %i is non-positive" n
+	| p <= 0        = error $ printf "fromPeriodAndMirroredZero: period %i is non-positive" p
+	| mod n p /= 0  = error $ printf "fromPeriodAndMirroredZero: period %i does not divide order %i" p n
 	| otherwise     = Mirr { pointsUnderSubGroup = n, rotationPeriod = p, mirroredZero = mod mz p }
 
 
@@ -150,7 +152,7 @@ reflectionBasis sg = fromRotationReflection (pointsUnderSubGroup sg) (mirroredZe
 
 addSymmetryToSubGroup :: DnSubGroup -> Dn -> DnSubGroup
 addSymmetryToSubGroup s g
-	| n /= pointsUnderGroup g  = error "addSymmetryToSubGroup: order conflict"
+	| n /= pointsUnderGroup g  = error $ printf "addSymmetryToSubGroup: order conflict: %i and %i" n (pointsUnderGroup g)
 	| g == identity n          = s
 	| not ms && not mg         = fromPeriod n p
 	| not ms && mg             = fromPeriodAndMirroredZero n (rotationPeriod s) (-rotation g)
@@ -161,34 +163,3 @@ addSymmetryToSubGroup s g
 		ms = hasReflectionPart s
 		mg = reflection g
 		p = gcd (rotationPeriod s) (rotation g)
-
-{-
-adjointDifferenceForBasis :: (Group f e) => (e, e) -> SubGroup -> Element -> Element -> e
-adjointDifferenceForBasis (adjRot, adjMir) sg a b
-	| (group a /= D n) || (group b /= D n)  = error "adjointDifferenceForBasis: order conflict"
-	| mod rotationDiff period /= 0          = error "adjointDifferenceForBasis: elements are not equivalent"
-	| otherwise  =
-		if needMirror
-			then adjRotation <*> adjMir
-			else adjRotation
-
-	where
-		n = groupSetOrder' sg
-
-		period = rotationPeriod sg
-
-		needMirror = (hasReflection a) /= (hasReflection b)
-
-		toRotate =
-			if needMirror
-				then (reflectionBasis sg) <*> b
-				else b
-
-		rotationDiff = (rotation a) - (rotation toRotate)
-
-		rotationNum =
-			let d = div rotationDiff period
-			in if hasReflection a then -d else d
-
-		adjRotation = power rotationNum adjRot
--}

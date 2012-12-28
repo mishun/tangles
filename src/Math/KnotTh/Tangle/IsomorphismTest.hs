@@ -12,13 +12,14 @@ import Data.Array.Unboxed (UArray)
 import Data.Array.ST (STArray, STUArray, runSTUArray, newArray, newArray_)
 import Control.Monad.ST (ST)
 import Control.Monad (when, foldM_)
+import Text.Printf
 import Math.Algebra.RotationDirection (RotationDirection, ccw, cw)
 import Math.KnotTh.Tangle
 
 
 isomorphismTest :: (CrossingType ct) => Tangle ct -> UArray Int Int
 isomorphismTest tangle
-	| numberOfCrossings tangle > 127  = error "isomorphismTest: too many crossings"
+	| numberOfCrossings tangle > 127  = error $ printf "isomorphismTest: too many crossings (%i)" (numberOfCrossings tangle)
 	| otherwise                       = min (codeWithDirection ccw tangle) (codeWithDirection cw tangle)
 
 

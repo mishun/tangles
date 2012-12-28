@@ -7,7 +7,7 @@ module Math.KnotTh.Knotted.TH.Show
 
 import Language.Haskell.TH
 import Data.List (intercalate)
-import Text.Printf (printf)
+import Text.Printf
 import Math.KnotTh.Knotted
 
 

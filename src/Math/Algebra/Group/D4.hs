@@ -18,6 +18,7 @@ module Math.Algebra.Group.D4
 import Data.Bits ((.&.), xor, shiftL, shiftR)
 import Data.Array.Base (unsafeAt)
 import Data.Array.Unboxed (UArray, listArray)
+import Text.Printf
 import Math.Algebra.Group.Dn (DnSubGroup, pointsUnderSubGroup, rotationPeriod, hasReflectionPart, mirroredZero, fromPeriod, fromPeriodAndMirroredZero)
 
 
@@ -150,7 +151,7 @@ equvalenceClassRepresentatives (SubGroup _ _ r) = r
 
 fromDnSubGroup :: DnSubGroup -> D4SubGroup
 fromDnSubGroup s
-	| pointsUnderSubGroup s /= 4  = error "fromDnSubGroup: order is not 4"
+	| pointsUnderSubGroup s /= 4  = error $ printf "fromDnSubGroup: order is %i instead of 4" (pointsUnderSubGroup s)
 	| otherwise                   =
 		case rotationPeriod s of
 			1 -> if hasReflectionPart s

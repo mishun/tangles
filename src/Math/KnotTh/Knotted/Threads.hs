@@ -10,7 +10,7 @@ import Data.Array.Unboxed (UArray)
 import Data.Array.Unsafe (unsafeFreeze)
 import Data.Array.ST (STUArray, newArray, readArray, writeArray)
 import Control.Monad.ST
-import Control.Monad (foldM_)
+import Control.Monad (foldM)
 import Math.KnotTh.Knotted.Knotted
 import Math.KnotTh.Knotted.Util
 
@@ -31,15 +31,17 @@ maybeContinuation d
 
 
 allThreads :: (ThreadedCrossing ct, Knotted k c d, Eq (d ct)) => k ct -> [[(d ct, d ct)]]
-allThreads = snd . allThreadsWithMarks
+allThreads knot =
+	let (_, _, threads) = allThreadsWithMarks knot
+	in threads
 
 
-allThreadsWithMarks :: (ThreadedCrossing ct, Knotted k c d, Eq (d ct)) => k ct -> (UArray Int Int, [[(d ct, d ct)]])
+allThreadsWithMarks :: (ThreadedCrossing ct, Knotted k c d, Eq (d ct)) => k ct -> (Int, UArray Int Int, [[(d ct, d ct)]])
 allThreadsWithMarks knot = runST $ do
 	visited <- newArray (dartIndexRange knot) 0 :: ST s (STUArray s Int Int)
 	threads <- newSTRef $ replicate (numberOfFreeLoops knot) []
 
-	flip (flip foldM_ 1) (allEdges knot) $ \ !i (!startA, !startB) -> do
+	n <- flip (flip foldM 1) (allEdges knot) $ \ !i (!startA, !startB) -> do
 		v <- readArray visited $ dartIndex startA
 		if v /= 0
 			then return $! i
@@ -77,4 +79,4 @@ allThreadsWithMarks knot = runST $ do
 				return $! i + 1
 
 	visited' <- unsafeFreeze visited
-	(,) visited' `fmap` readSTRef threads
+	(,,) (n - 1 + numberOfFreeLoops knot) visited' `fmap` readSTRef threads

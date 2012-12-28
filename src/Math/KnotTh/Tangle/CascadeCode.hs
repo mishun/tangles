@@ -7,7 +7,7 @@ module Math.KnotTh.Tangle.CascadeCode
 	) where
 
 import Data.Char (isSpace)
-import Text.Printf (printf)
+import Text.Printf
 import Math.Algebra.Group.Dn (fromRotation)
 import Math.KnotTh.Tangle.Projection
 import Math.KnotTh.Tangle.NonAlternating

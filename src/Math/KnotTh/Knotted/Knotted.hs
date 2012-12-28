@@ -16,7 +16,7 @@ module Math.KnotTh.Knotted.Knotted
 	) where
 
 import Control.DeepSeq
-import Text.Printf (printf)
+import Text.Printf
 import Math.Algebra.RotationDirection
 import Math.Algebra.Group.D4 (D4, D4SubGroup, inverse, (<*>), hasReflection, permute, fromReflectionRotation, equivalenceClassId, equvalenceClassRepresentatives)
 

@@ -25,7 +25,7 @@ import Data.Array.ST (STArray, STUArray, newArray_)
 import Data.Array.Unsafe (unsafeFreeze)
 import Control.Monad.ST (ST, runST)
 import Control.Monad (forM_, when)
-import Text.Printf (printf)
+import Text.Printf
 import Math.KnotTh.Knotted.TH.Knotted
 import Math.KnotTh.Knotted.TH.Show
 import Math.KnotTh.Knotted
@@ -76,7 +76,7 @@ produceKnotted
 
 		, modifyFoldMIncidentDartsFrom = Just $ \ (d, _) e -> [|
 			if $(varE $ mkName "isLeg") $(d)
-				then error "foldMIncidentDartsFrom: taken from leg %i" ($(varE $ mkName "legPlace") $(d))
+				then error $ printf "foldMIncidentDartsFrom: taken from leg %i" ($(varE $ mkName "legPlace") $(d))
 				else $(e)
 			|]
 		}
@@ -122,7 +122,7 @@ allLegs t =
 -- ........|  +=========+          ........|                       ........|  +=========+
 glueToBorder :: (CrossingType ct) => Dart ct -> Int -> CrossingState ct -> Crossing ct
 glueToBorder leg legsToGlue crossingToGlue
-	| not (isLeg leg)                   = error "glueToBorder: leg expected"
+	| not (isLeg leg)                   = error $ printf "glueToBorder: leg expected, %s received" (show leg)
 	| legsToGlue < 1 || legsToGlue > 3  = error $ printf "glueToBorder: legsToGlue must be 1, 2 or 3, but %i found" legsToGlue
 	| otherwise                         = runST $ do
 		let tangle = dartTangle leg

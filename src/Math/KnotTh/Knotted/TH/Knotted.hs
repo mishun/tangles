@@ -20,7 +20,7 @@ import Control.Monad.State (execStateT, modify)
 import Control.Monad (when, forM_)
 import Control.Monad.Trans (lift)
 import Control.DeepSeq
-import Text.Printf (printf)
+import Text.Printf
 import Math.Algebra.RotationDirection
 import Math.KnotTh.Knotted
 
@@ -213,7 +213,7 @@ produceKnotted knotPattern inst = flip execStateT [] $ do
 			i <- newName "i"
 			clause [varP k, varP i] (normalB [|
 				if $(varE i) < (1 :: Int) || $(varE i) > numberOfCrossings $(varE k)
-					then error "nthCrossing: out of bound"
+					then error $ printf "nthCrossing: index %i is out of bounds (1, %i)" $(varE i) (numberOfCrossings $(varE k))
 					else $(conE crosN) $(varE k) ($(varE i) - (1 :: Int))
 				|]) []
 

@@ -110,7 +110,7 @@ selfWrithe = sum . elems . selfWritheArray
 
 selfWritheArray :: (Knotted k c d, Eq (d ArbitraryCrossing)) => k ArbitraryCrossing -> UArray Int Int
 selfWritheArray knot =
-	let t = fst $ allThreadsWithMarks knot
+	let (_, t, _) = allThreadsWithMarks knot
 	    writhe !cross
 	    	| t0 == t1     = s
 	    	| t0 == (-t1)  = -s

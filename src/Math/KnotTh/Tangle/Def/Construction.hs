@@ -5,6 +5,7 @@ module Math.KnotTh.Tangle.Def.Construction
 	, transformTangle
 	) where
 
+import Text.Printf
 import Math.Algebra.Group.Dn (Dn, pointsUnderGroup, reflection, rotation, permute)
 import Math.Algebra.Group.D4 ((<*>), ec)
 import Math.KnotTh.Tangle.Def.Tangle
@@ -28,7 +29,7 @@ infinityTangle = implode (0, [(0, 1), (0, 0), (0, 3), (0, 2)], [])
 
 transformTangle :: (CrossingType ct) => Dn -> Tangle ct -> Tangle ct
 transformTangle g tangle
-	| l /= pointsUnderGroup g                   = error "transformTangle: order conflict"
+	| l /= pointsUnderGroup g                   = error $ printf "transformTangle: order conflict: %i legs, %i order of group" l (pointsUnderGroup g)
 	| reflection g == False && rotation g == 0  = tangle
 	| otherwise                                 = implode (numberOfFreeLoops tangle, border, map crossing $ allCrossings tangle)
 	where

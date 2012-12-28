@@ -42,7 +42,7 @@ toDTCode _ = undefined
 splice :: Int -> [[Int]] -> [[Int]]
 splice i = go
 	where
-		go [] = error "not found"
+		go [] = error "internal error: not found"
 		go (thread : threads) =
 			case span ((/= i) . abs) thread of
 				(_, [])     -> thread : go threads
@@ -55,7 +55,7 @@ splice i = go
 							let r = reverse $ map (\ j -> if abs j < abs i then -j else j) int
 							in (pref ++ [head suf] ++ r ++ [-head tl] ++ tail tl) : threads
 
-		match [] = error "not found"
+		match [] = error "internal error: not found"
 		match (thread : threads) =
 			case span ((/= i) . abs) thread of
 				(_, [])     ->
