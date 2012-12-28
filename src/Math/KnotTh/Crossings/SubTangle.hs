@@ -18,6 +18,7 @@ module Math.KnotTh.Crossings.SubTangle
 	) where
 
 import Data.Array.Unboxed (UArray, (!), listArray)
+import Control.DeepSeq
 import Math.Algebra.Group.Dn (DnSubGroup, pointsUnderSubGroup)
 import Math.Algebra.Group.D4 ((<*>), ec, D4SubGroup, fromDnSubGroup)
 import Math.KnotTh.Knotted
@@ -43,6 +44,10 @@ data SubTangleCrossing ct = SubTangle
 
 instance Eq (SubTangleCrossing ct) where
 	(==) a b = (_code a == _code b)
+
+
+instance (NFData ct) => NFData (SubTangleCrossing ct) where
+	rnf x = rnf (subTangle x) `seq` x `seq` ()
 
 
 instance (CrossingType ct) => CrossingType (SubTangleCrossing ct) where

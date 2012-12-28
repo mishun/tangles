@@ -23,10 +23,7 @@ instance CrossingType ProjectionCrossing where
 	possibleOrientations _ _ = projectionCrossings
 
 
-instance ThreadedCrossing ProjectionCrossing where
-	continuation d
-		| isDart d   = nextCCW $ nextCCW d
-		| otherwise  = error "continuation: from endpoint"
+instance ThreadedCrossing ProjectionCrossing
 
 
 instance Show ProjectionCrossing where

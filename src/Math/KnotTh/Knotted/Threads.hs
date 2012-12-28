@@ -18,6 +18,10 @@ import Math.KnotTh.Knotted.Util
 class (CrossingType ct) => ThreadedCrossing ct where
 	continuation :: (Knotted k c d) => d ct -> d ct
 
+	continuation d
+		| isDart d   = nextCCW $ nextCCW d
+		| otherwise  = error "continuation: from endpoint"
+
 
 {-# INLINE maybeContinuation #-}
 maybeContinuation :: (ThreadedCrossing ct, Knotted k c d) => d ct -> Maybe (d ct)

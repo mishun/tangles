@@ -41,10 +41,7 @@ instance CrossingType ArbitraryCrossing where
 			       | otherwise                            -> overCrossingOnly
 
 
-instance ThreadedCrossing ArbitraryCrossing where
-	continuation d
-		| isDart d   = nextCCW $ nextCCW d
-		| otherwise  = error "continuation: from endpoint"
+instance ThreadedCrossing ArbitraryCrossing
 
 
 instance Show ArbitraryCrossing where
