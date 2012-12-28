@@ -65,10 +65,9 @@ equivalenceClasses isomorphismTest moves enumerateDiagrams =
 					return False
 
 		enumerateDiagrams $
-			fix (\ dfs !prevCode !diagram -> do
+			flip fix Nothing $ \ dfs !prevCode !diagram -> do
 				let code = isomorphismTest diagram
 				inserted <- insert code $ wrap diagram
 				maybe (return ()) (declareEquivalent code) prevCode
 				when inserted $
 					forM_ (concatMap ($ diagram) moves) (dfs $! Just code)
-				) Nothing

@@ -5,6 +5,7 @@ module Tests.TestLinkInvariants
 import Test.HUnit
 import Math.KnotTh.Link.NonAlternating
 import Math.KnotTh.Link.LinkTable
+import Math.KnotTh.Invariants.LinkingNumber
 import Math.KnotTh.Invariants.Skein.JonesPolynomial
 
 
@@ -26,5 +27,12 @@ tests = "Link invariants" ~:
 			, ("6_2 knot"           , knot 6 2            , "t^-5-2t^-4+2t^-3-2t^-2+2t^-1-1+t"         )
 			, ("6_3 kont"           , knot 6 3            , "-t^-3+2t^-2-2t^-1+3-2t+2t^2-t^3"          )
 			, ("borromean rings"    , borromeanRingsLink  , "-t^-3+3t^-2-2t^-1+4-2t+3t^2-t^3"          )
+			]
+
+	, "Linking number" ~:
+		map (\ (name, link, target) -> name ~: (linkingNumbersSet link ~?= target))
+			[ ("whitehead link" , whiteheadLink     , [0]      )
+			, ("hopf link"      , hopfLink          , [2]      )
+			, ("borromean rings", borromeanRingsLink, [0, 0, 0])
 			]
 	]
