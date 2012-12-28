@@ -11,7 +11,7 @@ import Math.KnotTh.Tangle.Moves.Resting
 
 
 neighbours :: NonAlternatingTangle -> [NonAlternatingTangle]
-neighbours tangle = mapMaybe tryFlype $ allDarts tangle
+neighbours tangle = mapMaybe tryFlype $ allDartsOfCrossings tangle
 	where
 		tryFlype ab = do
 			let ba = opposite ab

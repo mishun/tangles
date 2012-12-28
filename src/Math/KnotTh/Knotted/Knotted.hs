@@ -10,6 +10,8 @@ module Math.KnotTh.Knotted.Knotted
 	, makeCrossing
 	, mapCrossing
 	, Knotted(..)
+	, crossingIndexRange
+	, dartIndexRange
 	, crossingCode
 	) where
 
@@ -111,9 +113,17 @@ class Knotted (knot :: * -> *) (cross :: * -> *) (dart :: * -> *) | knot -> cros
 	incidentCrossing  :: dart ct -> cross ct
 	dartPlace         :: dart ct -> Int
 	dartOwner         :: dart ct -> knot ct
+	dartIndex         :: dart ct -> Int
 
-	-- [0 .. 2 * numberOfEdges - 1]
-	dartArrIndex      :: dart ct -> Int
+
+{-# INLINE crossingIndexRange #-}
+crossingIndexRange :: (Knotted k c d) => k ct -> (Int, Int)
+crossingIndexRange k = (1, numberOfCrossings k)
+
+
+{-# INLINE dartIndexRange #-}
+dartIndexRange :: (Knotted k c d) => k ct -> (Int, Int)
+dartIndexRange k = (0, 2 * numberOfEdges k - 1)
 
 
 {-# INLINE crossingCode #-}

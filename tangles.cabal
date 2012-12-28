@@ -49,6 +49,7 @@ library
         Math.KnotTh.Crossings.Arbitrary
         Math.KnotTh.Crossings.Projection
         Math.KnotTh.Crossings.SubTangle
+        Math.KnotTh.Draw.DrawKnot
         Math.KnotTh.Enumeration.Applied.NonAlternatingTangles
         Math.KnotTh.Enumeration.DiagramInfo
         Math.KnotTh.Enumeration.DiagramInfo.AllDiagramsInfo
@@ -77,12 +78,10 @@ library
         Math.KnotTh.Tangle.BorderIncremental.RootingTest
         Math.KnotTh.Tangle.BorderIncremental.SimpleTypes
         Math.KnotTh.Tangle.CascadeCode
-        Math.KnotTh.Tangle.Draw
         Math.KnotTh.Tangle.Flypes
         Math.KnotTh.Tangle.IsomorphismTest
         Math.KnotTh.Tangle.NonAlternating
         Math.KnotTh.Tangle.NonAlternating.TwistedDouble
-        Math.KnotTh.Tangle.NonAlternating.Writhe
         Math.KnotTh.Tangle.Moves.DoublePass
         Math.KnotTh.Tangle.Moves.Flype
         Math.KnotTh.Tangle.Moves.Move
@@ -108,6 +107,7 @@ library
         Graphics.HP.PostScript.Transform
         Graphics.HP.Transform
         Graphics.HP.Units
+        Math.KnotTh.Knotted.CrossingState
         Math.KnotTh.Knotted.Knotted
         Math.KnotTh.Knotted.KnottedWithAccel
         Math.KnotTh.Knotted.KnottedWithConnectivity
@@ -115,6 +115,7 @@ library
         Math.KnotTh.Knotted.SurfaceKnotted
         Math.KnotTh.Knotted.TH.Knotted
         Math.KnotTh.Knotted.TH.Show
+        Math.KnotTh.Knotted.Threads
         Math.KnotTh.Knotted.Util
         Math.KnotTh.Link.LinkTable.Access
         Math.KnotTh.Link.LinkTable.List
@@ -172,7 +173,7 @@ benchmark TangleGeneratorBenchmark
         Tests.Table
     extra-lib-dirs:     ext/gsl-1.15/lib/
 
-benchmark TestNonAlternatingGenerator
+benchmark NonAlternatingBenchmark
     type:               exitcode-stdio-1.0
     default-language:   Haskell2010
     default-extensions: BangPatterns
@@ -180,7 +181,7 @@ benchmark TestNonAlternatingGenerator
     ghc-prof-options:   -rtsopts -prof -auto-all -caf-all
     ld-options:         -static
     build-depends:      base, mtl, containers, tangles
-    main-is:            TestNonAlternatingGenerator.hs
+    main-is:            NonAlternatingBenchmark.hs
     hs-source-dirs:     test
     other-modules:
         Tests.Table

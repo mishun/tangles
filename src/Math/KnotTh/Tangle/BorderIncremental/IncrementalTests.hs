@@ -46,7 +46,7 @@ testFlow4 finish = runST $ do
 	total <- newSTRef =<<
 		foldMIncidentDarts finish (\ !d !f ->
 			if isLeg (opposite d)
-				then unsafeWrite flow (dartArrIndex d) (-1) >> (return $! f + 1)
+				then unsafeWrite flow (dartIndex d) (-1) >> (return $! f + 1)
 				else return $! f
 		) (0 :: Int)
 
@@ -69,7 +69,7 @@ testFlow4 finish = runST $ do
 		forM_ (allLegs tangle) $ \ !a -> do
 			let b = opposite a
 			when (isDart b) $ do
-				f <- unsafeRead flow $! dartArrIndex b
+				f <- unsafeRead flow $! dartIndex b
 				when (f > -1) (touch b)
 
 		when (l == 4) $ do
@@ -83,7 +83,7 @@ testFlow4 finish = runST $ do
 				forMIncidentDarts (nthCrossing tangle ci) $ \ !a -> do
 					let b = opposite a
 					when (isDart b) $ do
-						f <- unsafeRead flow $! dartArrIndex b
+						f <- unsafeRead flow $! dartIndex b
 						when (f > -1) (touch b)
 				loop $! h + 1
 
@@ -93,10 +93,10 @@ testFlow4 finish = runST $ do
 		if pathFound
 			then do
 				let update !a = do
-					unsafeRead flow (dartArrIndex a) >>= \ !f -> unsafeWrite flow (dartArrIndex a) $! f - 1
+					unsafeRead flow (dartIndex a) >>= \ !f -> unsafeWrite flow (dartIndex a) $! f - 1
 					let b = opposite a
 					when (isDart b) $ do
-						unsafeRead flow (dartArrIndex b) >>= \ !f -> unsafeWrite flow (dartArrIndex b) $! f + 1
+						unsafeRead flow (dartIndex b) >>= \ !f -> unsafeWrite flow (dartIndex b) $! f + 1
 						unsafeRead p (crossingIndex $! incidentCrossing b) >>= update
 
 				unsafeRead p (crossingIndex finish) >>= update

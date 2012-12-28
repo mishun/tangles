@@ -7,9 +7,10 @@ module Math.KnotTh.Invariants.Skein.JonesPolynomial
 	, minimalJonesPolynomialOfTangle
 	) where
 
-import Data.List (sort)
+import Data.List (sort, foldl')
 import Data.Array.Unboxed (UArray, array, (!))
 import Data.Array.ST (STUArray, newArray, getAssocs, readArray, writeArray)
+import qualified Data.Set as Set
 import qualified Data.Map as Map
 import Control.Monad.ST (ST, runST)
 import qualified Math.Projects.KnotTheory.LaurentMPoly as LP
@@ -17,7 +18,6 @@ import Math.KnotTh.Knotted
 import Math.KnotTh.Crossings.Arbitrary
 import qualified Math.KnotTh.Link.NonAlternating as L
 import qualified Math.KnotTh.Tangle.NonAlternating as T
-import qualified Math.KnotTh.Tangle.NonAlternating.Writhe as TW
 
 
 type Poly = LP.LaurentMPoly Int
@@ -74,7 +74,7 @@ kauffmanStateSums link = runST $ do
 				kauffman (u + 1) v $! Join a d : Join b c : rest
 
 	kauffman 0 0 $! flip map (allCrossings link) $ \ c ->
-		let	label d = min (dartArrIndex d) (dartArrIndex $ opposite d)
+		let	label d = min (dartIndex d) (dartIndex $ opposite d)
 			[d0, d1, d2, d3] = incidentDarts c
 		in if passOver d0
 			then Cross (label d0) (label d1) (label d2) (label d3)
@@ -83,11 +83,11 @@ kauffmanStateSums link = runST $ do
 	filter ((/= 0) . snd) `fmap` getAssocs coeff
 
 
-kauffmanBracket :: (Num a) => (L.NonAlternatingLink -> Int) -> a -> a -> a -> L.NonAlternatingLink -> a
-kauffmanBracket calculateWrithe a b d link = writheFactor * (b ^ numberOfCrossings link) * stateSum
+kauffmanBracket :: (Num a) => a -> a -> a -> L.NonAlternatingLink -> a
+kauffmanBracket a b d link = writheFactor * (b ^ numberOfCrossings link) * stateSum
 	where
 		writheFactor =
-			let w = calculateWrithe link
+			let w = selfWrithe link
 			in (if w <= 0 then -a else -b) ^ abs (3 * w)
 
 		stateSum = sum $ flip map (kauffmanStateSums link) $ \ ((u, v), k) ->
@@ -95,7 +95,7 @@ kauffmanBracket calculateWrithe a b d link = writheFactor * (b ^ numberOfCrossin
 
 
 jonesPolynomialOfLink :: L.NonAlternatingLink -> Poly
-jonesPolynomialOfLink = kauffmanBracket L.selfWrithe jonesA jonesB jonesD
+jonesPolynomialOfLink = kauffmanBracket jonesA jonesB jonesD
 
 
 minimalJonesPolynomialOfLink :: L.NonAlternatingLink -> Poly
@@ -105,7 +105,7 @@ minimalJonesPolynomialOfLink link =
 
 
 kauffmanXPolynomialOfLink :: L.NonAlternatingLink -> Poly
-kauffmanXPolynomialOfLink = kauffmanBracket L.selfWrithe kauffmanXA kauffmanXB kauffmanXD
+kauffmanXPolynomialOfLink = kauffmanBracket kauffmanXA kauffmanXB kauffmanXD
 
 
 minimalKauffmanXPolynomialOfLink :: L.NonAlternatingLink -> Poly
@@ -122,11 +122,11 @@ jonesPolynomialOfTangle tangle = map (\ (sch, poly) -> (sch, wm * cm * poly)) $ 
 	where
 		cm = jonesD ^ numberOfFreeLoops tangle
 
-		wm =	let w = TW.selfWrithe tangle
+		wm =	let w = selfWrithe tangle
 			in (if w >= 0 then -jonesB else -jonesA) ^ (3 * abs w)
 
 		skein [] assocs mul =
-			let (sch, poly) = reductionOutcome (array (1, numberOfCrossings tangle) assocs)
+			let (sch, poly) = reductionOutcome (array (crossingIndexRange tangle) assocs)
 			in [(sch, mul * poly)]
 
 		skein (c : rest) assocs mul = merge
@@ -162,7 +162,38 @@ jonesPolynomialOfTangle tangle = map (\ (sch, poly) -> (sch, wm * cm * poly)) $ 
 					let smooting drt
 						| passOver drt == (reduction ! crossingIndex (incidentCrossing drt))  = nextCCW drt
 						| otherwise                                                           = nextCW drt
-					in T.undirectedPathsDecomposition smooting tangle
+					in undirectedPathsDecomposition smooting tangle
+
+
+		containingDirectedPath (adjForward, adjBackward) start
+			| isCycle    = forward
+			| otherwise  = walkBackward (start, forward)
+			where
+				(forward, isCycle) = walkForward start
+
+				walkForward d
+					| T.isLeg opp   = ([d], False)
+					| start == nxt  = ([d], True)
+					| otherwise     = (d : nextPath, nextCycle)
+					where
+						opp = opposite d
+						nxt = adjForward opp
+						(nextPath, nextCycle) = walkForward nxt
+
+				walkBackward (d, path)
+					| T.isLeg d  = path
+					| otherwise  = let prev = opposite $ adjBackward d in walkBackward (prev, prev : path)
+
+		undirectedPathsDecomposition continue = fst . foldl' processDart ([], Set.empty) . allHalfEdges
+			where
+				processDart (!paths, s) d
+					| Set.member d s  = (paths, s)
+					| otherwise       = (path : paths, nextS)
+					where
+						path = containingUndirectedPath continue d
+						nextS = foldl' (\ curs (a, b) -> Set.insert b $ Set.insert a curs) s path
+
+				containingUndirectedPath cont = map (\ d -> (d, opposite d)) . containingDirectedPath (cont, cont)
 
 
 minimalJonesPolynomialOfTangle :: T.NonAlternatingTangle -> [(Scheme, Poly)]

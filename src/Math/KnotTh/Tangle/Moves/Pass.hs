@@ -12,7 +12,7 @@ import Math.KnotTh.Tangle.Moves.ReidemeisterReduction
 
 
 neighbours :: NonAlternatingTangle -> [NonAlternatingTangle]
-neighbours tangle = mapMaybe tryPass $ allDarts tangle
+neighbours tangle = mapMaybe tryPass $ allDartsOfCrossings tangle
 	where
 		tryPass ab
 			| isLeg ca   = Nothing

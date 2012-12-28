@@ -153,7 +153,7 @@ substituteTangle tangle =
 		)
 	where
 		offset :: UArray Int Int
-		offset = listArray (1, numberOfCrossings tangle) $! scanl (\ !i !c -> i + numberOfCrossingsInside c) 0 $! allCrossings tangle
+		offset = listArray (crossingIndexRange tangle) $! scanl (\ !i !c -> i + numberOfCrossingsInside c) 0 $! allCrossings tangle
 
 		oppositeInt b u
 			| isLeg v                                = oppositeExt $! dartByCrossingLegId b (legPlace v)

@@ -13,10 +13,13 @@ module Math.KnotTh.Crossings.Arbitrary
 	, passUnder'
 	, alternatingDefect
 	, isAlternating
-	, writhe
+	, selfWrithe
+	, selfWritheArray
 	, invertCrossings
 	) where
 
+import Data.Array.Base (listArray, (!))
+import Data.Array.Unboxed (UArray, elems)
 import Control.DeepSeq
 import Math.Algebra.Group.D4 (i, c, subGroupDS, equivalenceClassId)
 import Math.KnotTh.Knotted
@@ -36,6 +39,12 @@ instance CrossingType ArbitraryCrossing where
 			Nothing                                       -> arbitraryCrossings
 			Just g | equivalenceClassId subGroupDS g == 0 -> arbitraryCrossings
 			       | otherwise                            -> overCrossingOnly
+
+
+instance ThreadedCrossing ArbitraryCrossing where
+	continuation d
+		| isDart d   = nextCCW $ nextCCW d
+		| otherwise  = error "continuation: from endpoint"
 
 
 instance Show ArbitraryCrossing where
@@ -98,15 +107,24 @@ isAlternating :: (Knotted k c d) => k ArbitraryCrossing -> Bool
 isAlternating = (== 0) . alternatingDefect
 
 
-writhe :: (Eq (d ArbitraryCrossing), Eq (c ArbitraryCrossing), Knotted t c d) => d ArbitraryCrossing -> d ArbitraryCrossing -> Int
-writhe a b
-	| incidentCrossing a /= incidentCrossing b  = error "writhe: darts must be incident to same crossing"
-	| a == nextCCW b                            = d
-	| a == nextCW b                             = -d
-	| otherwise                                 = error "writhe: bad path"
-	where
-		d | passOver b  = 1
-		  | otherwise   = -1
+selfWrithe :: (Knotted k c d, Eq (d ArbitraryCrossing)) => k ArbitraryCrossing -> Int
+selfWrithe = sum . elems . selfWritheArray
+
+
+selfWritheArray :: (Knotted k c d, Eq (d ArbitraryCrossing)) => k ArbitraryCrossing -> UArray Int Int
+selfWritheArray knot =
+	let t = fst $ allThreadsWithMarks knot
+	    writhe !cross
+	    	| t0 == t1     = s
+	    	| t0 == (-t1)  = -s
+	    	| otherwise    = 0
+	    	where
+	    		d0 = nthIncidentDart cross 0
+	    		t0 = t ! (dartIndex d0)
+	    		t1 = t ! (dartIndex $ nextCCW d0)
+	    		s | passOver d0  = 1
+	    		  | otherwise    = -1
+	in listArray (crossingIndexRange knot) $ map writhe $ allCrossings knot
 
 
 invertCrossings :: (Knotted k c d) => k ArbitraryCrossing -> k ArbitraryCrossing

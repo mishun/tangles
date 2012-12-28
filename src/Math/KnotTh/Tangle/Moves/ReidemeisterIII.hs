@@ -9,7 +9,7 @@ import Math.KnotTh.Tangle.Moves.Move
 
 
 neighbours :: NonAlternatingTangle -> [NonAlternatingTangle]
-neighbours tangle = mapMaybe try3rdReidemeister $ allDarts tangle
+neighbours tangle = mapMaybe try3rdReidemeister $ allDartsOfCrossings tangle
 	where
 		-- \sc           /rb             \sc   /rb
 		--  \           /                 \   /

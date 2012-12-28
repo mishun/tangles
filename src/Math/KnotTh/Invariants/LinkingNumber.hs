@@ -11,22 +11,18 @@ import Math.KnotTh.Tangle.NonAlternating
 
 
 linkingNumbersOfTangle :: NonAlternatingTangle -> [Int]
-linkingNumbersOfTangle tangle = sort $ (prefix ++) $ map abs $ concatMap threadLinkings threads
+linkingNumbersOfTangle tangle = sort $ map abs $ concatMap threadLinkings threads
 	where
 		threads = zip (allThreads tangle) [1 ..]
 
 		n = length threads
 
-		prefix =
-			let k = numberOfFreeLoops tangle
-			in replicate (k * n + k * (k - 1) `div` 2) 0
-
 		threadId =
-			let arr = array (0, 2 * numberOfEdges tangle - 1) $ do
+			let arr = array (dartIndexRange tangle) $ do
 				(thread, i) <- threads
 				(a, b) <- thread
-				[(dartArrIndex a, i), (dartArrIndex b, 0)]
-			in (arr !) . dartArrIndex
+				[(dartIndex a, i), (dartIndex b, 0)]
+			in (arr !) . dartIndex
 
 		threadLinkings (thread, i) = runST $ do
 			let linking d

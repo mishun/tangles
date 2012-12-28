@@ -7,6 +7,7 @@ module Math.KnotTh.Tangle.CascadeCode
 	) where
 
 import Data.Char (isSpace)
+import Text.Printf (printf)
 import Math.Algebra.Group.Dn (fromRotation)
 import Math.KnotTh.Tangle.Projection
 import Math.KnotTh.Tangle.NonAlternating
@@ -87,4 +88,4 @@ decodeCascadeCodeFromPairs = (decodeCascadeCode .) $ map $ \ (p, off) ->
 		-1 -> W
 		0  -> X
 		1  -> M
-		_  -> error "decodeCascadeCodeFromPairs: expected -1, 0 or 1 as pattern"
+		_  -> error $ printf "decodeCascadeCodeFromPairs: expected -1, 0 or 1 as pattern, %i received" p

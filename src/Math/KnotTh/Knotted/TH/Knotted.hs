@@ -288,7 +288,7 @@ produceKnotted knotPattern inst = flip execStateT [] $ do
 					[| $(conE dartN) $(varE k) $! ($(varE d) .&. complement 3 :: Int) + (($(varE d) - 1) .&. 3 :: Int) |]
 				) []
 
-		, funD 'dartArrIndex $ (:[]) $ do
+		, funD 'dartIndex $ (:[]) $ do
 			d <- newName "d"
 			clause [conP dartN [wildP, varP d]] (normalB $ varE d) []
 		]

@@ -1,13 +1,11 @@
 module Math.KnotTh.Knotted.Util
-	( crossingTypeInside
-	, isCrossingOrientationInvertedInside
-	, crossingLegIdByDart
-	, dartByCrossingLegId
-	, makeCrossing'
-	, isEndpoint
+	( isEndpoint
+	, isAdjacentToCrossing
 	, nextDir
-	, continuation
+	, nextPi
 	, begin
+	, maybeIncidentCrossing
+	, maybeAdjacentCrossing
 	, incidentDarts
 	, incidentDartsWithIds
 	, nthAdjacentDart
@@ -17,41 +15,22 @@ module Math.KnotTh.Knotted.Util
 	, adjacentCrossings
 	, adjacentCrossingsWithIds
 	, allCrossings
-	, allDarts
+	, allDartsOfCrossings
+	, allHalfEdges
 	) where
 
 import Math.Algebra.RotationDirection
-import qualified Math.Algebra.Group.D4 as D4
 import Math.KnotTh.Knotted.Knotted
-
-
-{-# INLINE crossingTypeInside #-}
-crossingTypeInside :: (CrossingType ct, Knotted k c d) => c ct -> ct
-crossingTypeInside = crossingType . crossingState
-
-
-{-# INLINE isCrossingOrientationInvertedInside #-}
-isCrossingOrientationInvertedInside :: (CrossingType ct, Knotted k c d) => c ct -> Bool
-isCrossingOrientationInvertedInside = isCrossingOrientationInverted . crossingState
-
-
-{-# INLINE crossingLegIdByDart #-}
-crossingLegIdByDart :: (CrossingType ct, Knotted t c d) => d ct -> Int
-crossingLegIdByDart d = crossingLegIdByDartId (crossingState $ incidentCrossing d) (dartPlace d)
-
-
-{-# INLINE dartByCrossingLegId #-}
-dartByCrossingLegId :: (CrossingType ct, Knotted k c d) => c ct -> Int -> d ct
-dartByCrossingLegId c = nthIncidentDart c . dartIdByCrossingLegId (crossingState c)
-
-
-makeCrossing' :: (CrossingType ct) => ct -> CrossingState ct
-makeCrossing' ct = makeCrossing ct D4.i
 
 
 {-# INLINE isEndpoint #-}
 isEndpoint :: (Knotted k c d) => d ct -> Bool
 isEndpoint = not . isDart
+
+
+{-# INLINE isAdjacentToCrossing #-}
+isAdjacentToCrossing :: (Knotted k c d) => d ct -> Bool
+isAdjacentToCrossing = isDart . opposite
 
 
 {-# INLINE nextDir #-}
@@ -61,9 +40,9 @@ nextDir dir
 	| otherwise        = nextCCW
 
 
-{-# INLINE continuation #-}
-continuation :: (Knotted k c d) => d ct -> d ct
-continuation = nextCCW . nextCCW
+{-# INLINE nextPi #-}
+nextPi :: (Knotted k c d) => d ct -> d ct
+nextPi = nextCCW . nextCCW
 
 
 {-# INLINE begin #-}
@@ -72,6 +51,18 @@ begin d =
 	let c = incidentCrossing d
 	    p = dartPlace d
 	in c `seq` p `seq` (c, p)
+
+
+{-# INLINE maybeIncidentCrossing #-}
+maybeIncidentCrossing :: (Knotted k c d) => d ct -> Maybe (c ct)
+maybeIncidentCrossing d
+	| isDart d   = Just $! incidentCrossing d
+	| otherwise  = Nothing
+
+
+{-# INLINE maybeAdjacentCrossing #-}
+maybeAdjacentCrossing :: (Knotted k c d) => d ct -> Maybe (c ct)
+maybeAdjacentCrossing = maybeIncidentCrossing . opposite
 
 
 {-# INLINE incidentDarts #-}
@@ -119,6 +110,11 @@ allCrossings :: (Knotted k c d) => k ct -> [c ct]
 allCrossings knot = map (nthCrossing knot) [1 .. numberOfCrossings knot]
 
 
-{-# INLINE allDarts #-}
-allDarts :: (Knotted k c d) => k ct -> [d ct]
-allDarts = concatMap incidentDarts . allCrossings
+{-# INLINE allDartsOfCrossings #-}
+allDartsOfCrossings :: (Knotted k c d) => k ct -> [d ct]
+allDartsOfCrossings = concatMap incidentDarts . allCrossings
+
+
+{-# INLINE allHalfEdges #-}
+allHalfEdges :: (Knotted k c d) => k ct -> [d ct]
+allHalfEdges = concatMap (\ (a, b) -> [a, b]) . allEdges

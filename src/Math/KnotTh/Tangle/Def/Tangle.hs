@@ -17,7 +17,9 @@ module Math.KnotTh.Tangle.Def.Tangle
 	) where
 
 import Language.Haskell.TH
-import Data.List (intercalate)
+import Data.List (intercalate, nub, sort, foldl')
+import qualified Data.Set as Set
+import qualified Data.Map as Map
 import Data.Array.Base (unsafeAt, unsafeWrite, unsafeRead)
 import Data.Array.ST (STArray, STUArray, newArray_)
 import Data.Array.Unsafe (unsafeFreeze)
@@ -30,13 +32,14 @@ import Math.KnotTh.Knotted
 
 
 produceKnotted
-	[d| data Tangle ct = Tangle { numberOfLegs :: {-# UNPACK #-} !Int } |]
-	defaultKnotted
+	[d| data Tangle ct = Tangle { numberOfLegs :: {-# UNPACK #-} !Int } |] $
+	let numberOfLegs = varE $ mkName "numberOfLegs"
+	    dart = conE $ mkName "Dart"
+	in defaultKnotted
 		{ implodeExplodeSettings = Nothing
 
 		, modifyNumberOfEdges = Just $ \ t _ -> [|
-			let l = $(varE $ mkName "numberOfLegs") $(t)
-			in 2 * (numberOfCrossings $(t)) + (l `div` 2)
+			2 * (numberOfCrossings $(t)) + ($(numberOfLegs) $(t) `div` 2)
 			|]
 
 		, modifyIsDart = Just $ \ (t, i) -> [|
@@ -46,14 +49,14 @@ produceKnotted
 		, modifyNextCCW = Just $ \ (t, d) e -> [|
 			let n = (4 :: Int) * numberOfCrossings $(t)
 			in if $(d) >= n
-				then $(conE $ mkName "Dart") $(t) $! n + ($(d) - n + 1) `mod` ($(varE $ mkName "numberOfLegs") $(t))
+				then $(dart) $(t) $! n + ($(d) - n + 1) `mod` ($(numberOfLegs) $(t))
 				else $(e)
 			|]
 
 		, modifyNextCW = Just $ \ (t, d) e -> [|
 			let n = (4 :: Int) * numberOfCrossings $(t)
 			in if $(d) >= n
-				then $(conE $ mkName "Dart") $(t) $! n + ($(d) - n - 1) `mod` ($(varE $ mkName "numberOfLegs") $(t))
+				then $(dart) $(t) $! n + ($(d) - n - 1) `mod` ($(numberOfLegs) $(t))
 				else $(e)
 			|]
 
@@ -73,7 +76,7 @@ produceKnotted
 
 		, modifyFoldMIncidentDartsFrom = Just $ \ (d, _) e -> [|
 			if $(varE $ mkName "isLeg") $(d)
-				then error "foldMIncidentDartsFrom: taken from leg"
+				then error "foldMIncidentDartsFrom: taken from leg %i" ($(varE $ mkName "legPlace") $(d))
 				else $(e)
 			|]
 		}
@@ -283,3 +286,59 @@ instance KnottedWithToPair Tangle Crossing Dart where
 			let c = crossingIndex $ incidentCrossing d
 			    p = dartPlace d
 			in c `seq` p `seq` (c, p)
+
+
+instance KnottedWithConnectivity Tangle Crossing Dart where
+	isConnected tangle
+		| numberOfFreeLoops tangle /= 0  = False
+		| otherwise                      = all (\ (a, b) -> Set.member a con && Set.member b con) edges
+		where
+			edges = allEdges tangle
+			con = dfs (Set.empty) $ fst $ head edges
+			dfs vis c
+				| Set.member c vis  = vis
+				| otherwise         = foldl' dfs (Set.insert c vis) neigh
+				where
+					neigh
+						| isLeg c    = [opposite c]
+						| otherwise  = [opposite c, nextCCW c, nextCW c]
+
+	isPrime tangle = connections == nub connections
+		where
+			idm =	let faces = directedPathsDecomposition (nextCW, nextCCW)
+				in Map.fromList $ concatMap (\ (face, i) -> zip face $ repeat i) $ zip faces [(0 :: Int) ..]
+
+			connections = sort $ map getPair $ allEdges tangle
+				where
+					getPair (da, db) = (min a b, max a b)
+						where
+							a = idm Map.! da
+							b = idm Map.! db
+
+			directedPathsDecomposition continue = fst $ foldl' processDart ([], Set.empty) $ allHalfEdges tangle
+				where
+					processDart (paths, s) d
+						| Set.member d s  = (paths, s)
+						| otherwise       = (path : paths, nextS)
+						where
+							path = containingDirectedPath continue d
+							nextS = foldl' (\ curs a -> Set.insert a curs) s path
+
+			containingDirectedPath (adjForward, adjBackward) start
+				| isCycle    = forward
+				| otherwise  = walkBackward (start, forward)
+				where
+					(forward, isCycle) = walkForward start
+
+					walkForward d
+						| isLeg opp     = ([d], False)
+						| start == nxt  = ([d], True)
+						| otherwise     = (d : nextPath, nextCycle)
+						where
+							opp = opposite d
+							nxt = adjForward opp
+							(nextPath, nextCycle) = walkForward nxt
+
+					walkBackward (d, path)
+						| isLeg d    = path
+						| otherwise  = let prev = opposite $ adjBackward d in walkBackward (prev, prev : path)

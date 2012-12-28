@@ -3,7 +3,7 @@ module Main (main) where
 import Control.Monad
 import Math.KnotTh.Tangle.Projection
 import Math.KnotTh.Tangle.NonAlternating
-import Math.KnotTh.Tangle.Draw
+import Math.KnotTh.Draw.DrawKnot
 import Math.KnotTh.Tangle.BorderIncremental.SimpleTypes
 import Math.KnotTh.Tangle.BorderIncremental.FlypeGenerator
 import Graphics.HP
@@ -26,6 +26,6 @@ main = do
 			--generateFlypeEquivalentDecomposition 5 $ \ template _ -> do
 			--	let tangle = substitute template
 				when (numberOfLegs tangle == 4) $ do
-					drawTangle 0.02 tangle
+					drawKnot 0.02 tangle
 			--		transformed [shifted (3, 0)] $ drawTangle 0.01 $ tangleProjection template
 					appendTransform [shifted (0, -2.2)]

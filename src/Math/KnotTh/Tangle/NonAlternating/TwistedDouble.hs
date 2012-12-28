@@ -6,7 +6,6 @@ import Data.Bits ((.&.))
 import Data.Array.Base (listArray, (!))
 import Data.Array.Unboxed (UArray)
 import Math.KnotTh.Tangle.NonAlternating
-import Math.KnotTh.Tangle.NonAlternating.Writhe
 
 
 twistedDouble :: NonAlternatingTangle -> NonAlternatingTangle

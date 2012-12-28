@@ -14,7 +14,7 @@ import Math.KnotTh.Tangle
 
 
 zeroFlow :: Tangle ct -> UArray Int Int
-zeroFlow tangle = listArray (0, 2 * numberOfEdges tangle - 1) $ repeat (0 :: Int)
+zeroFlow tangle = listArray (dartIndexRange tangle) $ repeat 0
 
 
 restingPart :: Tangle ct -> [Dart ct] -> Maybe ([Dart ct], UArray Int Bool)
@@ -35,7 +35,7 @@ restingPart tangle incoming
 		maxFlow = push (0 :: Int) flow0
 			where
 				flow0 =
-					let blockingFlow = concatMap (\ l -> if isLeg l then [] else [(dartArrIndex l, 1)]) (incoming ++ map opposite incoming)
+					let blockingFlow = concatMap (\ l -> if isLeg l then [] else [(dartIndex l, 1)]) (incoming ++ map opposite incoming)
 					in (zeroFlow tangle) // blockingFlow
 
 				push flowValue flow
@@ -48,7 +48,7 @@ restingPart tangle incoming
 
 		getSubtangle (flow, flowValue) = Just $ (result, flowValue)
 			where
-				result = listArray (1, numberOfCrossings tangle) $ map (\ c -> Set.member c subtangle) $ allCrossings tangle
+				result = listArray (crossingIndexRange tangle) $ map (\ c -> Set.member c subtangle) $ allCrossings tangle
 
 				subtangle = execState (forM_ starts dfs) Set.empty
 
@@ -56,7 +56,7 @@ restingPart tangle incoming
 					visited <- gets $ Set.member c
 					when (not visited) $ do
 						modify $ Set.insert c
-						mapM_ (dfs . adjacentCrossing) $ filter (\ d -> (flow ! dartArrIndex d) < 1) $ incidentDarts c
+						mapM_ (dfs . adjacentCrossing) $ filter (\ d -> (flow ! dartIndex d) < 1) $ incidentDarts c
 
 		checkConnectivity (sub, flowValue)
 			| all (\ s -> Set.member s mask) $ tail starts  = Just $! (sub, flowValue)
@@ -101,7 +101,9 @@ pushResidualFlow tangle starts ends flow = (evalState bfs initial) >>= push
 		initial = (Seq.fromList starts, Map.fromList $ zip starts (repeat []))
 
 		endFlag :: UArray Int Bool
-		endFlag = array (1, numberOfCrossings tangle) $! map (\ (c, f) -> (crossingIndex c, f)) $! zip (allCrossings tangle) (repeat False) ++ zip ends (repeat True)
+		endFlag = array (crossingIndexRange tangle) $!
+			map (\ (c, f) -> (crossingIndex c, f)) $!
+				zip (allCrossings tangle) (repeat False) ++ zip ends (repeat True)
 
 		bfs = do
 			empty <- isEmpty
@@ -114,7 +116,7 @@ pushResidualFlow tangle starts ends flow = (evalState bfs initial) >>= push
 							p <- getPath u
 							return $! Just p
 						else do
-							let ud = filter (\ d -> flow ! dartArrIndex d < 1) $ incidentDarts u
+							let ud = filter (\ d -> flow ! dartIndex d < 1) $ incidentDarts u
 							let brd = find (isLeg . opposite) ud
 							if isJust brd
 								then do
@@ -150,6 +152,6 @@ pushResidualFlow tangle starts ends flow = (evalState bfs initial) >>= push
 					| isLeg r    = [df]
 					| otherwise  = [df, rf]
 					where
-						df = (dartArrIndex d, (flow ! dartArrIndex d) + 1)
+						df = (dartIndex d, (flow ! dartIndex d) + 1)
 						r = opposite d
-						rf = (dartArrIndex r, (flow ! dartArrIndex r) - 1)
+						rf = (dartIndex r, (flow ! dartIndex r) - 1)

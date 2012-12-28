@@ -9,7 +9,7 @@ import Math.KnotTh.Tangle.Moves.Resting
 
 
 neighbours :: NonAlternatingTangle -> [NonAlternatingTangle]
-neighbours tangle = mapMaybe tryDoublePass $ allDarts tangle
+neighbours tangle = mapMaybe tryDoublePass $ allDartsOfCrossings tangle
 	where
 		tryDoublePass ab
 			| unexpectedLeg           = Nothing

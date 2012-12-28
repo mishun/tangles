@@ -33,9 +33,10 @@ disassemble :: (CrossingType ct) => Tangle ct -> ST s (MoveState s ct)
 disassemble tangle = do
 	let n = numberOfCrossings tangle
 
-	connections <- newArray_ (0, 2 * numberOfEdges tangle - 1)
-	forM_ (allLegsAndDarts tangle) $ \ !d ->
-		writeArray connections (dartArrIndex d) (opposite d)
+	connections <- newArray_ (dartIndexRange tangle)
+	forM_ (allEdges tangle) $ \ (!a, !b) -> do
+		writeArray connections (dartIndex a) b
+		writeArray connections (dartIndex b) a
 
 	mask <- newArray (1, n) Direct
 	circlesCounter <- newSTRef $! numberOfFreeLoops tangle
@@ -51,7 +52,7 @@ assemble :: (CrossingType ct) => MoveState s ct -> ST s (Tangle ct)
 assemble st = do
 	let source = stateSource st
 
-	offset <- newArray_ (1, numberOfCrossings source) :: ST s (STUArray s Int Int)
+	offset <- newArray_ (crossingIndexRange source) :: ST s (STUArray s Int Int)
 	foldM_ (\ !x !c -> do
 		let i = crossingIndex c
 		msk <- readArray (stateMask st) i
@@ -71,7 +72,7 @@ assemble st = do
 				Flipped -> return $! (off, 3 - dartPlace d)
 				Masked  -> fail "assemble: touching masked crossing"
 
-	let opp d = readArray (stateConnections st) (dartArrIndex d)
+	let opp d = readArray (stateConnections st) (dartIndex d)
 
 	border <- forM (allLegs source) (opp >=> pair)
 	connections <-
@@ -94,8 +95,8 @@ reconnect :: MoveState s ct -> [(Dart ct, Dart ct)] -> ST s ()
 reconnect st connections =
 	forM_ connections $ \ (!a, !b) -> do
 		when (a == b) (fail "reconnect: connect to itself")
-		writeArray (stateConnections st) (dartArrIndex a) b
-		writeArray (stateConnections st) (dartArrIndex b) a
+		writeArray (stateConnections st) (dartIndex a) b
+		writeArray (stateConnections st) (dartIndex b) a
 
 
 type MoveM s ct r = StateT (MoveState s ct) (ST s) r
@@ -106,7 +107,7 @@ move initial modification = runST $ disassemble initial >>= execStateT modificat
 
 
 oppositeC :: Dart ct -> MoveM s ct (Dart ct)
-oppositeC d = get >>= \ st -> lift $ readArray (stateConnections st) (dartArrIndex d)
+oppositeC d = get >>= \ st -> lift $ readArray (stateConnections st) (dartIndex d)
 
 
 emitCircle :: MoveM s ct ()
@@ -143,22 +144,23 @@ substituteC substitutions = do
 	lift $ do
 		let source = stateSource st
 
-		arr <- newArray_ (0, 2 * numberOfEdges source - 1) :: ST s (STArray s Int (Dart ct))
-		forM_ (allLegsAndDarts source) $ \ !d ->
-			writeArray arr (dartArrIndex d) d
+		arr <- newArray_ (dartIndexRange source) :: ST s (STArray s Int (Dart ct))
+		forM_ (allEdges source) $ \ (!a, !b) -> do
+			writeArray arr (dartIndex a) a
+			writeArray arr (dartIndex b) b
 
 		forM_ substitutions $ \ (a, b) -> if a == b
 			then modifySTRef (stateCircles st) (+ 1)
-			else writeArray arr (dartArrIndex b) a
+			else writeArray arr (dartIndex b) a
 
-		mapM (\ (a, b) -> do { b' <- readArray arr (dartArrIndex b) ; return (a, b' ) }) reconnections >>= reconnect st
+		mapM (\ (a, b) -> do { b' <- readArray arr (dartIndex b) ; return (a, b' ) }) reconnections >>= reconnect st
 
 
 greedy :: [Dart ct -> MoveM s ct Bool] -> MoveM s ct ()
 greedy reductionsList = iteration
 	where
 		iteration = do
-			darts <- get >>= \ !st -> lift $ return $ allDarts $ stateSource st
+			darts <- get >>= \ !st -> lift $ return $ allDartsOfCrossings $ stateSource st
 			changed <- anyM processDart darts
 			when changed iteration
 

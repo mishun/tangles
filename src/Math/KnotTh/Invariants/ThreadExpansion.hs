@@ -8,7 +8,7 @@ import qualified Data.Set as Set
 import Math.KnotTh.Tangle
 
 
-threadExpansion :: (Ord inv, CrossingType ct) => (Tangle ct -> inv) -> Tangle ct -> [([Int], inv)]
+threadExpansion :: (Ord inv, ThreadedCrossing ct) => (Tangle ct -> inv) -> Tangle ct -> [([Int], inv)]
 threadExpansion invariant tangle = sort $ map (processThreadSet invariant tangle) sets
 	where
 		sets = subsets $ allThreads tangle
@@ -19,7 +19,7 @@ threadExpansion invariant tangle = sort $ map (processThreadSet invariant tangle
 					in nx ++ map (x :) nx
 
 
-processThreadSet :: (Ord inv, CrossingType ct) => (Tangle ct -> inv) -> Tangle ct -> [[(Dart ct, Dart ct)]] -> ([Int], inv)
+processThreadSet :: (Ord inv, ThreadedCrossing ct) => (Tangle ct -> inv) -> Tangle ct -> [[(Dart ct, Dart ct)]] -> ([Int], inv)
 processThreadSet invariant tangle threads = (ecode, invariant threadTangle)
 	where
 		targetLegs = sort $ concatMap (\ t -> let a = fst $ head t in if isLeg a then [a, snd $ last t] else []) threads
@@ -33,7 +33,7 @@ processThreadSet invariant tangle threads = (ecode, invariant threadTangle)
 					where
 						c = incidentCrossing b
 
-		indices = array (1, numberOfCrossings tangle) $ map (\ (c, x) -> (crossingIndex c, x)) $ (zip (allCrossings tangle) (repeat 0)) ++ (zip targets [1 ..])
+		indices = array (crossingIndexRange tangle) $ map (\ (c, x) -> (crossingIndex c, x)) $ (zip (allCrossings tangle) (repeat 0)) ++ (zip targets [1 ..])
 
 		findTarget u
 			| isLeg v    =

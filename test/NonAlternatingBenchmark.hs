@@ -7,7 +7,7 @@ import Control.Monad
 import Math.KnotTh.Tangle.BorderIncremental.SimpleTypes
 import Math.KnotTh.Enumeration.DiagramInfo.MinimalDiagramInfo
 import Math.KnotTh.Enumeration.Applied.NonAlternatingTangles
-import Math.KnotTh.Tangle.Draw
+import Math.KnotTh.Draw.DrawKnot
 import Math.KnotTh.Link.FromTangle
 import Math.KnotTh.Invariants.Skein.JonesPolynomial
 import Math.KnotTh.Invariants.ThreadExpansion
