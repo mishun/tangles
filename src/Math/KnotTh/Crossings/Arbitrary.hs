@@ -117,7 +117,7 @@ selfWritheArray knot =
 	    	| otherwise    = 0
 	    	where
 	    		d0 = nthIncidentDart cross 0
-	    		t0 = t ! (dartIndex d0)
+	    		t0 = t ! dartIndex d0
 	    		t1 = t ! (dartIndex $ nextCCW d0)
 	    		s | passOver d0  = 1
 	    		  | otherwise    = -1

@@ -49,7 +49,7 @@ weakTangleClasses =
 
 siftTangles :: (DiagramInfo info) => [info NonAlternatingTangle] -> SiftResult info NonAlternatingTangle
 siftTangles = siftByInvariant $ \ tangle ->
-	(linkingNumbersOfTangle tangle, minimalJonesPolynomialOfTangle tangle)
+	(linkingNumbersSet tangle, minimalJonesPolynomialOfTangle tangle)
 
 
 siftWeakTangles :: (DiagramInfo info) => [info NonAlternatingTangle] -> SiftResult info NonAlternatingTangle

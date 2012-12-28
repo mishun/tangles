@@ -28,7 +28,7 @@ testInvariantness n f =
 
 tests = "Tangle invariants" ~: 
 	[ "Linking numbers" ~:
-		testInvariantness 6 linkingNumbersOfTangle
+		testInvariantness 6 linkingNumbersSet
 
 	, "Jones polynomial" ~:
 		testInvariantness 6 minimalJonesPolynomialOfTangle

@@ -1,48 +1,43 @@
 module Math.KnotTh.Invariants.LinkingNumber
-	( linkingNumbersOfTangle
+	( linkingNumbersArray
+	, linkingNumbersSet
 	) where
 
 import Data.List (sort)
-import Data.Array ((!), array)
-import Data.Array.ST (STUArray, newArray, readArray, writeArray)
-import Control.Monad.ST (ST, runST)
+import Data.Array.Base ((!))
+import Data.Array.Unboxed (UArray)
+import Data.Array.ST (runSTUArray, newArray, readArray, writeArray)
 import Control.Monad (forM_, when)
-import Math.KnotTh.Tangle.NonAlternating
+import Math.KnotTh.Knotted
+import Math.KnotTh.Crossings.Arbitrary
 
 
-linkingNumbersOfTangle :: NonAlternatingTangle -> [Int]
-linkingNumbersOfTangle tangle = sort $ map abs $ concatMap threadLinkings threads
-	where
-		threads = zip (allThreads tangle) [1 ..]
+linkingNumbersArray :: (Knotted k c d, Eq (d ArbitraryCrossing)) => k ArbitraryCrossing -> (Int, UArray (Int, Int) Int, UArray Int Int)
+linkingNumbersArray knot =
+	let (n, t, _) = allThreadsWithMarks knot
+	    linking = runSTUArray $ do
+		ln <- newArray ((1, 1), (n, n)) 0
 
-		n = length threads
+		forM_ (allCrossings knot) $ \ !c -> do
+			let d0 = nthIncidentDart c 0
+			    t0 = t ! dartIndex d0
+			    t1 = t ! (dartIndex $ nextCCW d0)
+			when (abs t0 /= abs t1) $ do
+				let i = (max (abs t0) (abs t1), min (abs t0) (abs t1))
+				let s | (signum t0 == signum t1) == passOver d0  = 1
+				      | otherwise                                = -1
+				readArray ln i >>= \ s' -> writeArray ln i $! s' + s
 
-		threadId =
-			let arr = array (dartIndexRange tangle) $ do
-				(thread, i) <- threads
-				(a, b) <- thread
-				[(dartIndex a, i), (dartIndex b, 0)]
-			in (arr !) . dartIndex
+		forM_ [1 .. n] $ \ !i -> forM_ [i + 1 .. n] $ \ !j ->
+			readArray ln (j, i) >>= writeArray ln (i, j)
 
-		threadLinkings (thread, i) = runST $ do
-			let linking d
-				| l > 0             = (p, l)
-				| r > 0             = (-p, r)
-				| otherwise         = error "no thread"
-				where
-					p | passOver d  = 1
-					  | otherwise   = -1
+		return ln
+	in (n, linking, t)
 
-					l = threadId $ nextCCW d
-					r = threadId $ nextCW d
 
-			ln <- newArray (1, n) 0 :: ST s (STUArray s Int Int)
-
-			forM_ (filter isDart $ map snd thread) $ \ d ->
-				when (isDart d) $ do
-					let (dl, j) = linking d
-					when (i /= j) $ do
-						cl <- readArray ln j
-						writeArray ln j (cl + dl)
-
-			mapM (readArray ln) [1 .. (i - 1)]
+linkingNumbersSet :: (Knotted k c d, Eq (d ArbitraryCrossing)) => k ArbitraryCrossing -> [Int]
+linkingNumbersSet knot = sort $ do
+	let (n, ln, _) = linkingNumbersArray knot
+	i <- [1 .. n]
+	j <- [1 .. i - 1]
+	return $! abs $! ln ! (i, j)
