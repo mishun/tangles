@@ -8,8 +8,9 @@ module Math.KnotTh.Knotted.TH.Knotted
 	) where
 
 import Language.Haskell.TH
+import Data.List (foldl')
 import Data.Bits ((.&.), shiftL, shiftR, complement)
-import Data.Array.Base (unsafeAt, unsafeWrite, unsafeRead)
+import Data.Array.Base (bounds, unsafeAt, unsafeWrite, unsafeRead)
 import Data.Array (Array)
 import Data.Array.Unboxed (UArray)
 import Data.Array.Unsafe (unsafeFreeze)
@@ -26,6 +27,7 @@ import Math.KnotTh.Knotted
 
 data KnottedSettings = KnottedSettings
 	{ modifyNumberOfEdges          :: Maybe (ExpQ -> ExpQ -> ExpQ)
+	, modifyIsDart                 :: Maybe ((ExpQ, ExpQ) -> ExpQ)
 	, modifyNextCCW                :: Maybe ((ExpQ, ExpQ) -> ExpQ -> ExpQ)
 	, modifyNextCW                 :: Maybe ((ExpQ, ExpQ) -> ExpQ -> ExpQ)
 	, modifyDartPlace              :: Maybe ((ExpQ, ExpQ) -> ExpQ -> ExpQ)
@@ -44,6 +46,7 @@ data ImplodeExplodeSettings = ImplodeExplodeSettings
 defaultKnotted :: KnottedSettings
 defaultKnotted = KnottedSettings
 	{ modifyNumberOfEdges          = Nothing
+	, modifyIsDart                 = Nothing
 	, modifyNextCCW                = Nothing
 	, modifyNextCW                 = Nothing
 	, modifyDartPlace              = Nothing
@@ -179,6 +182,17 @@ produceKnotted knotPattern inst = flip execStateT [] $ do
 					[| numberOfCrossings $(varE k) * (2 :: Int) |]
 				) []
 
+		, funD 'allEdges $ (:[]) $ do
+			k <- newName "k"
+			clause [varP k] (normalB $ [|
+				foldl' (\ !es !i ->
+					let j = $(varE crossArray) $(varE k) `unsafeAt` i
+					in if i < j
+						then ($(conE dartN) $(varE k) i, $(conE dartN) $(varE k) j) : es
+						else es
+					) [] [0 .. snd $ bounds $ $(varE crossArray) $(varE k)]
+				|]) []
+
 		, funD 'crossingOwner $ (:[]) $ do
 			k <- newName "k"
 			clause [conP crosN [varP k, wildP]] (normalB $ varE k) []
@@ -222,6 +236,13 @@ produceKnotted knotPattern inst = flip execStateT [] $ do
 			clause [conP crosN [varP k, varP c], varP i] (normalB [|
 				$(conE dartN) $(varE k) $! ($(varE c) `shiftL` 2 :: Int) + ($(varE i) .&. 3 :: Int)
 				|]) []
+
+		, funD 'isDart $ (:[]) $ do
+			k <- newName "k"
+			d <- newName "d"
+			clause [ maybe wildP (const $ conP dartN [varP k, varP d]) (modifyIsDart inst) ] (normalB $
+				maybe [| True |] ($ (varE k, varE d)) (modifyIsDart inst)
+				) []
 
 		, funD 'dartOwner $ (:[]) $ do
 			k <- newName "k"

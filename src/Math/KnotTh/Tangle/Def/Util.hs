@@ -5,7 +5,6 @@ module Math.KnotTh.Tangle.Def.Util
 	, maybeIncidentCrossing
 	, maybeAdjacentCrossing
 	, allLegsAndDarts
-	, allEdges
 	, undirectedPathsDecomposition
 	, allThreads
 	) where
@@ -46,11 +45,6 @@ maybeAdjacentCrossing = maybeIncidentCrossing . opposite
 {-# INLINE allLegsAndDarts #-}
 allLegsAndDarts :: Tangle ct -> [Dart ct]
 allLegsAndDarts tangle = allLegs tangle ++ allDarts tangle
-
-
-{-# INLINE allEdges #-}
-allEdges :: Tangle ct -> [(Dart ct, Dart ct)]
-allEdges tangle = [ (a, b) | a <- allLegsAndDarts tangle, let b = opposite a, a < b ]
 
 
 

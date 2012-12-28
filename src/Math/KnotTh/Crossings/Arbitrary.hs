@@ -4,17 +4,21 @@ module Math.KnotTh.Crossings.Arbitrary
 	, overCrossing
 	, underCrossing
 	, arbitraryCrossings
+	, overCrossingOnly
+	, isOverCrossing
+	, isUnderCrossing
 	, passOver
 	, passUnder
 	, passOver'
 	, passUnder'
-	, isAltenatingEdge
+	, alternatingDefect
+	, isAlternating
 	, writhe
 	, invertCrossings
 	) where
 
 import Control.DeepSeq
-import Math.Algebra.Group.D4 ((<*>), i, c, subGroupDS, equivalenceClassId)
+import Math.Algebra.Group.D4 (i, c, subGroupDS, equivalenceClassId)
 import Math.KnotTh.Knotted
 
 
@@ -31,7 +35,7 @@ instance CrossingType ArbitraryCrossing where
 		case bound of
 			Nothing                                       -> arbitraryCrossings
 			Just g | equivalenceClassId subGroupDS g == 0 -> arbitraryCrossings
-			Just _                                        -> overCrossingOnly
+			       | otherwise                            -> overCrossingOnly
 
 
 instance Show ArbitraryCrossing where
@@ -57,6 +61,14 @@ overCrossingOnly :: [ArbitraryCrossingState]
 overCrossingOnly = [overCrossing]
 
 
+isOverCrossing :: ArbitraryCrossingState -> Bool
+isOverCrossing s = passOver' s 0
+
+
+isUnderCrossing :: ArbitraryCrossingState -> Bool
+isUnderCrossing s = passUnder' s 0
+
+
 passOver :: (Knotted k c d) => d ArbitraryCrossing -> Bool
 passOver = even . crossingLegIdByDart
 
@@ -73,8 +85,17 @@ passUnder' :: ArbitraryCrossingState -> Int -> Bool
 passUnder' cr p = odd $ crossingLegIdByDartId cr p
 
 
-isAltenatingEdge :: (Knotted k c d) => d ArbitraryCrossing -> Bool
-isAltenatingEdge d = passOver d == passUnder (opposite d)
+alternatingDefect :: (Knotted k c d) => k ArbitraryCrossing -> Int
+alternatingDefect =
+	let defect (!a, !b)
+		| isEndpoint a || isEndpoint b  = 0
+		| passOver a == passOver b      = 1
+		| otherwise                     = 0
+	in sum . map defect . allEdges
+
+
+isAlternating :: (Knotted k c d) => k ArbitraryCrossing -> Bool
+isAlternating = (== 0) . alternatingDefect
 
 
 writhe :: (Eq (d ArbitraryCrossing), Eq (c ArbitraryCrossing), Knotted t c d) => d ArbitraryCrossing -> d ArbitraryCrossing -> Int
@@ -84,8 +105,12 @@ writhe a b
 	| a == nextCW b                             = -d
 	| otherwise                                 = error "writhe: bad path"
 	where
-		d = if passOver b then 1 else -1
+		d | passOver b  = 1
+		  | otherwise   = -1
 
 
 invertCrossings :: (Knotted k c d) => k ArbitraryCrossing -> k ArbitraryCrossing
-invertCrossings = mapCrossings $ mapOrientation (c <*>)
+invertCrossings = mapCrossings $ \ s ->
+	if isOverCrossing s
+		then underCrossing
+		else overCrossing

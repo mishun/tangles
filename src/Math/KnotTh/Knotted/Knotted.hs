@@ -14,6 +14,7 @@ module Math.KnotTh.Knotted.Knotted
 	) where
 
 import Control.DeepSeq
+import Text.Printf (printf)
 import Math.Algebra.RotationDirection
 import Math.Algebra.Group.D4 (D4, D4SubGroup, inverse, (<*>), hasReflection, permute, fromReflectionRotation, equivalenceClassId, equvalenceClassRepresentatives)
 
@@ -53,7 +54,10 @@ instance (NFData ct) => NFData (CrossingState ct) where
 
 
 instance (Show ct) => Show (CrossingState ct) where
-	show c = concat [ "(" , show (orientation c), " ", show (crossingType c), ")"]
+	show c = printf "(%s / %s | %s)"
+			(show $ orientation c)
+			(show $ symmetry c)
+			(show $ crossingType c)
 
 
 {-# INLINE isCrossingOrientationInverted #-}
@@ -92,6 +96,7 @@ class Knotted (knot :: * -> *) (cross :: * -> *) (dart :: * -> *) | knot -> cros
 	numberOfFreeLoops :: knot ct -> Int
 	numberOfCrossings :: knot ct -> Int
 	numberOfEdges     :: knot ct -> Int
+	allEdges          :: knot ct -> [(dart ct, dart ct)]
 	nthCrossing       :: knot ct -> Int -> cross ct
 	mapCrossings      :: (CrossingType a, CrossingType b) => (CrossingState a -> CrossingState b) -> knot a -> knot b
 
@@ -100,11 +105,14 @@ class Knotted (knot :: * -> *) (cross :: * -> *) (dart :: * -> *) | knot -> cros
 	crossingState     :: (CrossingType ct) => cross ct -> CrossingState ct
 	nthIncidentDart   :: cross ct -> Int -> dart ct
 
+	isDart            :: dart ct -> Bool
 	nextCW, nextCCW   :: dart ct -> dart ct
 	opposite          :: dart ct -> dart ct
 	incidentCrossing  :: dart ct -> cross ct
 	dartPlace         :: dart ct -> Int
 	dartOwner         :: dart ct -> knot ct
+
+	-- [0 .. 2 * numberOfEdges - 1]
 	dartArrIndex      :: dart ct -> Int
 
 

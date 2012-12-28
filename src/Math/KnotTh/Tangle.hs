@@ -10,4 +10,3 @@ import Math.KnotTh.Knotted
 import Math.KnotTh.Tangle.Def.Tangle
 import Math.KnotTh.Tangle.Def.Util
 import Math.KnotTh.Tangle.Def.Construction
---import Math.KnotTh.Tangle.Def.OldTangle

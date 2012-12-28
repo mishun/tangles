@@ -8,7 +8,6 @@ module Math.KnotTh.Tangle.Def.Tangle
 	, dartTangle
 	, numberOfLegs
 	, isLeg
-	, isDart
 	, legPlace
 	, nthLeg
 	, allLegs
@@ -38,6 +37,10 @@ produceKnotted
 		, modifyNumberOfEdges = Just $ \ t _ -> [|
 			let l = $(varE $ mkName "numberOfLegs") $(t)
 			in 2 * (numberOfCrossings $(t)) + (l `div` 2)
+			|]
+
+		, modifyIsDart = Just $ \ (t, i) -> [|
+			$(i) < 4 * numberOfCrossings $(t)
 			|]
 
 		, modifyNextCCW = Just $ \ (t, d) e -> [|
@@ -78,12 +81,7 @@ produceKnotted
 
 {-# INLINE isLeg #-}
 isLeg :: Dart ct -> Bool
-isLeg (Dart t i) = i >= 4 * numberOfCrossings t
-
-
-{-# INLINE isDart #-}
-isDart :: Dart ct -> Bool
-isDart (Dart t i) = i < 4 * numberOfCrossings t
+isLeg = not . isDart
 
 
 {-# INLINE legPlace #-}
@@ -95,14 +93,18 @@ legPlace d@(Dart t i)
 
 {-# INLINE nthLeg #-}
 nthLeg :: Tangle ct -> Int -> Dart ct
-nthLeg t i = Dart t $! 4 * numberOfCrossings t + (mod i $ numberOfLegs t)
+nthLeg t i =
+	let n = 4 * numberOfCrossings t
+	    l = numberOfLegs t
+	in Dart t $! n + i `mod` l
 
 
 {-# INLINE allLegs #-}
 allLegs :: Tangle ct -> [Dart ct]
 allLegs t =
 	let n = 4 * numberOfCrossings t
-	in map (Dart t) [n .. n + numberOfLegs t - 1]
+	    l = numberOfLegs t
+	in map (Dart t) [n .. n + l - 1]
 
 
 --       edgesToGlue = 1                 edgesToGlue = 2                 edgesToGlue = 3

@@ -19,7 +19,11 @@ class (Knotted knot cross dart) => KnottedWithAccel knot cross dart | knot -> cr
 
 	forMIncidentDarts c f = mapM_ f $ incidentDarts c
 
-	foldMIncidentDarts c f s = f (nthIncidentDart c 0) s >>= f (nthIncidentDart c 1) >>= f (nthIncidentDart c 2) >>= f (nthIncidentDart c 3)
+	foldMIncidentDarts c f s =
+		f (nthIncidentDart c 0) s
+			>>= f (nthIncidentDart c 1)
+				>>= f (nthIncidentDart c 2)
+					>>= f (nthIncidentDart c 3)
 
 	foldMIncidentDartsFrom dart !dir f s =
 		let	c = incidentCrossing dart
