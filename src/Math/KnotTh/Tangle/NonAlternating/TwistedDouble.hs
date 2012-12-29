@@ -46,7 +46,8 @@ twistedDouble tangle = implode (2 * numberOfFreeLoops tangle, border, conn)
 					]
 				else
 					let c4 = c3 + 1 ; c5 = c4 + 1
-					    r = if (w ! c) > 0 then underCrossing else overCrossing
+					    r | (w ! c) > 0  = underCrossing
+					      | otherwise    = overCrossing
 					in
 						[ ([f 0 d0 , (c1, 3), (c4, 0), f 1 d3 ], s)
 						, ([f 1 d0 , f 0 d1 , (c4, 1), (c0, 1)], s)

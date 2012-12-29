@@ -22,7 +22,12 @@ threadExpansion invariant tangle = sort $ map (processThreadSet invariant tangle
 processThreadSet :: (Ord inv, ThreadedCrossing ct) => (Tangle ct -> inv) -> Tangle ct -> [[(Dart ct, Dart ct)]] -> ([Int], inv)
 processThreadSet invariant tangle threads = (ecode, invariant threadTangle)
 	where
-		targetLegs = sort $ concatMap (\ t -> let a = fst $ head t in if isLeg a then [a, snd $ last t] else []) threads
+		targetLegs = sort $ do
+			t <- threads
+			let a = fst $ head t
+			if isLeg a
+				then [a, snd $ last t]
+				else []
 
 		targets = sort $ snd $ foldl (\ s t -> foldl checkTarget s t) (Set.empty, []) threads
 			where

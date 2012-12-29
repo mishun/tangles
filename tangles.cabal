@@ -107,6 +107,9 @@ library
         Graphics.HP.PostScript.Transform
         Graphics.HP.Transform
         Graphics.HP.Units
+        Math.KnotTh.Invariants.Skein.SkeinRelation
+        Math.KnotTh.Invariants.Skein.SkeinState
+        Math.KnotTh.Invariants.Util.BruteForceMinimization
         Math.KnotTh.Knotted.CrossingState
         Math.KnotTh.Knotted.Knotted
         Math.KnotTh.Knotted.KnottedWithAccel
