@@ -5,9 +5,10 @@
 #include <iostream>
 #include <gsl/gsl_blas.h>
 #include <gsl/gsl_multimin.h>
-#include "Math/Numeric/Vector2.h"
+#include <Math/Numeric/Vector2.h>
+#include <Math/Manifolds/SurfaceGraph/Embedding/Optimization.h>
 
-namespace Math { namespace Manifolds { namespace Embedding {
+namespace Math { namespace Manifolds { namespace Embedding { namespace Optimization {
 
 	using Math::Numeric::Vector2;
 
@@ -103,15 +104,6 @@ namespace Math { namespace Manifolds { namespace Embedding {
 		return delta_new;
 	}
 
-
-	struct InteractionConst
-	{
-		const double border;
-		const double electric;
-		const double bend;
-		const double elastic;
-		const double cross;
-	};
 
 	struct InteractionContext
 	{
@@ -959,4 +951,4 @@ private:
 };
 #endif
 
-}}}
+}}}}

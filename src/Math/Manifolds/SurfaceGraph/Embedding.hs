@@ -4,21 +4,17 @@ module Math.Manifolds.SurfaceGraph.Embedding
 	) where
 
 import qualified Data.Sequence as Seq
-import qualified System.IO.Unsafe as IOUnsafe
-import Data.Maybe
-import Data.List
-import Data.Array
-import Data.Array.MArray
-import Data.Array.Storable (withStorableArray)
-import qualified Data.Array.IO as IOArray
-import qualified Data.IORef as IORef
-import Control.Monad
-import Foreign.Ptr (Ptr)
-import Foreign.C.Types (CSize(..), CDouble(..))
-import qualified Foreign.Marshal.Array as FMA
-import Foreign.Marshal.Alloc (free)
+import System.IO.Unsafe (unsafePerformIO)
+import Data.Maybe (fromJust)
+import Data.List (find)
+import Data.Array (Array, (!), array, listArray)
+import Data.Array.MArray (newArray, newArray_, freeze, readArray, writeArray)
+import Data.Array.IO (IOArray, IOUArray)
+import Data.IORef (newIORef, readIORef, writeIORef, modifyIORef)
+import Control.Monad (forM, forM_, when, unless, foldM)
 import Math.Manifolds.SurfaceGraph
 import Math.Manifolds.SurfaceGraph.Util
+import Math.Manifolds.SurfaceGraph.Embedding.Optimization
 
 
 embeddingWithVertexRooting :: Int -> Vertex -> Array Dart [(Double, Double)]
@@ -64,13 +60,10 @@ quadraticEmbedding root =
 	in listArray (dartsRange g) $! map (\ d -> [c ! d, c ! opposite d]) $! graphDarts g
 
 
-foreign import ccall "_ZN4Math9Manifolds9Embedding22conjugateGradientSolveEjjPKjPKdS5_Pd"
-	c_conjugateGradientSolve :: CSize -> CSize -> Ptr CSize -> Ptr CDouble -> Ptr CDouble -> Ptr CDouble -> IO CDouble
-
 quadraticInitialization :: Double -> Vertex -> [(Double, Double)] -> Array Dart (Double, Double)
 quadraticInitialization seed s brd
 	| vertexDegree s /= length brd  = error "quadraticInitialization: wrong number of elements in border"
-	| otherwise                     = IOUnsafe.unsafePerformIO $ do
+	| otherwise                     = unsafePerformIO $ do
 		let g = vertexOwnerGraph s
 		let vi = listArray (verticesRange g) $! scanl (\ !x !v -> if v == s then x else x + 1) (0 :: Int) $! graphVertices g
 
@@ -79,16 +72,16 @@ quadraticInitialization seed s brd
 		y <- newArray (0, n - 1) 0
 		do
 			dist <- do
-				d <- newArray (verticesRange g) (-1) :: IO (IOArray.IOArray Vertex Int)
+				d <- newArray (verticesRange g) (-1) :: IO (IOUArray Vertex Int)
 				writeArray d s 0
-				q <- IORef.newIORef (Seq.singleton s)
+				q <- newIORef (Seq.singleton s)
 
-				let isEmpty = IORef.readIORef q >>= return . Seq.null
-				let enqueue u = IORef.modifyIORef q (Seq.|> u)
+				let isEmpty = readIORef q >>= return . Seq.null
+				let enqueue u = modifyIORef q (Seq.|> u)
 				let dequeue = do
-					qc <- IORef.readIORef q
+					qc <- readIORef q
 					let (u Seq.:< rest) = Seq.viewl qc
-					IORef.writeIORef q rest
+					writeIORef q rest
 					return $! u
 
 				let loop = do
@@ -141,11 +134,8 @@ quadraticInitialization seed s brd
 					readArray bx i >>= writeArray bx i . (+ realToFrac (cx * w))
 					readArray by i >>= writeArray by i . (+ realToFrac (cy * w))
 
-			withStorableArray coords $ \ pc -> withStorableArray a $ \ pa -> do
-				withStorableArray bx $ \ pb -> withStorableArray x $ \ px ->
-					void $! c_conjugateGradientSolve (fromIntegral n) (fromIntegral m) pc pa pb px
-				withStorableArray by $ \ pb -> withStorableArray y $ \ py ->
-					void $! c_conjugateGradientSolve (fromIntegral n) (fromIntegral m) pc pa pb py
+			conjugateGradientSolve' n m coords a bx x
+			conjugateGradientSolve' n m coords a by y
 
 		let border = listArray (0, length brd - 1) brd
 		result <- forM (graphDarts g) $ \ !d -> do
@@ -160,18 +150,11 @@ quadraticInitialization seed s brd
 		return $! listArray (dartsRange g) result
 
 
-foreign import ccall "_ZN4Math9Manifolds9Embedding14relaxEmbeddingERKNS1_16InteractionConstEjjPNS_7Numeric7Vector2EjPKjPKS9_jS9_SB_"
-	c_relaxEmbedding :: Ptr CDouble
-		-> CSize -> CSize -> Ptr CDouble
-		-> CSize -> Ptr CSize -> Ptr (Ptr CSize)
-		-> CSize -> Ptr CSize -> Ptr (Ptr CSize)
-		-> IO ()
-
 relaxEmbedding :: Either Vertex Face -> Array Dart [(Double, Double)] -> Array Dart [(Double, Double)]
 relaxEmbedding root initial
 	| not $ all (even . vertexDegree) $ graphVertices g        = error "relaxEmbedding: all vertices must have even degree"
 	| not $ all ((> 1) . length . (initial !)) $ graphDarts g  = error "relaxEmbedding: there must be at least 2 point at every dart"
-	| otherwise                                                = IOUnsafe.unsafePerformIO $ do
+	| otherwise                                                = unsafePerformIO $ do
 		let numberOfFrozenPoints = case root of { Left v -> vertexDegree v ; Right _ -> 0 }
 		let totalNumberOfPoints =
 			(sum $ map ((\ x -> x - 2) . length . (initial !) . fst) $ graphEdges g)
@@ -179,7 +162,7 @@ relaxEmbedding root initial
 		let numberOfMovablePoints = totalNumberOfPoints - numberOfFrozenPoints
 
 		dartBeginIndex <- do
-			dartBeginIndex <- newArray_ (dartsRange g) :: IO (IOArray.IOArray Dart a)
+			dartBeginIndex <- newArray_ (dartsRange g) :: IO (IOUArray Dart Int)
 			forM_ (graphDarts g) $ \ !d ->
 				writeArray dartBeginIndex d $
 					let v = beginVertex d
@@ -194,20 +177,20 @@ relaxEmbedding root initial
 			freeze dartBeginIndex :: IO (Array Dart Int)
 
 		(dartIndices, threads) <- do
-			dartIndices <- newArray_ (dartsRange g) :: IO (IOArray.IOArray Dart [Int])
-			freeIndex <- IORef.newIORef (case root of { Left _ -> numberOfVertices g - 1 ; Right _ -> numberOfVertices g })
+			dartIndices <- newArray_ (dartsRange g) :: IO (IOArray Dart [Int])
+			freeIndex <- newIORef (case root of { Left _ -> numberOfVertices g - 1 ; Right _ -> numberOfVertices g })
 
 			let allocate a = do
 				let b = opposite a
 				let len = length (initial ! a) - 2
-				gotIndex <- IORef.readIORef freeIndex
-				IORef.writeIORef freeIndex (gotIndex + len)
+				gotIndex <- readIORef freeIndex
+				writeIORef freeIndex (gotIndex + len)
 				let list = [dartBeginIndex ! a] ++ [gotIndex .. gotIndex + len - 1] ++ [dartBeginIndex ! b]
 				writeArray dartIndices a list
 				writeArray dartIndices b $! reverse list
 				return $! list
 
-			visited <- newArray (dartsRange g) False :: IO (IOArray.IOArray Dart Bool)
+			visited <- newArray (dartsRange g) False :: IO (IOUArray Dart Bool)
 
 			let walk thread first a = do
 				let b = opposite a
@@ -220,12 +203,12 @@ relaxEmbedding root initial
 					then return $! nextThread
 					else walk nextThread first cont
 
-			threads <- IORef.newIORef []
+			threads <- newIORef []
 			let tryWalk d = do
 				v <- readArray visited d
 				unless v $ do
 					thread <- walk [dartBeginIndex ! d] d d
-					IORef.modifyIORef threads (thread :)
+					modifyIORef threads (thread :)
 
 			case root of
 				Left v -> forM_ (dartsIncidentToVertex v) tryWalk
@@ -233,54 +216,33 @@ relaxEmbedding root initial
 			forM_ (graphDarts g) tryWalk
 
 			dartIndices' <- freeze dartIndices :: IO (Array Dart [Int])
-			threads' <- IORef.readIORef threads
+			threads' <- readIORef threads
 			return $! (dartIndices' , threads' )
 
-		let numberOfThreads = length threads
+		let interaction = InteractionConst
+			{ interactionBorder   = 2
+			, interactionElectric = 0.5
+			, interactionBend     = 15
+			, interactionElastic  = 10
+			, interactionCross    = 1.5
+			}
 
-		let interaction =
-			[ 2    -- border
-			, 0.5  -- electric
-			, 15   -- bend
-			, 10   -- elastic
-			, 1.5  -- cross
-			]
+		coords <- newArray (0, 2 * totalNumberOfPoints - 1) 0.0
 
-		FMA.withArray interaction $ \ interactionPtr -> do
-			coords <- newArray (0, 2 * totalNumberOfPoints - 1) 0.0
-			forM_ (graphEdges g) $ \ (d, _) ->
-				forM_ (zip (initial ! d) (dartIndices ! d)) $ \ ((x, y), i) -> do
-					writeArray coords (2 * i) (realToFrac x)
-					writeArray coords (2 * i + 1) (realToFrac y)
+		forM_ (graphEdges g) $ \ (d, _) ->
+			forM_ (zip (initial ! d) (dartIndices ! d)) $ \ ((x, y), i) -> do
+				writeArray coords (2 * i) (realToFrac x)
+				writeArray coords (2 * i + 1) (realToFrac y)
 
-			withStorableArray coords $ \ xPtr ->
-				FMA.withArray (map (fromIntegral . length) threads) $ \ lensPtr -> do
-					threadPtrs <- newArray_ (0, numberOfThreads - 1)
-					forM_ (zip threads [0 ..]) $ \ (thread, i) ->
-						(FMA.newArray $! map fromIntegral thread) >>= writeArray threadPtrs i
+		relaxEmbedding' interaction numberOfMovablePoints numberOfFrozenPoints coords threads $
+			let aliveVertices = filter ((/= root) . Left) $! graphVertices g
+			in map (map ((!! 1) . (dartIndices !)) . dartsIncidentToVertex) aliveVertices
 
-					withStorableArray threadPtrs $ \ threadsPtrsPtr -> do
-						let aliveVertices = filter ((/= root) . Left) $! graphVertices g
-						FMA.withArray (map (fromIntegral . vertexDegree) aliveVertices) $ \ vertexDegreePtr -> do
-							adjPtrs <- newArray_ (0, length aliveVertices - 1)
-							forM_ (zip aliveVertices [0 ..]) $ \ (v, i) ->
-								(FMA.newArray $! map (fromIntegral . (!! 1) . (dartIndices !)) (dartsIncidentToVertex v))
-									>>= writeArray adjPtrs i
+		fmap (listArray (dartsRange g)) $ forM (graphDarts g) $ \ d -> forM (dartIndices ! d) $ \ i -> do
+			x <- readArray coords (2 * i)
+			y <- readArray coords (2 * i + 1)
+			return $! (realToFrac x, realToFrac y)
 
-							withStorableArray adjPtrs $ \ adjPtrsPtr ->
-								c_relaxEmbedding interactionPtr
-									(fromIntegral numberOfMovablePoints) (fromIntegral numberOfFrozenPoints) xPtr
-									(fromIntegral numberOfThreads) lensPtr threadsPtrsPtr
-									(fromIntegral $ length aliveVertices) vertexDegreePtr adjPtrsPtr
-
-							getElems adjPtrs >>= mapM_ free
-
-					getElems threadPtrs >>= mapM_ free
-
-			fmap (listArray (dartsRange g)) $ forM (graphDarts g) $ \ d -> forM (dartIndices ! d) $ \ i -> do
-				x <- readArray coords (2 * i)
-				y <- readArray coords (2 * i + 1)
-				return $! (realToFrac x, realToFrac y)
 	where
 		g = case root of
 			Left v  -> vertexOwnerGraph v

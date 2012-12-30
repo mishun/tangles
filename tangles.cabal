@@ -128,6 +128,7 @@ library
         Math.KnotTh.Tangle.Def.Tangle
         Math.KnotTh.Tangle.Def.Util
         Math.KnotTh.Tangle.Moves.Resting
+        Math.Manifolds.SurfaceGraph.Embedding.Optimization
 
 test-suite TestTangles
     type:               exitcode-stdio-1.0
