@@ -10,8 +10,9 @@ import Data.List (find)
 import Data.Array (Array, (!), array, listArray)
 import Data.Array.MArray (newArray, newArray_, freeze, readArray, writeArray)
 import Data.Array.IO (IOArray, IOUArray)
+import Data.Array.Unsafe (unsafeFreeze)
 import Data.IORef (newIORef, readIORef, writeIORef, modifyIORef)
-import Control.Monad (forM, forM_, when, unless, foldM)
+import Control.Monad (forM, forM_, when, unless)
 import Math.Manifolds.SurfaceGraph
 import Math.Manifolds.SurfaceGraph.Util
 import Math.Manifolds.SurfaceGraph.Embedding.Optimization
@@ -74,7 +75,7 @@ quadraticInitialization seed s brd
 			dist <- do
 				d <- newArray (verticesRange g) (-1) :: IO (IOUArray Vertex Int)
 				writeArray d s 0
-				q <- newIORef (Seq.singleton s)
+				q <- newIORef $ Seq.singleton s
 
 				let isEmpty = readIORef q >>= return . Seq.null
 				let enqueue u = modifyIORef q (Seq.|> u)
@@ -97,45 +98,32 @@ quadraticInitialization seed s brd
 						loop
 
 				loop
-				return $! d
+				unsafeFreeze d
 
-			let dartWeight d = do
-				l <- readArray dist (beginVertex d)
-				r <- readArray dist (endVertex d)
-				return $! (realToFrac seed) ** realToFrac (min l r)
+			let dartWeight d =
+				let l = dist ! beginVertex d
+				    r = dist ! endVertex d
+				in (realToFrac seed) ** realToFrac (min l r)
 
-			defs <- do
-				a <- forM (filter (/= s) $ graphVertices g) $ \ v -> do
-					w <- foldM (\ !w !d -> dartWeight d >>= return . (w +)) (0 :: Double) $! dartsIncidentToVertex v
-					let i = fromIntegral (vi ! v)
-					return $! (i, i, realToFrac w)
+			let defs =
+				let a = flip map (filter (/= s) $ graphVertices g) $ \ !v ->
+					let !i = vi ! v
+					    !w = sum $ map dartWeight $ dartsIncidentToVertex v
+					in (i, i, w)
+				    b = flip map (filter (\ !d -> beginVertex d /= s && endVertex d /= s) $ graphDarts g) $ \ !d ->
+				    	let !i = vi ! beginVertex d
+				    	    !j = vi ! endVertex d
+				    	    !w = -(dartWeight d)
+				    	in (i, j, w)
+				in a ++ b
 
-				b <- forM (filter (\ !d -> beginVertex d /= s && endVertex d /= s) $ graphDarts g) $ \ !d -> do
-					w <- dartWeight d
-					return $! (fromIntegral (vi ! beginVertex d), fromIntegral (vi ! endVertex d), -w)
+			let rp =
+				flip map (filter ((/= s) . endVertex . snd) $ zip brd $ dartsIncidentToVertex s) $ \ ((!cx, !cy), !d) ->
+					let !i = vi ! endVertex d
+					    !w = dartWeight d
+					in (i, cx * w, cy * w)
 
-				return $! a ++ b
-
-			let m = length defs
-
-			coords <- newArray_ (0, 2 * m - 1)
-			a <- newArray_ (0, m - 1)
-			forM_ (zip [0 ..] defs) $ \ (!i, (!cx, !cy, !d)) -> do
-				writeArray a i d
-				writeArray coords (2 * i) cx
-				writeArray coords (2 * i + 1) cy
-
-			bx <- newArray (0, n - 1) 0
-			by <- newArray (0, n - 1) 0
-			forM_ (zip brd (dartsIncidentToVertex s)) $ \ ((cx, cy), d) ->
-				when (s /= endVertex d) $ do
-					let i = vi ! (endVertex d)
-					w <- dartWeight d
-					readArray bx i >>= writeArray bx i . (+ realToFrac (cx * w))
-					readArray by i >>= writeArray by i . (+ realToFrac (cy * w))
-
-			conjugateGradientSolve' n m coords a bx x
-			conjugateGradientSolve' n m coords a by y
+			conjugateGradientSolve' n defs rp (x, y)
 
 		let border = listArray (0, length brd - 1) brd
 		result <- forM (graphDarts g) $ \ !d -> do

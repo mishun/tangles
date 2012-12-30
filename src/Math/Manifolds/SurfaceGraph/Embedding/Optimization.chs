@@ -4,16 +4,16 @@ module Math.Manifolds.SurfaceGraph.Embedding.Optimization
 	, conjugateGradientSolve'
 	) where
 
-import Data.Array.MArray (newListArray, getElems)
+import Data.Array.MArray (newArray, newArray_, newListArray, readArray, writeArray, getElems)
 import Data.Array.Storable (StorableArray, withStorableArray)
 import Control.Applicative ((<$>), (<*>))
-import Control.Monad (void, liftM)
+import Control.Monad (forM_, void, liftM)
 import Foreign.Marshal.Utils (with, withMany)
 import Foreign.Ptr (Ptr)
 import Foreign.Storable (Storable(..))
 import Foreign.C.Types
 import Foreign.Marshal.Alloc (free)
-import Foreign.Marshal.Array (newArray, withArray)
+import qualified Foreign.Marshal.Array as A
 
 #include <Math/Manifolds/SurfaceGraph/Embedding/Optimization.h>
 
@@ -61,14 +61,14 @@ relaxEmbedding' interaction numberOfMovablePoints numberOfFrozenPoints coords th
 	with interaction $ \ interactionPtr ->
 		withStorableArray coords $ \ xPtr -> do
 			let numberOfThreads = length threads
-			threadPtrs <- newListArray (0, numberOfThreads - 1) =<< mapM (newArray . map fromIntegral) threads
+			threadPtrs <- newListArray (0, numberOfThreads - 1) =<< mapM (A.newArray . map fromIntegral) threads
 
 			let numberOfAliveVertices = length aliveVertices
-			adjPtrs <- newListArray (0, numberOfAliveVertices - 1) =<< mapM (newArray . map fromIntegral) aliveVertices
+			adjPtrs <- newListArray (0, numberOfAliveVertices - 1) =<< mapM (A.newArray . map fromIntegral) aliveVertices
 
 			withStorableArray threadPtrs $ \ threadsPtrsPtr ->
-				withArray (map (fromIntegral . length) threads) $ \ lensPtr ->
-					withArray (map (fromIntegral . length) aliveVertices) $ \ vertexDegreePtr ->
+				A.withArray (map (fromIntegral . length) threads) $ \ lensPtr ->
+					A.withArray (map (fromIntegral . length) aliveVertices) $ \ vertexDegreePtr ->
 						withStorableArray adjPtrs $ \ adjPtrsPtr ->
 							c_relaxEmbedding interactionPtr
 								(fromIntegral numberOfMovablePoints) (fromIntegral numberOfFrozenPoints) xPtr
@@ -83,8 +83,27 @@ foreign import ccall "_ZN4Math9Manifolds9Embedding12Optimization22conjugateGradi
 	c_conjugateGradientSolve :: CSize -> CSize -> Ptr CSize -> Ptr CDouble -> Ptr CDouble -> Ptr CDouble -> IO CDouble
 
 
-conjugateGradientSolve' :: Int -> Int -> StorableArray Int CSize -> StorableArray Int CDouble -> StorableArray Int CDouble -> StorableArray Int CDouble -> IO ()
-conjugateGradientSolve' n m coords a b x =
+conjugateGradientSolve' :: Int -> [(Int, Int, Double)] -> [(Int, Double, Double)] -> (StorableArray Int CDouble, StorableArray Int CDouble) -> IO ()
+conjugateGradientSolve' n defs brd (x, y) = do
+	let m = length defs
+
+	coords <- newArray_ (0, 2 * m - 1) :: IO (StorableArray Int CSize)
+	a <- newArray_ (0, m - 1) :: IO (StorableArray Int CDouble)
+	forM_ (zip [0 ..] defs) $ \ (!i, (!cx, !cy, !d)) -> do
+		writeArray a i $ realToFrac d
+		writeArray coords (2 * i) $ fromIntegral cx
+		writeArray coords (2 * i + 1) $ fromIntegral cy
+
+	bx <- newArray (0, n - 1) 0 :: IO (StorableArray Int CDouble)
+	by <- newArray (0, n - 1) 0 :: IO (StorableArray Int CDouble)
+	forM_ brd $ \ (!i, !cx, !cy) -> do
+		readArray bx i >>= writeArray bx i . (+ realToFrac cx)
+		readArray by i >>= writeArray by i . (+ realToFrac cy)
+
 	withStorableArray coords $ \ pc ->
-		withMany withStorableArray [a, b, x] $ \ [pa, pb, px] ->
-			void $ c_conjugateGradientSolve (fromIntegral n) (fromIntegral m) pc pa pb px
+		withStorableArray a $ \ pa -> do
+			withMany withStorableArray [bx, x] $ \ [pbx, px] ->
+				void $ c_conjugateGradientSolve (fromIntegral n) (fromIntegral m) pc pa pbx px
+
+			withMany withStorableArray [by, y] $ \ [pby, py] ->
+				void $ c_conjugateGradientSolve (fromIntegral n) (fromIntegral m) pc pa pby py
