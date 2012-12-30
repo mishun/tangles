@@ -1,5 +1,6 @@
 module Math.KnotTh.Knotted.Util
 	( isEndpoint
+	, numberOfEndpoints
 	, isAdjacentToCrossing
 	, nextDir
 	, nextPi
@@ -26,6 +27,11 @@ import Math.KnotTh.Knotted.Knotted
 {-# INLINE isEndpoint #-}
 isEndpoint :: (Knotted k c d) => d ct -> Bool
 isEndpoint = not . isDart
+
+
+{-# INLINE numberOfEndpoints #-}
+numberOfEndpoints :: (Knotted k c d) => k ct -> Int
+numberOfEndpoints knot = 2 * numberOfEdges knot - 4 * numberOfCrossings knot
 
 
 {-# INLINE isAdjacentToCrossing #-}

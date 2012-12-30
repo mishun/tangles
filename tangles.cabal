@@ -56,9 +56,8 @@ library
         Math.KnotTh.Enumeration.DiagramInfo.MinimalDiagramInfo
         Math.KnotTh.Enumeration.EquivalenceClasses
         Math.KnotTh.Enumeration.SiftByInvariant
+        Math.KnotTh.Invariants.JonesPolynomial
         Math.KnotTh.Invariants.LinkingNumber
-        Math.KnotTh.Invariants.Skein.JonesPolynomial
-        Math.KnotTh.Invariants.ThreadExpansion
         Math.KnotTh.Knotted
         Math.KnotTh.Link
         Math.KnotTh.Link.FromTangle
@@ -107,9 +106,11 @@ library
         Graphics.HP.PostScript.Transform
         Graphics.HP.Transform
         Graphics.HP.Units
-        Math.KnotTh.Invariants.Skein.SkeinRelation
-        Math.KnotTh.Invariants.Skein.SkeinState
+        Math.KnotTh.Invariants.Skein.Reduction
+        Math.KnotTh.Invariants.Skein.Relation
+        Math.KnotTh.Invariants.Skein.State
         Math.KnotTh.Invariants.Util.BruteForceMinimization
+        Math.KnotTh.Invariants.Util.ThreadExpansion
         Math.KnotTh.Knotted.CrossingState
         Math.KnotTh.Knotted.Knotted
         Math.KnotTh.Knotted.KnottedWithAccel

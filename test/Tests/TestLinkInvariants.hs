@@ -6,7 +6,7 @@ import Test.HUnit
 import Math.KnotTh.Link.NonAlternating
 import Math.KnotTh.Link.LinkTable
 import Math.KnotTh.Invariants.LinkingNumber
-import Math.KnotTh.Invariants.Skein.JonesPolynomial
+import Math.KnotTh.Invariants.JonesPolynomial
 
 
 tests = "Link invariants" ~:

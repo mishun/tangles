@@ -9,8 +9,7 @@ import Math.KnotTh.Enumeration.DiagramInfo.MinimalDiagramInfo
 import Math.KnotTh.Enumeration.Applied.NonAlternatingTangles
 import Math.KnotTh.Draw.DrawKnot
 import Math.KnotTh.Link.FromTangle
-import Math.KnotTh.Invariants.Skein.JonesPolynomial
-import Math.KnotTh.Invariants.ThreadExpansion
+import Math.KnotTh.Invariants.JonesPolynomial
 import Math.KnotTh.Invariants.LinkingNumber
 import Graphics.HP
 import Tests.Table

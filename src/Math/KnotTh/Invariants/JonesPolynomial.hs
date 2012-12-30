@@ -1,4 +1,4 @@
-module Math.KnotTh.Invariants.Skein.JonesPolynomial
+module Math.KnotTh.Invariants.JonesPolynomial
 	( jonesPolynomialOfLink
 	, minimalJonesPolynomialOfLink
 	, kauffmanXPolynomialOfLink
@@ -27,20 +27,18 @@ jonesVar :: String
 jonesVar = "t"
 
 
-jonesA, jonesB, jonesD :: Poly
+jonesA, jonesB :: Poly
 jonesA = LP.LP [(LP.LM $ Map.fromList [(jonesVar, -1 / 4)], 1)]
 jonesB = LP.LP [(LP.LM $ Map.fromList [(jonesVar,  1 / 4)], 1)]
-jonesD = -((jonesA * jonesA) + (jonesB * jonesB))
 
 
 kauffmanXVar :: String
 kauffmanXVar = "A"
 
 
-kauffmanXA, kauffmanXB, kauffmanXD :: Poly
+kauffmanXA, kauffmanXB :: Poly
 kauffmanXA = LP.LP [(LP.LM $ Map.fromList [(kauffmanXVar,  1)], 1)]
 kauffmanXB = LP.LP [(LP.LM $ Map.fromList [(kauffmanXVar, -1)], 1)]
-kauffmanXD = -((kauffmanXA * kauffmanXA) + (kauffmanXB * kauffmanXB))
 
 
 invert :: String -> Poly -> Poly
@@ -83,19 +81,21 @@ kauffmanStateSums link = runST $ do
 	filter ((/= 0) . snd) `fmap` getAssocs coeff
 
 
-kauffmanBracket :: (Num a) => a -> a -> a -> L.NonAlternatingLink -> a
-kauffmanBracket a b d link = writheFactor * (b ^ numberOfCrossings link) * stateSum
+kauffmanBracket :: (Num a) => a -> a -> L.NonAlternatingLink -> a
+kauffmanBracket a b link = writheFactor * (b ^ numberOfCrossings link) * stateSum
 	where
 		writheFactor =
 			let w = selfWrithe link
 			in (if w <= 0 then -a else -b) ^ abs (3 * w)
+
+		d = -(a * a + b * b)
 
 		stateSum = sum $ flip map (kauffmanStateSums link) $ \ ((u, v), k) ->
 			fromIntegral k * (a ^ (u + u)) * (d ^ (v + numberOfFreeLoops link - 1))
 
 
 jonesPolynomialOfLink :: L.NonAlternatingLink -> Poly
-jonesPolynomialOfLink = kauffmanBracket jonesA jonesB jonesD
+jonesPolynomialOfLink = kauffmanBracket jonesA jonesB
 
 
 minimalJonesPolynomialOfLink :: L.NonAlternatingLink -> Poly
@@ -105,7 +105,7 @@ minimalJonesPolynomialOfLink link =
 
 
 kauffmanXPolynomialOfLink :: L.NonAlternatingLink -> Poly
-kauffmanXPolynomialOfLink = kauffmanBracket kauffmanXA kauffmanXB kauffmanXD
+kauffmanXPolynomialOfLink = kauffmanBracket kauffmanXA kauffmanXB
 
 
 minimalKauffmanXPolynomialOfLink :: L.NonAlternatingLink -> Poly
@@ -120,6 +120,8 @@ type Scheme = [(Int, Int)]
 jonesPolynomialOfTangle :: T.NonAlternatingTangle -> [(Scheme, Poly)]
 jonesPolynomialOfTangle tangle = map (\ (sch, poly) -> (sch, wm * cm * poly)) $ skein (allCrossings tangle) [] 1
 	where
+		jonesD = -(jonesA * jonesA + jonesB * jonesB)
+
 		cm = jonesD ^ numberOfFreeLoops tangle
 
 		wm =	let w = selfWrithe tangle

@@ -1,4 +1,4 @@
-module Math.KnotTh.Invariants.ThreadExpansion
+module Math.KnotTh.Invariants.Util.ThreadExpansion
 	( threadExpansion
 	) where
 

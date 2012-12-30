@@ -10,7 +10,7 @@ import Math.KnotTh.Tangle.BorderIncremental.SimpleTypes
 import Math.KnotTh.Enumeration.DiagramInfo.AllDiagramsInfo
 import Math.KnotTh.Enumeration.Applied.NonAlternatingTangles
 import Math.KnotTh.Invariants.LinkingNumber
-import Math.KnotTh.Invariants.Skein.JonesPolynomial
+import Math.KnotTh.Invariants.JonesPolynomial
 
 
 testInvariantness n f =
