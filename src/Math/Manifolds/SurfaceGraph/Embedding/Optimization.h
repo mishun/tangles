@@ -1,7 +1,7 @@
 #pragma once
 
 #ifdef __cplusplus
-namespace Math { namespace Manifolds { namespace Embedding { namespace Optimization {
+namespace Math { namespace Manifolds { namespace Embedding { namespace Optimization { namespace Relax {
 #endif
 
 	typedef struct
@@ -14,5 +14,5 @@ namespace Math { namespace Manifolds { namespace Embedding { namespace Optimizat
 	} InteractionConst;
 
 #ifdef __cplusplus
-}}}}
+}}}}}
 #endif

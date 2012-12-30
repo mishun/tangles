@@ -2,6 +2,7 @@ module Math.Manifolds.SurfaceGraph.Embedding.Optimization
 	( InteractionConst(..)
 	, relaxEmbedding'
 	, conjugateGradientSolve'
+	, circlePacking'
 	) where
 
 import Data.Array.MArray (newArray, newArray_, newListArray, readArray, writeArray, getElems)
@@ -48,7 +49,7 @@ instance Storable InteractionConst where
 		{# set InteractionConst.cross    #} p $ realToFrac $ interactionCross x
 
 
-foreign import ccall "_ZN4Math9Manifolds9Embedding12Optimization14relaxEmbeddingERKNS2_16InteractionConstEjjPNS_7Numeric7Vector2EjPKjPKSA_jSA_SC_"
+foreign import ccall "_ZN4Math9Manifolds9Embedding12Optimization5Relax14relaxEmbeddingERKNS2_16InteractionConstEjjPNS_7Numeric7Vector2EjPKjPKSB_jSB_SD_"
 	c_relaxEmbedding :: InteractionConstPtr
 		-> CSize -> CSize -> Ptr CDouble
 		-> CSize -> Ptr CSize -> Ptr (Ptr CSize)
@@ -79,7 +80,7 @@ relaxEmbedding' interaction numberOfMovablePoints numberOfFrozenPoints coords th
 			getElems threadPtrs >>= mapM_ free
 
 
-foreign import ccall "_ZN4Math9Manifolds9Embedding12Optimization22conjugateGradientSolveEjjPKjPKdS6_Pd"
+foreign import ccall "_ZN4Math9Manifolds9Embedding12Optimization14Initialization22conjugateGradientSolveEjjPKjPKdS7_Pd"
 	c_conjugateGradientSolve :: CSize -> CSize -> Ptr CSize -> Ptr CDouble -> Ptr CDouble -> Ptr CDouble -> IO CDouble
 
 
@@ -107,3 +108,18 @@ conjugateGradientSolve' n defs brd (x, y) = do
 
 			withMany withStorableArray [by, y] $ \ [pby, py] ->
 				void $ c_conjugateGradientSolve (fromIntegral n) (fromIntegral m) pc pa pby py
+
+
+foreign import ccall "_ZN4Math9Manifolds9Embedding12Optimization13CirclePacking13circlePackingEjPKjPKS5_Pd"
+	c_circlePacking :: CSize -> Ptr CSize -> Ptr (Ptr CSize) -> Ptr CDouble -> IO ()
+
+
+circlePacking' :: [[Int]] -> StorableArray Int CDouble -> IO ()
+circlePacking' adj r = do
+	A.withArray (map (fromIntegral . length) adj) $ \ lensPtr -> do
+		let n = length adj
+		ls <- newListArray (0, n - 1) =<< mapM (A.newArray . map fromIntegral) adj
+		withStorableArray ls $ \ lsPtr ->
+			withStorableArray r $ \ rPtr ->
+				c_circlePacking (fromIntegral n) lensPtr lsPtr rPtr
+		getElems ls >>= mapM_ free

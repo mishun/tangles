@@ -12,155 +12,285 @@ namespace Math { namespace Manifolds { namespace Embedding { namespace Optimizat
 
 	using Math::Numeric::Vector2;
 
-	inline double dot(const size_t n, const double * x, const double * y)
-	{
-		double dot = 0.0;
-		for(size_t i = 0; i < n; i++)
-			dot += x[i] * y[i];
-		return dot;
-	}
+	namespace Initialization {
 
-	inline void multiply(const size_t n
-		, const size_t m
-		, const size_t * id
-		, const double * a
-		, const double * x
-		, double * r)
-	{
-		for(size_t i = 0; i < n; i++)
-			r[i] = 0.0;
-
-		for(size_t i = 0; i < m; i++)
+		inline double dot(const size_t n, const double * x, const double * y)
 		{
-			const size_t p = id[2 * i];
-			const size_t q = id[2 * i + 1];
-			r[p] += a[i] * x[q];
-		}
-	}
-
-	inline void diff(const size_t n
-		, const size_t m
-		, const size_t * id
-		, const double * a
-		, const double * b
-		, const double * x
-		, double * r)
-	{
-		multiply(n, m, id, a, x, r);
-		for(size_t i = 0; i < n; i++)
-			r[i] = b[i] - r[i];
-	}
-
-	double conjugateGradientSolve(const size_t n
-		, const size_t m
-		, const size_t * id
-		, const double * a
-		, const double * b
-		, double * x)
-	{
-		double * r = new double[n];
-		diff(n, m, id, a, b, x, r);
-
-		double * d = new double[n];
-		for(size_t i = 0; i < n; i++)
-			d[i] = r[i];
-
-		double * q = new double[n];
-
-		double delta_new = dot(n, r, r);
-		const double delta0 = delta_new;
-		const double eps = 1e-14;
-
-		for(size_t k = 0; k < n && delta_new > eps * eps * delta0; k++)
-		{
-			multiply(n, m, id, a, d, q);
-			double alpha = delta_new / dot(n, d, q);
-
+			double dot = 0.0;
 			for(size_t i = 0; i < n; i++)
-				x[i] += alpha * d[i];
+				dot += x[i] * y[i];
+			return dot;
+		}
 
-			if(k % 50 == 0)
-				diff(n, m, id, a, b, x, r);
-			else
+		inline void multiply(const size_t n
+			, const size_t m
+			, const size_t * id
+			, const double * a
+			, const double * x
+			, double * r)
+		{
+			for(size_t i = 0; i < n; i++)
+				r[i] = 0.0;
+
+			for(size_t i = 0; i < m; i++)
 			{
-				for(size_t i = 0; i < n; i++)
-					r[i] -= alpha * q[i];
-			}
-
-			const double delta_old = delta_new;
-			delta_new = dot(n, r, r);
-
-			{
-				const double beta = delta_new / delta_old;
-				for(size_t i = 0; i < n; i++)
-					d[i] = r[i] + beta * d[i];
+				const size_t p = id[2 * i];
+				const size_t q = id[2 * i + 1];
+				r[p] += a[i] * x[q];
 			}
 		}
 
-		delete[] r;
-		delete[] d;
-		delete[] q; 
-
-		return delta_new;
-	}
-
-
-	struct InteractionContext
-	{
-		const InteractionConst & interaction;
-
-		const size_t totalNumberOfVertices;
-		const size_t numberOfMovableVertices;
-		const size_t numberOfFrozenVertices;
-
-		const size_t numberOfThreads;
-		const size_t * const lengthOfThread;
-		const size_t * const * const threads;
-
-		const size_t numberOfCrossings;
-		const size_t * const crossingDegree;
-		const size_t * const * const crossingAdjacencyList;
-	};
-
-	static double energy(const InteractionContext & context, const Vector2 * x, Vector2 * grad)
-	{
-		double phi = 0.0;
-		for(size_t i = 0; i < context.totalNumberOfVertices; i++)
-			grad[i].y = grad[i].x = 0.0;
-
-		// Border interaction energy
-		if(context.interaction.border != 0.0)
-			for(size_t i = 0; i < context.numberOfMovableVertices; i++)
-			{
-				const double r = x[i].length();
-				phi -= context.interaction.border * r * r * log(1.0 - r);
-				grad[i] -= x[i] * (context.interaction.border * (2.0 * log(1.0 - r) - r / (1.0 - r)));
-			}
-
-		for(size_t ti = 0; ti < context.numberOfThreads; ti++)
+		inline void diff(const size_t n
+			, const size_t m
+			, const size_t * id
+			, const double * a
+			, const double * b
+			, const double * x
+			, double * r)
 		{
-			const size_t len = context.lengthOfThread[ti];
-			const size_t * const thread = context.threads[ti];
-			const bool closed = (thread[0] == thread[len - 1]);
+			multiply(n, m, id, a, x, r);
+			for(size_t i = 0; i < n; i++)
+				r[i] = b[i] - r[i];
+		}
 
-			for(size_t i = 0; i + 1 < len; i++)
+		double conjugateGradientSolve(const size_t n
+			, const size_t m
+			, const size_t * id
+			, const double * a
+			, const double * b
+			, double * x)
+		{
+			double * r = new double[n];
+			diff(n, m, id, a, b, x, r);
+
+			double * d = new double[n];
+			for(size_t i = 0; i < n; i++)
+				d[i] = r[i];
+
+			double * q = new double[n];
+
+			double delta_new = dot(n, r, r);
+			const double delta0 = delta_new;
+			const double eps = 1e-14;
+
+			for(size_t k = 0; k < n && delta_new > eps * eps * delta0; k++)
 			{
-				const size_t a = thread[i];
-				const size_t b = thread[i + 1];
-				const auto ab = x[b] - x[a];
-				const double s = ab.length();
+				multiply(n, m, id, a, d, q);
+				double alpha = delta_new / dot(n, d, q);
 
-				// Elastic energy (a -- b)
-				// E = \frac{k ab^2}{2}
+				for(size_t i = 0; i < n; i++)
+					x[i] += alpha * d[i];
+
+				if(k % 50 == 0)
+					diff(n, m, id, a, b, x, r);
+				else
 				{
-					phi += 0.5 * context.interaction.elastic * s * s;
-					grad[a] -= ab * context.interaction.elastic;
-					grad[b] += ab * context.interaction.elastic;
+					for(size_t i = 0; i < n; i++)
+						r[i] -= alpha * q[i];
 				}
 
-				// Electric energy (a -- b  >  j)
-				// E = k * \ln\frac{r1 + r2 + s}{r1 + r2 - s}
-				if(context.interaction.electric != 0.0)
+				const double delta_old = delta_new;
+				delta_new = dot(n, r, r);
+
+				{
+					const double beta = delta_new / delta_old;
+					for(size_t i = 0; i < n; i++)
+						d[i] = r[i] + beta * d[i];
+				}
+			}
+
+			delete[] r;
+			delete[] d;
+			delete[] q;
+
+			return delta_new;
+		}
+	}
+
+
+	namespace Relax {
+
+		struct InteractionContext
+		{
+			const InteractionConst & interaction;
+
+			const size_t totalNumberOfVertices;
+			const size_t numberOfMovableVertices;
+			const size_t numberOfFrozenVertices;
+
+			const size_t numberOfThreads;
+			const size_t * const lengthOfThread;
+			const size_t * const * const threads;
+
+			const size_t numberOfCrossings;
+			const size_t * const crossingDegree;
+			const size_t * const * const crossingAdjacencyList;
+		};
+
+		static double energy(const InteractionContext & context, const Vector2 * x, Vector2 * grad)
+		{
+			double phi = 0.0;
+			for(size_t i = 0; i < context.totalNumberOfVertices; i++)
+				grad[i].y = grad[i].x = 0.0;
+
+			// Border interaction energy
+			if(context.interaction.border != 0.0)
+				for(size_t i = 0; i < context.numberOfMovableVertices; i++)
+				{
+					const double r = x[i].length();
+					phi -= context.interaction.border * r * r * log(1.0 - r);
+					grad[i] -= x[i] * (context.interaction.border * (2.0 * log(1.0 - r) - r / (1.0 - r)));
+				}
+
+			for(size_t ti = 0; ti < context.numberOfThreads; ti++)
+			{
+				const size_t len = context.lengthOfThread[ti];
+				const size_t * const thread = context.threads[ti];
+				const bool closed = (thread[0] == thread[len - 1]);
+
+				for(size_t i = 0; i + 1 < len; i++)
+				{
+					const size_t a = thread[i];
+					const size_t b = thread[i + 1];
+					const auto ab = x[b] - x[a];
+					const double s = ab.length();
+
+					// Elastic energy (a -- b)
+					// E = \frac{k ab^2}{2}
+					{
+						phi += 0.5 * context.interaction.elastic * s * s;
+						grad[a] -= ab * context.interaction.elastic;
+						grad[b] += ab * context.interaction.elastic;
+					}
+
+					// Electric energy (a -- b  >  j)
+					// E = k * \ln\frac{r1 + r2 + s}{r1 + r2 - s}
+					if(context.interaction.electric != 0.0)
+						for(size_t j = 0; j < context.numberOfMovableVertices; j++)
+						{
+							if(j == a || j == b)
+								continue;
+
+							const auto aj = x[j] - x[a];
+							const auto bj = x[j] - x[b];
+							const double r1 = aj.length();
+							const double r2 = bj.length();
+							const double d = r1 + r2;
+
+							phi += context.interaction.electric * log((d + s) / (d - s));
+
+							const double f = 2.0 * context.interaction.electric / (d * d - s * s);
+							const auto gaj = aj * (-f * s / r1);
+							const auto gbj = bj * (-f * s / r2);
+							const auto gab = ab * (f * d / s);
+
+							grad[j] += gaj + gbj;
+							grad[a] -= gaj + gab;
+							grad[b] -= gbj - gab;
+						}
+
+					{
+						const size_t c = (i > 0) ? thread[i - 1] : (closed ? thread[len - 2] : b);
+						const auto df = x[b] + x[c] - x[a] * 2.0;
+						phi += 0.25 * context.interaction.bend * (df * df);
+						grad[b] += (x[b] * 3.0 - x[a] * 4.0 + x[c]) * context.interaction.bend;
+					}
+
+					{
+						const size_t c = (i + 2 < len) ? thread[i + 2] : (closed ? thread[1] : a);
+						const auto df = x[a] + x[c] - x[b] * 2.0;
+						phi += 0.25 * context.interaction.bend * (df * df);
+						grad[a] += (x[a] * 3.0 - x[b] * 4.0 + x[c]) * context.interaction.bend;
+					}
+
+					/*if(closed || i + 2 < len)
+					{
+						const size_t c = ((i + 2 < len) ? thread[i + 2] : thread[1]);
+
+						// Bend energy (a -- b -- c)
+						{
+							const auto l = x[a] - x[b];
+							const auto r = x[c] - x[b];
+							const auto d = r - l;
+
+							const double cross = l ^ r;
+							const double ll = l.length();
+							const double rl = r.length();
+							const double sl = ll + rl;
+							const double A = (context.interaction.bend * sl * cross) / (l.length2() * r.length2() * d.length2());
+
+							const double dedlx = A * ((l.x / (ll * sl) - 2.0 * (l.x - r.x) / d.length2() - 2.0 * l.x / l.length2()) * cross + 2.0 * r.y);
+							const double dedly = A * ((l.y / (ll * sl) - 2.0 * (l.y - r.y) / d.length2() - 2.0 * l.y / l.length2()) * cross - 2.0 * r.x);
+							const double dedrx = A * ((r.x / (rl * sl) - 2.0 * (r.x - l.x) / d.length2() - 2.0 * r.x / r.length2()) * cross - 2.0 * l.y);
+							const double dedry = A * ((r.y / (rl * sl) - 2.0 * (r.y - l.y) / d.length2() - 2.0 * r.y / r.length2()) * cross + 2.0 * l.x);
+
+							phi += A * cross;
+							grad[a].x += dedlx;
+							grad[a].y += dedly;
+							grad[c].x += dedrx;
+							grad[c].y += dedry;
+							grad[b].x -= dedlx + dedrx;
+							grad[b].y -= dedly + dedry;
+						}
+					}*/
+				}
+			}
+
+			// Crossing energy
+			if(context.interaction.cross != 0.0)
+				for(size_t c = 0; c < context.numberOfCrossings; c++)
+				{
+					const size_t degree = context.crossingDegree[c];
+					const size_t * const adj = context.crossingAdjacencyList[c];
+					const double targetAngle = 2.0 * M_PI / degree;
+
+					for(size_t i = 0; i < degree; i++)
+					{
+						const size_t a = adj[i];
+						const size_t b = adj[ i == degree - 1 ? 0 : i + 1 ];
+
+						const auto l = x[a] - x[c];
+						const auto r = x[b] - x[c];
+
+						const double cosD = (l * r) / (l.length() * r.length());
+						const double delta = acos(std::min(1.0, std::max(-1.0, cosD))) - targetAngle;
+
+						phi += context.interaction.cross * 0.5 * delta * delta;
+
+						const auto gl = l.ort() * (-context.interaction.cross * delta / l.length2());
+						const auto gr = r.ort() * ( context.interaction.cross * delta / r.length2());
+
+						grad[a] += gl;
+						grad[b] += gr;
+						grad[c] -= gl + gr;
+					}
+				}
+
+			for(size_t i = context.numberOfMovableVertices; i < context.totalNumberOfVertices; i++)
+				grad[i] = 0.0;
+
+			return phi;
+		}
+
+		static double stepLimitByGrad(const InteractionContext & context, const Vector2 * x, const Vector2 * grad)
+		{
+			double * dist = new double[context.totalNumberOfVertices];
+
+			for(size_t i = 0; i < context.numberOfMovableVertices; i++)
+				dist[i] = 1.0 - x[i].length();
+
+			for(size_t ti = 0; ti < context.numberOfThreads; ti++)
+			{
+				const size_t len = context.lengthOfThread[ti];
+				const size_t * const thread = context.threads[ti];
+
+				for(size_t i = 0; i + 1 < len; i++)
+				{
+					const size_t a = thread[i];
+					const size_t b = thread[i + 1];
+					const auto ab = x[b] - x[a];
+					const double abl = ab.length();
+
 					for(size_t j = 0; j < context.numberOfMovableVertices; j++)
 					{
 						if(j == a || j == b)
@@ -170,303 +300,220 @@ namespace Math { namespace Manifolds { namespace Embedding { namespace Optimizat
 						const auto bj = x[j] - x[b];
 						const double r1 = aj.length();
 						const double r2 = bj.length();
-						const double d = r1 + r2;
 
-						phi += context.interaction.electric * log((d + s) / (d - s));
-
-						const double f = 2.0 * context.interaction.electric / (d * d - s * s);
-						const auto gaj = aj * (-f * s / r1);
-						const auto gbj = bj * (-f * s / r2);
-						const auto gab = ab * (f * d / s);
-
-						grad[j] += gaj + gbj;
-						grad[a] -= gaj + gab;
-						grad[b] -= gbj - gab;
+						const double dp = ab * aj;
+						const double d = (dp <= 0.0) ? r1 : ((dp >= abl * abl) ? r2 : fabs(ab ^ aj) / abl);
+						dist[j] = std::min(dist[j], d);
 					}
-
-				{
-					const size_t c = (i > 0) ? thread[i - 1] : (closed ? thread[len - 2] : b);
-					const auto df = x[b] + x[c] - x[a] * 2.0;
-					phi += 0.25 * context.interaction.bend * (df * df);
-					grad[b] += (x[b] * 3.0 - x[a] * 4.0 + x[c]) * context.interaction.bend;
 				}
+			}
 
+			double limit = std::numeric_limits<double>::infinity();
+			for(size_t i = 0; i < context.numberOfMovableVertices; i++)
+				limit = std::min(limit, dist[i] / grad[i].length());
+
+			delete[] dist;
+			return limit;
+		}
+
+		static double stepLimit(const InteractionContext & context, const Vector2 * x)
+		{
+			auto * const grad = new Vector2[context.totalNumberOfVertices];
+			energy(context, x, grad);
+			const double limit = stepLimitByGrad(context, x, grad);
+			delete[] grad;
+			return limit;
+		}
+
+		static bool gslMinimization
+			( const bool verbose
+			, const double eps
+			, const size_t maxIterations
+			, const gsl_multimin_fdfminimizer_type * const method
+			, InteractionContext & context
+			, Vector2 * x
+			)
+		{
+			struct Phi
+			{
+				static inline double callEnergy(const gsl_vector * vx, void * _context, gsl_vector * vg)
 				{
-					const size_t c = (i + 2 < len) ? thread[i + 2] : (closed ? thread[1] : a);
-					const auto df = x[a] + x[c] - x[b] * 2.0;
-					phi += 0.25 * context.interaction.bend * (df * df);
-					grad[a] += (x[a] * 3.0 - x[b] * 4.0 + x[c]) * context.interaction.bend;
-				}
+					auto & context = *reinterpret_cast<const InteractionContext *>(_context);
+					const auto * x = reinterpret_cast<const Vector2 *>(gsl_vector_const_ptr(vx, 0));
 
-				/*if(closed || i + 2 < len)
-				{
-					const size_t c = ((i + 2 < len) ? thread[i + 2] : thread[1]);
-
-					// Bend energy (a -- b -- c)
+					if(vg != nullptr)
+						return energy(context, x, reinterpret_cast<Vector2 *>(gsl_vector_ptr(vg, 0)));
+					else
 					{
-						const auto l = x[a] - x[b];
-						const auto r = x[c] - x[b];
-						const auto d = r - l;
-
-						const double cross = l ^ r;
-						const double ll = l.length();
-						const double rl = r.length();
-						const double sl = ll + rl;
-						const double A = (context.interaction.bend * sl * cross) / (l.length2() * r.length2() * d.length2());
-
-						const double dedlx = A * ((l.x / (ll * sl) - 2.0 * (l.x - r.x) / d.length2() - 2.0 * l.x / l.length2()) * cross + 2.0 * r.y);
-						const double dedly = A * ((l.y / (ll * sl) - 2.0 * (l.y - r.y) / d.length2() - 2.0 * l.y / l.length2()) * cross - 2.0 * r.x);
-						const double dedrx = A * ((r.x / (rl * sl) - 2.0 * (r.x - l.x) / d.length2() - 2.0 * r.x / r.length2()) * cross - 2.0 * l.y);
-						const double dedry = A * ((r.y / (rl * sl) - 2.0 * (r.y - l.y) / d.length2() - 2.0 * r.y / r.length2()) * cross + 2.0 * l.x);
-
-						phi += A * cross;
-						grad[a].x += dedlx;
-						grad[a].y += dedly;
-						grad[c].x += dedrx;
-						grad[c].y += dedry;
-						grad[b].x -= dedlx + dedrx;
-						grad[b].y -= dedly + dedry;
+						auto * g = new Vector2[context.totalNumberOfVertices];
+						const double e = energy(context, x, g);
+						delete[] g;
+						return e;
 					}
-				}*/
-			}
-		}
-
-		// Crossing energy
-		if(context.interaction.cross != 0.0)
-			for(size_t c = 0; c < context.numberOfCrossings; c++)
-			{
-				const size_t degree = context.crossingDegree[c];
-				const size_t * const adj = context.crossingAdjacencyList[c];
-				const double targetAngle = 2.0 * M_PI / degree;
-
-				for(size_t i = 0; i < degree; i++)
-				{
-					const size_t a = adj[i];
-					const size_t b = adj[ i == degree - 1 ? 0 : i + 1 ];
-
-					const auto l = x[a] - x[c];
-					const auto r = x[b] - x[c];
-
-					const double cosD = (l * r) / (l.length() * r.length());
-					const double delta = acos(std::min(1.0, std::max(-1.0, cosD))) - targetAngle;
-
-					phi += context.interaction.cross * 0.5 * delta * delta;
-
-					const auto gl = l.ort() * (-context.interaction.cross * delta / l.length2());
-					const auto gr = r.ort() * ( context.interaction.cross * delta / r.length2());
-
-					grad[a] += gl;
-					grad[b] += gr;
-					grad[c] -= gl + gr;
 				}
-			}
 
-		for(size_t i = context.numberOfMovableVertices; i < context.totalNumberOfVertices; i++)
-			grad[i] = 0.0;
-
-		return phi;
-	}
-
-	static double stepLimitByGrad(const InteractionContext & context, const Vector2 * x, const Vector2 * grad)
-	{
-		double * dist = new double[context.totalNumberOfVertices];
-
-		for(size_t i = 0; i < context.numberOfMovableVertices; i++)
-			dist[i] = 1.0 - x[i].length();
-
-		for(size_t ti = 0; ti < context.numberOfThreads; ti++)
-		{
-			const size_t len = context.lengthOfThread[ti];
-			const size_t * const thread = context.threads[ti];
-
-			for(size_t i = 0; i + 1 < len; i++)
-			{
-				const size_t a = thread[i];
-				const size_t b = thread[i + 1];
-				const auto ab = x[b] - x[a];
-				const double abl = ab.length();
-
-				for(size_t j = 0; j < context.numberOfMovableVertices; j++)
+				static void phiAndGradPhi(const gsl_vector * x, void * context, double * phi, gsl_vector * g)
 				{
-					if(j == a || j == b)
-						continue;
+					*phi = callEnergy(x, context, g);
+				}
 
-					const auto aj = x[j] - x[a];
-					const auto bj = x[j] - x[b];
-					const double r1 = aj.length();
-					const double r2 = bj.length();
+				static double phi(const gsl_vector * x, void * context)
+				{
+					return callEnergy(x, context, nullptr);
+				}
 
-					const double dp = ab * aj;
-					const double d = (dp <= 0.0) ? r1 : ((dp >= abl * abl) ? r2 : fabs(ab ^ aj) / abl);
-					dist[j] = std::min(dist[j], d);
+				static void gradPhi(const gsl_vector * x, void * context, gsl_vector * g)
+				{
+					callEnergy(x, context, g);
+				}
+			};
+
+			gsl_multimin_function_fdf f
+				{ .f      = Phi::phi
+				, .df     = Phi::gradPhi
+				, .fdf    = Phi::phiAndGradPhi
+				, .n      = 2 * context.totalNumberOfVertices
+				, .params = &context
+				};
+
+			auto vx = gsl_vector_view_array(reinterpret_cast<double *>(x), 2 * context.totalNumberOfVertices);
+			auto * const s = gsl_multimin_fdfminimizer_alloc(method, 2 * context.totalNumberOfVertices);
+			gsl_multimin_fdfminimizer_set(s, &f, &vx.vector, 0.1 * stepLimit(context, x), 0.1);
+
+			const double initialNorm = gsl_blas_dnrm2(s->gradient);
+			for(size_t iteration = 1; ; iteration++)
+			{
+				const auto iterationRes = gsl_multimin_fdfminimizer_iterate(s);
+
+				const double phi = s->f;
+				const double gnorm = gsl_blas_dnrm2(s->gradient);
+				const double dxnorm = gsl_blas_dnrm2(s->dx);
+
+				if(std::isnan(phi) || std::isnan(gnorm) || std::isnan(dxnorm))
+				{
+					if(verbose)
+						std::cerr
+							<< gsl_multimin_fdfminimizer_name(s) << ": "
+							<< "NaN error at iteration = " << iteration
+							<< " phi = " << phi
+							<< " |dx| = " << dxnorm << "\n";
+
+					gsl_multimin_fdfminimizer_free(s);
+					return false;
+				}
+
+				if(iterationRes != GSL_SUCCESS || iteration >= maxIterations || gnorm <= eps * initialNorm)
+				{
+					if(verbose)
+						std::cerr
+							<< gsl_multimin_fdfminimizer_name(s) << ": "
+							<< (iterationRes == GSL_SUCCESS ? "success" : "GSL_ENOPROG error")
+							<< " at iteration = " << iteration
+							<< " phi = " << phi
+							<< " |g| = " << gnorm << " of " << initialNorm
+							<< " |dx| = " << dxnorm << "\n";
+
+					gsl_vector_memcpy(&vx.vector, s->x);
+					gsl_multimin_fdfminimizer_free(s);
+					return iterationRes == GSL_SUCCESS;
 				}
 			}
 		}
 
-		double limit = std::numeric_limits<double>::infinity();
-		for(size_t i = 0; i < context.numberOfMovableVertices; i++)
-			limit = std::min(limit, dist[i] / grad[i].length());
-
-		delete[] dist;
-		return limit;
-	}
-
-	static double stepLimit(const InteractionContext & context, const Vector2 * x)
-	{
-		Vector2 * const grad = new Vector2[context.totalNumberOfVertices];
-		energy(context, x, grad);
-		const double limit = stepLimitByGrad(context, x, grad);
-		delete[] grad;
-		return limit;
-	}
-
-	static bool gslMinimization
-		( const bool verbose
-		, const double eps
-		, const size_t maxIterations
-		, const gsl_multimin_fdfminimizer_type * const method
-		, InteractionContext & context
-		, Vector2 * x
-		)
-	{
-		struct Phi
+		void relaxEmbedding
+			( const InteractionConst & interaction
+			, const size_t numberOfMovableVertices, const size_t numberOfFrozenVertices, Vector2 * x
+			, const size_t numberOfThreads, const size_t * const lengthOfThread, const size_t * const * const threads
+			, const size_t numberOfCrossings, const size_t * const crossingDegree, const size_t * const * const crossingAdjacencyList
+			)
 		{
-			static inline double callEnergy(const gsl_vector * vx, void * _context, gsl_vector * vg)
-			{
-				auto & context = *reinterpret_cast<const InteractionContext *>(_context);
-				const auto * x = reinterpret_cast<const Vector2 *>(gsl_vector_const_ptr(vx, 0));
+			InteractionContext context
+				{ .interaction             = interaction
+				, .totalNumberOfVertices   = numberOfMovableVertices + numberOfFrozenVertices
+				, .numberOfMovableVertices = numberOfMovableVertices
+				, .numberOfFrozenVertices  = numberOfFrozenVertices
+				, .numberOfThreads         = numberOfThreads
+				, .lengthOfThread          = lengthOfThread
+				, .threads                 = threads
+				, .numberOfCrossings       = numberOfCrossings
+				, .crossingDegree          = crossingDegree
+				, .crossingAdjacencyList   = crossingAdjacencyList
+				};
 
-				if(vg != nullptr)
-					return energy(context, x, reinterpret_cast<Vector2 *>(gsl_vector_ptr(vg, 0)));
-				else
-				{
-					auto * g = new Vector2[context.totalNumberOfVertices];
-					const double e = energy(context, x, g);
-					delete[] g;
-					return e;
-				}
-			}
+			const bool verbose = true;
+			const double eps = 1e-3;
+			const size_t maxIterations = 2048;
 
-			static void phiAndGradPhi(const gsl_vector * x, void * context, double * phi, gsl_vector * g)
-			{
-				*phi = callEnergy(x, context, g);
-			}
+			if(!gslMinimization(verbose, eps, maxIterations, gsl_multimin_fdfminimizer_conjugate_fr, context, x))
+				gslMinimization(verbose, eps, maxIterations, gsl_multimin_fdfminimizer_steepest_descent, context, x);
+		}
 
-			static double phi(const gsl_vector * x, void * context)
-			{
-				return callEnergy(x, context, nullptr);
-			}
+	}
 
-			static void gradPhi(const gsl_vector * x, void * context, gsl_vector * g)
-			{
-				callEnergy(x, context, g);
-			}
+
+	namespace CirclePacking {
+
+		inline double externalCentralAngle(const double r, const double r1, const double r2)
+		{
+			const double a = r + r1;
+			const double b = r + r2;
+			const double c = r1 + r2;
+			return acos((a * a + b * b - c * c) / (2.0 * a * b));
+		}
+
+		inline double internalCentralAngle(const double r, const double r1, const double r2)
+		{
+			const double a = r - r1;
+			const double b = r - r2;
+			const double c = r1 + r2;
+
+			if(a > 0.0 && b > 0.0 && c > 0.0 && c <= a + b && b <= a + c && a <= b + c)
+				return acos((a * a + b * b - c * c) / (2.0 * a * b));
+			else
+				return std::numeric_limits<double>::infinity();
+		}
+
+		inline double crossCentralAngle(const double r, const double r1, const double r2)
+		{
+			double a = r1 - r;
+			double b = r + r2;
+			double c = r1 - r2;
+
+			if(a > 0.0 && b > 0.0 && c > 0.0 && c <= a + b && b <= a + c && a <= b + c)
+				return acos(-(a * a + b * b - c * c) / (2 * a * b));
+			else
+				return -std::numeric_limits<double>::infinity();
+		}
+
+		struct TangentContext
+		{
+			const size_t numberOfVertices;
+			const size_t * const vertexDegree;
+			const size_t * const * adjacencyList;
 		};
 
-		gsl_multimin_function_fdf f
-			{ .f      = Phi::phi
-			, .df     = Phi::gradPhi
-			, .fdf    = Phi::phiAndGradPhi
-			, .n      = 2 * context.totalNumberOfVertices
-			, .params = &context
-			};
-
-		auto vx = gsl_vector_view_array(reinterpret_cast<double *>(x), 2 * context.totalNumberOfVertices);
-		auto * const s = gsl_multimin_fdfminimizer_alloc(method, 2 * context.totalNumberOfVertices);
-		gsl_multimin_fdfminimizer_set(s, &f, &vx.vector, 0.1 * stepLimit(context, x), 0.1);
-
-		const double initialNorm = gsl_blas_dnrm2(s->gradient);
-		for(size_t iteration = 1; ; iteration++)
+		static void circlePackingSolve(const TangentContext & context, double * r)
 		{
-			const auto iterationRes = gsl_multimin_fdfminimizer_iterate(s);
-
-			const double phi = s->f;
-			const double gnorm = gsl_blas_dnrm2(s->gradient);
-			const double dxnorm = gsl_blas_dnrm2(s->dx);
-
-			if(std::isnan(phi) || std::isnan(gnorm) || std::isnan(dxnorm))
-			{
-				if(verbose)
-					std::cerr
-						<< gsl_multimin_fdfminimizer_name(s) << ": "
-						<< "NaN error at iteration = " << iteration
-						<< " phi = " << phi
-						<< " |dx| = " << dxnorm << "\n";
-
-				gsl_multimin_fdfminimizer_free(s);
-				return false;
-			}
-
-			if(iterationRes != GSL_SUCCESS || iteration >= maxIterations || gnorm <= eps * initialNorm)
-			{
-				if(verbose)
-					std::cerr
-						<< gsl_multimin_fdfminimizer_name(s) << ": "
-						<< (iterationRes == GSL_SUCCESS ? "success" : "GSL_ENOPROG error")
-						<< " at iteration = " << iteration
-						<< " phi = " << phi
-						<< " |g| = " << gnorm << " of " << initialNorm
-						<< " |dx| = " << dxnorm << "\n";
-
-				gsl_vector_memcpy(&vx.vector, s->x);
-				gsl_multimin_fdfminimizer_free(s);
-				return iterationRes == GSL_SUCCESS;
-			}
+			for(size_t i = 0; i < context.numberOfVertices; i++)
+				r[i] = 1.0;
 		}
-	}
 
-	void relaxEmbedding
-		( const InteractionConst & interaction
-		, const size_t numberOfMovableVertices, const size_t numberOfFrozenVertices, Vector2 * x
-		, const size_t numberOfThreads, const size_t * const lengthOfThread, const size_t * const * const threads
-		, const size_t numberOfCrossings, const size_t * const crossingDegree, const size_t * const * const crossingAdjacencyList
-		)
-	{
-		InteractionContext context
-			{ .interaction             = interaction
-			, .totalNumberOfVertices   = numberOfMovableVertices + numberOfFrozenVertices
-			, .numberOfMovableVertices = numberOfMovableVertices
-			, .numberOfFrozenVertices  = numberOfFrozenVertices
-			, .numberOfThreads         = numberOfThreads
-			, .lengthOfThread          = lengthOfThread
-			, .threads                 = threads
-			, .numberOfCrossings       = numberOfCrossings
-			, .crossingDegree          = crossingDegree
-			, .crossingAdjacencyList   = crossingAdjacencyList
-			};
+		void circlePacking
+			( const size_t numberOfVertices
+			, const size_t * const vertexDegree
+			, const size_t * const * const adjacencyList
+			, double * r
+			)
+		{
+			TangentContext context
+				{ .numberOfVertices = numberOfVertices
+				, .vertexDegree     = vertexDegree
+				, .adjacencyList    = adjacencyList
+				};
 
-		const bool verbose = true;
-		const double eps = 1e-3;
-		const size_t maxIterations = 2048;
+			circlePackingSolve(context, r);
+		}
 
-		if(!gslMinimization(verbose, eps, maxIterations, gsl_multimin_fdfminimizer_conjugate_fr, context, x))
-			gslMinimization(verbose, eps, maxIterations, gsl_multimin_fdfminimizer_steepest_descent, context, x);
-	}
-
-
-	struct TangentContext
-	{
-		const size_t numberOfVertices;
-		const size_t * const vertexDegree;
-	};
-
-	static void circlePackingSolve(const TangentContext & context, double * r)
-	{
-		for(size_t i = 0; i < context.numberOfVertices; i++)
-			r[i] = 1.0;
-	}
-
-	void circlePacking
-		(const size_t numberOfVertices, const size_t * const vertexDegree
-		, double * r
-		)
-	{
-		TangentContext context
-			{ .numberOfVertices = numberOfVertices
-			, .vertexDegree     = vertexDegree
-			};
-
-		circlePackingSolve(context, r);
 	}
 
 
