@@ -106,9 +106,14 @@ library
         Graphics.HP.PostScript.Transform
         Graphics.HP.Transform
         Graphics.HP.Units
+        Math.KnotTh.Invariants.Skein.Applied
         Math.KnotTh.Invariants.Skein.Reduction
         Math.KnotTh.Invariants.Skein.Relation
         Math.KnotTh.Invariants.Skein.State
+        Math.KnotTh.Invariants.Skein.State.Basic
+        Math.KnotTh.Invariants.Skein.State.Contract
+        Math.KnotTh.Invariants.Skein.State.Def
+        Math.KnotTh.Invariants.Skein.State.RelaxVertex
         Math.KnotTh.Invariants.Util.BruteForceMinimization
         Math.KnotTh.Invariants.Util.ThreadExpansion
         Math.KnotTh.Knotted.CrossingState
@@ -137,7 +142,7 @@ test-suite TestTangles
     ghc-options:        -O -threaded
     ghc-prof-options:   -rtsopts -prof -auto-all -caf-all
     ld-options:         -static
-    build-depends:      base, containers, mtl, HUnit, tangles
+    build-depends:      base, containers, mtl, HUnit, HaskellForMaths, tangles
     main-is:            TestTangles.hs
     hs-source-dirs:     test
     other-modules:

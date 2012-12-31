@@ -5,6 +5,8 @@ module Math.KnotTh.Invariants.JonesPolynomial
 	, minimalKauffmanXPolynomialOfLink
 	, jonesPolynomialOfTangle
 	, minimalJonesPolynomialOfTangle
+	, jonesPolynomial
+	, kauffmanXPolynomial
 	) where
 
 import Data.List (sort, foldl')
@@ -18,6 +20,7 @@ import Math.KnotTh.Knotted
 import Math.KnotTh.Crossings.Arbitrary
 import qualified Math.KnotTh.Link.NonAlternating as L
 import qualified Math.KnotTh.Tangle.NonAlternating as T
+import Math.KnotTh.Invariants.Skein.Applied
 
 
 type Poly = LP.LaurentMPoly Int

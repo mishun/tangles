@@ -49,7 +49,7 @@ instance Storable InteractionConst where
 		{# set InteractionConst.cross    #} p $ realToFrac $ interactionCross x
 
 
-foreign import ccall "_ZN4Math9Manifolds9Embedding12Optimization5Relax14relaxEmbeddingERKNS2_16InteractionConstEjjPNS_7Numeric7Vector2EjPKjPKSB_jSB_SD_"
+foreign import ccall "_ZN4Math9Manifolds9Embedding12Optimization5Relax14relaxEmbeddingERKNS3_16InteractionConstEjjPNS_7Numeric7Vector2EjPKjPKSB_jSB_SD_"
 	c_relaxEmbedding :: InteractionConstPtr
 		-> CSize -> CSize -> Ptr CDouble
 		-> CSize -> Ptr CSize -> Ptr (Ptr CSize)
