@@ -7,6 +7,7 @@ module Math.KnotTh.Invariants.JonesPolynomial
 	, minimalJonesPolynomialOfTangle
 	, jonesPolynomial
 	, kauffmanXPolynomial
+	, kauffmanFPolynomial
 	) where
 
 import Data.List (sort, foldl')

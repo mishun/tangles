@@ -62,7 +62,9 @@ fromInitialSum x =
 
 class (Eq a, Num a) => SkeinRelation r a | r -> a where
 	initialLplus       :: r -> InitialSum a
-	circleMultiple     :: r -> a
+	circleFactor       :: r -> a
+	twistPFactor       :: r -> a
+	twistNFactor       :: r -> a
 	finalNormalization :: (SkeinKnotted k c d) => r -> k ArbitraryCrossing -> a -> a
 
 	finalNormalization _ _ = id

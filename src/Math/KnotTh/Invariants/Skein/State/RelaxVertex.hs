@@ -54,7 +54,7 @@ contractLoopST (!v, !p) s = do
 
 		unsafeFreeze xm >>= \ x' ->
 			return $! StateSummand x' $!
-				if x ! p == p' then k * circleMultiple (relation s) else k
+				if x ! p == p' then k * circleFactor (relation s) else k
 		) >>= writeArray (state s) v . normalizeStateSum
 
 	tryKillZeroVertexST v s

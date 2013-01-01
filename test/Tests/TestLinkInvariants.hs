@@ -12,21 +12,38 @@ import Math.KnotTh.Invariants.LinkingNumber
 import Math.KnotTh.Invariants.JonesPolynomial
 
 
-renorm :: LaurentMPoly Int -> String
-renorm (LP mono)
-	| r == 0     = let (LP q') = recip (t ^ 100) * q in show $ LP $ map (\ (a, b) -> (a, numerator b)) q'
+renormJones :: LaurentMPoly Int -> String
+renormJones (LP mono)
+	| r == 0     =
+		let (LP q') = recip big * q
+		in show $ LP $ map (\ (a, b) -> (a, numerator b)) q'
 	| otherwise  = error "not divisible"
 	where
-		p = LP $ map (\ (a, b) -> (a, b % 1)) mono
 		t = var "t"
-		(q, r) = quotRemLP ((t ^ 100) * p * (-sqrtvar "t")) (1 + t)
+		big = t ^ 100
+		p = LP $ map (\ (a, b) -> (a, b % 1)) mono
+		(q, r) = quotRemLP (big * p * (-sqrtvar "t")) (1 + t)
+
+
+renormKauffmanF :: LaurentMPoly Int -> String
+renormKauffmanF (LP mono)
+	| r == 0     =
+		let (LP q') = recip big * q
+		in show $ LP $ map (\ (a, b) -> (a, numerator b)) q'
+	| otherwise  = error "not divisible"
+	where
+		a = var "a"
+		z = var "z"
+		big = (a * z) ^ 100
+		p = LP $ map (\ (a, b) -> (a, b % 1)) mono
+		(q, r) = quotRemLP (big * a * z * p) (a * a + 1 - a * z)
 
 
 tests = "Link invariants" ~:
 	[ "Jones polynomial" ~:
 		map (\ (name, link, target) -> name ~: (show (jonesPolynomialOfLink link) ~?= target))
 			[ ("unknot"             , unknot              , "1"                                        )
-			, ("unknot"             , singleCrossingUnknot, "1"                                        )
+			, ("unknot '8'"         , singleCrossingUnknot, "1"                                        )
 			, ("left trefoil knot"  , leftTrefoilKnot     , "-t^-4+t^-3+t^-1"                          )
 			, ("right trefoil knot" , rightTrefoilKnot    , "t+t^3-t^4"                                )
 			, ("figure eight knot"  , figureEightKnot     , "t^-2-t^-1+1-t+t^2"                        )
@@ -50,9 +67,9 @@ tests = "Link invariants" ~:
 			]
 
 	, "Jones polynomial skein" ~:
-		map (\ (name, link, target) -> name ~: (renorm (jonesPolynomial link) ~?= target))
+		map (\ (name, link, target) -> name ~: (renormJones (jonesPolynomial link) ~?= target))
 			[ ("unknot"             , unknot              , "1"                                        )
-			, ("unknot"             , singleCrossingUnknot, "1"                                        )
+			, ("unknot '8'"         , singleCrossingUnknot, "1"                                        )
 			, ("left trefoil knot"  , leftTrefoilKnot     , "-t^-4+t^-3+t^-1"                          )
 			, ("right trefoil knot" , rightTrefoilKnot    , "t+t^3-t^4"                                )
 			, ("figure eight knot"  , figureEightKnot     , "t^-2-t^-1+1-t+t^2"                        )
@@ -70,9 +87,17 @@ tests = "Link invariants" ~:
 
 	, "Kauffman X polynomial skein" ~:
 		map (\ (name, link, target) -> name ~: (show (kauffmanXPolynomial link) ~?= target))
-			[ ("unknot"             , unknot              , "-A^-2-A^2"          )
-			, ("left trefoil knot"  , leftTrefoilKnot     , "-A^2-A^6-A^10+A^18" )
-			, ("figure eight knot"  , figureEightKnot     , "-A^-10-A^10"        )
-			, ("hopf link"          , hopfLink            , "A^-6+A^-2+A^2+A^6")
+			[ ("unknot"             , unknot         , "-A^-2-A^2"         )
+			, ("left trefoil knot"  , leftTrefoilKnot, "-A^2-A^6-A^10+A^18")
+			, ("figure eight knot"  , figureEightKnot, "-A^-10-A^10"       )
+			, ("hopf link"          , hopfLink       , "A^-6+A^-2+A^2+A^6" )
+			]
+
+	, "Kauffman F polynomial skein" ~:
+		map (\ (name, link, target) -> name ~: (renormKauffmanF (kauffmanFPolynomial link) ~?= target))
+			[ ("unknot"           , unknot              , "1"                                                                                  )
+			, ("unknot '8'"       , singleCrossingUnknot, "1"                                                                                  )
+			, ("left trefoil knot", leftTrefoilKnot     , "(-a^(-4)-2*a^(-2))*z^(0)+(a^(-5)+a^(-3))*z^(1)+(a^(-4)+ a^(-2))*z^(2)"              )
+			, ("figure eight knot", figureEightKnot     , "(-a^(-2)-1-a^2)*z^(0)+ (-a^(-1)-a)*z^(1)+ (a^(-2)+ 2+ a^2)*z^(2)+ (a^(-1)+ a)*z^(3)")
 			]
 	]

@@ -17,6 +17,7 @@ import Control.Monad.Reader (ReaderT, runReaderT, ask, lift)
 import Control.Monad (when)
 import Text.Printf
 import Math.KnotTh.Crossings.Arbitrary
+import Math.KnotTh.Knotted
 import Math.KnotTh.Invariants.Skein.Relation
 import Math.KnotTh.Invariants.Skein.State.Def
 import Math.KnotTh.Invariants.Skein.State.Basic
@@ -87,4 +88,4 @@ runSkein rel action knot = runST $ do
 				continue
 
 		result <- ask >>= \ !s -> lift $ extractMultipleST s
-		return $! finalNormalization rel knot result
+		return $! finalNormalization rel knot (result * (circleFactor rel ^ numberOfFreeLoops knot))
