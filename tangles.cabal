@@ -114,6 +114,7 @@ library
         Math.KnotTh.Invariants.Skein.SkeinM.Def
         Math.KnotTh.Invariants.Skein.SkeinM.Reduction
         Math.KnotTh.Invariants.Skein.SkeinM.RelaxVertex
+        Math.KnotTh.Invariants.Skein.StateSum
         Math.KnotTh.Invariants.Util.BruteForceMinimization
         Math.KnotTh.Invariants.Util.ThreadExpansion
         Math.KnotTh.Knotted.CrossingState

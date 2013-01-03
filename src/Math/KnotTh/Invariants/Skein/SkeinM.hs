@@ -19,6 +19,7 @@ import Math.KnotTh.Invariants.Skein.SkeinM.Def
 import Math.KnotTh.Invariants.Skein.SkeinM.Basic
 import Math.KnotTh.Invariants.Skein.SkeinM.ContractEdge
 import Math.KnotTh.Invariants.Skein.SkeinM.Reduction
+import Debug.Trace
 
 
 type SkeinM s r a = ReaderT (SkeinState s r a) (ST s)
@@ -47,9 +48,9 @@ runSkein rel action knot = runST $ do
 	(stateFromKnotted rel knot >>=) $ runReaderT $ do
 		fix $ \ continue -> do
 			aliveVertices <- ask >>= \ s -> lift $ do
-				--dumpStateST s >>= flip trace (return ())
+				dumpStateST s >>= flip trace (return ())
 				greedyReductionST s
-				--dumpStateST s >>= flip trace (return ())
+				dumpStateST s >>= flip trace (return ())
 				aliveVerticesST s
 
 			case aliveVertices of

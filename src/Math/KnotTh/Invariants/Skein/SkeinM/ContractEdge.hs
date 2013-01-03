@@ -55,17 +55,17 @@ contract s (!v, !p) (!u, !q) = do
 
 		forM_ [0 .. degreeV - 1] $ \ !i -> when (i /= p) $ do
 			(w, k) <- readArray prevV i
-			case () of
-				_ | w == v    -> connectST s (v, substV ! i) (v, substV ! k)
-				  | w == u    -> connectST s (v, substV ! i) (v, substU ! k)
-				  | otherwise -> connectST s (v, substV ! i) (w, k)
+			connectST s (v, substV ! i) $ case () of
+				_ | w == v    -> (v, substV ! k)
+				  | w == u    -> (v, substU ! k)
+				  | otherwise -> (w, k)
 
 		forM_ [0 .. degreeU - 1] $ \ !i -> when (i /= q) $ do
 			(w, k) <- readArray prevU i
-			case () of
-				_ | w == v    -> connectST s (v, substU ! i) (v, substV ! k)
-				  | w == u    -> connectST s (v, substU ! i) (v, substU ! k)
-				  | otherwise -> connectST s (v, substU ! i) (w, k)
+			connectST s (v, substU ! i) $ case () of
+				_ | w == v    -> (v, substV ! k)
+				  | w == u    -> (v, substU ! k)
+				  | otherwise -> (w, k)
 
 	sumV <- readArray (state s) v
 	sumU <- readArray (state s) u

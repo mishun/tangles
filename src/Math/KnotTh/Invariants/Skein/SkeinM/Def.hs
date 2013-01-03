@@ -101,18 +101,15 @@ copyState s = do
 dumpStateST :: (Show a) => SkeinState s r a -> ST s String
 dumpStateST s = do
 	cross <- forM [1 .. size s] $ \ i -> do
-		a <- readArray (active s) i
-		adj <- if not a
-			then return ""
+		act <- readArray (active s) i
+		if not act
+			then return "???"
 			else do
-				k <- readArray (adjacent s) i
-				(_, d) <- getBounds k
-				ss <- forM [0 .. d] $ \ j ->
-					show `fmap` readArray k j
-				return $ concat ss
-		let x :: String
-		    x = printf "%s { %s }" (show a) adj
-		return x
+				adj <- readArray (adjacent s) i
+				(0, bound) <- getBounds adj
+				con <- fmap concat $ forM [0 .. bound] $ \ j -> show `fmap` readArray adj j
+				st <- readArray (state s) i
+				return $ printf "{ %s } %s" con (show st)
 
 	alive' <- readSTRef $ alive s
 	multiple' <- readSTRef $ multiple s
