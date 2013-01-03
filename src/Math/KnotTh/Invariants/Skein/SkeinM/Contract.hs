@@ -1,4 +1,4 @@
-module Math.KnotTh.Invariants.Skein.State.Contract
+module Math.KnotTh.Invariants.Skein.SkeinM.Contract
 	( contractEdgeST
 	) where
 
@@ -9,11 +9,11 @@ import Data.Array.Unsafe (unsafeFreeze)
 import Control.Monad.ST (ST)
 import Control.Monad (forM_, forM, when)
 import Math.KnotTh.Invariants.Skein.Relation
-import Math.KnotTh.Invariants.Skein.State.Def
-import Math.KnotTh.Invariants.Skein.State.Basic
+import Math.KnotTh.Invariants.Skein.SkeinM.Def
+import Math.KnotTh.Invariants.Skein.SkeinM.Basic
 
 
-contractEdgeST :: (SkeinRelation r a) => (Int, Int) -> SkeinState s r a -> ST s ()
+contractEdgeST :: (SkeinRelation r a) => (Int, Int) -> SkeinState s r a -> ST s Int
 contractEdgeST (!v, !p) s = do
 	(!u, !q) <- neighbourST (v, p) s
 	when (v == u) $ fail "contractEdgeST: not edge"
@@ -81,4 +81,4 @@ contractEdgeST (!v, !p) s = do
 					return $! StateSummand x' (ka * kb)
 
 	killVertexST u s
-	tryKillZeroVertexST v s
+	return $! v

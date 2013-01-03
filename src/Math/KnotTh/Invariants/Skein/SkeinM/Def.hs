@@ -1,15 +1,15 @@
-module Math.KnotTh.Invariants.Skein.State.Def
+module Math.KnotTh.Invariants.Skein.SkeinM.Def
 	( SkeinState(..)
 	, stateFromKnotted
+	, dumpStateST
 	) where
 
-import Data.STRef (STRef, newSTRef)
-import Data.Array.MArray (newArray, newArray_, writeArray)
+import Data.STRef (STRef, newSTRef, readSTRef)
+import Data.Array.MArray (newArray, newArray_, readArray, writeArray, getBounds)
 import Data.Array.ST (STUArray, STArray)
 import Control.Monad.ST (ST)
-import Control.Monad (forM_)
-import Math.KnotTh.Crossings.Arbitrary
-import Math.KnotTh.Knotted
+import Control.Monad (forM, forM_)
+import Text.Printf
 import Math.KnotTh.Invariants.Skein.Relation
 
 
@@ -78,26 +78,29 @@ stateFromKnotted relation' knot = do
 {-
 copyState :: SkeinState s a -> ST s (SkeinState s a)
 copyState s = do
+	let n = size s
+
 	alive' <- newSTRef =<< readSTRef (alive s)
 	active' <- mapArray id (active s)
 	state' <- mapArray id (state s)
 
-	(0, n) <- getBounds (adjacent s)
 	adjacent' <- newArray_ (0, n)
 	forM_ [0 .. n] $ \ i ->
 		readArray (adjacent s) i >>= mapArray id >>= writeArray adjacent' i
 
 	return $! SkeinState
-		{ alive    = alive'
+		{ relation = relation s
+		, size     = n
+		, alive    = alive'
 		, active   = active'
 		, state    = state'
 		, adjacent = adjacent'
 		}
 -}
-{-
-dumpState :: SkeinM s r a ()
-dumpState = ask >>= \ s -> lift $ do
-	str <- forM [1 .. size s] $ \ i -> do
+
+dumpStateST :: (Show a) => SkeinState s r a -> ST s String
+dumpStateST s = do
+	cross <- forM [1 .. size s] $ \ i -> do
 		a <- readArray (active s) i
 		adj <- if not a
 			then return ""
@@ -111,9 +114,6 @@ dumpState = ask >>= \ s -> lift $ do
 		    x = printf "%s { %s }" (show a) adj
 		return x
 
-	alive' <- readSTRef (alive s)
-
-	let x = printf "\nalive = %i\n%s" alive' $ concatMap (++ "\n") str
-
-	trace x $ return ()
--}
+	alive' <- readSTRef $ alive s
+	multiple' <- readSTRef $ multiple s
+	return $! printf "\nalive = %i\nmultiple=%s\n%s" alive' (show multiple') $ concatMap (++ "\n") cross

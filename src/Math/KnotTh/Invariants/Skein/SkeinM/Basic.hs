@@ -1,4 +1,4 @@
-module Math.KnotTh.Invariants.Skein.State.Basic
+module Math.KnotTh.Invariants.Skein.SkeinM.Basic
 	( appendMultipleST
 	, extractMultipleST
 	, connectST
@@ -9,15 +9,13 @@ module Math.KnotTh.Invariants.Skein.State.Basic
 	, dequeueST
 	, numberOfAliveVerticesST
 	, aliveVerticesST
-	, tryKillZeroVertexST
 	) where
 
 import Data.STRef (readSTRef, writeSTRef)
 import Data.Array.MArray (getBounds, readArray, writeArray)
 import Control.Monad.ST (ST)
 import Control.Monad (when, unless, filterM)
-import Math.KnotTh.Invariants.Skein.Relation
-import Math.KnotTh.Invariants.Skein.State.Def
+import Math.KnotTh.Invariants.Skein.SkeinM.Def
 
 
 appendMultipleST :: (Num a) => a -> SkeinState s r a -> ST s ()
@@ -90,15 +88,3 @@ numberOfAliveVerticesST s = readSTRef $ alive s
 
 aliveVerticesST :: SkeinState s r a -> ST s [Int]
 aliveVerticesST s = filterM (readArray $ active s) [1 .. size s]
-
-
-tryKillZeroVertexST :: (Num a) => Int -> SkeinState s r a -> ST s ()
-tryKillZeroVertexST v s = do
-	degree <- vertexDegreeST v s
-	when (degree == 0) $ do
-		stateSum <- readArray (state s) v
-		killVertexST v s
-		case stateSum of
-			[]                 -> appendMultipleST 0 s
-			[StateSummand _ x] -> appendMultipleST x s
-			_                  -> fail "killZeroVertexST: internal error"

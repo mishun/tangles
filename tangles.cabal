@@ -107,13 +107,13 @@ library
         Graphics.HP.Transform
         Graphics.HP.Units
         Math.KnotTh.Invariants.Skein.Applied
-        Math.KnotTh.Invariants.Skein.Reduction
         Math.KnotTh.Invariants.Skein.Relation
-        Math.KnotTh.Invariants.Skein.State
-        Math.KnotTh.Invariants.Skein.State.Basic
-        Math.KnotTh.Invariants.Skein.State.Contract
-        Math.KnotTh.Invariants.Skein.State.Def
-        Math.KnotTh.Invariants.Skein.State.RelaxVertex
+        Math.KnotTh.Invariants.Skein.SkeinM
+        Math.KnotTh.Invariants.Skein.SkeinM.Basic
+        Math.KnotTh.Invariants.Skein.SkeinM.Contract
+        Math.KnotTh.Invariants.Skein.SkeinM.Def
+        Math.KnotTh.Invariants.Skein.SkeinM.Reduction
+        Math.KnotTh.Invariants.Skein.SkeinM.RelaxVertex
         Math.KnotTh.Invariants.Util.BruteForceMinimization
         Math.KnotTh.Invariants.Util.ThreadExpansion
         Math.KnotTh.Knotted.CrossingState

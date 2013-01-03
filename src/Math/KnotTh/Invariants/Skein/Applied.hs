@@ -6,16 +6,29 @@ module Math.KnotTh.Invariants.Skein.Applied
 	) where
 
 import qualified Data.Map as M
+import Control.Monad (void, forM)
 import qualified Math.Projects.KnotTheory.LaurentMPoly as P
-import Math.KnotTh.Crossings.Arbitrary
-import Math.KnotTh.Invariants.Skein.Relation
-import Math.KnotTh.Invariants.Skein.Reduction
+import Math.KnotTh.Invariants.Skein.SkeinM
+
+
+evaluateSkeinRelation :: (SkeinRelation r a, SkeinKnotted k c d) => r -> k ArbitraryCrossing -> a
+evaluateSkeinRelation relation = runSkein relation $ \ vertices -> do
+	p <- concat `fmap` forM vertices (\ v -> vertexDegree v >>= \ d -> return $! zip (repeat v) [0 {- .. -}, d - 1])
+
+	let try [] = error "impossible"
+	    try ((v, i) : t) = do
+	    	(u, _) <- neighbour (v, i)
+	    	if u /= v
+	    		then contract (v, i)
+	    		else try t
+
+	void $ try p
 
 
 data BracketLikeRelation a = BracketLikeRelation a a
 
 
-instance (Eq a, Num a) => SkeinRelation (BracketLikeRelation a) a where
+instance (Eq a, Num a, Show a) => SkeinRelation (BracketLikeRelation a) a where
 	circleFactor (BracketLikeRelation a b) = -(a * a + b * b)
 
 	initialLplus (BracketLikeRelation a b) = InitialSum { ofLplus = 0, ofLzero = a, ofLinfty = b }
@@ -50,7 +63,7 @@ kauffmanXPolynomial = evaluateSkeinRelation $
 data KauffmanFRelation a = KauffmanFRelation a a a a
 
 
-instance (Eq a, Num a) => SkeinRelation (KauffmanFRelation a) a where
+instance (Eq a, Num a, Show a) => SkeinRelation (KauffmanFRelation a) a where
 	circleFactor (KauffmanFRelation a a' _ z') = (a + a') * z' - 1
 
 	initialLplus _ = InitialSum { ofLplus = 1, ofLzero = 0, ofLinfty = 0 }

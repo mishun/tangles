@@ -1,4 +1,4 @@
-module Math.KnotTh.Invariants.Skein.State.RelaxVertex
+module Math.KnotTh.Invariants.Skein.SkeinM.RelaxVertex
 	( contractLoopST
 	) where
 
@@ -10,8 +10,8 @@ import Control.Monad.ST (ST)
 import Control.Monad (forM_, when, foldM_)
 import Text.Printf
 import Math.KnotTh.Invariants.Skein.Relation
-import Math.KnotTh.Invariants.Skein.State.Def
-import Math.KnotTh.Invariants.Skein.State.Basic
+import Math.KnotTh.Invariants.Skein.SkeinM.Def
+import Math.KnotTh.Invariants.Skein.SkeinM.Basic
 
 
 contractLoopST :: (SkeinRelation r a) => (Int, Int) -> SkeinState s r a -> ST s ()
@@ -52,9 +52,15 @@ contractLoopST (!v, !p) s = do
 			writeArray xm i' j'
 			writeArray xm j' i'
 
-		unsafeFreeze xm >>= \ x' ->
-			return $! StateSummand x' $!
-				if x ! p == p' then k * circleFactor (relation s) else k
-		) >>= writeArray (state s) v . normalizeStateSum
+		let k'
+			| x ! p == p'                    = k * circleFactor (relation s)
+			| cross (x ! p, p) (x ! p', p')  = k * (if min p' (x ! p') < min p (x ! p) then twistPFactor else twistNFactor) (relation s)
+			| otherwise                      = k
 
-	tryKillZeroVertexST v s
+		unsafeFreeze xm >>= \ x' -> return $! StateSummand x' k'
+		) >>= writeArray (state s) v . normalizeStateSum
+	where
+		cross (a, b) (c, d) =
+			let a' = min a b ; b' = max a b
+			    c' = min c d ; d' = max c d
+			in (a' < c' && b' > c' && b' < d') || (a' > c' && a' < d' && b' > d')
