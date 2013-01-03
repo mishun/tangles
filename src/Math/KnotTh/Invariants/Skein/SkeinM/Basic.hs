@@ -18,8 +18,8 @@ import Control.Monad (when, unless, filterM)
 import Math.KnotTh.Invariants.Skein.SkeinM.Def
 
 
-appendMultipleST :: (Num a) => a -> SkeinState s r a -> ST s ()
-appendMultipleST x s =
+appendMultipleST :: (Num a) => SkeinState s r a -> a -> ST s ()
+appendMultipleST s x =
 	readSTRef (multiple s) >>= \ !m ->
 		writeSTRef (multiple s) $! x * m
 
@@ -28,28 +28,28 @@ extractMultipleST :: SkeinState s r a -> ST s a
 extractMultipleST s = readSTRef $ multiple s
 
 
-connectST :: (Int, Int) -> (Int, Int) -> SkeinState s r a -> ST s ()
-connectST a@(!v, !p) b@(!u, !q) s = do
+connectST :: SkeinState s r a -> (Int, Int) -> (Int, Int) -> ST s ()
+connectST s a@(!v, !p) b@(!u, !q) = do
 	readArray (adjacent s) v >>= \ d -> writeArray d p b
 	readArray (adjacent s) u >>= \ d -> writeArray d q a
 
 
-vertexDegreeST :: Int -> SkeinState s r a ->  ST s Int
-vertexDegreeST v s = do
+vertexDegreeST :: SkeinState s r a -> Int -> ST s Int
+vertexDegreeST s v = do
 	readArray (adjacent s) v >>=
 		getBounds >>= \ (0, n) ->
 			return $! n + 1
 
 
-neighbourST :: (Int, Int) -> SkeinState s r a -> ST s (Int, Int)
-neighbourST (!v, !p) s = do
+neighbourST :: SkeinState s r a -> (Int, Int) -> ST s (Int, Int)
+neighbourST s (!v, !p) = do
 	x <- readArray (adjacent s) v
 	(_, d) <- getBounds x
 	readArray x $ p `mod` (d + 1)
 
 
-killVertexST :: Int -> SkeinState s r a -> ST s ()
-killVertexST v s = do
+killVertexST :: SkeinState s r a -> Int -> ST s ()
+killVertexST s v = do
 	a <- readArray (active s) v
 	unless a $ fail "killVertexST: vertex is already dead"
 	writeArray (active s) v False
@@ -59,8 +59,8 @@ killVertexST v s = do
 		writeSTRef (alive s) $! x - 1
 
 
-enqueueST :: Int -> SkeinState s r a -> ST s ()
-enqueueST v s = do
+enqueueST :: SkeinState s r a -> Int -> ST s ()
+enqueueST s v = do
 	a <- readArray (active s) v
 	e <- readArray (queued s) v
 	when (a && not e) $ do

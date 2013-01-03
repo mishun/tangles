@@ -3,7 +3,6 @@ module Math.KnotTh.Invariants.Skein.SkeinM.Reduction
 	, greedyReductionST
 	) where
 
-import Data.Array.MArray (readArray)
 import Control.Monad.ST (ST)
 import Control.Monad (unless)
 import Math.KnotTh.Invariants.Skein.Relation
@@ -26,39 +25,13 @@ greedyReductionST s = do
 		Just v  -> do
 			let tryReductions [] = return ()
 			    tryReductions (h : t) = do
-			    	r <- h v s
+			    	r <- h s v
 			    	unless r $ tryReductions t
 			tryReductions reductions
 			greedyReductionST s
 
 
-reductions :: (SkeinRelation r a) => [Int -> SkeinState s r a -> ST s Bool]
+reductions :: (SkeinRelation r a) => [SkeinState s r a -> Int -> ST s Bool]
 reductions =
-	[ \ v s -> do
-		degree <- vertexDegreeST v s
-		if degree > 0
-			then return False
-			else do
-				stateSum <- readArray (state s) v
-				case stateSum of
-					[]                 -> appendMultipleST 0 s
-					[StateSummand _ x] -> appendMultipleST x s
-					_                  -> fail "internal error: zero degree vertex and StateSum with length > 1"
-				killVertexST v s
-				return True
-
-	, \ v s -> do
-		degree <- vertexDegreeST v s
-
-		let findLoop [] = return False
-		    findLoop (i : t) = do
-		    	(u, j) <- neighbourST (v, i) s
-		    	if u /= v || j /= (i + 1) `mod` degree
-		    		then findLoop t
-		    		else do
-		    			contractLoopST (v, i) s
-		    			enqueueST v s
-		    			return True
-
-		findLoop [0 .. degree - 1]
+	[ tryRelaxVertex
 	]

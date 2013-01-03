@@ -1,11 +1,11 @@
 module Math.KnotTh.Invariants.Skein.SkeinM.RelaxVertex
-	( contractLoopST
+	( tryRelaxVertex
 	) where
 
-import Data.Array.Base ((!))
+import Data.Array.Base ((!), bounds)
+import Data.Array.Unboxed (UArray)
 import Data.Array.MArray (newArray_, readArray, writeArray)
-import Data.Array.ST (STUArray)
-import Data.Array.Unsafe (unsafeFreeze)
+import Data.Array.ST (STUArray, runSTUArray)
 import Control.Monad.ST (ST)
 import Control.Monad (forM_, when, foldM_)
 import Text.Printf
@@ -14,19 +14,46 @@ import Math.KnotTh.Invariants.Skein.SkeinM.Def
 import Math.KnotTh.Invariants.Skein.SkeinM.Basic
 
 
-contractLoopST :: (SkeinRelation r a) => (Int, Int) -> SkeinState s r a -> ST s ()
-contractLoopST (!v, !p) s = do
-	degree <- vertexDegreeST v s
-	(!v', !p') <- neighbourST (v, p) s
+tryRelaxVertex :: (SkeinRelation r a) => SkeinState s r a -> Int -> ST s Bool
+tryRelaxVertex s v = do
+	degree <- vertexDegreeST s v
+	if degree == 0
+		then do
+			stateSum <- readArray (state s) v
+			case stateSum of
+				[]                 -> appendMultipleST s 0
+				[StateSummand _ x] -> appendMultipleST s x
+				_                  -> fail "internal error: zero degree vertex and StateSum with length > 1"
+			killVertexST s v
+			return True
+		else do
+			let findLoop [] = return False
+			    findLoop (i : t) = do
+			    	(u, j) <- neighbourST s (v, i)
+			    	if u /= v || j /= (i + 1) `mod` degree
+			    		then findLoop t
+			    		else do
+			    			contractLoopST s (v, i)
+			    			enqueueST s v
+			    			return True
+			findLoop [0 .. degree - 1]
+
+
+contractLoopST :: (SkeinRelation r a) => SkeinState s r a -> (Int, Int) -> ST s ()
+contractLoopST s (!v, !p) = do
+	degree <- vertexDegreeST s v
+	(!v', !p') <- neighbourST s (v, p)
 	when (v' /= v || p' /= (p + 1) `mod` degree) $ fail $
 		printf "contractLoopST: not loop (%i, %i) <-> (%i, %i) / %i" v p v' p' degree
 
-	subst <- newArray_ (0, degree - 1) :: ST s (STUArray s Int Int)
-	foldM_ (\ !k !i ->
-		if i == p' || i == p
-			then return $! k
-			else writeArray subst i k >> (return $! k + 1)
-		) 0 [0 .. degree - 1]
+	let subst = runSTUArray $ do
+		a <- newArray_ (0, degree - 1) :: ST s (STUArray s Int Int)
+		foldM_ (\ !k !i ->
+			if i == p' || i == p
+				then return $! k
+				else writeArray a i k >> (return $! k + 1)
+			) 0 [0 .. degree - 1]
+		return $! a
 
 	do
 		prev <- readArray (adjacent s) v
@@ -34,31 +61,32 @@ contractLoopST (!v, !p) s = do
 		writeArray (adjacent s) v next
 
 		forM_ [0 .. degree - 1] $ \ !i -> when (i /= p' && i /= p) $ do
-			i' <- readArray subst i
 			(u, j) <- readArray prev i
-			if u /= v
-				then connectST (v, i') (u, j) s
-				else readArray subst j >>= \ j' -> connectST (v, i') (v, j') s
+			connectST s (v, subst ! i) $ if u /= v then (u, j) else (v, subst ! j)
 
-	readArray (state s) v >>= mapM (\ (StateSummand x k) -> do
-		xm <- newArray_ (0, degree - 3) :: ST s (STUArray s Int Int)
+	sumV <- readArray (state s) v
+	writeArray (state s) v $ glue (relation s) p p' subst sumV
 
-		forM_ [0 .. degree - 1] $ \ !i -> when (i /= p' && i /= p) $ do
+
+glue :: (SkeinRelation r a) => r -> Int -> Int -> UArray Int Int -> [StateSummand a] -> [StateSummand a]
+glue rel p p' subst preSum = normalizeStateSum $ do
+	StateSummand x k <- preSum
+
+	let x' = runSTUArray $ do
+		let (0, bound) = bounds subst
+		xm <- newArray_ (0, bound - 2) :: ST s (STUArray s Int Int)
+		forM_ [0 .. bound] $ \ !i -> when (i /= p' && i /= p) $ do
 			let j | (x ! i) == p   = x ! p'
 			      | (x ! i) == p'  = x ! p
 			      | otherwise      = x ! i
-			i' <- readArray subst i
-			j' <- readArray subst j
-			writeArray xm i' j'
-			writeArray xm j' i'
+			writeArray xm (subst ! i) (subst ! j)
+		return $! xm
 
-		let k'
-			| x ! p == p'                    = k * circleFactor (relation s)
-			| cross (x ! p, p) (x ! p', p')  = k * (if min p' (x ! p') < min p (x ! p) then twistPFactor else twistNFactor) (relation s)
-			| otherwise                      = k
+	let k' | x ! p == p'                    = k * circleFactor rel
+	       | cross (x ! p, p) (x ! p', p')  = k * (if min p' (x ! p') < min p (x ! p) then twistPFactor else twistNFactor) rel
+	       | otherwise                      = k
 
-		unsafeFreeze xm >>= \ x' -> return $! StateSummand x' k'
-		) >>= writeArray (state s) v . normalizeStateSum
+	return $! StateSummand x' k'
 	where
 		cross (a, b) (c, d) =
 			let a' = min a b ; b' = max a b
