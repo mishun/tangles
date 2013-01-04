@@ -27,11 +27,6 @@ greedyReductionST s = do
 			    tryReductions (h : t) = do
 			    	r <- h s v
 			    	unless r $ tryReductions t
-			tryReductions reductions
+
+			tryReductions [ tryRelaxVertex ]
 			greedyReductionST s
-
-
-reductions :: (SkeinRelation r a) => [SkeinState s r a -> Int -> ST s Bool]
-reductions =
-	[ tryRelaxVertex
-	]

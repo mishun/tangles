@@ -7,6 +7,7 @@ module Math.KnotTh.Invariants.Skein.SkeinM.Basic
 	, killVertexST
 	, enqueueST
 	, dequeueST
+	, dissolveVertexST
 	, numberOfAliveVerticesST
 	, aliveVerticesST
 	) where
@@ -15,6 +16,7 @@ import Data.STRef (readSTRef, writeSTRef)
 import Data.Array.MArray (getBounds, readArray, writeArray)
 import Control.Monad.ST (ST)
 import Control.Monad (when, unless, filterM)
+import Math.KnotTh.Invariants.Skein.StateSum
 import Math.KnotTh.Invariants.Skein.SkeinM.Def
 
 
@@ -80,6 +82,16 @@ dequeueST s = do
 			if ok
 				then return $! Just $! h
 				else dequeueST s
+
+
+dissolveVertexST :: (Num a) => SkeinState s r a -> Int -> ST s ()
+dissolveVertexST s v = do
+	stateSum <- readArray (state s) v
+	case stateSum of
+		[]                 -> appendMultipleST s 0
+		[StateSummand _ x] -> appendMultipleST s x
+		_                  -> fail "internal error: zero degree vertex and StateSum with length > 1"
+	killVertexST s v
 
 
 numberOfAliveVerticesST :: SkeinState s r a -> ST s Int

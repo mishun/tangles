@@ -17,16 +17,21 @@ import Math.KnotTh.Invariants.Skein.SkeinM.Basic
 tryRelaxVertex :: (SkeinRelation r a) => SkeinState s r a -> Int -> ST s Bool
 tryRelaxVertex s v = do
 	degree <- vertexDegreeST s v
-	if degree == 0
-		then do
-			stateSum <- readArray (state s) v
-			case stateSum of
-				[]                 -> appendMultipleST s 0
-				[StateSummand _ x] -> appendMultipleST s x
-				_                  -> fail "internal error: zero degree vertex and StateSum with length > 1"
-			killVertexST s v
+	case degree of
+		0 -> do
+			dissolveVertexST s v
 			return True
-		else do
+
+		2 -> do
+			a@(av, _) <- neighbourST s (v, 0)
+			b@(bv, _) <- neighbourST s (v, 1)
+			dissolveVertexST s v
+			if a == (v, 1)
+				then appendMultipleST s $ circleFactor $ relation s
+				else connectST s a b >> enqueueST s av >> enqueueST s bv
+			return True
+
+		_ -> do
 			let findLoop [] = return False
 			    findLoop (i : t) = do
 			    	(u, j) <- neighbourST s (v, i)
