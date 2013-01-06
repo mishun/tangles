@@ -54,4 +54,4 @@ siftTangles = siftByInvariant $ \ tangle ->
 
 siftWeakTangles :: (DiagramInfo info) => [info NonAlternatingTangle] -> SiftResult info NonAlternatingTangle
 siftWeakTangles = siftByInvariant $ \ tangle ->
-	(jonesPolynomialOfLink $ tangleDoubling id tangle)
+	(jonesPolynomial $ tangleDoubling id tangle)

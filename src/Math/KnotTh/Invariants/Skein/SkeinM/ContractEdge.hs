@@ -9,16 +9,17 @@ import Data.Array.ST (STUArray, runSTUArray)
 import Control.Monad.ST (ST)
 import Control.Monad (forM_, when)
 import Text.Printf
+import Math.KnotTh.Invariants.Skein.StateSum
 import Math.KnotTh.Invariants.Skein.Relation
-import Math.KnotTh.Invariants.Skein.SkeinM.Def
+import Math.KnotTh.Invariants.Skein.SkeinM.Def (SkeinState, relation)
 import Math.KnotTh.Invariants.Skein.SkeinM.Basic
 
 
 contractEdgeST :: (SkeinRelation r a) => SkeinState s r a -> (Int, Int) -> ST s ()
 contractEdgeST s (!v, !p) = do
 	(!u, !q) <- neighbourST s (v, p)
-	when (v == u) $ fail $
-		printf "contract: trying to contract loop (%i, %i) <-> (%i, %i)" v p u q
+	when (v == 0 || u == 0 || v == u) $ fail $
+		printf "contract: can not contract (%i, %i) <-> (%i, %i)" v p u q
 
 	degreeV <- vertexDegreeST s v
 	degreeU <- vertexDegreeST s u
@@ -48,10 +49,8 @@ contract s (!v, !p) (!u, !q) = do
 		return $! a
 
 	do
-		prevV <- readArray (adjacent s) v
-		prevU <- readArray (adjacent s) u
-		next <- newArray_ (0, degreeV + degreeU - 3)
-		writeArray (adjacent s) v next
+		prevV <- resizeAdjListST s v $ degreeV + degreeU - 2
+		prevU <- getAdjListST s u
 
 		forM_ [0 .. degreeV - 1] $ \ !i -> when (i /= p) $ do
 			(w, k) <- readArray prevV i
@@ -67,9 +66,9 @@ contract s (!v, !p) (!u, !q) = do
 				  | w == u    -> (v, substU ! k)
 				  | otherwise -> (w, k)
 
-	sumV <- readArray (state s) v
-	sumU <- readArray (state s) u
-	writeArray (state s) v $ glue (relation s) p substV sumV q substU sumU
+	getStateSumST s u >>= \ sumU ->
+		modifyStateSumST s v $ \ sumV ->
+			glue (relation s) p substV sumV q substU sumU
 
 	killVertexST s u
 	return $! v

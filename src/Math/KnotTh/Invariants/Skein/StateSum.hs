@@ -6,14 +6,18 @@ module Math.KnotTh.Invariants.Skein.StateSum
 	, fromInitialSum
 	) where
 
-import Data.List (foldl')
+import Data.List (sort, foldl')
 import qualified Data.Map as M
 import Data.Array.Base (elems)
 import Data.Array.Unboxed (UArray, listArray)
 import Text.Printf
 
 
-data StateSummand a = StateSummand !(UArray Int Int) a
+data StateSummand a = StateSummand !(UArray Int Int) a deriving (Eq, Ord)
+
+
+instance Functor StateSummand where
+	fmap f (StateSummand p x) = StateSummand p $ f x
 
 
 instance (Show a) => Show (StateSummand a) where
@@ -33,9 +37,9 @@ normalizeStateSum =
 data InitialSum a = InitialSum { ofLplus :: a, ofLzero :: a, ofLinfty :: a }
 
 
-fromInitialSum :: (Eq a, Num a) => InitialSum a -> StateSum a
+fromInitialSum :: (Ord a, Num a) => InitialSum a -> StateSum a
 fromInitialSum x =
-	filter (\ (StateSummand _ k) -> k /= 0) $
+	sort $ filter (\ (StateSummand _ k) -> k /= 0) $
 		[ StateSummand (listArray (0, 3) [3, 2, 1, 0]) (ofLzero x)
 		, StateSummand (listArray (0, 3) [1, 0, 3, 2]) (ofLinfty x)
 		, StateSummand (listArray (0, 3) [2, 3, 0, 1]) (ofLplus x)

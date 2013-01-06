@@ -9,8 +9,9 @@ import Data.Array.ST (STUArray, runSTUArray)
 import Control.Monad.ST (ST)
 import Control.Monad (forM_, when, foldM_)
 import Text.Printf
+import Math.KnotTh.Invariants.Skein.StateSum
 import Math.KnotTh.Invariants.Skein.Relation
-import Math.KnotTh.Invariants.Skein.SkeinM.Def
+import Math.KnotTh.Invariants.Skein.SkeinM.Def (SkeinState, relation)
 import Math.KnotTh.Invariants.Skein.SkeinM.Basic
 
 
@@ -60,17 +61,12 @@ contractLoopST s (!v, !p) = do
 			) 0 [0 .. degree - 1]
 		return $! a
 
-	do
-		prev <- readArray (adjacent s) v
-		next <- newArray_ (0, degree - 3)
-		writeArray (adjacent s) v next
+	prev <- resizeAdjListST s v $ degree - 2
+	forM_ [0 .. degree - 1] $ \ !i -> when (i /= p' && i /= p) $ do
+		(u, j) <- readArray prev i
+		connectST s (v, subst ! i) $ if u /= v then (u, j) else (v, subst ! j)
 
-		forM_ [0 .. degree - 1] $ \ !i -> when (i /= p' && i /= p) $ do
-			(u, j) <- readArray prev i
-			connectST s (v, subst ! i) $ if u /= v then (u, j) else (v, subst ! j)
-
-	sumV <- readArray (state s) v
-	writeArray (state s) v $ glue (relation s) p p' subst sumV
+	modifyStateSumST s v $ glue (relation s) p p' subst
 
 
 glue :: (SkeinRelation r a) => r -> Int -> Int -> UArray Int Int -> [StateSummand a] -> [StateSummand a]

@@ -1,21 +1,17 @@
 module Math.KnotTh.Invariants.JonesPolynomial
-	( jonesPolynomialOfLink
+	( jonesPolynomial
+	, kauffmanXPolynomial
 	, minimalJonesPolynomialOfLink
-	, kauffmanXPolynomialOfLink
 	, minimalKauffmanXPolynomialOfLink
 	, jonesPolynomialOfTangle
 	, minimalJonesPolynomialOfTangle
-	, jonesPolynomial
-	, kauffmanXPolynomial
-	, kauffmanFPolynomial
 	) where
 
 import Data.List (sort, foldl')
 import Data.Array.Unboxed (UArray, array, (!))
-import Data.Array.ST (STUArray, newArray, getAssocs, readArray, writeArray)
-import qualified Data.Set as Set
-import qualified Data.Map as Map
-import Control.Monad.ST (ST, runST)
+import qualified Data.Set as S
+import qualified Data.Map as M
+import qualified Math.Algebra.Field.Base as B
 import qualified Math.Projects.KnotTheory.LaurentMPoly as LP
 import Math.KnotTh.Knotted
 import Math.KnotTh.Crossings.Arbitrary
@@ -27,22 +23,8 @@ import Math.KnotTh.Invariants.Skein.Applied
 type Poly = LP.LaurentMPoly Int
 
 
-jonesVar :: String
-jonesVar = "t"
-
-
-jonesA, jonesB :: Poly
-jonesA = LP.LP [(LP.LM $ Map.fromList [(jonesVar, -1 / 4)], 1)]
-jonesB = LP.LP [(LP.LM $ Map.fromList [(jonesVar,  1 / 4)], 1)]
-
-
-kauffmanXVar :: String
-kauffmanXVar = "A"
-
-
-kauffmanXA, kauffmanXB :: Poly
-kauffmanXA = LP.LP [(LP.LM $ Map.fromList [(kauffmanXVar,  1)], 1)]
-kauffmanXB = LP.LP [(LP.LM $ Map.fromList [(kauffmanXVar, -1)], 1)]
+monomial :: Int -> String -> B.Q -> Poly
+monomial a var d = LP.LP [(LP.LM $ M.fromList [(var, d)], a)]
 
 
 invert :: String -> Poly -> Poly
@@ -51,70 +33,50 @@ invert var (LP.LP monomials) = sum $ do
 	let modify p@(x, d)
 		| x == var   = (x, -d)
 		| otherwise  = p
-	return $! LP.LP [(LP.LM $ Map.fromList $ map modify $ Map.toList vars, coeff)]
+	return $! LP.LP [(LP.LM $ M.fromList $ map modify $ M.toList vars, coeff)]
 
 
-data Node a = Cross a a a a | Join a a deriving (Eq, Show, Read, Ord)
-
-instance Functor Node where
-	fmap f (Cross a b c d) = Cross (f a) (f b) (f c) (f d)
-	fmap f (Join a b) = Join (f a) (f b)
+data BracketLikeRelation a = BracketLikeRelation a a
 
 
-kauffmanStateSums :: L.NonAlternatingLink -> [((Int, Int), Int)]
-kauffmanStateSums link = runST $ do
-	let n = numberOfCrossings link
-	coeff <- newArray ((0, 0), (n, n + 1)) 0 :: ST s (STUArray s (Int, Int) Int)
+instance (Ord a, Num a, Show a) => SkeinRelation (BracketLikeRelation a) a where
+	circleFactor (BracketLikeRelation a b) = -(a * a + b * b)
 
-	let kauffman !u !v list =
-		case list of
-			[]                          -> readArray coeff (u, v) >>= writeArray coeff (u, v) . (+ 1)
-			Join a b : rest | a == b    -> kauffman u (v + 1) rest
-			                | otherwise -> kauffman u v $! map (fmap $ \ x -> if x == a then b else x) rest
-			Cross a b c d : rest        -> do
-				kauffman u v $! Join a b : Join c d : rest
-				kauffman (u + 1) v $! Join a d : Join b c : rest
+	initialLplus (BracketLikeRelation a b) = InitialSum { ofLplus = 0, ofLzero = a, ofLinfty = b }
 
-	kauffman 0 0 $! flip map (allCrossings link) $ \ c ->
-		let	label d = min (dartIndex d) (dartIndex $ opposite d)
-			[d0, d1, d2, d3] = incidentDarts c
-		in if passOver d0
-			then Cross (label d0) (label d1) (label d2) (label d3)
-			else Cross (label d1) (label d2) (label d3) (label d0)
+	twistPFactor = undefined
 
-	filter ((/= 0) . snd) `fmap` getAssocs coeff
+	twistNFactor = undefined
 
-
-kauffmanBracket :: (Num a) => a -> a -> L.NonAlternatingLink -> a
-kauffmanBracket a b link = writheFactor * (b ^ numberOfCrossings link) * stateSum
-	where
-		writheFactor =
-			let w = selfWrithe link
+	finalNormalization (BracketLikeRelation a b) knot =
+		let factor =
+			let w = selfWrithe knot
 			in (if w <= 0 then -a else -b) ^ abs (3 * w)
-
-		d = -(a * a + b * b)
-
-		stateSum = sum $ flip map (kauffmanStateSums link) $ \ ((u, v), k) ->
-			fromIntegral k * (a ^ (u + u)) * (d ^ (v + numberOfFreeLoops link - 1))
+		in (factor *)
 
 
-jonesPolynomialOfLink :: L.NonAlternatingLink -> Poly
-jonesPolynomialOfLink = kauffmanBracket jonesA jonesB
+jonesVar, kauffmanXVar :: String
+jonesVar = "t"
+kauffmanXVar = "A"
+
+
+jonesPolynomial :: (SkeinResult Poly r k c d) => k ArbitraryCrossing -> r
+jonesPolynomial = evaluateSkeinRelation $ BracketLikeRelation (monomial 1 jonesVar (-1 / 4)) (monomial 1 jonesVar (1 / 4))
+
+
+kauffmanXPolynomial :: (SkeinResult Poly r k c d) => k ArbitraryCrossing -> r
+kauffmanXPolynomial = evaluateSkeinRelation $ BracketLikeRelation (monomial 1 kauffmanXVar 1) (monomial 1 kauffmanXVar (-1))
 
 
 minimalJonesPolynomialOfLink :: L.NonAlternatingLink -> Poly
 minimalJonesPolynomialOfLink link =
-	let jp = jonesPolynomialOfLink link
+	let jp = jonesPolynomial link
 	in min jp (invert jonesVar jp)
-
-
-kauffmanXPolynomialOfLink :: L.NonAlternatingLink -> Poly
-kauffmanXPolynomialOfLink = kauffmanBracket kauffmanXA kauffmanXB
 
 
 minimalKauffmanXPolynomialOfLink :: L.NonAlternatingLink -> Poly
 minimalKauffmanXPolynomialOfLink link =
-	let kp = kauffmanXPolynomialOfLink link
+	let kp = kauffmanXPolynomial link
 	in min kp (invert kauffmanXVar kp)
 
 
@@ -124,6 +86,8 @@ type Scheme = [(Int, Int)]
 jonesPolynomialOfTangle :: T.NonAlternatingTangle -> [(Scheme, Poly)]
 jonesPolynomialOfTangle tangle = map (\ (sch, poly) -> (sch, wm * cm * poly)) $ skein (allCrossings tangle) [] 1
 	where
+		jonesA = monomial 1 jonesVar (-1 / 4)
+		jonesB = monomial 1 jonesVar (1 / 4)
 		jonesD = -(jonesA * jonesA + jonesB * jonesB)
 
 		cm = jonesD ^ numberOfFreeLoops tangle
@@ -190,14 +154,14 @@ jonesPolynomialOfTangle tangle = map (\ (sch, poly) -> (sch, wm * cm * poly)) $ 
 					| T.isLeg d  = path
 					| otherwise  = let prev = opposite $ adjBackward d in walkBackward (prev, prev : path)
 
-		undirectedPathsDecomposition continue = fst . foldl' processDart ([], Set.empty) . allHalfEdges
+		undirectedPathsDecomposition continue = fst . foldl' processDart ([], S.empty) . allHalfEdges
 			where
 				processDart (!paths, s) d
-					| Set.member d s  = (paths, s)
-					| otherwise       = (path : paths, nextS)
+					| S.member d s  = (paths, s)
+					| otherwise     = (path : paths, nextS)
 					where
 						path = containingUndirectedPath continue d
-						nextS = foldl' (\ curs (a, b) -> Set.insert b $ Set.insert a curs) s path
+						nextS = foldl' (\ curs (a, b) -> S.insert b $ S.insert a curs) s path
 
 				containingUndirectedPath cont = map (\ d -> (d, opposite d)) . containingDirectedPath (cont, cont)
 
@@ -208,7 +172,8 @@ minimalJonesPolynomialOfTangle tangle = minimum $ do
 	let l = T.numberOfLegs tangle
 	rot <- [0 .. l - 1]
 
-	f <-	let mapScheme f = map $ \ (a, b) -> 
+	f <-
+		let mapScheme f = map $ \ (a, b) -> 
 			let a' = f a `mod` l
 			    b' = f b `mod` l
 			in (min a' b', max a' b')

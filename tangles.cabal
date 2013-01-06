@@ -56,7 +56,9 @@ library
         Math.KnotTh.Enumeration.DiagramInfo.MinimalDiagramInfo
         Math.KnotTh.Enumeration.EquivalenceClasses
         Math.KnotTh.Enumeration.SiftByInvariant
+        Math.KnotTh.Invariants.HomflyPolynomial
         Math.KnotTh.Invariants.JonesPolynomial
+        Math.KnotTh.Invariants.KauffmanFPolynomial
         Math.KnotTh.Invariants.LinkingNumber
         Math.KnotTh.Knotted
         Math.KnotTh.Link
@@ -107,6 +109,7 @@ library
         Graphics.HP.Transform
         Graphics.HP.Units
         Math.KnotTh.Invariants.Skein.Applied
+        Math.KnotTh.Invariants.Skein.Knotted
         Math.KnotTh.Invariants.Skein.Relation
         Math.KnotTh.Invariants.Skein.SkeinM
         Math.KnotTh.Invariants.Skein.SkeinM.Basic

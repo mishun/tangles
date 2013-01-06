@@ -10,6 +10,10 @@ import Data.Array.ST (STUArray, STArray)
 import Control.Monad.ST (ST)
 import Control.Monad (forM, forM_)
 import Text.Printf
+import Math.KnotTh.Crossings.Arbitrary
+import Math.KnotTh.Knotted
+import Math.KnotTh.Invariants.Skein.StateSum
+import Math.KnotTh.Invariants.Skein.Knotted
 import Math.KnotTh.Invariants.Skein.Relation
 
 
@@ -26,7 +30,7 @@ data SkeinState s r a = SkeinState
 	}
 
 
-stateFromKnotted :: (SkeinRelation r a, SkeinKnotted k c d) => r -> k ArbitraryCrossing -> ST s (SkeinState s r a)
+stateFromKnotted :: (SkeinRelation rel a, SkeinKnotted k c d) => rel -> k ArbitraryCrossing -> ST s (SkeinState s rel a)
 stateFromKnotted relation' knot = do
 	let n = numberOfCrossings knot
 
@@ -62,7 +66,7 @@ stateFromKnotted relation' knot = do
 	state' <- newArray (1, n) $! fromInitialSum $! initialLplus relation'
 	queue' <- newSTRef [1 .. n]
 	queued' <- newArray (1, n) True
-	multiple' <- newSTRef 1
+	multiple' <- newSTRef $ circleFactor relation' ^ numberOfFreeLoops knot
 	return $! SkeinState
 		{ relation = relation'
 		, size     = n

@@ -14,6 +14,9 @@ import Control.Monad.ST (ST, runST)
 import Control.Monad.Reader (ReaderT, runReaderT, ask, lift)
 import Control.Monad (when)
 import Text.Printf
+import Math.KnotTh.Crossings.Arbitrary
+import Math.KnotTh.Invariants.Skein.StateSum
+import Math.KnotTh.Invariants.Skein.Knotted
 import Math.KnotTh.Invariants.Skein.Relation
 import Math.KnotTh.Invariants.Skein.SkeinM.Def
 import Math.KnotTh.Invariants.Skein.SkeinM.Basic
@@ -43,21 +46,33 @@ contract :: (SkeinRelation r a) => (Vertex, Int) -> SkeinM s r a ()
 contract (Vertex !v, !p) = ask >>= \ !s -> lift $ contractEdgeST s (v, p)
 
 
-runSkein :: (SkeinRelation r a, SkeinKnotted k c d) => r -> (forall s. [Vertex] -> SkeinM s r a ()) -> k ArbitraryCrossing -> a
-runSkein rel action knot = runST $ do
-	(stateFromKnotted rel knot >>=) $ runReaderT $ do
-		fix $ \ continue -> do
-			aliveVertices <- ask >>= \ s -> lift $ do
-				dumpStateST s >>= flip trace (return ())
-				greedyReductionST s
-				dumpStateST s >>= flip trace (return ())
-				aliveVerticesST s
+evaluateStateSum ::
+	(SkeinRelation rel a, SkeinKnotted k c d)
+		=> rel
+		-> (forall s. [Vertex] -> SkeinM s rel a ())
+		-> k ArbitraryCrossing
+		-> StateSum a
 
-			case aliveVertices of
-				[] -> return ()
-				_  -> do
-					action $ map Vertex aliveVertices
-					continue
+evaluateStateSum rel action knot = runST $ do
+	s <- stateFromKnotted rel knot
+	fix $ \ continue -> do
+		greedyReductionST s
+		n <- numberOfAliveVerticesST s
+		if n < 2
+			then extractStateSumST s
+			else do
+				aliveVertices <- aliveVerticesST s
+				runReaderT (action $ map Vertex aliveVertices) s
+				continue
 
-		result <- ask >>= \ !s -> lift $ extractMultipleST s
-		return $! finalNormalization rel knot (result * (circleFactor rel ^ numberOfFreeLoops knot))
+
+runSkein ::
+	(SkeinRelation rel a, SkeinResult a res k c d)
+		=> rel
+		-> (forall s. [Vertex] -> SkeinM s rel a ())
+		-> k ArbitraryCrossing
+		-> res
+
+runSkein rel action knot =
+	let f = finalNormalization rel knot
+	in resultFromStateSum knot $ map (fmap f) $ evaluateStateSum rel action knot
