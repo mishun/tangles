@@ -26,29 +26,33 @@ neighbours tangle = mapMaybe try3rdReidemeister $ allDartsOfCrossings tangle
 			guard $ isDart ab
 
 			let ac = nextCCW ab
-			let ba = opposite ab
-			let ca = opposite ac
+			    ba = opposite ab
+			    ca = opposite ac
+
 			guard $ isDart ba && isDart ca
 
 			let bc = nextCW ba
-			let cb = nextCCW ca
+			    cb = nextCCW ca
+
 			guard $ bc == opposite cb
 
 			let a = incidentCrossing ab
-			let b = incidentCrossing ba
-			let c = incidentCrossing ca
+			    b = incidentCrossing ba
+			    c = incidentCrossing ca
 
 			guard $ (a /= b) && (a /= c) && (b /= c)
 			guard $ (passOver bc) == (passOver cb)
 
 			guard $
-				let altRoot = if (passOver ab) == (passOver ba) then ca else bc
+				let altRoot
+					| passOver ab == passOver ba  = ca
+					| otherwise                   = bc
 				in ab < altRoot
 
 			let ap = threadContinuation ab
-			let aq = nextCW ab
-			let br = nextCW bc
-			let cs = nextCCW cb
+			    aq = nextCW ab
+			    br = nextCW bc
+			    cs = nextCCW cb
 
 			return $! move tangle $ do
 				substituteC [(ca, ap), (ba, aq), (ab, br), (ac, cs)]

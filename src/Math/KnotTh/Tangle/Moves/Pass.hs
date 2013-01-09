@@ -14,57 +14,45 @@ import Math.KnotTh.Tangle.Moves.ReidemeisterReduction
 neighbours :: NonAlternatingTangle -> [NonAlternatingTangle]
 neighbours tangle = mapMaybe tryPass $ allDartsOfCrossings tangle
 	where
-		tryPass ab
-			| isLeg ca   = Nothing
-			| otherwise  = searchPass ba [ca] (passOver ab)
+		tryPass ab = do
+			let ac = nextCW ab
+			    ca = opposite ac
+			guard $ isDart ca
+			let ba = opposite ab
+			searchPass ba [ca] (passOver ab)
+
+		searchPass ba incoming passType = do
+			let ca = last incoming
+			    ac = opposite ca
+			    a = incidentCrossing ac
+			    b = incidentCrossing ba
+
+			guard $ isDart ba && a /= b
+			guard $ passOver ba == passType
+
+			let bd = nextCCW ba
+			    db = opposite bd
+			    c = incidentCrossing ca
+			    d = incidentCrossing db
+
+			guard $ isDart db && c /= d
+			guard $ db /= head incoming
+
+			let nextIncoming = incoming ++ [db]
+			makePass nextIncoming `mplus` searchPass (opposite $ threadContinuation ba) nextIncoming passType
+
+		makePass incoming = pass `mplus` self
 			where
-				ac = nextCW ab
-				ca = opposite ac
-				ba = opposite ab
-
-		searchPass ba incoming passType
-			| isLeg ba || a == b       = Nothing
-			| passOver ba /= passType  = Nothing
-			| isLeg db || c == d       = Nothing
-			| db == head incoming      = Nothing
-			| isJust pass              = pass
-			| otherwise                = searchPass (opposite $ threadContinuation ba) nextIncoming passType
-			where
-				ca = last incoming
-				ac = opposite ca
-
-				a = incidentCrossing ac 
-				b = incidentCrossing ba
-
-				bd = nextCCW ba
-				db = opposite bd
-
-				c = incidentCrossing ca
-				d = incidentCrossing db
-
-				nextIncoming = incoming ++ [db]
-
-				pass = makePass nextIncoming
-
-		makePass incoming
-			| isJust pass  = pass
-			| isJust self  = self
-			| otherwise    = Nothing
-			where
-				testLen (outcoming, _) = 
-					if length outcoming >= 0
-						then return outcoming
-						else Nothing
+				testLen (outcoming, _) = do
+					guard $ length outcoming >= 0
+					return outcoming
 
 				selfIncoming = map (threadContinuation . opposite) incoming
 
-				testSelf outcoming =
-					if everything == nub everything
-						then return outcoming
-						else Nothing
-
-					where
-						everything = sort $ map incidentCrossing $ selfIncoming ++ outcoming
+				testSelf outcoming = do
+					let everything = sort $ map incidentCrossing $ selfIncoming ++ outcoming
+					guard $ everything == nub everything
+					return outcoming
 
 				pass = restingPart tangle incoming >>= testLen >>= (return . performPass tangle incoming)
 

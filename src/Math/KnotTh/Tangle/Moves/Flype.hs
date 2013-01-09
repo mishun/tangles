@@ -15,17 +15,19 @@ neighbours tangle = mapMaybe tryFlype $ allDartsOfCrossings tangle
 	where
 		tryFlype ab = do
 			let ba = opposite ab
-			let ac = nextCCW ab
-			let ca = opposite ac
+			    ac = nextCCW ab
+			    ca = opposite ac
+
 			guard $ isDart ba && isDart ca
 
 			let a = incidentCrossing ab
-			let b = incidentCrossing ba
-			let c = incidentCrossing ca
+			    b = incidentCrossing ba
+			    c = incidentCrossing ca
+
 			guard $ b /= c && a /= b && a /= c
 
 			let ae = nextCCW ac
-			let ad = nextCW ab
+			    ad = nextCW ab
 
 			((rp, sq), sub) <-
 				restingPart tangle [ba, ca] >>= \ (lst, s) ->

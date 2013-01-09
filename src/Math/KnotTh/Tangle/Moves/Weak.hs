@@ -20,16 +20,15 @@ neighboursBorderCrossing tangle = mapMaybe tryReduceLeg $ allLegs tangle
 			guard $ isDart ax
 
 			let ay = nextCCW ax
-			let ya = nextCCW xa
+			    ya = nextCCW xa
+
 			guard $ ya == opposite ay
 
 			let a = incidentCrossing ax
-
-			let ap = nextCCW ay
-			let aq = nextCCW ap
-
-			let pa = opposite ap
-			let qa = opposite aq
+			    ap = nextCCW ay
+			    aq = nextCCW ap
+			    pa = opposite ap
+			    qa = opposite aq
 
 			return $! move tangle $ do
 				maskC [a]
@@ -46,17 +45,16 @@ neighboursBorderLoop tangle = mapMaybe tryReduceLoop $ allLegs tangle
 			guard $ isDart ax
 
 			let abr = nextCCW ax
-			let abl = nextCCW abr
-			let ap = nextCW ax
+			    abl = nextCCW abr
+			    ap = nextCW ax
+			    bar = opposite abr
 
-			let bar = opposite abr
 			guard $ isDart bar
 
 			let bal = nextCW bar
-			let by = nextCCW bar
-			let bq = nextCCW by
-
-			let yb = nextCCW xa
+			    by = nextCCW bar
+			    bq = nextCCW by
+			    yb = nextCCW xa
 
 			guard $ yb == opposite by
 			guard $ abl == opposite bal

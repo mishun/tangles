@@ -2,6 +2,7 @@ module Main (main) where
 
 import Data.Ord
 import Data.Function (on)
+import Data.Maybe (mapMaybe)
 import Data.List (sortBy, groupBy)
 import Control.Monad
 import Text.Printf
@@ -23,7 +24,7 @@ main = do
 			(triangleBoundedType n primeIrreducibleDiagramType)
 			[ArbitraryCrossing]
 			n
-			(\ t _ -> when (numberOfLegs t == 4) $ yield t)
+			(\ t _ -> when (numberOfLegs t <= 6) $ yield t)
 
 	printTable "Diagrams" $ generateTable' $ diagrams 5
 
@@ -31,10 +32,11 @@ main = do
 		let classes = tangleClasses (diagrams $ n + k) :: [MinimalDiagramInfo NonAlternatingTangle]
 		in siftTangles $ filter ((<= n) . numberOfCrossings . representative) classes
 
-	let sifted = tangles 8 0
+	let sifted = tangles 7 0
+
+	printTable "Tangles" $ generateTable' $ forM_ (mapMaybe maybePrimeDiagram $ singleRepresentativeClasses sifted)
 
 	printf "Collision classes: %i" (length $ collisionClasses sifted)
-
 	writePostScriptFile "collisions.ps" $ do
 		let a4Width = 595
 		let a4Height = 842

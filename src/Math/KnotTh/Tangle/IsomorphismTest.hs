@@ -11,7 +11,7 @@ import Data.Array.Base (unsafeRead, unsafeWrite)
 import Data.Array.Unboxed (UArray)
 import Data.Array.ST (STArray, STUArray, runSTUArray, newArray, newArray_)
 import Control.Monad.ST (ST)
-import Control.Monad (when, foldM_)
+import Control.Monad (forM_, when, foldM_, foldM, filterM, void)
 import Text.Printf
 import Math.Algebra.RotationDirection (RotationDirection, ccw, cw)
 import Math.KnotTh.Tangle
@@ -24,7 +24,7 @@ isomorphismTest tangle
 
 
 codeWithDirection :: (CrossingType ct) => RotationDirection -> Tangle ct -> UArray Int Int
-codeWithDirection !dir tangle = minimum [ code leg | leg <- allLegs tangle ]
+codeWithDirection !dir tangle = minimum $ map code $ allLegs tangle
 	where
 		n = numberOfCrossings tangle
 		l = numberOfLegs tangle
@@ -58,21 +58,55 @@ codeWithDirection !dir tangle = minimum [ code leg | leg <- allLegs tangle ]
 			unsafeWrite rc 0 $! numberOfFreeLoops tangle
 			foldM_ (\ !d !i -> do { look (opposite d) >>= unsafeWrite rc i ; return $! nextDir dir d }) leg [1 .. l]
 
-			flip fix 0 $ \ bfs !head -> do
+			let bfs !st !head = do
 				tail <- readSTRef free
-				when (head < tail - 1) $ do
+				if head >= tail - 1 then return $! st else do
 					input <- unsafeRead queue head
 					!nb <- foldMAdjacentDartsFrom input dir lookAndAdd 0
 					case crossingCode dir input of
-						(# be, le #) -> do
-							unsafeWrite rc (l + 1 + 2 * head) be
-							unsafeWrite rc (l + 2 + 2 * head) $! le + nb `shiftL` 3
-					bfs $! head + 1
+						(# be, le'' #) -> do
+							let le = le'' + shiftL nb 3
+							    bi = l + 1 + 2 * head
+							    li = bi + 1
+							case st of
+								LT -> unsafeWrite rc bi be >> unsafeWrite rc li le >> bfs LT (head + 1)
+								EQ -> do
+									be' <- unsafeRead rc bi
+									case compare be be' of
+										LT -> unsafeWrite rc bi be >> unsafeWrite rc li le >> bfs LT (head + 1)
+										EQ -> do
+											le' <- unsafeRead rc li
+											case compare le le' of
+												LT -> unsafeWrite rc li le >> bfs LT (head + 1)
+												EQ -> bfs EQ (head + 1)
+												GT -> return GT
+										GT -> return GT
+								GT -> return GT
 
+			LT <- bfs LT 0
 			fix $ \ recheck -> do
 				tail <- readSTRef free
-				when (tail <= n) $
-					fail "codeWithDirection: disconnected diagram (not implemented)"
+				when (tail <= n) $ do
+					notVisited <- filterM (\ !i -> unsafeRead index i >>= (return . (== 0))) [1 .. n]
+
+					(d, _) <- foldM (\ (pd, !st) !d -> do
+							writeSTRef free tail
+							forM_ notVisited $ \ !i -> unsafeWrite index i 0
+							void $ look d
+							r <- bfs st (tail - 1)
+							case r of
+								LT -> return $! (d, EQ)
+								_  -> return $! (pd, EQ)
+						)
+						(undefined, LT)
+						[d | i <- notVisited, d <- incidentDarts (nthCrossing tangle i)]
+
+					writeSTRef free tail
+					forM_ notVisited $ \ !i -> unsafeWrite index i 0
+					void $ look d
+					LT <- bfs LT (tail - 1)
+
+					--fail "codeWithDirection: disconnected diagram (not implemented)"
 					recheck
 
 			return $! rc
