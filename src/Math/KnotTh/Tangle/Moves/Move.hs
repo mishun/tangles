@@ -14,7 +14,7 @@ module Math.KnotTh.Tangle.Moves.Move
 import Data.Array.ST (STArray, STUArray, newArray, newArray_, readArray, writeArray)
 import Data.STRef (STRef, newSTRef, readSTRef, writeSTRef, modifySTRef)
 import Control.Monad.ST (ST, runST)
-import Control.Monad.State.Strict (StateT, execStateT, get, lift)
+import Control.Monad.Reader (ReaderT, runReaderT, ask, lift)
 import Control.Monad ((>=>), when, forM, forM_, foldM_, filterM)
 import Math.KnotTh.Tangle
 
@@ -99,30 +99,34 @@ reconnect st connections =
 		writeArray (stateConnections st) (dartIndex b) a
 
 
-type MoveM s ct r = StateT (MoveState s ct) (ST s) r
+type MoveM s ct r = ReaderT (MoveState s ct) (ST s) r
 
 
 move :: (CrossingType ct) => Tangle ct -> (forall s. MoveM s ct ()) -> Tangle ct
-move initial modification = runST $ disassemble initial >>= execStateT modification >>= assemble
+move initial modification = runST $ do
+	st <- disassemble initial
+	runReaderT modification st
+	assemble st
 
 
 oppositeC :: Dart ct -> MoveM s ct (Dart ct)
-oppositeC d = get >>= \ st -> lift $ readArray (stateConnections st) (dartIndex d)
+oppositeC d = ask >>= \ st -> lift $
+	readArray (stateConnections st) (dartIndex d)
 
 
 emitCircle :: MoveM s ct ()
-emitCircle = get >>= \ !st -> lift $ do
+emitCircle = ask >>= \ !st -> lift $ do
 	!n <- readSTRef (stateCircles st)
 	writeSTRef (stateCircles st) $! n + 1
 
 
 maskC :: [Crossing ct] -> MoveM s ct ()
-maskC crossings = get >>= \ !st -> lift $
+maskC crossings = ask >>= \ !st -> lift $
 	forM_ crossings $ \ !c -> writeArray (stateMask st) (crossingIndex c) Masked
 
 
 flipC :: [Crossing ct] -> MoveM s ct ()
-flipC crossings = get >>= \ !st -> lift $
+flipC crossings = ask >>= \ !st -> lift $
 	forM_ crossings $ \ !c -> do
 		msk <- readArray (stateMask st) (crossingIndex c)
 		writeArray (stateMask st) (crossingIndex c) $!
@@ -133,14 +137,14 @@ flipC crossings = get >>= \ !st -> lift $
 
 
 connectC :: [(Dart ct, Dart ct)] -> MoveM s ct ()
-connectC connections = get >>= \ st -> lift $
+connectC connections = ask >>= \ st -> lift $
 	reconnect st connections
 
 
 substituteC :: [(Dart ct, Dart ct)] -> MoveM s ct ()
 substituteC substitutions = do
 	reconnections <- mapM (\ (a, b) -> do { ob <- oppositeC b ; return $! (a, ob) }) substitutions
-	st <- get
+	st <- ask
 	lift $ do
 		let source = stateSource st
 
@@ -160,12 +164,12 @@ greedy :: [Dart ct -> MoveM s ct Bool] -> MoveM s ct ()
 greedy reductionsList = iteration
 	where
 		iteration = do
-			darts <- get >>= \ !st -> lift $ return $ allDartsOfCrossings $ stateSource st
+			darts <- ask >>= \ !st -> lift $ return $ allDartsOfCrossings $ stateSource st
 			changed <- anyM processDart darts
 			when changed iteration
 
 		processDart d = do
-			masked <- get >>= \ st -> lift $ readArray (stateMask st) (crossingIndex $ incidentCrossing d)
+			masked <- ask >>= \ st -> lift $ readArray (stateMask st) (crossingIndex $ incidentCrossing d)
 			if masked == Masked
 				then return False
 				else anyM (\ r -> r d) reductionsList
