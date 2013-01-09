@@ -1,11 +1,15 @@
 module Math.KnotTh.Invariants.KauffmanFPolynomial
 	( kauffmanFPolynomial
+	, kauffmanFPolynomialOfLink
 	) where
 
+import Data.Ratio ((%), numerator)
 import qualified Data.Map as M
 import qualified Math.Algebra.Field.Base as B
 import qualified Math.Projects.KnotTheory.LaurentMPoly as LP
 import Math.KnotTh.Crossings.Arbitrary
+import Math.KnotTh.Knotted
+import qualified Math.KnotTh.Link.NonAlternating as L
 import Math.KnotTh.Invariants.Skein.Applied
 
 
@@ -40,3 +44,17 @@ kauffmanFPolynomial = evaluateSkeinRelation $
 	KauffmanFRelation
 		(monomial 1 "a" 1) (monomial 1 "a" (-1))
 		(monomial 1 "z" 1) (monomial 1 "z" (-1))
+
+
+kauffmanFPolynomialOfLink :: L.NonAlternatingLink -> Poly
+kauffmanFPolynomialOfLink link
+	| empty      = error "kauffmanFPolynomialOfLink: emptry link provided"
+	| otherwise  = let (LP.LP q') = recip big * q in LP.LP $ map (\ (a', b') -> (a', numerator b')) q'
+	where
+		empty = (numberOfFreeLoops link == 0) && (numberOfCrossings link == 0)
+		(LP.LP mono) = kauffmanFPolynomial link
+		a = LP.var "a"
+		z = LP.var "z"
+		big = (a * z) ^ (100 :: Int)
+		p = LP.LP $ map (\ (a', b') -> (a', b' % 1)) mono
+		(q, _) = LP.quotRemLP (big * a * z * p) (a * a + 1 - a * z)

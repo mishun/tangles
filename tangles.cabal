@@ -112,11 +112,10 @@ library
         Math.KnotTh.Invariants.Skein.Knotted
         Math.KnotTh.Invariants.Skein.Relation
         Math.KnotTh.Invariants.Skein.SkeinM
-        Math.KnotTh.Invariants.Skein.SkeinM.Basic
         Math.KnotTh.Invariants.Skein.SkeinM.ContractEdge
-        Math.KnotTh.Invariants.Skein.SkeinM.Def
         Math.KnotTh.Invariants.Skein.SkeinM.Reduction
         Math.KnotTh.Invariants.Skein.SkeinM.RelaxVertex
+        Math.KnotTh.Invariants.Skein.SkeinM.State
         Math.KnotTh.Invariants.Skein.StateSum
         Math.KnotTh.Invariants.Util.BruteForceMinimization
         Math.KnotTh.Invariants.Util.ThreadExpansion
@@ -132,7 +131,7 @@ library
         Math.KnotTh.Knotted.Util
         Math.KnotTh.Link.LinkTable.Access
         Math.KnotTh.Link.LinkTable.List
-        Math.KnotTh.Link.LinkTable.Named
+        Math.KnotTh.Link.LinkTable.Special
         Math.KnotTh.Tangle.Def.Construction
         Math.KnotTh.Tangle.Def.Tangle
         Math.KnotTh.Tangle.Def.Util
@@ -153,7 +152,7 @@ test-suite TestTangles
         Tests.Table
         Tests.TestBasicTangle
         Tests.TestChordDiagrams
-        Tests.TestLinkInvariants
+        Tests.TestInvariants
         Tests.Tests
         Tests.TestTangleGenerators
         Tests.TestTangleInvariants

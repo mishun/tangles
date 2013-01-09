@@ -1,6 +1,6 @@
 module Math.KnotTh.Knotted.Threads
 	( ThreadedCrossing(..)
-	, maybeContinuation
+	, maybeThreadContinuation
 	, allThreads
 	, allThreadsWithMarks
 	) where
@@ -16,17 +16,17 @@ import Math.KnotTh.Knotted.Util
 
 
 class (CrossingType ct) => ThreadedCrossing ct where
-	continuation :: (Knotted k c d) => d ct -> d ct
+	threadContinuation :: (Knotted k c d) => d ct -> d ct
 
-	continuation d
+	threadContinuation d
 		| isDart d   = nextCCW $ nextCCW d
 		| otherwise  = error "continuation: from endpoint"
 
 
-{-# INLINE maybeContinuation #-}
-maybeContinuation :: (ThreadedCrossing ct, Knotted k c d) => d ct -> Maybe (d ct)
-maybeContinuation d
-	| isDart d   = Just $! continuation d
+{-# INLINE maybeThreadContinuation #-}
+maybeThreadContinuation :: (ThreadedCrossing ct, Knotted k c d) => d ct -> Maybe (d ct)
+maybeThreadContinuation d
+	| isDart d   = Just $! threadContinuation d
 	| otherwise  = Nothing
 
 
@@ -54,7 +54,7 @@ allThreadsWithMarks knot = runST $ do
 					if isEndpoint a
 						then return $! Right $! next
 						else do
-							let b' = continuation a
+							let b' = threadContinuation a
 							if b' == startB
 								then return $! Left $! next
 								else traceBack next b'
@@ -62,7 +62,7 @@ allThreadsWithMarks knot = runST $ do
 				let traceFront !prev !b'
 					| isEndpoint b'  = return $! reverse prev
 					| otherwise      = do
-						let !a = continuation b'
+						let !a = threadContinuation b'
 						let !b = opposite a
 						writeArray visited (dartIndex a) i
 						writeArray visited (dartIndex b) (-i)

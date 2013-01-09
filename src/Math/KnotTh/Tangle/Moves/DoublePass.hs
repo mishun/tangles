@@ -29,8 +29,8 @@ neighbours tangle = mapMaybe tryDoublePass $ allDartsOfCrossings tangle
 
 				unexpectedLeg = isLeg ba || isLeg cb || isLeg dc
 
-				incomingA = map opposite [continuation ab, nextCW ab, nextCCW cb, continuation cb]
-				incomingB = map opposite [continuation dc, nextCW dc, nextCCW bc, continuation bc]
+				incomingA = map opposite [threadContinuation ab, nextCW ab, nextCCW cb, threadContinuation cb]
+				incomingB = map opposite [threadContinuation dc, nextCW dc, nextCCW bc, threadContinuation bc]
 
 				maybeA = restingPart tangle incomingA
 				maybeB = restingPart tangle incomingB

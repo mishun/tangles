@@ -11,8 +11,7 @@ import Control.Monad (forM_, when)
 import Text.Printf
 import Math.KnotTh.Invariants.Skein.StateSum
 import Math.KnotTh.Invariants.Skein.Relation
-import Math.KnotTh.Invariants.Skein.SkeinM.Def (SkeinState, relation)
-import Math.KnotTh.Invariants.Skein.SkeinM.Basic
+import Math.KnotTh.Invariants.Skein.SkeinM.State
 
 
 contractEdgeST :: (SkeinRelation r a) => SkeinState s r a -> (Int, Int) -> ST s ()

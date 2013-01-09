@@ -6,8 +6,7 @@ module Math.KnotTh.Invariants.Skein.SkeinM.Reduction
 import Control.Monad.ST (ST)
 import Control.Monad (unless)
 import Math.KnotTh.Invariants.Skein.Relation
-import Math.KnotTh.Invariants.Skein.SkeinM.Def (SkeinState)
-import Math.KnotTh.Invariants.Skein.SkeinM.Basic
+import Math.KnotTh.Invariants.Skein.SkeinM.State
 import Math.KnotTh.Invariants.Skein.SkeinM.RelaxVertex
 
 

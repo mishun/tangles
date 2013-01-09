@@ -45,7 +45,7 @@ neighbours tangle = mapMaybe try3rdReidemeister $ allDartsOfCrossings tangle
 				let altRoot = if (passOver ab) == (passOver ba) then ca else bc
 				in ab < altRoot
 
-			let ap = continuation ab
+			let ap = threadContinuation ab
 			let aq = nextCW ab
 			let br = nextCW bc
 			let cs = nextCCW cb

@@ -1,44 +1,13 @@
-module Tests.TestLinkInvariants
+module Tests.TestInvariants
 	( tests
 	) where
 
-import Data.Ratio ((%), numerator)
-import qualified Data.Map as M
 import Test.HUnit
-import Math.Projects.KnotTheory.LaurentMPoly (LaurentMonomial(LM), LaurentMPoly(LP), sqrtvar, var, quotRemLP)
-import Math.KnotTh.Link.NonAlternating
 import Math.KnotTh.Link.LinkTable
 import Math.KnotTh.Link.GaussCode (fromDTCode)
 import Math.KnotTh.Invariants.LinkingNumber
 import Math.KnotTh.Invariants.JonesPolynomial
 import Math.KnotTh.Invariants.KauffmanFPolynomial
-
-
-renormJones :: LaurentMPoly Int -> String
-renormJones (LP mono)
-	| r == 0     =
-		let (LP q') = recip big * q
-		in show $ LP $ map (\ (a, b) -> (a, numerator b)) q'
-	| otherwise  = error "not divisible"
-	where
-		t = var "t"
-		big = t ^ 100
-		p = LP $ map (\ (a, b) -> (a, b % 1)) mono
-		(q, r) = quotRemLP (big * p * (-sqrtvar "t")) (1 + t)
-
-
-renormKauffmanF :: LaurentMPoly Int -> String
-renormKauffmanF (LP mono)
-	| r == 0     =
-		let (LP q') = recip big * q
-		in show $ LP $ map (\ (a, b) -> (a, numerator b)) q'
-	| otherwise  = error "not divisible"
-	where
-		a = var "a"
-		z = var "z"
-		big = (a * z) ^ 100
-		p = LP $ map (\ (a, b) -> (a, b % 1)) mono
-		(q, r) = quotRemLP (big * a * z * p) (a * a + 1 - a * z)
 
 
 tests = "Link invariants" ~:
@@ -50,7 +19,7 @@ tests = "Link invariants" ~:
 			]
 
 	, "Jones polynomial" ~:
-		map (\ (name, link, target) -> name ~: (renormJones (jonesPolynomial link) ~?= target))
+		map (\ (name, link, target) -> name ~: (show (jonesPolynomialOfLink link) ~?= target))
 			[ ("unknot"             , unknot              , "1"                                        )
 			, ("unknot '8'"         , singleCrossingUnknot, "1"                                        )
 			, ("left trefoil knot"  , leftTrefoilKnot     , "-t^-4+t^-3+t^-1"                          )
@@ -93,7 +62,7 @@ tests = "Link invariants" ~:
 			]
 
 	, "Kauffman F polynomial skein" ~:
-		map (\ (name, link, target) -> name ~: (renormKauffmanF (kauffmanFPolynomial link) ~?= target))
+		map (\ (name, link, target) -> name ~: (show (kauffmanFPolynomialOfLink link) ~?= target))
 			[ ("unknot"           , unknot              , "1"                                                                                  )
 			, ("unknot '8'"       , singleCrossingUnknot, "1"                                                                                  )
 			, ("left trefoil knot", leftTrefoilKnot     , "(-a^(-4)-2*a^(-2))*z^(0)+(a^(-5)+a^(-3))*z^(1)+(a^(-4)+ a^(-2))*z^(2)"              )

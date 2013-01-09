@@ -1,5 +1,6 @@
 module Math.KnotTh.Invariants.JonesPolynomial
 	( jonesPolynomial
+	, jonesPolynomialOfLink
 	, kauffmanXPolynomial
 	, minimalJonesPolynomialOfLink
 	, minimalKauffmanXPolynomialOfLink
@@ -7,6 +8,7 @@ module Math.KnotTh.Invariants.JonesPolynomial
 	, minimalJonesPolynomialOfTangle
 	) where
 
+import Data.Ratio ((%), numerator)
 import Data.List (sort, foldl')
 import Data.Array.Unboxed (UArray, array, (!))
 import qualified Data.Set as S
@@ -62,6 +64,19 @@ kauffmanXVar = "A"
 
 jonesPolynomial :: (SkeinResult Poly r k c d) => k ArbitraryCrossing -> r
 jonesPolynomial = evaluateSkeinRelation $ BracketLikeRelation (monomial 1 jonesVar (-1 / 4)) (monomial 1 jonesVar (1 / 4))
+
+
+jonesPolynomialOfLink :: L.NonAlternatingLink -> Poly
+jonesPolynomialOfLink link
+	| empty      = error "jonesPolynomialOfLink: empty link provided"
+	| otherwise  = let (LP.LP q') = recip big * q in LP.LP $ map (\ (a, b) -> (a, numerator b)) q'
+	where
+		empty = (numberOfFreeLoops link == 0) && (numberOfCrossings link == 0)
+		(LP.LP mono) = jonesPolynomial link
+		t = LP.var jonesVar
+		big = t ^ (100 :: Int)
+		p = LP.LP $ map (\ (a, b) -> (a, b % 1)) mono
+		(q, _) = LP.quotRemLP (big * p * (-LP.sqrtvar jonesVar)) (1 + t)
 
 
 kauffmanXPolynomial :: (SkeinResult Poly r k c d) => k ArbitraryCrossing -> r

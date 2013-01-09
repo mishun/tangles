@@ -1,5 +1,6 @@
-module Math.KnotTh.Link.LinkTable.Named
-	( unknot
+module Math.KnotTh.Link.LinkTable.Special
+	( unlink
+	, unknot
 	, singleCrossingUnknot
 	, hopfLink
 	, leftTrefoilKnot
@@ -15,13 +16,20 @@ module Math.KnotTh.Link.LinkTable.Named
 	, borromeanRingsLink
 	) where
 
+import Text.Printf
 import Math.KnotTh.Link.GaussCode
 import Math.KnotTh.Link.NonAlternating
 import Math.KnotTh.Link.LinkTable.Access
 
 
+unlink :: Int -> NonAlternatingLink
+unlink k
+	| k < 0      = error $ printf "unlink: number of components %i is negative" k
+	| otherwise  = implode (k, [])
+
+
 unknot :: NonAlternatingLink
-unknot = fromGaussCode [[]]
+unknot = unlink 1
 
 
 singleCrossingUnknot :: NonAlternatingLink

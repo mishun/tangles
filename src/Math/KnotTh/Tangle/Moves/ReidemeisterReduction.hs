@@ -20,7 +20,7 @@ reduce1st aad = do
 	if aar /= nextCCW aad
 		then return False
 		else do
-			let ab = continuation aad
+			let ab = threadContinuation aad
 			let ac = nextCW aad
 			ba <- oppositeC ab
 			substituteC [(ba, ac)]
@@ -52,10 +52,10 @@ reduce2nd abl = do
 		structureOk <- (== abr) <$> oppositeC bar
 
 		if not $ structureOk && (a /= b) && crossingsOk then return False else do
-			let	ap = continuation abl
+			let	ap = threadContinuation abl
 				aq = nextCW abl
 				br = nextCCW bal
-				bs = continuation bal
+				bs = threadContinuation bal
 
 			pa <- oppositeC ap
 			qa <- oppositeC aq

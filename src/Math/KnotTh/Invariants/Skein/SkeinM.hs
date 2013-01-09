@@ -18,8 +18,7 @@ import Math.KnotTh.Crossings.Arbitrary
 import Math.KnotTh.Invariants.Skein.StateSum
 import Math.KnotTh.Invariants.Skein.Knotted
 import Math.KnotTh.Invariants.Skein.Relation
-import Math.KnotTh.Invariants.Skein.SkeinM.Def
-import Math.KnotTh.Invariants.Skein.SkeinM.Basic
+import Math.KnotTh.Invariants.Skein.SkeinM.State
 import Math.KnotTh.Invariants.Skein.SkeinM.ContractEdge
 import Math.KnotTh.Invariants.Skein.SkeinM.Reduction
 import Debug.Trace

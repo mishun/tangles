@@ -28,7 +28,7 @@ neighbours tangle = mapMaybe tryPass $ allDartsOfCrossings tangle
 			| isLeg db || c == d       = Nothing
 			| db == head incoming      = Nothing
 			| isJust pass              = pass
-			| otherwise                = searchPass (opposite $ continuation ba) nextIncoming passType
+			| otherwise                = searchPass (opposite $ threadContinuation ba) nextIncoming passType
 			where
 				ca = last incoming
 				ac = opposite ca
@@ -56,7 +56,7 @@ neighbours tangle = mapMaybe tryPass $ allDartsOfCrossings tangle
 						then return outcoming
 						else Nothing
 
-				selfIncoming = map (continuation . opposite) incoming
+				selfIncoming = map (threadContinuation . opposite) incoming
 
 				testSelf outcoming =
 					if everything == nub everything
@@ -76,8 +76,8 @@ performPass tangle incoming outcoming
 	| n < m      = error "performPass: bad sizes"
 	| otherwise  =
 		move tangle $ do
-			substituteC $ (map (\ d -> (d, continuation $ opposite d)) incoming) ++ (zip (map opposite incoming) outcoming)
-			connectC $ zip outcoming $ map (continuation . opposite) incoming
+			substituteC $ (map (\ d -> (d, threadContinuation $ opposite d)) incoming) ++ (zip (map opposite incoming) outcoming)
+			connectC $ zip outcoming $ map (threadContinuation . opposite) incoming
 			when (not $ null toRemove) $ do
 				maskC $ map adjacentCrossing toRemove
 				let p = nextCCW $ opposite $ last toRemove

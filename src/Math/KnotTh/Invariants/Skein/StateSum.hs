@@ -13,11 +13,11 @@ import Data.Array.Unboxed (UArray, listArray)
 import Text.Printf
 
 
-data StateSummand a = StateSummand !(UArray Int Int) a deriving (Eq, Ord)
+data StateSummand a = StateSummand !(UArray Int Int) !a deriving (Eq, Ord)
 
 
 instance Functor StateSummand where
-	fmap f (StateSummand p x) = StateSummand p $ f x
+	fmap f (StateSummand p x) = StateSummand p $! f x
 
 
 instance (Show a) => Show (StateSummand a) where

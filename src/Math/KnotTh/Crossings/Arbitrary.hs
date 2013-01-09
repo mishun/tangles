@@ -13,6 +13,7 @@ module Math.KnotTh.Crossings.Arbitrary
 	, passUnder'
 	, alternatingDefect
 	, isAlternating
+	, isNonAlternating
 	, selfWrithe
 	, selfWritheArray
 	, invertCrossings
@@ -102,6 +103,10 @@ alternatingDefect =
 
 isAlternating :: (Knotted k c d) => k ArbitraryCrossing -> Bool
 isAlternating = (== 0) . alternatingDefect
+
+
+isNonAlternating :: (Knotted k c d) => k ArbitraryCrossing -> Bool
+isNonAlternating = not . isAlternating
 
 
 selfWrithe :: (Knotted k c d, Eq (d ArbitraryCrossing)) => k ArbitraryCrossing -> Int

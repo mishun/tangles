@@ -46,7 +46,7 @@ processThreadSet invariant tangle threads = (ecode, invariant threadTangle)
 					Just i  -> (0, i)
 					Nothing -> error "processThread: internal error"
 			| ix > 0     = (ix, dartPlace v)
-			| otherwise  = findTarget (continuation v)
+			| otherwise  = findTarget (threadContinuation v)
 			where
 				v = opposite u
 				ix = indices ! crossingIndex (incidentCrossing v)

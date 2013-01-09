@@ -11,8 +11,17 @@ import Control.Monad (forM_, when, foldM_)
 import Text.Printf
 import Math.KnotTh.Invariants.Skein.StateSum
 import Math.KnotTh.Invariants.Skein.Relation
-import Math.KnotTh.Invariants.Skein.SkeinM.Def (SkeinState, relation)
-import Math.KnotTh.Invariants.Skein.SkeinM.Basic
+import Math.KnotTh.Invariants.Skein.SkeinM.State
+
+
+dissolveVertexST :: (Num a) => SkeinState s r a -> Int -> ST s ()
+dissolveVertexST s v = do
+	stateSum <- getStateSumST s v
+	case stateSum of
+		[]                 -> appendMultipleST s 0
+		[StateSummand _ x] -> appendMultipleST s x
+		_                  -> fail "internal error: zero degree vertex and StateSum with length > 1"
+	killVertexST s v
 
 
 tryRelaxVertex :: (SkeinRelation r a) => SkeinState s r a -> Int -> ST s Bool
