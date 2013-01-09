@@ -290,8 +290,9 @@ instance KnottedWithToPair Tangle Crossing Dart where
 
 instance KnottedWithConnectivity Tangle Crossing Dart where
 	isConnected tangle
-		| numberOfFreeLoops tangle /= 0  = False
-		| otherwise                      = all (\ (a, b) -> Set.member a con && Set.member b con) edges
+		| numberOfEdges tangle == 0 && numberOfFreeLoops tangle <= 1  = True
+		| numberOfFreeLoops tangle /= 0                               = False
+		| otherwise                                                   = all (\ (a, b) -> Set.member a con && Set.member b con) edges
 		where
 			edges = allEdges tangle
 			con = dfs (Set.empty) $ fst $ head edges

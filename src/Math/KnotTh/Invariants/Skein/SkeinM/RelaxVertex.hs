@@ -38,7 +38,10 @@ tryRelaxVertex s v = do
 			dissolveVertexST s v
 			if a == (v, 1)
 				then appendMultipleST s $ circleFactor $ relation s
-				else connectST s a b >> enqueueST s av >> enqueueST s bv
+				else do
+					connectST s a b
+					when (av /= 0) $ enqueueST s av
+					when (bv /= 0) $ enqueueST s bv
 			return True
 
 		_ -> do
@@ -58,7 +61,7 @@ contractLoopST :: (SkeinRelation r a) => SkeinState s r a -> (Int, Int) -> ST s 
 contractLoopST s (!v, !p) = do
 	degree <- vertexDegreeST s v
 	(!v', !p') <- neighbourST s (v, p)
-	when (v' /= v || p' /= (p + 1) `mod` degree) $ fail $
+	when (v == 0 || v' /= v || p' /= (p + 1) `mod` degree) $ fail $
 		printf "contractLoopST: not loop (%i, %i) <-> (%i, %i) / %i" v p v' p' degree
 
 	let subst = runSTUArray $ do

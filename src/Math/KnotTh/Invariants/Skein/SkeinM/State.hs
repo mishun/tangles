@@ -20,6 +20,8 @@ module Math.KnotTh.Invariants.Skein.SkeinM.State
 	) where
 
 import Data.STRef (STRef, newSTRef, readSTRef, writeSTRef)
+import Data.Array.Base ((!))
+import Data.Array.Unboxed (UArray)
 import Data.Array.MArray (newArray, newArray_, readArray, writeArray, getBounds)
 import Data.Array.ST (STUArray, STArray)
 import Data.Array.Unsafe (unsafeFreeze)
@@ -48,52 +50,42 @@ data SkeinState s r a = SkeinState
 
 stateFromKnotted :: (SkeinRelation rel a, SkeinKnotted k c d) => rel -> k ArbitraryCrossing -> ST s (SkeinState s rel a)
 stateFromKnotted relation' knot = do
-	let n = numberOfCrossings knot
+	s <- do
+		let n = numberOfCrossings knot
+		adjacent' <- newArray_ (0, n)
+		newArray_ (0, numberOfEndpoints knot - 1) >>= writeArray adjacent' 0
+		forM_ [1 .. n] $ \ !i -> newArray_ (0, 3) >>= writeArray adjacent' i
 
-	adjacent' <- newArray_ (0, n)
-	ends <- newArray_ (0, numberOfEndpoints knot - 1)
-	writeArray adjacent' 0 ends
+		alive' <- newSTRef n
+		active' <- newArray (1, n) True
+		state' <- newArray (1, n) $ fromInitialSum $ initialLplus relation'
+		queue' <- newSTRef [1 .. n]
+		queued' <- newArray (1, n) True
+		multiple' <- newSTRef $ circleFactor relation' ^ numberOfFreeLoops knot
+
+		return $! SkeinState
+			{ relation = relation'
+			, size     = n
+			, alive    = alive'
+			, active   = active'
+			, state    = state'
+			, adjacent = adjacent'
+			, queue    = queue'
+			, queued   = queued'
+			, multiple = multiple'
+			}
 
 	let pair d
-		| isOverCrossing s  = p `seq` (i, p)
-		| otherwise         = let p' = (p + 1) `mod` 4 in p' `seq` (i, p')
+		| isEndpoint d                      = (0, endpointPlace d)
+		| isOverCrossing (crossingState c)  = (crossingIndex c, p)
+		| otherwise                         = (crossingIndex c, (p + 1) `mod` 4)
 		where
 			(c, p) = begin d
-			s = crossingState c
-			i = crossingIndex c
 
-	forM_ (allCrossings knot) $ \ !c -> do
-		let i = crossingIndex c
-		writeArray adjacent' i =<< do
-			x <- newArray_ (0, 3)
-			forM_ (incidentDarts c) $ \ !a -> do
-				let ap@(!_, !ai)  = pair a
-				let b = opposite a
-				if isDart b
-					then writeArray x ai $! pair b
-					else do
-						let j = endpointPlace b
-						writeArray x ai $ (0, j)
-						writeArray ends j ap
-			return $! x
+	forM_ (allEdges knot) $ \ (a, b) ->
+		connectST s (pair a) (pair b)
 
-	alive' <- newSTRef n
-	active' <- newArray (1, n) True
-	state' <- newArray (1, n) $! fromInitialSum $! initialLplus relation'
-	queue' <- newSTRef [1 .. n]
-	queued' <- newArray (1, n) True
-	multiple' <- newSTRef $ circleFactor relation' ^ numberOfFreeLoops knot
-	return $! SkeinState
-		{ relation = relation'
-		, size     = n
-		, alive    = alive'
-		, active   = active'
-		, state    = state'
-		, adjacent = adjacent'
-		, queue    = queue'
-		, queued   = queued'
-		, multiple = multiple'
-		}
+	return $! s
 
 {-
 copyState :: SkeinState s a -> ST s (SkeinState s a)
@@ -226,19 +218,31 @@ aliveVerticesST :: SkeinState s r a -> ST s [Int]
 aliveVerticesST s = filterM (readArray $ active s) [1 .. size s]
 
 
-extractStateSumST :: SkeinState s r a -> ST s (StateSum a)
+extractStateSumST :: (SkeinRelation r a) => SkeinState s r a -> ST s (StateSum a)
 extractStateSumST s = do
-	f <- readSTRef $ multiple s
-	n <- numberOfAliveVerticesST s
-	when (n > 0) $ fail "extractStateSumST: too early"
-
 	brd <- readArray (adjacent s) 0
 	(0, l) <- getBounds brd
+	
+	st <- newArray_ (0, size s) :: ST s (STArray s Int (UArray Int Int))
+	let	substState f [] = do
+			t <- newArray_ (0, l) :: ST s (STUArray s Int Int)
+			forM_ [0 .. l] $ \ !i -> do
+				(v, x) <- readArray brd i
+				j <- if v == 0
+					then return x
+					else do
+						vt <- readArray st v
+						(0, x') <- neighbourST s (v, vt ! x)
+						return x'
+				writeArray t i j
+			t' <- unsafeFreeze t
+			return [StateSummand t' f]
 
-	t <- newArray_ (0, l) :: ST s (STUArray s Int Int)
-	forM_ [0 .. l] $ \ !i -> do
-		(0, x) <- readArray brd i
-		writeArray t i x
+		substState f (h : t) = do
+			stateSum <- getStateSumST s h
+			fmap concat $ forM stateSum $ \ (StateSummand ct cf) -> do
+				writeArray st h ct
+				substState (f * cf) t
 
-	t' <- unsafeFreeze t
-	return $! [StateSummand t' f]
+	global <- readSTRef $ multiple s
+	aliveVerticesST s >>= substState global >>= (return . normalizeStateSum)

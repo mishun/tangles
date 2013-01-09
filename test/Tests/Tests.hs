@@ -11,9 +11,9 @@ import qualified Tests.TestBasicTangle
 
 
 tests = test
-	[ Tests.TestBasicTangle.tests
+	[{- Tests.TestBasicTangle.tests
 	, Tests.TestChordDiagrams.tests
 	, Tests.TestTangleGenerators.tests
 	, Tests.TestInvariants.tests
-	, Tests.TestTangleInvariants.tests
+	,-} Tests.TestTangleInvariants.tests
 	]

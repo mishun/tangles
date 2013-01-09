@@ -1,4 +1,4 @@
-module Math.KnotTh.Link.LinkTable.Access
+module Math.KnotTh.Link.Table.Access
 	( numberOfLinks
 	, link
 	, numberOfKnots
@@ -9,7 +9,7 @@ import qualified Data.Map as M
 import Text.Printf
 import Math.KnotTh.Link.NonAlternating
 import Math.KnotTh.Link.GaussCode
-import Math.KnotTh.Link.LinkTable.List
+import Math.KnotTh.Link.Table.List
 
 
 maxC :: Int

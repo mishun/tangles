@@ -48,7 +48,7 @@ contract (Vertex !v, !p) = ask >>= \ !s -> lift $ contractEdgeST s (v, p)
 evaluateStateSum ::
 	(SkeinRelation rel a, SkeinKnotted k c d)
 		=> rel
-		-> (forall s. [Vertex] -> SkeinM s rel a ())
+		-> (forall s. [(Vertex, Int)] -> SkeinM s rel a ())
 		-> k ArbitraryCrossing
 		-> StateSum a
 
@@ -56,19 +56,19 @@ evaluateStateSum rel action knot = runST $ do
 	s <- stateFromKnotted rel knot
 	fix $ \ continue -> do
 		greedyReductionST s
-		n <- numberOfAliveVerticesST s
-		if n < 2
-			then extractStateSumST s
-			else do
-				aliveVertices <- aliveVerticesST s
-				runReaderT (action $ map Vertex aliveVertices) s
+
+		e <- internalEdgesST s
+		case e of
+			[] -> extractStateSumST s
+			_  -> do
+				runReaderT (action $ map (\ (v, p) -> (Vertex v, p)) e) s
 				continue
 
 
 runSkein ::
 	(SkeinRelation rel a, SkeinResult a res k c d)
 		=> rel
-		-> (forall s. [Vertex] -> SkeinM s rel a ())
+		-> (forall s. [(Vertex, Int)] -> SkeinM s rel a ())
 		-> k ArbitraryCrossing
 		-> res
 

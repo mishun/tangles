@@ -13,6 +13,7 @@ import Math.KnotTh.Enumeration.EquivalenceClasses
 import Math.KnotTh.Enumeration.SiftByInvariant
 import Math.KnotTh.Enumeration.DiagramInfo
 import Math.KnotTh.Tangle.NonAlternating
+import Math.KnotTh.Tangle.NonAlternating.TwistedDouble
 import Math.KnotTh.Tangle.IsomorphismTest
 import Math.KnotTh.Link.FromTangle
 import Math.KnotTh.Invariants.JonesPolynomial
@@ -27,7 +28,7 @@ import qualified Math.KnotTh.Tangle.Moves.Weak as Weak
 tangleClasses :: (DiagramInfo info) => (forall m. (Monad m) => (NonAlternatingTangle -> m ()) -> m ()) -> ([info NonAlternatingTangle])
 tangleClasses =
 	equivalenceClasses
-		(\ t -> min (isomorphismTest t) (isomorphismTest $! invertCrossings t))
+		(\ t -> min (isomorphismTest t) (isomorphismTest $ invertCrossings t))
 		(map (map ReidemeisterReduction.greedy1st2ndReduction .)
 			[ ReidemeisterIII.neighbours
 			, Flype.neighbours
@@ -38,7 +39,7 @@ tangleClasses =
 weakTangleClasses :: (DiagramInfo info) => (forall m. (Monad m) => (NonAlternatingTangle -> m ()) -> m ()) -> ([info NonAlternatingTangle])
 weakTangleClasses =
 	equivalenceClasses
-		(\ t -> min (isomorphismTest t) (isomorphismTest $! invertCrossings t))
+		(\ t -> min (isomorphismTest t) (isomorphismTest $ invertCrossings t))
 		(map (map ReidemeisterReduction.greedy1st2ndReduction .)
 			[ Weak.neighbours
 			, ReidemeisterIII.neighbours
@@ -49,9 +50,13 @@ weakTangleClasses =
 
 siftTangles :: (DiagramInfo info) => [info NonAlternatingTangle] -> SiftResult info NonAlternatingTangle
 siftTangles = siftByInvariant $ \ tangle ->
-	(linkingNumbersSet tangle, minimalJonesPolynomialOfTangle tangle)
+	( linkingNumbersSet tangle
+	, minimalJonesPolynomialOfTangle tangle
+	, minimalJonesPolynomialOfTangle $ twistedDouble tangle
+	)
 
 
 siftWeakTangles :: (DiagramInfo info) => [info NonAlternatingTangle] -> SiftResult info NonAlternatingTangle
 siftWeakTangles = siftByInvariant $ \ tangle ->
-	(jonesPolynomial $ tangleDoubling id tangle)
+	( jonesPolynomial $ tangleDoubling id tangle
+	)

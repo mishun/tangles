@@ -1,18 +1,18 @@
 module Math.KnotTh.Invariants.JonesPolynomial
 	( jonesPolynomial
-	, jonesPolynomialOfLink
 	, kauffmanXPolynomial
+	, jonesPolynomialOfLink
 	, minimalJonesPolynomialOfLink
 	, minimalKauffmanXPolynomialOfLink
-	, jonesPolynomialOfTangle
 	, minimalJonesPolynomialOfTangle
 	) where
 
 import Data.Ratio ((%), numerator)
-import Data.List (sort, foldl')
-import Data.Array.Unboxed (UArray, array, (!))
-import qualified Data.Set as S
+import Data.List (sort)
+import Data.Array.Base ((!))
+import Data.Array.ST (runSTUArray, newArray_, writeArray)
 import qualified Data.Map as M
+import Control.Monad (forM_)
 import qualified Math.Algebra.Field.Base as B
 import qualified Math.Projects.KnotTheory.LaurentMPoly as LP
 import Math.KnotTh.Knotted
@@ -95,108 +95,23 @@ minimalKauffmanXPolynomialOfLink link =
 	in min kp (invert kauffmanXVar kp)
 
 
-type Scheme = [(Int, Int)]
-
-
-jonesPolynomialOfTangle :: T.NonAlternatingTangle -> [(Scheme, Poly)]
-jonesPolynomialOfTangle tangle = map (\ (sch, poly) -> (sch, wm * cm * poly)) $ skein (allCrossings tangle) [] 1
-	where
-		jonesA = monomial 1 jonesVar (-1 / 4)
-		jonesB = monomial 1 jonesVar (1 / 4)
-		jonesD = -(jonesA * jonesA + jonesB * jonesB)
-
-		cm = jonesD ^ numberOfFreeLoops tangle
-
-		wm =	let w = selfWrithe tangle
-			in (if w >= 0 then -jonesB else -jonesA) ^ (3 * abs w)
-
-		skein [] assocs mul =
-			let (sch, poly) = reductionOutcome (array (crossingIndexRange tangle) assocs)
-			in [(sch, mul * poly)]
-
-		skein (c : rest) assocs mul = merge
-			(skein rest ((crossingIndex c, False) : assocs) (jonesA * mul))
-			(skein rest ((crossingIndex c, True) : assocs) (jonesB * mul))
-			where
-				merge [] bl = bl
-				merge al [] = al
-				merge al@(ae@(as, ap) : at) bl@(be@(bs, bp) : bt) =
-					case compare as bs of
-						LT             -> ae : merge at bl
-						GT             -> be : merge al bt
-						EQ | s == 0    -> merge at bt
-						   | otherwise -> (as, s) : merge at bt
-					where
-						s = ap + bp
-
-		reductionOutcome :: UArray Int Bool -> (Scheme, Poly)
-		reductionOutcome reduction = (scheme, jonesD ^ circles)
-			where
-				circles = (length paths) - (length pairs)
-
-				scheme =
-					let toPositionPair (al, bl) = (min ap bp, max ap bp)
-						where
-							ap = T.legPlace al
-							bp = T.legPlace bl
-					in sort $ map toPositionPair pairs
-
-				pairs = map (\ path -> (fst $ head path, snd $ last path)) $ filter (T.isLeg . fst . head) paths
-
-				paths =
-					let smooting drt
-						| passOver drt == (reduction ! crossingIndex (incidentCrossing drt))  = nextCCW drt
-						| otherwise                                                           = nextCW drt
-					in undirectedPathsDecomposition smooting tangle
-
-
-		containingDirectedPath (adjForward, adjBackward) start
-			| isCycle    = forward
-			| otherwise  = walkBackward (start, forward)
-			where
-				(forward, isCycle) = walkForward start
-
-				walkForward d
-					| T.isLeg opp   = ([d], False)
-					| start == nxt  = ([d], True)
-					| otherwise     = (d : nextPath, nextCycle)
-					where
-						opp = opposite d
-						nxt = adjForward opp
-						(nextPath, nextCycle) = walkForward nxt
-
-				walkBackward (d, path)
-					| T.isLeg d  = path
-					| otherwise  = let prev = opposite $ adjBackward d in walkBackward (prev, prev : path)
-
-		undirectedPathsDecomposition continue = fst . foldl' processDart ([], S.empty) . allHalfEdges
-			where
-				processDart (!paths, s) d
-					| S.member d s  = (paths, s)
-					| otherwise     = (path : paths, nextS)
-					where
-						path = containingUndirectedPath continue d
-						nextS = foldl' (\ curs (a, b) -> S.insert b $ S.insert a curs) s path
-
-				containingUndirectedPath cont = map (\ d -> (d, opposite d)) . containingDirectedPath (cont, cont)
-
-
-minimalJonesPolynomialOfTangle :: T.NonAlternatingTangle -> [(Scheme, Poly)]
+minimalJonesPolynomialOfTangle :: T.NonAlternatingTangle -> StateSum Poly
 minimalJonesPolynomialOfTangle tangle = minimum $ do
-	let jp = jonesPolynomialOfTangle tangle
+	let jp = jonesPolynomial tangle
 	let l = T.numberOfLegs tangle
 	rot <- [0 .. l - 1]
 
-	f <-
-		let mapScheme f = map $ \ (a, b) -> 
-			let a' = f a `mod` l
-			    b' = f b `mod` l
-			in (min a' b', max a' b')
-		in
-			[ \ (s, p) -> (sort $ mapScheme (+ rot) s, p)
-			, \ (s, p) -> (sort $ mapScheme (+ rot) s, invert jonesVar p)
-			, \ (s, p) -> (sort $ mapScheme (\ i -> rot - i) s, p)
-			, \ (s, p) -> (sort $ mapScheme (\ i -> rot - i) s, invert jonesVar p)
-			]
+	let mapSum fx fm s = sort $ flip map s $ \ (StateSummand x m) ->
+		flip StateSummand (fm m) $ runSTUArray $ do
+			x' <- newArray_ (0, l - 1)
+			forM_ [0 .. l - 1] $ \ i ->
+				writeArray x' (fx i `mod` l) (fx (x ! i) `mod` l)
+			return $! x'
 
-	return $! sort $! map f jp
+	f <-	[ mapSum (+ rot) id
+		, mapSum (+ rot) (invert jonesVar)
+		, mapSum (\ i -> rot - i) id
+		, mapSum (\ i -> rot - i) (invert jonesVar)
+		]
+
+	return $! f jp

@@ -72,7 +72,7 @@ instance Read DiagPattern where
 
 
 instance CascadeCodePattern DiagPattern ArbitraryCrossing where
-	cascadeCodeRoot _ = lonerOverCrossing
+	cascadeCodeRoot _ = lonerTangle overCrossing
 
 	decodeCrossing WO = (W, 1, 0, underCrossing)
 	decodeCrossing WU = (W, 1, 0, overCrossing)

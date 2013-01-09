@@ -1,4 +1,4 @@
-module Math.KnotTh.Link.LinkTable.Special
+module Math.KnotTh.Link.Table.Special
 	( unlink
 	, unknot
 	, singleCrossingUnknot
@@ -19,7 +19,7 @@ module Math.KnotTh.Link.LinkTable.Special
 import Text.Printf
 import Math.KnotTh.Link.GaussCode
 import Math.KnotTh.Link.NonAlternating
-import Math.KnotTh.Link.LinkTable.Access
+import Math.KnotTh.Link.Table.Access
 
 
 unlink :: Int -> NonAlternatingLink

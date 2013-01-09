@@ -21,7 +21,10 @@ instance Functor StateSummand where
 
 
 instance (Show a) => Show (StateSummand a) where
-	show (StateSummand a x) = printf "(%s * %s)" (show x) (show $ elems a)
+	show (StateSummand a x) =
+		printf "(%s)%s"
+			(show x)
+			(show $ elems a)
 
 
 type StateSum a = [StateSummand a]

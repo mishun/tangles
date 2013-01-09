@@ -1,4 +1,4 @@
-module Math.KnotTh.Link.LinkTable.List
+module Math.KnotTh.Link.Table.List
 	( listOfKnotCodes
 	, listOfLinkCodes
 	) where

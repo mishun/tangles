@@ -3,22 +3,24 @@ module Tests.TestInvariants
 	) where
 
 import Test.HUnit
-import Math.KnotTh.Link.LinkTable
+import Math.KnotTh.Link.Table
 import Math.KnotTh.Link.GaussCode (fromDTCode)
+import Math.KnotTh.Tangle.Table
+import Math.KnotTh.Tangle.CascadeCode
 import Math.KnotTh.Invariants.LinkingNumber
 import Math.KnotTh.Invariants.JonesPolynomial
 import Math.KnotTh.Invariants.KauffmanFPolynomial
 
 
-tests = "Link invariants" ~:
-	[ "Linking number" ~:
+tests = "Invariants" ~:
+	[ "Linking numbers of link" ~:
 		map (\ (name, link, target) -> name ~: (linkingNumbersSet link ~?= target))
 			[ ("whitehead link" , whiteheadLink     , [0]      )
 			, ("hopf link"      , hopfLink          , [2]      )
 			, ("borromean rings", borromeanRingsLink, [0, 0, 0])
 			]
 
-	, "Jones polynomial" ~:
+	, "Jones polynomial of link" ~:
 		map (\ (name, link, target) -> name ~: (show (jonesPolynomialOfLink link) ~?= target))
 			[ ("unknot"             , unknot              , "1"                                        )
 			, ("unknot '8'"         , singleCrossingUnknot, "1"                                        )
@@ -52,7 +54,7 @@ tests = "Link invariants" ~:
 			  )
 			]
 
-	, "Kauffman X polynomial" ~:
+	, "Kauffman X polynomial of link" ~:
 		map (\ (name, link, target) -> name ~: (show (kauffmanXPolynomial link) ~?= target))
 			[ ("unknot"             , unknot              , "-A^-2-A^2"         )
 			, ("unknot '8'"         , singleCrossingUnknot, "-A^-2-A^2"         )
@@ -61,11 +63,22 @@ tests = "Link invariants" ~:
 			, ("hopf link"          , hopfLink            , "A^-6+A^-2+A^2+A^6" )
 			]
 
-	, "Kauffman F polynomial skein" ~:
+	, "Kauffman F polynomial of link" ~:
 		map (\ (name, link, target) -> name ~: (show (kauffmanFPolynomialOfLink link) ~?= target))
 			[ ("unknot"           , unknot              , "1"                                                                                  )
 			, ("unknot '8'"       , singleCrossingUnknot, "1"                                                                                  )
 			, ("left trefoil knot", leftTrefoilKnot     , "(-a^(-4)-2*a^(-2))*z^(0)+(a^(-5)+a^(-3))*z^(1)+(a^(-4)+ a^(-2))*z^(2)"              )
 			, ("figure eight knot", figureEightKnot     , "(-a^(-2)-1-a^2)*z^(0)+ (-a^(-1)-a)*z^(1)+ (a^(-2)+ 2+ a^2)*z^(2)+ (a^(-1)+ a)*z^(3)")
+			]
+
+	, "Jones polynomial of tangle" ~: 
+		map (\ (name, tangle, target) -> name ~: (show (jonesPolynomial tangle) ~?= target))
+			[ ("zero"          , zeroTangle                 , "[(1)[3,2,1,0]]"                       )
+			, ("infinity"      , infinityTangle             , "[(1)[1,0,3,2]]"                       )
+			, ("over crossing" , lonerOverCrossingTangle    , "[(t^1/4)[1,0,3,2],(t^-1/4)[3,2,1,0]]" )
+			, ("under crossing", lonerUnderCrossingTangle   , "[(t^-1/4)[1,0,3,2],(t^1/4)[3,2,1,0]]" )
+			, ("group 2"       , groupTangle 2              , "[(1-t)[1,0,3,2],(t^-1/2)[3,2,1,0]]"   )
+			, ("group -2"      , groupTangle (-2)           , "[(-t^-1+1)[1,0,3,2],(t^1/2)[3,2,1,0]]")
+			, ("II reducable"  , decodeCascadeCode [(XU, 0)], "[(1)[3,2,1,0]]"                       )
 			]
 	]

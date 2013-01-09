@@ -64,7 +64,7 @@ library
         Math.KnotTh.Link
         Math.KnotTh.Link.FromTangle
         Math.KnotTh.Link.GaussCode
-        Math.KnotTh.Link.LinkTable
+        Math.KnotTh.Link.Table
         Math.KnotTh.Link.NonAlternating
         Math.KnotTh.Link.Projection
         Math.KnotTh.SurfaceLink
@@ -91,6 +91,7 @@ library
         Math.KnotTh.Tangle.Moves.ReidemeisterReduction
         Math.KnotTh.Tangle.Moves.Weak
         Math.KnotTh.Tangle.Projection
+        Math.KnotTh.Tangle.Table
         Math.Manifolds.SurfaceGraph
         Math.Manifolds.SurfaceGraph.Embedding
         Math.Manifolds.SurfaceGraph.SphereStar
@@ -129,9 +130,9 @@ library
         Math.KnotTh.Knotted.TH.Show
         Math.KnotTh.Knotted.Threads
         Math.KnotTh.Knotted.Util
-        Math.KnotTh.Link.LinkTable.Access
-        Math.KnotTh.Link.LinkTable.List
-        Math.KnotTh.Link.LinkTable.Special
+        Math.KnotTh.Link.Table.Access
+        Math.KnotTh.Link.Table.List
+        Math.KnotTh.Link.Table.Special
         Math.KnotTh.Tangle.Def.Construction
         Math.KnotTh.Tangle.Def.Tangle
         Math.KnotTh.Tangle.Def.Util

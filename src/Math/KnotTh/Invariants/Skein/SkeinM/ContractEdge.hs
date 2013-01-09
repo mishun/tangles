@@ -1,5 +1,6 @@
 module Math.KnotTh.Invariants.Skein.SkeinM.ContractEdge
-	( contractEdgeST
+	( tryGreedyContract
+	, contractEdgeST
 	) where
 
 import Data.Array.Base (bounds, (!))
@@ -14,6 +15,30 @@ import Math.KnotTh.Invariants.Skein.Relation
 import Math.KnotTh.Invariants.Skein.SkeinM.State
 
 
+tryGreedyContract :: (SkeinRelation r a) => SkeinState s r a -> Int -> ST s Bool
+tryGreedyContract s v = do
+	vd <- vertexDegreeST s v
+	let tryContract !p
+		| p >= vd    = return False
+		| otherwise  = do
+			(u, q) <- neighbourST s (v, p)
+			if u == 0 then tryContract (p + 1) else do
+				ud <- vertexDegreeST s u
+				let go !w !i !j
+					| w >= vd    = return $! vd
+					| otherwise  = do
+						nb <- neighbourST s (v, i)
+						if nb == (u, j)
+							then go (w + 1) ((i + 1) `mod` vd) ((j - 1) `mod` ud)
+							else return $! w
+
+				w <- go 0 p q
+				if ud + vd - 2 * w <= max vd ud
+					then contractEdgeST s (v, p) >> return True
+					else tryContract (p + w)
+	tryContract 0
+
+
 contractEdgeST :: (SkeinRelation r a) => SkeinState s r a -> (Int, Int) -> ST s ()
 contractEdgeST s (!v, !p) = do
 	(!u, !q) <- neighbourST s (v, p)
@@ -23,11 +48,9 @@ contractEdgeST s (!v, !p) = do
 	degreeV <- vertexDegreeST s v
 	degreeU <- vertexDegreeST s u
 
-	w <- if degreeV <= degreeU
+	enqueueST s =<< if degreeV <= degreeU
 		then contract s (v, p) (u, q)
 		else contract s (u, q) (v, p)
-
-	enqueueST s w
 
 
 contract :: (SkeinRelation r a) => SkeinState s r a -> (Int, Int) -> (Int, Int) -> ST s Int
