@@ -1,6 +1,6 @@
 module Math.KnotTh.Invariants.KauffmanFPolynomial
 	( kauffmanFPolynomial
-	, kauffmanFPolynomialOfLink
+	, normalizedKauffmanFPolynomialOfLink
 	) where
 
 import Data.Ratio ((%), numerator)
@@ -46,8 +46,8 @@ kauffmanFPolynomial = evaluateSkeinRelation $
 		(monomial 1 "z" 1) (monomial 1 "z" (-1))
 
 
-kauffmanFPolynomialOfLink :: L.NonAlternatingLink -> Poly
-kauffmanFPolynomialOfLink link
+normalizedKauffmanFPolynomialOfLink :: L.NonAlternatingLink -> Poly
+normalizedKauffmanFPolynomialOfLink link
 	| empty      = error "kauffmanFPolynomialOfLink: emptry link provided"
 	| otherwise  = let (LP.LP q') = recip big * q in LP.LP $ map (\ (a', b') -> (a', numerator b')) q'
 	where

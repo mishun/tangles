@@ -337,6 +337,16 @@ produceKnotted knotPattern inst = flip execStateT [] $ do
 				) []
 		]
 
+	declare $ do
+		ct <- newName "ct"
+		sigD (mkName "changeNumberOfFreeLoops") $ forallT [PlainTV ct] (cxt [])
+			[t| $(conT knotTN) $(varT ct) -> Int -> $(conT knotTN) $(varT ct) |]
+
+	declare $ funD (mkName "changeNumberOfFreeLoops") $ (:[]) $ do
+		loops <- newName "loops"
+		knot <- newName "knot"
+		clause [varP knot, varP loops] (normalB $ recUpdE (varE knot) [(,) loopsCount `fmap` varE loops]) []
+
 	maybeM (implodeExplodeSettings inst) $ \ ies -> do
 		declare $ do
 			ct <- newName "ct"

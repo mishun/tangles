@@ -24,7 +24,7 @@ main = do
 			(triangleBoundedType n primeIrreducibleDiagramType)
 			[ArbitraryCrossing]
 			n
-			(\ t _ -> when (numberOfLegs t <= 6) $ yield t)
+			(\ t _ -> when (numberOfLegs t <= 4) $ yield t)
 
 	printTable "Diagrams" $ generateTable' $ diagrams 5
 
@@ -32,7 +32,7 @@ main = do
 		let classes = tangleClasses (diagrams $ n + k) :: [MinimalDiagramInfo NonAlternatingTangle]
 		in siftTangles $ filter ((<= n) . numberOfCrossings . representative) classes
 
-	let sifted = tangles 7 0
+	let sifted = tangles 8 0
 
 	printTable "Tangles" $ generateTable' $ forM_ (mapMaybe maybePrimeDiagram $ singleRepresentativeClasses sifted)
 

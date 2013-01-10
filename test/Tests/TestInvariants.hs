@@ -21,7 +21,7 @@ tests = "Invariants" ~:
 			]
 
 	, "Jones polynomial of link" ~:
-		map (\ (name, link, target) -> name ~: (show (jonesPolynomialOfLink link) ~?= target))
+		map (\ (name, link, target) -> name ~: (show (normalizedJonesPolynomialOfLink link) ~?= target))
 			[ ("unknot"             , unknot              , "1"                                        )
 			, ("unknot '8'"         , singleCrossingUnknot, "1"                                        )
 			, ("left trefoil knot"  , leftTrefoilKnot     , "-t^-4+t^-3+t^-1"                          )
@@ -64,7 +64,7 @@ tests = "Invariants" ~:
 			]
 
 	, "Kauffman F polynomial of link" ~:
-		map (\ (name, link, target) -> name ~: (show (kauffmanFPolynomialOfLink link) ~?= target))
+		map (\ (name, link, target) -> name ~: (show (normalizedKauffmanFPolynomialOfLink link) ~?= target))
 			[ ("unknot"           , unknot              , "1"                                                                                  )
 			, ("unknot '8'"       , singleCrossingUnknot, "1"                                                                                  )
 			, ("left trefoil knot", leftTrefoilKnot     , "(-a^(-4)-2*a^(-2))*z^(0)+(a^(-5)+a^(-3))*z^(1)+(a^(-4)+ a^(-2))*z^(2)"              )

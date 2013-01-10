@@ -1,7 +1,7 @@
 module Math.KnotTh.Invariants.JonesPolynomial
 	( jonesPolynomial
 	, kauffmanXPolynomial
-	, jonesPolynomialOfLink
+	, normalizedJonesPolynomialOfLink
 	, minimalJonesPolynomialOfLink
 	, minimalKauffmanXPolynomialOfLink
 	, minimalJonesPolynomialOfTangle
@@ -66,8 +66,8 @@ jonesPolynomial :: (SkeinResult Poly r k c d) => k ArbitraryCrossing -> r
 jonesPolynomial = evaluateSkeinRelation $ BracketLikeRelation (monomial 1 jonesVar (-1 / 4)) (monomial 1 jonesVar (1 / 4))
 
 
-jonesPolynomialOfLink :: L.NonAlternatingLink -> Poly
-jonesPolynomialOfLink link
+normalizedJonesPolynomialOfLink :: L.NonAlternatingLink -> Poly
+normalizedJonesPolynomialOfLink link
 	| empty      = error "jonesPolynomialOfLink: empty link provided"
 	| otherwise  = let (LP.LP q') = recip big * q in LP.LP $ map (\ (a, b) -> (a, numerator b)) q'
 	where

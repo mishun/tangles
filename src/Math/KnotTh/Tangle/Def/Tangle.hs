@@ -12,6 +12,7 @@ module Math.KnotTh.Tangle.Def.Tangle
 	, nthLeg
 	, allLegs
 	, glueToBorder
+	, changeNumberOfFreeLoops
 	, implode
 	, explode
 	) where

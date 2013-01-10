@@ -8,6 +8,7 @@ module Math.KnotTh.SurfaceLink
 	, crossingSurfaceLink
 	, faceSurfaceLink
 	, dartSurfaceLink
+	, changeNumberOfFreeLoops
 	, implode
 	, explode
 	, testPrime
