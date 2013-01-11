@@ -60,6 +60,7 @@ library
         Math.KnotTh.Invariants.JonesPolynomial
         Math.KnotTh.Invariants.KauffmanFPolynomial
         Math.KnotTh.Invariants.LinkingNumber
+        Math.KnotTh.Invariants.Util.ThreadExpansion
         Math.KnotTh.Knotted
         Math.KnotTh.Link
         Math.KnotTh.Link.FromTangle
@@ -119,7 +120,6 @@ library
         Math.KnotTh.Invariants.Skein.SkeinM.State
         Math.KnotTh.Invariants.Skein.StateSum
         Math.KnotTh.Invariants.Util.BruteForceMinimization
-        Math.KnotTh.Invariants.Util.ThreadExpansion
         Math.KnotTh.Knotted.CrossingState
         Math.KnotTh.Knotted.Knotted
         Math.KnotTh.Knotted.KnottedWithAccel
@@ -146,7 +146,7 @@ test-suite TestTangles
     ghc-options:        -O -threaded
     ghc-prof-options:   -rtsopts -prof -auto-all -caf-all
     ld-options:         -static
-    build-depends:      base, containers, mtl, HUnit, HaskellForMaths, tangles
+    build-depends:      base, containers, mtl, HUnit, tangles
     main-is:            TestTangles.hs
     hs-source-dirs:     test
     other-modules:

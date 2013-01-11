@@ -96,22 +96,25 @@ minimalKauffmanXPolynomialOfLink link =
 
 
 minimalJonesPolynomialOfTangle :: T.NonAlternatingTangle -> StateSum Poly
-minimalJonesPolynomialOfTangle tangle = minimum $ do
-	let jp = jonesPolynomial tangle
-	let l = T.numberOfLegs tangle
-	rot <- [0 .. l - 1]
+minimalJonesPolynomialOfTangle tangle
+	| l == 0     = min jp (map (fmap $ invert jonesVar) jp)
+	| otherwise  = minimum $ do
+		rot <- [0 .. l - 1]
 
-	let mapSum fx fm s = sort $ flip map s $ \ (StateSummand x m) ->
-		flip StateSummand (fm m) $ runSTUArray $ do
-			x' <- newArray_ (0, l - 1)
-			forM_ [0 .. l - 1] $ \ i ->
-				writeArray x' (fx i `mod` l) (fx (x ! i) `mod` l)
-			return $! x'
+		let mapSum fx fm s = sort $ flip map s $ \ (StateSummand x m) ->
+			flip StateSummand (fm m) $ runSTUArray $ do
+				x' <- newArray_ (0, l - 1)
+				forM_ [0 .. l - 1] $ \ i ->
+					writeArray x' (fx i `mod` l) (fx (x ! i) `mod` l)
+				return $! x'
 
-	f <-	[ mapSum (+ rot) id
-		, mapSum (+ rot) (invert jonesVar)
-		, mapSum (\ i -> rot - i) id
-		, mapSum (\ i -> rot - i) (invert jonesVar)
-		]
+		f <-	[ mapSum (+ rot) id
+			, mapSum (+ rot) (invert jonesVar)
+			, mapSum (\ i -> rot - i) id
+			, mapSum (\ i -> rot - i) (invert jonesVar)
+			]
 
-	return $! f jp
+		return $! f jp
+	where
+		jp = jonesPolynomial tangle
+		l = T.numberOfLegs tangle
