@@ -2,7 +2,7 @@ module Math.KnotTh.Tangle.Moves.Flype
 	( neighbours
 	) where
 
-import Data.Maybe
+import Data.Maybe (mapMaybe)
 import Data.Array.Unboxed ((!))
 import Control.Monad (guard)
 import Math.KnotTh.Tangle.NonAlternating
@@ -32,7 +32,7 @@ neighbours tangle = mapMaybe tryFlype $ allDartsOfCrossings tangle
 			((rp, sq), sub) <-
 				restingPart tangle [ba, ca] >>= \ (lst, s) ->
 					case lst of
-						[x, y] -> Just $! ((x, y), s)
+						[x, y] -> return $! ((x, y), s)
 						_      -> Nothing
 
 			return $! move tangle $ do

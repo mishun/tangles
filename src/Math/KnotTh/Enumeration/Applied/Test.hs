@@ -1,4 +1,4 @@
-module Tests.TestTangleInvariants
+module Math.KnotTh.Enumeration.Applied.Test
 	( tests
 	) where
 
@@ -13,6 +13,7 @@ import Math.KnotTh.Invariants.LinkingNumber
 import Math.KnotTh.Invariants.JonesPolynomial
 
 
+testInvariantness :: (Eq a, Show a) => Int -> (NonAlternatingTangle -> a) -> IO ()
 testInvariantness n f =
 	forM_ classes $ \ cls -> do
 		let inv = map f cls
@@ -26,6 +27,7 @@ testInvariantness n f =
 				(\ t _ -> yield t)
 
 
+tests :: Test
 tests = "Tangle invariants" ~: 
 	[ "Linking numbers" ~:
 		testInvariantness 6 linkingNumbersSet

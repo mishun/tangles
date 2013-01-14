@@ -350,13 +350,14 @@ produceKnotted knotPattern inst = flip execStateT [] $ do
 	maybeM (implodeExplodeSettings inst) $ \ ies -> do
 		declare $ do
 			ct <- newName "ct"
-			sigD (mkName "implode") $ forallT [PlainTV ct] (cxt [])
+			sigD (mkName "implode") $ forallT [PlainTV ct] (cxt [classP ''CrossingType [varT ct]])
 				[t| (Int, [([(Int, Int)], CrossingState $(varT ct))]) -> $(conT knotTN) $(varT ct) |]
 
 		declare $ funD (mkName "implode") $ (:[]) $ do
+			arg <- newName "arg"
 			loops <- newName "loops"
 			list <- newName "list"
-			clause [tupP [bangP $ varP loops, bangP $ varP list]] (normalB [|
+			clause [asP arg $ tupP [bangP $ varP loops, bangP $ varP list]] (normalB [|
 				runST $ do
 					when ($(varE loops) < (0 :: Int)) $ fail $
 						printf "implode: number of free loops is negative (%i)" $(varE loops)
@@ -374,11 +375,12 @@ produceKnotted knotPattern inst = flip execStateT [] $ do
 							let a = 4 * i + j
 							let b = 4 * (c - 1) + p
 							when (a == b) $ fail $
-								printf "implode: dart (%i, %i) connected to itself" (i + 1) j
+								printf "implode: dart (%i, %i) connected to itself in %s" (i + 1) j (show $(varE arg))
 							unsafeWrite cr a b
 							when (b < a) $ do
 								x <- unsafeRead cr b
-								when (x /= a) (fail "implode: unconsistent data")
+								when (x /= a) $ fail $
+									printf "implode: unconsistent data in %s" (show $(varE arg))
 
 					cr' <- unsafeFreeze cr
 					st' <- unsafeFreeze st

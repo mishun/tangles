@@ -1,17 +1,30 @@
-module Tests.TestTangleGenerators
+{-# LANGUAGE Rank2Types #-}
+module Math.KnotTh.Tangle.BorderIncremental.Test
 	( tests
 	) where
 
 import qualified Data.Map as Map
-import Text.Printf
+import Control.Monad.State.Strict (execState, get, put)
 import Control.Monad (forM_)
+import Text.Printf
 import Test.HUnit
+import Math.Algebra.Group.Dn (DnSubGroup, hasReflectionPart, rotationPeriod)
 import Math.KnotTh.Tangle.Projection
 import Math.KnotTh.Tangle.BorderIncremental.SimpleTypes
 import Math.KnotTh.Tangle.BorderIncremental.FlypeGenerator
-import Tests.Table
 
 
+generateTable :: Bool -> (forall m. (Monad m) => (Tangle ct -> DnSubGroup -> m ()) -> m ()) -> Map.Map (Int, Int) Int
+generateTable isLabelled generator =
+	let yield !tangle !symmetry = do
+		let weight
+			| isLabelled  = rotationPeriod symmetry * (if hasReflectionPart symmetry then 1 else 2)
+			| otherwise   = 1
+		get >>= (\ !m -> put $! Map.insertWith (+) (numberOfCrossings tangle, numberOfLegs tangle) weight m)
+	in execState (generator yield) Map.empty
+
+
+tests :: Test
 tests = "Tangle generators" ~:
 	[ "Numbers of prime tangle projections" ~: do
 		let table = generateTable False $

@@ -16,6 +16,7 @@ import Data.STRef (STRef, newSTRef, readSTRef, writeSTRef, modifySTRef)
 import Control.Monad.ST (ST, runST)
 import Control.Monad.Reader (ReaderT, runReaderT, ask, lift)
 import Control.Monad ((>=>), when, forM, forM_, foldM_, filterM)
+import Text.Printf
 import Math.KnotTh.Tangle
 
 
@@ -31,14 +32,12 @@ data MoveState s ct = MoveState
 
 disassemble :: (CrossingType ct) => Tangle ct -> ST s (MoveState s ct)
 disassemble tangle = do
-	let n = numberOfCrossings tangle
-
 	connections <- newArray_ (dartIndexRange tangle)
 	forM_ (allEdges tangle) $ \ (!a, !b) -> do
 		writeArray connections (dartIndex a) b
 		writeArray connections (dartIndex b) a
 
-	mask <- newArray (1, n) Direct
+	mask <- newArray (crossingIndexRange tangle) Direct
 	circlesCounter <- newSTRef $! numberOfFreeLoops tangle
 	return $! MoveState
 		{ stateSource      = tangle
@@ -62,7 +61,7 @@ assemble st = do
 		) 1 (allCrossings source)
 
 	let pair d
-		| isLeg d    = return $! (0, legPlace d)
+		| isLeg d    = return $! (,) 0 $! legPlace d
 		| otherwise  = do
 			let i = crossingIndex $! incidentCrossing d
 			msk <- readArray (stateMask st) i
@@ -70,7 +69,7 @@ assemble st = do
 			case msk of
 				Direct  -> return $! (off, dartPlace d)
 				Flipped -> return $! (off, 3 - dartPlace d)
-				Masked  -> fail "assemble: touching masked crossing"
+				Masked  -> fail $ printf "assemble: %s is touching masked crossing at:\n%s" (show d) (show $ stateSource st)
 
 	let opp d = readArray (stateConnections st) (dartIndex d)
 
@@ -94,7 +93,7 @@ assemble st = do
 reconnect :: MoveState s ct -> [(Dart ct, Dart ct)] -> ST s ()
 reconnect st connections =
 	forM_ connections $ \ (!a, !b) -> do
-		when (a == b) (fail "reconnect: connect to itself")
+		when (a == b) $ fail $ printf "reconnect: %s connect to itself" (show a)
 		writeArray (stateConnections st) (dartIndex a) b
 		writeArray (stateConnections st) (dartIndex b) a
 
@@ -125,7 +124,7 @@ maskC crossings = ask >>= \ !st -> lift $
 	forM_ crossings $ \ !c -> writeArray (stateMask st) (crossingIndex c) Masked
 
 
-flipC :: [Crossing ct] -> MoveM s ct ()
+flipC :: (CrossingType ct) => [Crossing ct] -> MoveM s ct ()
 flipC crossings = ask >>= \ !st -> lift $
 	forM_ crossings $ \ !c -> do
 		msk <- readArray (stateMask st) (crossingIndex c)
@@ -133,7 +132,7 @@ flipC crossings = ask >>= \ !st -> lift $
 			case msk of
 				Direct  -> Flipped
 				Flipped -> Direct
-				Masked  -> error "flipC: flipping masked crossing"
+				Masked  -> error $ printf "flipC: flipping masked crossing %s" (show c)
 
 
 connectC :: [(Dart ct, Dart ct)] -> MoveM s ct ()
@@ -143,7 +142,7 @@ connectC connections = ask >>= \ st -> lift $
 
 substituteC :: [(Dart ct, Dart ct)] -> MoveM s ct ()
 substituteC substitutions = do
-	reconnections <- mapM (\ (a, b) -> do { ob <- oppositeC b ; return $! (a, ob) }) substitutions
+	reconnections <- mapM (\ (a, b) -> (,) a `fmap` oppositeC b) substitutions
 	st <- ask
 	lift $ do
 		let source = stateSource st

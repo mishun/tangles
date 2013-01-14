@@ -182,15 +182,15 @@ glueToBorder leg legsToGlue crossingToGlue
 		return $! nthCrossing result newC
 
 
-implode :: (Int, [(Int, Int)], [([(Int, Int)], CrossingState ct)]) -> Tangle ct
-implode (!loops, !border, !list) = runST $ do
+implode :: (CrossingType ct) => (Int, [(Int, Int)], [([(Int, Int)], CrossingState ct)]) -> Tangle ct
+implode arg@(!loops, !border, !list) = runST $ do
 	when (loops < 0) $ fail $
 		printf "implode: number of free loops is negative (%i)" loops
 
 	let n = length list
 	let l = length border
 	when (odd l) $ fail $
-		printf "implode: number of legs must be even (%i)" l
+		printf "implode: number of legs must be even (%i) in %s" l (show arg)
 
 	let	{-# INLINE testPair #-}
 		testPair c p = case c of
@@ -222,7 +222,8 @@ implode (!loops, !border, !list) = runST $ do
 			unsafeWrite cr a b
 			when (b < a) $ do
 				x <- unsafeRead cr b
-				when (x /= a) $ fail $ printf "implode: inconsistent data at dart (%i, %i)" (i + 1) j
+				when (x /= a) $ fail $
+					printf "implode: inconsistent data at dart (%i, %i) in %s" (i + 1) j (show arg)
 
 
 	forM_ (zip border [0 ..]) $ \ ((!c, !p), !i) -> do
@@ -233,12 +234,13 @@ implode (!loops, !border, !list) = runST $ do
 		      | otherwise  = 4 * (c - 1) + p
 
 		when (a == b) $ fail $
-			printf "implode: leg %i connected to itself" i
+			printf "implode: leg %i connected to itself in %s" i (show arg)
 
 		unsafeWrite cr a b
 		when (b < a) $ do
 			x <- unsafeRead cr b
-			when (x /= a) $ fail $ printf "implode: inconsistent data at leg %i" i
+			when (x /= a) $ fail $
+				printf "implode: inconsistent data at leg %i in %s" i (show arg)
 
 
 	cr' <- unsafeFreeze cr
@@ -269,7 +271,7 @@ instance Show (Dart ct) where
 produceShowCrossing ''Crossing
 
 
-instance (Show ct, CrossingType ct) => Show (Tangle ct) where
+instance (CrossingType ct) => Show (Tangle ct) where
 	show tangle =
 		let border = printf "(Border [ %s ])" $
 			intercalate " " $ map (show . opposite) $ allLegs tangle

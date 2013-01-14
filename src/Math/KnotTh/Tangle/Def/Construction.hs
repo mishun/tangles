@@ -19,11 +19,11 @@ lonerTangle !cr = implode
 	)
 
 
-zeroTangle :: Tangle ct
+zeroTangle :: (CrossingType ct) => Tangle ct
 zeroTangle = implode (0, [(0, 3), (0, 2), (0, 1), (0, 0)], [])
 
 
-infinityTangle :: Tangle ct
+infinityTangle :: (CrossingType ct) => Tangle ct
 infinityTangle = implode (0, [(0, 1), (0, 0), (0, 3), (0, 2)], [])
 
 

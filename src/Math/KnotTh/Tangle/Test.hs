@@ -1,4 +1,4 @@
-module Tests.TestBasicTangle
+module Math.KnotTh.Tangle.Test
 	( tests
 	) where
 
@@ -9,6 +9,7 @@ import Math.KnotTh.Tangle.Projection
 import Math.KnotTh.Tangle.CascadeCode
 
 
+tests :: Test
 tests = "Basic tangle tests" ~:
 	[ "Basic functions" ~: do
 		let t = crossingTangle $ glueToBorder (firstLeg lonerProjection) 1 projectionCrossing
@@ -25,7 +26,7 @@ tests = "Basic tangle tests" ~:
 			(nextCCW $ nthLeg t i) @?= (nthLeg t $ (i + 1) `mod` 6)
 
 		do
-			s <- foldMIncidentDartsFrom (nthIncidentDart c1 2) ccw (\ _ s -> return $! s + 1) 0
+			s <- foldMIncidentDartsFrom (nthIncidentDart c1 2) ccw (\ _ s -> return $! s + 1) (0 :: Int)
 			s @?= 4
 
 	, "Show loner" ~:

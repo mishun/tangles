@@ -6,6 +6,7 @@ module Math.KnotTh.Crossings.Projection
 	, projection
 	) where
 
+import Data.Char (isSpace)
 import Control.DeepSeq
 import Math.Algebra.Group.D4 (subGroupD4)
 import Math.KnotTh.Knotted
@@ -28,6 +29,12 @@ instance ThreadedCrossing ProjectionCrossing
 
 instance Show ProjectionCrossing where
 	show _ = "+"
+
+
+instance Read ProjectionCrossing where
+	readsPrec _ s = case dropWhile isSpace s of
+		'+' : t -> [(ProjectionCrossing, t)]
+		_       -> []
 
 
 type ProjectionCrossingState = CrossingState ProjectionCrossing

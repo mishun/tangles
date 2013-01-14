@@ -57,7 +57,7 @@ instance (CrossingType ct) => CrossingType (SubTangleCrossing ct) where
 	localCrossingSymmetry c = _symmetry c
 
 
-instance (Show ct, CrossingType ct) => Show (SubTangleCrossing ct) where
+instance (CrossingType ct) => Show (SubTangleCrossing ct) where
 	show cr =
 		printf "(SubTangle %i %s %s (%s))"
 			(_code cr)

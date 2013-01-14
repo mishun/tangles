@@ -21,7 +21,7 @@ import Math.Algebra.RotationDirection
 import Math.Algebra.Group.D4 (D4, D4SubGroup, inverse, (<*>), hasReflection, permute, fromReflectionRotation, equivalenceClassId, equvalenceClassRepresentatives)
 
 
-class (Eq ct) => CrossingType ct where
+class (Eq ct, Show ct) => CrossingType ct where
 	crossingTypeCode      :: ct -> Int
 	localCrossingSymmetry :: ct -> D4SubGroup
 	possibleOrientations  :: ct -> Maybe D4 -> [CrossingState ct]

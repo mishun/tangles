@@ -19,6 +19,7 @@ module Math.KnotTh.Crossings.Arbitrary
 	, invertCrossings
 	) where
 
+import Data.Char (isSpace)
 import Data.Array.Base (listArray, (!))
 import Data.Array.Unboxed (UArray, elems)
 import Control.DeepSeq
@@ -47,6 +48,12 @@ instance ThreadedCrossing ArbitraryCrossing
 
 instance Show ArbitraryCrossing where
 	show _ = "-|-"
+
+
+instance Read ArbitraryCrossing where
+	readsPrec _ s = case dropWhile isSpace s of
+		'-' : '|' : '-' : t -> [(ArbitraryCrossing, t)]
+		_                   -> []
 
 
 type ArbitraryCrossingState = CrossingState ArbitraryCrossing
