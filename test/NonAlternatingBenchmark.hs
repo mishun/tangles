@@ -11,10 +11,9 @@ import Math.KnotTh.Enumeration.DiagramInfo.MinimalDiagramInfo
 import Math.KnotTh.Enumeration.Applied.NonAlternatingTangles
 import Math.KnotTh.Draw.DrawKnot
 import Math.KnotTh.Link.FromTangle
-import Math.KnotTh.Invariants.JonesPolynomial
-import Math.KnotTh.Invariants.LinkingNumber
 import Graphics.HP
 import Tests.Table
+import Math.KnotTh.Tangle.Moves.Test
 
 
 main :: IO ()
@@ -24,7 +23,7 @@ main = do
 			(triangleBoundedType n primeIrreducibleDiagramType)
 			[ArbitraryCrossing]
 			n
-			(\ t _ -> when (numberOfLegs t <= 4) $ yield t)
+			(\ t _ -> when (numberOfLegs t <= 6) $ yield t)
 
 	printTable "Diagrams" $ generateTable' $ diagrams 5
 
@@ -45,3 +44,15 @@ main = do
 				forM_ (zip cc [0 ..]) $ \ (info, i) ->
 					transformed [shifted (2.2 * i, 0)] $ drawKnot 0.01 $ representative info
 				appendTransform [shifted (0, -2.2)]
+
+{-
+	writePostScriptFile "tangles.ps" $ do
+		let a4Width = 595
+		let a4Height = 842
+		transformed [shifted (0.05 * a4Width, 0.98 * a4Height), scaled 10] $ do
+			forM_ passTests $ \ (t, n) -> do
+				drawKnot 0.01 t
+				forM_ (zip n [0 ..]) $ \ (nt, i) ->
+					transformed [shifted (2.2 * i + 3, 0)] $ drawKnot 0.01 nt
+				appendTransform [shifted (0, -2.2)]
+-}
