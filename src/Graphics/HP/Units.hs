@@ -1,9 +1,8 @@
 module Graphics.HP.Units
-	(
-	  pt
-	, mm
-	, cm
-	) where
+    ( pt
+    , mm
+    , cm
+    ) where
 
 
 pt :: Double

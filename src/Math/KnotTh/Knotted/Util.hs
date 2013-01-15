@@ -1,24 +1,24 @@
 module Math.KnotTh.Knotted.Util
-	( isEndpoint
-	, numberOfEndpoints
-	, isAdjacentToCrossing
-	, nextDir
-	, nextPi
-	, begin
-	, maybeIncidentCrossing
-	, maybeAdjacentCrossing
-	, incidentDarts
-	, incidentDartsWithIds
-	, nthAdjacentDart
-	, adjacentDarts
-	, adjacentDartsWithIds
-	, adjacentCrossing
-	, adjacentCrossings
-	, adjacentCrossingsWithIds
-	, allCrossings
-	, allDartsOfCrossings
-	, allHalfEdges
-	) where
+    ( isEndpoint
+    , numberOfEndpoints
+    , isAdjacentToCrossing
+    , nextDir
+    , nextPi
+    , begin
+    , maybeIncidentCrossing
+    , maybeAdjacentCrossing
+    , incidentDarts
+    , incidentDartsWithIds
+    , nthAdjacentDart
+    , adjacentDarts
+    , adjacentDartsWithIds
+    , adjacentCrossing
+    , adjacentCrossings
+    , adjacentCrossingsWithIds
+    , allCrossings
+    , allDartsOfCrossings
+    , allHalfEdges
+    ) where
 
 import Math.Algebra.RotationDirection
 import Math.KnotTh.Knotted.Knotted
@@ -42,8 +42,8 @@ isAdjacentToCrossing = isDart . opposite
 {-# INLINE nextDir #-}
 nextDir :: (Knotted k c d) => RotationDirection -> d ct -> d ct
 nextDir dir
-	| isClockwise dir  = nextCW
-	| otherwise        = nextCCW
+    | isClockwise dir  = nextCW
+    | otherwise        = nextCCW
 
 
 {-# INLINE nextPi #-}
@@ -54,16 +54,16 @@ nextPi = nextCCW . nextCCW
 {-# INLINE begin #-}
 begin :: (Knotted k c d) => d ct -> (c ct, Int)
 begin d =
-	let c = incidentCrossing d
-	    p = dartPlace d
-	in c `seq` p `seq` (c, p)
+    let c = incidentCrossing d
+        p = dartPlace d
+    in c `seq` p `seq` (c, p)
 
 
 {-# INLINE maybeIncidentCrossing #-}
 maybeIncidentCrossing :: (Knotted k c d) => d ct -> Maybe (c ct)
 maybeIncidentCrossing d
-	| isDart d   = Just $! incidentCrossing d
-	| otherwise  = Nothing
+    | isDart d   = Just $! incidentCrossing d
+    | otherwise  = Nothing
 
 
 {-# INLINE maybeAdjacentCrossing #-}

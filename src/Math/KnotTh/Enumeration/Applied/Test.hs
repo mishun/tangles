@@ -1,6 +1,6 @@
 module Math.KnotTh.Enumeration.Applied.Test
-	( tests
-	) where
+    ( tests
+    ) where
 
 import Control.Monad (forM_)
 import Test.HUnit
@@ -15,26 +15,26 @@ import Math.KnotTh.Invariants.JonesPolynomial
 
 testInvariantness :: (Eq a, Show a) => Int -> (NonAlternatingTangle -> a) -> IO ()
 testInvariantness n f =
-	forM_ classes $ \ cls -> do
-		let inv = map f cls
-		mapM_ (@?= head inv) inv
-	where
-		classes = map allDiagrams $ tangleClasses $ \ yield ->
-			simpleIncrementalGenerator
-				(triangleBoundedType n primeIrreducibleDiagramType)
-				[ArbitraryCrossing]
-				n
-				(\ t _ -> yield t)
+    forM_ classes $ \ cls -> do
+        let inv = map f cls
+        mapM_ (@?= head inv) inv
+    where
+        classes = map allDiagrams $ tangleClasses $ \ yield ->
+            simpleIncrementalGenerator
+                (triangleBoundedType n primeIrreducibleDiagramType)
+                [ArbitraryCrossing]
+                n
+                (\ t _ -> yield t)
 
 
 tests :: Test
 tests = "Tangle invariants" ~: 
-	[ "Linking numbers" ~:
-		testInvariantness 6 linkingNumbersSet
+    [ "Linking numbers" ~:
+        testInvariantness 6 linkingNumbersSet
 
-	, "Jones polynomial" ~:
-		testInvariantness 6 minimalJonesPolynomialOfTangle
+    , "Jones polynomial" ~:
+        testInvariantness 6 minimalJonesPolynomialOfTangle
 
-	, "Jones polynomial of doubling" ~:
-		testInvariantness 4 (minimalJonesPolynomialOfTangle . twistedDouble)
-	]
+    , "Jones polynomial of doubling" ~:
+        testInvariantness 4 (minimalJonesPolynomialOfTangle . twistedDouble)
+    ]

@@ -1,22 +1,22 @@
 module Math.KnotTh.Link.Table.Special
-	( unlink
-	, unknot
-	, singleCrossingUnknot
-	, hopfLink
-	, leftTrefoilKnot
-	, rightTrefoilKnot
-	, figureEightKnot
-	, leftCinquefoilKnot
-	, rightCinquefoilKnot
-	, threeTwistKnot
-	, whiteheadLink
-	, grannyKnot
-	, squareKnot
-	, stevedoreKnot
-	, borromeanRingsLink
-	, conwayKnot
-	, kinoshitaTerasakaKnot
-	) where
+    ( unlink
+    , unknot
+    , singleCrossingUnknot
+    , hopfLink
+    , leftTrefoilKnot
+    , rightTrefoilKnot
+    , figureEightKnot
+    , leftCinquefoilKnot
+    , rightCinquefoilKnot
+    , threeTwistKnot
+    , whiteheadLink
+    , grannyKnot
+    , squareKnot
+    , stevedoreKnot
+    , borromeanRingsLink
+    , conwayKnot
+    , kinoshitaTerasakaKnot
+    ) where
 
 import Text.Printf
 import Math.KnotTh.Link.GaussCode
@@ -26,8 +26,8 @@ import Math.KnotTh.Link.Table.Access
 
 unlink :: Int -> NonAlternatingLink
 unlink k
-	| k < 0      = error $ printf "unlink: number of components %i is negative" k
-	| otherwise  = implode (k, [])
+    | k < 0      = error $ printf "unlink: number of components %i is negative" k
+    | otherwise  = implode (k, [])
 
 
 unknot :: NonAlternatingLink

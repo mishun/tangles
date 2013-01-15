@@ -1,18 +1,17 @@
 module Graphics.HP.BoundingBox
-	(
-	  BoundingBox
-	, empty
-	, isEmpty
-	, fromBoxCorners
-	, fromXYRanges
-	, fromSinglePoint
-	, fromPointsList
-	, xRange
-	, yRange
-	, boxCorners
-	, unionBoundingBoxes
-	, unionBoxesList
-	) where
+    ( BoundingBox
+    , empty
+    , isEmpty
+    , fromBoxCorners
+    , fromXYRanges
+    , fromSinglePoint
+    , fromPointsList
+    , xRange
+    , yRange
+    , boxCorners
+    , unionBoundingBoxes
+    , unionBoxesList
+    ) where
 
 
 data BoundingBox = EmptyBox | BoundingBox (Double, Double) (Double, Double)
@@ -56,19 +55,19 @@ yRange BoundingBox _ y = y
 boxCorners :: BoundingBox -> [(Double, Double)]
 boxCorners EmptyBox = error "empty box has no corners"
 boxCorners b = [(x1, y1), (x1, y2), (x2, y2), (x2, y1)]
-	where
-		(x1, x2) = xRange b
-		(y1, y2) = yRange b
+    where
+        (x1, x2) = xRange b
+        (y1, y2) = yRange b
 
 
 unionBoundingBoxes :: BoundingBox -> BoundingBox -> BoundingBox
 unionBoundingBoxes EmptyBox EmptyBox = EmptyBox
 unionBoundingBoxes a b = fromXYRanges (min xa1 xb1, max xa2 xb2) (min ya1 yb1, max ya2 yb2)
-	where
-		(xa1, xa2) = xRange a
-		(xb1, xb2) = xRange b
-		(ya1, ya2) = yRange a
-		(yb1, yb2) = yRange b
+    where
+        (xa1, xa2) = xRange a
+        (xb1, xb2) = xRange b
+        (ya1, ya2) = yRange a
+        (yb1, yb2) = yRange b
 
 
 unionBoxesList :: [BoundingBox] -> BoundingBox

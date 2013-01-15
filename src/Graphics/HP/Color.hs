@@ -1,24 +1,23 @@
 module Graphics.HP.Color
-	(
-	  Color
-	, toRGB
-	, fromRGB
-	, interpolate
+    ( Color
+    , toRGB
+    , fromRGB
+    , interpolate
 
-	, white
-	, black
-	, red
-	, green
-	, blue
-	, magenta
-	, yellow
-	, lightBlue
-	, orange
-	, purple
-	, brown
-	, darkGreen
-	, grey
-	) where
+    , white
+    , black
+    , red
+    , green
+    , blue
+    , magenta
+    , yellow
+    , lightBlue
+    , orange
+    , purple
+    , brown
+    , darkGreen
+    , grey
+    ) where
 
 
 data Color = Color Double Double Double deriving (Eq, Show)
@@ -30,20 +29,20 @@ toRGB (Color r g b) = (r, g, b)
 
 fromRGB :: (Double, Double, Double) -> Color
 fromRGB (r, g, b) = Color (lim r) (lim g) (lim b)
-	where
-		lim = (min 1.0) . (max 0.0)
+    where
+        lim = (min 1.0) . (max 0.0)
 
 
 interpolate :: Double -> (Color, Color) -> Color
 interpolate coef (aColor, bColor) = fromRGB $ (mix ar br, mix ag bg, mix ab bb)
-	where
-		mix ac bc = a * ac + b * bc
-			where
-				a = min 1.0 $ max 0.0 coef
-				b = 1.0 - a
+    where
+        mix ac bc = a * ac + b * bc
+            where
+                a = min 1.0 $ max 0.0 coef
+                b = 1.0 - a
 
-		(ar, ag, ab) = toRGB aColor
-		(br, bg, bb) = toRGB bColor
+        (ar, ag, ab) = toRGB aColor
+        (br, bg, bb) = toRGB bColor
 
 
 white :: Color

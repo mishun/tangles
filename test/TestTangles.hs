@@ -9,12 +9,12 @@ import qualified Math.KnotTh.Tangle.Test as TestBasicTangle
 
 
 tests = test
-	[ TestBasicTangle.tests
-	, TestChordDiagrams.tests
-	, TestTangleGenerators.tests
-	, TestInvariants.tests
-	, TestTangleInvariants.tests
-	]
+    [ TestBasicTangle.tests
+    , TestChordDiagrams.tests
+    , TestTangleGenerators.tests
+    , TestInvariants.tests
+    , TestTangleInvariants.tests
+    ]
 
 
 main = runTestTT tests

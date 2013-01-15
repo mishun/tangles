@@ -1,9 +1,9 @@
 module Math.KnotTh.Knotted.KnottedWithAccel
-	( KnottedWithAccel(..)
-	, forMAdjacentDarts
-	, foldMAdjacentDarts
-	, foldMAdjacentDartsFrom
-	) where
+    ( KnottedWithAccel(..)
+    , forMAdjacentDarts
+    , foldMAdjacentDarts
+    , foldMAdjacentDartsFrom
+    ) where
 
 import Data.Bits ((.&.))
 import Math.Algebra.RotationDirection
@@ -12,27 +12,27 @@ import Math.KnotTh.Knotted.Util
 
 
 class (Knotted knot cross dart) => KnottedWithAccel knot cross dart | knot -> cross, cross -> dart, dart -> knot where
-	forMIncidentDarts      :: (Monad m) => cross ct -> (dart ct -> m ()) -> m ()
-	foldMIncidentDarts     :: (Monad m) => cross ct -> (dart ct -> s -> m s) -> s -> m s
-	foldMIncidentDartsFrom :: (Monad m) => dart ct -> RotationDirection -> (dart ct -> s -> m s) -> s -> m s
+    forMIncidentDarts      :: (Monad m) => cross ct -> (dart ct -> m ()) -> m ()
+    foldMIncidentDarts     :: (Monad m) => cross ct -> (dart ct -> s -> m s) -> s -> m s
+    foldMIncidentDartsFrom :: (Monad m) => dart ct -> RotationDirection -> (dart ct -> s -> m s) -> s -> m s
 
 
-	forMIncidentDarts c f = mapM_ f $ incidentDarts c
+    forMIncidentDarts c f = mapM_ f $ incidentDarts c
 
-	foldMIncidentDarts c f s =
-		f (nthIncidentDart c 0) s
-			>>= f (nthIncidentDart c 1)
-				>>= f (nthIncidentDart c 2)
-					>>= f (nthIncidentDart c 3)
+    foldMIncidentDarts c f s =
+        f (nthIncidentDart c 0) s
+            >>= f (nthIncidentDart c 1)
+                >>= f (nthIncidentDart c 2)
+                    >>= f (nthIncidentDart c 3)
 
-	foldMIncidentDartsFrom dart !dir f s =
-		let	c = incidentCrossing dart
-			p = dartPlace dart
-			d = directionSign dir
-		in f dart s
-			>>= f (nthIncidentDart c $! (p + d) .&. 3)
-			>>= f (nthIncidentDart c $! (p + 2 * d) .&. 3)
-			>>= f (nthIncidentDart c $! (p + 3 * d) .&. 3)
+    foldMIncidentDartsFrom dart !dir f s =
+        let c = incidentCrossing dart
+            p = dartPlace dart
+            d = directionSign dir
+        in f dart s
+            >>= f (nthIncidentDart c $! (p + d) .&. 3)
+            >>= f (nthIncidentDart c $! (p + 2 * d) .&. 3)
+            >>= f (nthIncidentDart c $! (p + 3 * d) .&. 3)
 
 
 {-# INLINE forMAdjacentDarts #-}

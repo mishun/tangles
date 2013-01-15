@@ -1,19 +1,19 @@
 module Math.Algebra.Group.D4
-	( D4
-	, i, e, c, ec, c2, ec2, c3, ec3
-	, inverse
-	, (<*>)
-	, rotation
-	, hasReflection
-	, permute
-	, fromReflectionRotation
-	, D4SubGroup
-	, subGroupD4, subGroupC4, subGroupGS, subGroupDS, subGroupC2, subGroupES, subGroupECS, subGroupEC2S, subGroupEC3S, subGroupID
-	, equivalenceClassId
-	, equvalenceClassRepresentatives
-	, fromDnSubGroup
-	, toDnSubGroup
-	) where
+    ( D4
+    , i, e, c, ec, c2, ec2, c3, ec3
+    , inverse
+    , (<*>)
+    , rotation
+    , hasReflection
+    , permute
+    , fromReflectionRotation
+    , D4SubGroup
+    , subGroupD4, subGroupC4, subGroupGS, subGroupDS, subGroupC2, subGroupES, subGroupECS, subGroupEC2S, subGroupEC3S, subGroupID
+    , equivalenceClassId
+    , equvalenceClassRepresentatives
+    , fromDnSubGroup
+    , toDnSubGroup
+    ) where
 
 import Data.Bits ((.&.), xor, shiftL, shiftR)
 import Data.Array.Base (unsafeAt)
@@ -32,11 +32,11 @@ newtype D4 = D4 Int deriving (Eq, Ord)
 
 
 instance Show D4 where
-	show d =
-		case (hasReflection d, rotation d) of
-			(False, 0) -> "I"
-			(True , 0) -> "E"
-			(m    , x) -> (if m then "EC" else "C") ++ (if x > 1 then "_" ++ show x else "")
+    show d =
+        case (hasReflection d, rotation d) of
+            (False, 0) -> "I"
+            (True , 0) -> "E"
+            (m    , x) -> (if m then "EC" else "C") ++ (if x > 1 then "_" ++ show x else "")
 
 i, e, c, ec, c2, ec2, c3, ec3 :: D4
 i   = D4 0
@@ -52,15 +52,15 @@ ec3 = D4 7
 {-# INLINE inverse #-}
 inverse :: D4 -> D4
 inverse d@(D4 !x)
-	| x .&. 1 == 1  = d
-	| otherwise     = D4 $! (-x) .&. 7
+    | x .&. 1 == 1  = d
+    | otherwise     = D4 $! (-x) .&. 7
 
 
 {-# INLINE (<*>) #-}
 (<*>) :: D4 -> D4 -> D4
 (<*>) (D4 !a) (D4 !b)
-	| b .&. 1 == 1  = D4 $! ((b .&. 6) - (a .&. 6) + ((a `xor` b) .&. 1)) .&. 7
-	| otherwise     = D4 $! ((b .&. 6) + (a .&. 6) + ((a `xor` b) .&. 1)) .&. 7
+    | b .&. 1 == 1  = D4 $! ((b .&. 6) - (a .&. 6) + ((a `xor` b) .&. 1)) .&. 7
+    | otherwise     = D4 $! ((b .&. 6) + (a .&. 6) + ((a `xor` b) .&. 1)) .&. 7
 
 
 {-# INLINE fromReflectionRotation #-}
@@ -81,19 +81,19 @@ hasReflection (D4 x) = (x .&. 1) /= 0
 {-# INLINE permute #-}
 permute :: D4 -> Int -> Int
 permute (D4 x) p
-	| (x .&. 1) == 0  = (p + x `shiftR` 1) .&. 3
-	| otherwise       = (-p - x `shiftR` 1) .&. 3
+    | (x .&. 1) == 0  = (p + x `shiftR` 1) .&. 3
+    | otherwise       = (-p - x `shiftR` 1) .&. 3
 
 
 data D4SubGroup = SubGroup {-# UNPACK #-} !Int {-# UNPACK #-} !(UArray Int Int) ![D4]
 
 
 instance Eq D4SubGroup where
-	(==) (SubGroup a _ _) (SubGroup b _ _) = (a == b)
+    (==) (SubGroup a _ _) (SubGroup b _ _) = (a == b)
 
 
 instance Show D4SubGroup where
-	show (SubGroup k _ _) = ["D4", "C4", "GS", "DS", "C2", "ES", "ECS", "EC2S", "EC3S", "ID"] !! k
+    show (SubGroup k _ _) = ["D4", "C4", "GS", "DS", "C2", "ES", "ECS", "EC2S", "EC3S", "ID"] !! k
 
 
 subGroupD4, subGroupC4, subGroupGS, subGroupDS, subGroupC2, subGroupES, subGroupECS, subGroupEC2S, subGroupEC3S, subGroupID :: D4SubGroup
@@ -151,36 +151,36 @@ equvalenceClassRepresentatives (SubGroup _ _ r) = r
 
 fromDnSubGroup :: DnSubGroup -> D4SubGroup
 fromDnSubGroup s
-	| pointsUnderSubGroup s /= 4  = error $ printf "fromDnSubGroup: order is %i instead of 4" (pointsUnderSubGroup s)
-	| otherwise                   =
-		case rotationPeriod s of
-			1 -> if hasReflectionPart s
-				then subGroupD4
-				else subGroupC4
-			2 -> if hasReflectionPart s
-				then if mirroredZero s == 0
-					then subGroupDS
-					else subGroupGS
-				else subGroupC2
-			_ -> if hasReflectionPart s
-				then case mirroredZero s of
-					0 -> subGroupES
-					1 -> subGroupEC3S
-					2 -> subGroupEC2S
-					_ -> subGroupECS
-				else subGroupID
+    | pointsUnderSubGroup s /= 4  = error $ printf "fromDnSubGroup: order is %i instead of 4" (pointsUnderSubGroup s)
+    | otherwise                   =
+        case rotationPeriod s of
+            1 -> if hasReflectionPart s
+                then subGroupD4
+                else subGroupC4
+            2 -> if hasReflectionPart s
+                then if mirroredZero s == 0
+                    then subGroupDS
+                    else subGroupGS
+                else subGroupC2
+            _ -> if hasReflectionPart s
+                then case mirroredZero s of
+                    0 -> subGroupES
+                    1 -> subGroupEC3S
+                    2 -> subGroupEC2S
+                    _ -> subGroupECS
+                else subGroupID
 
 
 toDnSubGroup :: D4SubGroup -> DnSubGroup
 toDnSubGroup (SubGroup x _ _) =
-	case x of
-		0 -> fromPeriodAndMirroredZero 4 1 0
-		1 -> fromPeriod 4 1
-		2 -> fromPeriodAndMirroredZero 4 2 1
-		3 -> fromPeriodAndMirroredZero 4 2 0
-		4 -> fromPeriod 4 2
-		5 -> fromPeriodAndMirroredZero 4 4 0
-		6 -> fromPeriodAndMirroredZero 4 4 3
-		7 -> fromPeriodAndMirroredZero 4 4 2
-		8 -> fromPeriodAndMirroredZero 4 4 1
-		_ -> fromPeriod 4 4
+    case x of
+        0 -> fromPeriodAndMirroredZero 4 1 0
+        1 -> fromPeriod 4 1
+        2 -> fromPeriodAndMirroredZero 4 2 1
+        3 -> fromPeriodAndMirroredZero 4 2 0
+        4 -> fromPeriod 4 2
+        5 -> fromPeriodAndMirroredZero 4 4 0
+        6 -> fromPeriodAndMirroredZero 4 4 3
+        7 -> fromPeriodAndMirroredZero 4 4 2
+        8 -> fromPeriodAndMirroredZero 4 4 1
+        _ -> fromPeriod 4 4

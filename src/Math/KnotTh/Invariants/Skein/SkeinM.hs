@@ -1,13 +1,13 @@
 {-# LANGUAGE Rank2Types #-}
 module Math.KnotTh.Invariants.Skein.SkeinM
-	( module Math.KnotTh.Invariants.Skein.Relation
-	, SkeinM
-	, Vertex
-	, vertexDegree
-	, neighbour
-	, contract
-	, runSkein
-	) where
+    ( module Math.KnotTh.Invariants.Skein.Relation
+    , SkeinM
+    , Vertex
+    , vertexDegree
+    , neighbour
+    , contract
+    , runSkein
+    ) where
 
 import Data.Function (fix)
 import Control.Monad.ST (ST, runST)
@@ -21,7 +21,6 @@ import Math.KnotTh.Invariants.Skein.Relation
 import Math.KnotTh.Invariants.Skein.SkeinM.State
 import Math.KnotTh.Invariants.Skein.SkeinM.ContractEdge
 import Math.KnotTh.Invariants.Skein.SkeinM.Reduction
-import Debug.Trace
 
 
 type SkeinM s r a = ReaderT (SkeinState s r a) (ST s)
@@ -36,9 +35,9 @@ vertexDegree (Vertex v) = ask >>= \ s -> lift $ vertexDegreeST s v
 
 neighbour :: (Vertex, Int) -> SkeinM s r a (Vertex, Int)
 neighbour (Vertex !v, p) = ask >>= \ !s -> lift $ do
-	(!u, !q) <- neighbourST s (v, p)
-	when (u == 0) $ fail $ printf "touching border at (%i, %i) <-> (%i, %i)" v p u q
-	return $! (Vertex u, q)
+    (!u, !q) <- neighbourST s (v, p)
+    when (u == 0) $ fail $ printf "touching border at (%i, %i) <-> (%i, %i)" v p u q
+    return $! (Vertex u, q)
 
 
 contract :: (SkeinRelation r a) => (Vertex, Int) -> SkeinM s r a ()
@@ -46,32 +45,32 @@ contract (Vertex !v, !p) = ask >>= \ !s -> lift $ contractEdgeST s (v, p)
 
 
 evaluateStateSum ::
-	(SkeinRelation rel a, SkeinKnotted k c d)
-		=> rel
-		-> (forall s. [(Vertex, Int)] -> SkeinM s rel a ())
-		-> k ArbitraryCrossing
-		-> StateSum a
+    (SkeinRelation rel a, SkeinKnotted k c d)
+        => rel
+        -> (forall s. [(Vertex, Int)] -> SkeinM s rel a ())
+        -> k ArbitraryCrossing
+        -> StateSum a
 
 evaluateStateSum rel action knot = runST $ do
-	s <- stateFromKnotted rel knot
-	fix $ \ continue -> do
-		greedyReductionST s
+    s <- stateFromKnotted rel knot
+    fix $ \ continue -> do
+        greedyReductionST s
 
-		e <- internalEdgesST s
-		case e of
-			[] -> extractStateSumST s
-			_  -> do
-				runReaderT (action $ map (\ (v, p) -> (Vertex v, p)) e) s
-				continue
+        e <- internalEdgesST s
+        case e of
+            [] -> extractStateSumST s
+            _  -> do
+                runReaderT (action $ map (\ (v, p) -> (Vertex v, p)) e) s
+                continue
 
 
 runSkein ::
-	(SkeinRelation rel a, SkeinResult a res k c d)
-		=> rel
-		-> (forall s. [(Vertex, Int)] -> SkeinM s rel a ())
-		-> k ArbitraryCrossing
-		-> res
+    (SkeinRelation rel a, SkeinResult a res k c d)
+        => rel
+        -> (forall s. [(Vertex, Int)] -> SkeinM s rel a ())
+        -> k ArbitraryCrossing
+        -> res
 
 runSkein rel action knot =
-	let f = finalNormalization rel knot
-	in resultFromStateSum knot $ map (fmap f) $ evaluateStateSum rel action knot
+    let f = finalNormalization rel knot
+    in resultFromStateSum knot $ map (fmap f) $ evaluateStateSum rel action knot

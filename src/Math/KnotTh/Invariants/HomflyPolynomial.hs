@@ -1,6 +1,6 @@
 module Math.KnotTh.Invariants.HomflyPolynomial
-	( homflyPolynomial
-	) where
+    ( homflyPolynomial
+    ) where
 
 import qualified Data.Map as M
 import qualified Math.Algebra.Field.Base as B
@@ -20,23 +20,23 @@ data HomflyRelation a = HomflyRelation a a a a
 
 
 instance (Ord a, Num a, Show a) => SkeinRelation (HomflyRelation a) a where
-	circleFactor (HomflyRelation a a' _ z') = (a + a') * z' - 1
+    circleFactor (HomflyRelation a a' _ z') = (a + a') * z' - 1
 
-	initialLplus _ = InitialSum { ofLplus = 1, ofLzero = 0, ofLinfty = 0 }
+    initialLplus _ = InitialSum { ofLplus = 1, ofLzero = 0, ofLinfty = 0 }
 
-	twistPFactor (HomflyRelation a _ _ _) = a
+    twistPFactor (HomflyRelation a _ _ _) = a
 
-	twistNFactor (HomflyRelation _ a' _ _) = a'
+    twistNFactor (HomflyRelation _ a' _ _) = a'
 
-	finalNormalization (HomflyRelation a a' _ _) knot =
-		let factor =
-			let w = selfWrithe knot
-			in (if w <= 0 then a else a') ^ (abs w)
-		in (factor *)
+    finalNormalization (HomflyRelation a a' _ _) knot =
+        let factor =
+                let w = selfWrithe knot
+                in (if w <= 0 then a else a') ^ (abs w)
+        in (factor *)
 
 
 homflyPolynomial :: (SkeinResult Poly r k c d) => k ArbitraryCrossing -> r
 homflyPolynomial = evaluateSkeinRelation $
-	HomflyRelation
-		(monomial 1 "a" 1) (monomial 1 "a" (-1))
-		(monomial 1 "z" 1) (monomial 1 "z" (-1))
+    HomflyRelation
+        (monomial 1 "a" 1) (monomial 1 "a" (-1))
+        (monomial 1 "z" 1) (monomial 1 "z" (-1))

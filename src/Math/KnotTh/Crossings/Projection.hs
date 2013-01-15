@@ -1,10 +1,10 @@
 module Math.KnotTh.Crossings.Projection
-	( ProjectionCrossing(..)
-	, ProjectionCrossingState
-	, projectionCrossing
-	, projectionCrossings
-	, projection
-	) where
+    ( ProjectionCrossing(..)
+    , ProjectionCrossingState
+    , projectionCrossing
+    , projectionCrossings
+    , projection
+    ) where
 
 import Data.Char (isSpace)
 import Control.DeepSeq
@@ -19,22 +19,22 @@ instance NFData ProjectionCrossing
 
 
 instance CrossingType ProjectionCrossing where
-	localCrossingSymmetry _ = subGroupD4
+    localCrossingSymmetry _ = subGroupD4
 
-	possibleOrientations _ _ = projectionCrossings
+    possibleOrientations _ _ = projectionCrossings
 
 
 instance ThreadedCrossing ProjectionCrossing
 
 
 instance Show ProjectionCrossing where
-	show _ = "+"
+    show _ = "+"
 
 
 instance Read ProjectionCrossing where
-	readsPrec _ s = case dropWhile isSpace s of
-		'+' : t -> [(ProjectionCrossing, t)]
-		_       -> []
+    readsPrec _ s = case dropWhile isSpace s of
+        '+' : t -> [(ProjectionCrossing, t)]
+        _       -> []
 
 
 type ProjectionCrossingState = CrossingState ProjectionCrossing

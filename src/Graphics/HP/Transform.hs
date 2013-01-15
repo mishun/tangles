@@ -1,25 +1,24 @@
 module Graphics.HP.Transform
-	(
-	  Transform
-	, identity
-	, scaled
-	, xscaled
-	, yscaled
-	, zscaled
-	, shifted
-	, rotated
-	, slanted
-	, xPart
-	, yPart
-	, xxPart
-	, xyPart
-	, yxPart
-	, yyPart
-	, composite
-	, transform
-	, inverse
-	, transformPoint
-	) where
+    ( Transform
+    , identity
+    , scaled
+    , xscaled
+    , yscaled
+    , zscaled
+    , shifted
+    , rotated
+    , slanted
+    , xPart
+    , yPart
+    , xxPart
+    , xyPart
+    , yxPart
+    , yyPart
+    , composite
+    , transform
+    , inverse
+    , transformPoint
+    ) where
 
 
 type ProjVector = (Double, Double, Double)
@@ -36,26 +35,26 @@ applyMatrix (rowX, rowY, rowZ) v = (dot rowX v, dot rowY v, dot rowZ v)
 
 compositeMatrix :: ProjMatrix -> ProjMatrix -> ProjMatrix
 compositeMatrix (rowX, rowY, rowZ) ((xx, xy, xz), (yx, yy, yz), (zx, zy, zz)) = (rx, ry, rz)
-	where
-		colX = (xx, yx, zx)
-		colY = (xy, yy, zy)
-		colZ = (xz, yz, zz)
+    where
+        colX = (xx, yx, zx)
+        colY = (xy, yy, zy)
+        colZ = (xz, yz, zz)
 
-		rx = (dot rowX colX, dot rowX colY, dot rowX colZ)
-		ry = (dot rowY colX, dot rowY colY, dot rowY colZ)
-		rz = (dot rowZ colX, dot rowZ colY, dot rowZ colZ)
+        rx = (dot rowX colX, dot rowX colY, dot rowX colZ)
+        ry = (dot rowY colX, dot rowY colY, dot rowY colZ)
+        rz = (dot rowZ colX, dot rowZ colY, dot rowZ colZ)
 
 
 inverseMatrix :: ProjMatrix -> ProjMatrix
 inverseMatrix ((xx, xy, xz), (yx, yy, yz), (zx, zy, zz)) =
-	(
-		((yy * zz - yz * zy) / det, (xz * zy - xy * zz) / det, (xy * yz - xz * yy) / det),
-		((yz * zx - yx * zz) / det, (xx * zz - xz * zx) / det, (xz * yx - xx * yz) / det),
-		((yx * zy - yy * zx) / det, (xy * zx - xx * zy) / det, (xx * yy - xy * yx) / det)
-	)
+    (
+        ((yy * zz - yz * zy) / det, (xz * zy - xy * zz) / det, (xy * yz - xz * yy) / det),
+        ((yz * zx - yx * zz) / det, (xx * zz - xz * zx) / det, (xz * yx - xx * yz) / det),
+        ((yx * zy - yy * zx) / det, (xy * zx - xx * zy) / det, (xx * yy - xy * yx) / det)
+    )
 
-	where
-		det = xx * yy * zz + xy * yz * zx + xz * yx * zy - xx * yz * zy - xy * yx * zz - xz * yy * zx
+    where
+        det = xx * yy * zz + xy * yz * zx + xz * yx * zy - xx * yz * zy - xy * yx * zz - xz * yy * zx
 
 
 data Transform = Transform ProjMatrix deriving (Eq, Show)
@@ -87,10 +86,10 @@ shifted (x, y) = Transform ((1, 0, x), (0, 1, y), (0, 0, 1))
 
 rotated :: Double -> Transform
 rotated angleDeg = Transform ((c, -s, 0), (s, c, 0), (0, 0, 1))
-	where
-		angle = pi * angleDeg / 180
-		c = cos(angle)
-		s = sin(angle)
+    where
+        angle = pi * angleDeg / 180
+        c = cos(angle)
+        s = sin(angle)
 
 
 slanted :: Double -> Transform
@@ -135,5 +134,5 @@ inverse (Transform t) = Transform $ inverseMatrix t
 
 transformPoint :: Transform -> (Double, Double) -> (Double, Double)
 transformPoint (Transform m) (x, y) = (rx / rz, ry / rz)
-	where
-		(rx, ry, rz) = applyMatrix m (x, y, 1)
+    where
+        (rx, ry, rz) = applyMatrix m (x, y, 1)

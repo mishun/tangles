@@ -1,10 +1,10 @@
 module Math.KnotTh.Link.NonAlternating
-	( module Math.KnotTh.Crossings.Arbitrary
-	, module Math.KnotTh.Link
-	, NonAlternatingLink
-	, NonAlternatingCrossing
-	, NonAlternatingDart
-	) where
+    ( module Math.KnotTh.Crossings.Arbitrary
+    , module Math.KnotTh.Link
+    , NonAlternatingLink
+    , NonAlternatingCrossing
+    , NonAlternatingDart
+    ) where
 
 import Math.KnotTh.Crossings.Arbitrary
 import Math.KnotTh.Link

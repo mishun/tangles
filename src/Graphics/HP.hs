@@ -1,77 +1,75 @@
 module Graphics.HP
-	(
-	-- Color
-	  Color
-	, toRGB
-	, fromRGB
-	, interpolate
-	, white
-	, black
-	, red
-	, green
-	, blue
-	, magenta
-	, yellow
-	, lightBlue
-	, orange
-	, purple
-	, brown
-	, darkGreen
-	, grey
+    ( Color
+    , toRGB
+    , fromRGB
+    , interpolate
+    , white
+    , black
+    , red
+    , green
+    , blue
+    , magenta
+    , yellow
+    , lightBlue
+    , orange
+    , purple
+    , brown
+    , darkGreen
+    , grey
 
-	-- DrawContext
-	, DrawContext
-	, withColor
-	, withLineWidth
-	, dashedEvenly
+    -- DrawContext
+    , DrawContext
+    , withColor
+    , withLineWidth
+    , dashedEvenly
 
-	-- Image
-	, Image
-	, stroke
-	, stroke_
-	, fill
-	, fill_
-	, also
-	, image
-	, transformed
-	, drawOptions
-	, appendTransform
-	, setTransform
+    -- Image
+    , Image
+    , stroke
+    , stroke_
+    , fill
+    , fill_
+    , also
+    , image
+    , transformed
+    , drawOptions
+    , appendTransform
+    , setTransform
 
-	-- MetaPost
-	, writeMetaPostFile
-	, toMetaPost
+    -- MetaPost
+    , writeMetaPostFile
+    , toMetaPost
 
-	-- Path
-	, module Graphics.HP.Path
+    -- Path
+    , module Graphics.HP.Path
 
-	-- PostScript
-	, writePostScriptFile
-	, toPostScript
+    -- PostScript
+    , writePostScriptFile
+    , toPostScript
 
-	-- Transform
-	, Transform
-	, identity
-	, scaled
-	, xscaled
-	, yscaled
-	, zscaled
-	, shifted
-	, rotated
-	, slanted
-	, xPart
-	, yPart
-	, xxPart
-	, xyPart
-	, yxPart
-	, yyPart
-	, transform
+    -- Transform
+    , Transform
+    , identity
+    , scaled
+    , xscaled
+    , yscaled
+    , zscaled
+    , shifted
+    , rotated
+    , slanted
+    , xPart
+    , yPart
+    , xxPart
+    , xyPart
+    , yxPart
+    , yyPart
+    , transform
 
-	-- Units
-	, pt
-	, mm
-	, cm
-	) where
+    -- Units
+    , pt
+    , mm
+    , cm
+    ) where
 
 import Graphics.HP.Color
 import Graphics.HP.DrawContext

@@ -1,13 +1,13 @@
 module Math.Algebra.RotationDirection
-	( RotationDirection
-	, cw
-	, ccw
-	, isCounterClockwise
-	, isClockwise
-	, bothDirections
-	, directionSign
-	, oppositeDirection
-	) where
+    ( RotationDirection
+    , cw
+    , ccw
+    , isCounterClockwise
+    , isClockwise
+    , bothDirections
+    , directionSign
+    , oppositeDirection
+    ) where
 
 newtype RotationDirection = RD Int deriving (Eq, Ord)
 

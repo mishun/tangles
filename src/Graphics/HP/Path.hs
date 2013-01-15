@@ -1,18 +1,17 @@
 module Graphics.HP.Path
-	(
-	  CheckPoint(..)
-	, Path(..)
-	, isClosed
-	, closePath
-	, chain
-	, circumference
+    ( CheckPoint(..)
+    , Path(..)
+    , isClosed
+    , closePath
+    , chain
+    , circumference
 
---	, transformPath
+--    , transformPath
 
-	, scalePoint
-	, shiftPoint
---	, pathLength
-	) where
+    , scalePoint
+    , shiftPoint
+--    , pathLength
+    ) where
 
 --import Data.List as List
 
@@ -26,15 +25,15 @@ data Path = SimplePath [CheckPoint] | ClosedPath Path | Circumference deriving (
 
 isClosed :: Path -> Bool
 isClosed path = case path of
-	(ClosedPath _) -> True
-	Circumference  -> True
-	_ -> False
+    (ClosedPath _) -> True
+    Circumference  -> True
+    _ -> False
 
 
 closePath :: Path -> Path
 closePath path
-	| isClosed path  = path
-	| otherwise      = ClosedPath path
+    | isClosed path  = path
+    | otherwise      = ClosedPath path
 
 
 chain :: [(Double, Double)] -> Path
@@ -61,11 +60,11 @@ shiftPoint (dx, dy) (x, y) = (x + dx, y + dy)
 {-pathLength :: Path -> Double
 pathLength (ClosedPath path) = pathLength path
 pathLength (SimplePath cp) = List.sum $ map (\ (a, b) -> dist a b) $ zip points (tail points)
-	where
-		points = map (\ (CheckPoint p) -> p) cp
+    where
+        points = map (\ (CheckPoint p) -> p) cp
 
-		dist (x1, y1) (x2, y2) = sqrt $ dx * dx + dy * dy
-			where
-				dx = x2 - x1
-				dy = y2 - y1
+        dist (x1, y1) (x2, y2) = sqrt $ dx * dx + dy * dy
+            where
+                dx = x2 - x1
+                dy = y2 - y1
 -}

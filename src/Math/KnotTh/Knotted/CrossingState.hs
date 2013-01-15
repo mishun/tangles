@@ -1,10 +1,10 @@
 module Math.KnotTh.Knotted.CrossingState
-	( crossingTypeInside
-	, isCrossingOrientationInvertedInside
-	, crossingLegIdByDart
-	, dartByCrossingLegId
-	, makeCrossing'
-	) where
+    ( crossingTypeInside
+    , isCrossingOrientationInvertedInside
+    , crossingLegIdByDart
+    , dartByCrossingLegId
+    , makeCrossing'
+    ) where
 
 import Math.Algebra.Group.D4 (i)
 import Math.KnotTh.Knotted.Knotted

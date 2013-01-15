@@ -1,20 +1,19 @@
 module Graphics.HP.DrawContext
-	(
-	  DrawContext
-	, DashType(..)
+    ( DrawContext
+    , DashType(..)
 
-	, drawColor
-	, drawLineWidth
-	, dashType
+    , drawColor
+    , drawLineWidth
+    , dashType
 
-	, emptyContext
-	, defaultContext
-	, withColor
-	, withLineWidth
-	, dashedEvenly
+    , emptyContext
+    , defaultContext
+    , withColor
+    , withLineWidth
+    , dashedEvenly
 
-	, aggregateContexts
-	) where
+    , aggregateContexts
+    ) where
 
 import Data.Maybe
 import Graphics.HP.Color
@@ -23,13 +22,13 @@ import Graphics.HP.Color
 data DashType = DashedSolid | DashedEvenly deriving (Eq, Show)
 
 data DrawContext =
-	Context
-	{
-		drawColor     :: Maybe Color,
-		drawLineWidth :: Maybe (Double, Bool),
-		dashType      :: Maybe DashType
-	}
-	deriving (Eq, Show)
+    Context
+    {
+        drawColor     :: Maybe Color,
+        drawLineWidth :: Maybe (Double, Bool),
+        dashType      :: Maybe DashType
+    }
+    deriving (Eq, Show)
 
 
 emptyContext :: DrawContext
@@ -58,16 +57,16 @@ aggregateContexts = foldr contextsSum emptyContext
 
 contextsSum :: DrawContext -> DrawContext -> DrawContext
 contextsSum a b = Context color width dash
-	where
-		color = sumWith drawColor
-		width = sumWith drawLineWidth
-		dash = sumWith dashType
+    where
+        color = sumWith drawColor
+        width = sumWith drawLineWidth
+        dash = sumWith dashType
 
-		sumWith f =
-			if isJust fb
-				then fb
-				else fa
+        sumWith f =
+            if isJust fb
+                then fb
+                else fa
 
-			where
-				fa = f a
-				fb = f b
+            where
+                fa = f a
+                fb = f b

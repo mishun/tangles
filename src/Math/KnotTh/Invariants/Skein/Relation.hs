@@ -1,6 +1,6 @@
 module Math.KnotTh.Invariants.Skein.Relation
-	( SkeinRelation(..)
-	) where
+    ( SkeinRelation(..)
+    ) where
 
 import Math.KnotTh.Knotted
 import Math.KnotTh.Crossings.Arbitrary
@@ -12,10 +12,10 @@ import Math.KnotTh.Invariants.Skein.StateSum
 --    /        \         ||        =
 --   / \      / \       /  \      / \
 class (Ord a, Num a, Show a) => SkeinRelation r a | r -> a where
-	initialLplus       :: r -> InitialSum a
-	circleFactor       :: r -> a
-	twistPFactor       :: r -> a
-	twistNFactor       :: r -> a
-	finalNormalization :: (Knotted k c d, Eq (d ArbitraryCrossing)) => r -> k ArbitraryCrossing -> a -> a
+    initialLplus       :: r -> InitialSum a
+    circleFactor       :: r -> a
+    twistPFactor       :: r -> a
+    twistNFactor       :: r -> a
+    finalNormalization :: (Knotted k c d, Eq (d ArbitraryCrossing)) => r -> k ArbitraryCrossing -> a -> a
 
-	finalNormalization _ _ = id
+    finalNormalization _ _ = id

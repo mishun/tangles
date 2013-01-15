@@ -1,18 +1,16 @@
 module Graphics.HP.Image
-	(
-	  Image(..)
-
-	, stroke
-	, stroke_
-	, fill
-	, fill_
-	, also
-	, image
-	, transformed
-	, drawOptions
-	, appendTransform
-	, setTransform
-	) where
+    ( Image(..)
+    , stroke
+    , stroke_
+    , fill
+    , fill_
+    , also
+    , image
+    , transformed
+    , drawOptions
+    , appendTransform
+    , setTransform
+    ) where
 
 import qualified Control.Monad as Monad
 import Graphics.HP.ImageBody
@@ -24,19 +22,19 @@ import Graphics.HP.Transform
 data Image v = Image ImageBody v deriving (Show)
 
 instance Monad.Functor Image where
-	fmap f (Image img v) = Image img $ f v
+    fmap f (Image img v) = Image img $ f v
 
 
 instance Monad.Monad Image where
-	(>>=) (Image imageA a) f = Image (mergeImages imageA imageB) b
-		where
-			(Image imageB b) = f a
+    (>>=) (Image imageA a) f = Image (mergeImages imageA imageB) b
+        where
+            (Image imageB b) = f a
 
-	(>>) (Image imageA _) (Image imageB b) = Image (mergeImages imageA imageB) b
+    (>>) (Image imageA _) (Image imageB b) = Image (mergeImages imageA imageB) b
 
-	return v = Image nullImage v
+    return v = Image nullImage v
 
-	fail msg = error msg
+    fail msg = error msg
 
 
 stroke :: [DrawContext] -> Path -> Image ()
@@ -65,8 +63,8 @@ image (Image img ()) = Image (makeAlso emptyContext identity img) ()
 
 transformed :: [Transform] -> Image () -> Image ()
 transformed transList (Image img ()) = Image (makeAlso emptyContext trans img) ()
-	where
-		trans = transform transList
+    where
+        trans = transform transList
 
 
 drawOptions :: [DrawContext] -> Image ()

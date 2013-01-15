@@ -1,8 +1,8 @@
 module Math.KnotTh.Tangle.Def.Util
-	( firstLeg
-	, lastLeg
-	, allLegOpposites
-	) where
+    ( firstLeg
+    , lastLeg
+    , allLegOpposites
+    ) where
 
 import Math.KnotTh.Tangle.Def.Tangle
 
