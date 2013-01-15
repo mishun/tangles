@@ -105,8 +105,6 @@ codeWithDirection !dir tangle = minimum $ map code $ allLegs tangle
                     forM_ notVisited $ \ !i -> unsafeWrite index i 0
                     void $ look d
                     LT <- bfs LT (tail - 1)
-
-                    --fail "codeWithDirection: disconnected diagram (not implemented)"
                     recheck
 
             return $! rc
