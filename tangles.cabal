@@ -10,6 +10,7 @@ description:        See http://arxiv.org/abs/0712.3859
 category:           Math
 build-type:         Simple
 cabal-version:      >=1.14
+homepage:           http://github.com/mishun/tangles/
 
 source-repository head
     type:     git
@@ -44,112 +45,112 @@ library
         ext/gsl-1.15/include/
         src/
     exposed-modules:
-        Graphics.HP
-        Math.Algebra.Group.D4
-        Math.Algebra.Group.Dn
-        Math.Algebra.RotationDirection
-        Math.Combinatorics.ChordDiagrams.Generator
-        Math.Combinatorics.Strings.Lyndon
-        Math.KnotTh.Crossings.Arbitrary
-        Math.KnotTh.Crossings.Projection
-        Math.KnotTh.Crossings.SubTangle
-        Math.KnotTh.Draw.DrawKnot
-        Math.KnotTh.Enumeration.Applied.NonAlternatingTangles
-        Math.KnotTh.Enumeration.DiagramInfo
-        Math.KnotTh.Enumeration.DiagramInfo.AllDiagramsInfo
-        Math.KnotTh.Enumeration.DiagramInfo.MinimalDiagramInfo
-        Math.KnotTh.Enumeration.EquivalenceClasses
-        Math.KnotTh.Enumeration.SiftByInvariant
-        Math.KnotTh.Invariants.HomflyPolynomial
-        Math.KnotTh.Invariants.JonesPolynomial
-        Math.KnotTh.Invariants.KauffmanFPolynomial
-        Math.KnotTh.Invariants.LinkingNumber
-        Math.KnotTh.Invariants.Util.ThreadExpansion
-        Math.KnotTh.Knotted
-        Math.KnotTh.Link
-        Math.KnotTh.Link.FromTangle
-        Math.KnotTh.Link.GaussCode
-        Math.KnotTh.Link.Table
-        Math.KnotTh.Link.NonAlternating
-        Math.KnotTh.Link.Projection
-        Math.KnotTh.SurfaceLink
-        Math.KnotTh.SurfaceLink.FromTangle
-        Math.KnotTh.SurfaceLink.IsomorphismTest
-        Math.KnotTh.SurfaceLink.NonAlternating
-        Math.KnotTh.SurfaceLink.Projection
-        Math.KnotTh.Tangle
-        Math.KnotTh.Tangle.BorderIncremental.FlypeGenerator
-        Math.KnotTh.Tangle.BorderIncremental.IncrementalGluing
-        Math.KnotTh.Tangle.BorderIncremental.IncrementalTests
-        Math.KnotTh.Tangle.BorderIncremental.RootingTest
-        Math.KnotTh.Tangle.BorderIncremental.SimpleTypes
-        Math.KnotTh.Tangle.CascadeCode
-        Math.KnotTh.Tangle.Flypes
-        Math.KnotTh.Tangle.IsomorphismTest
-        Math.KnotTh.Tangle.NonAlternating
-        Math.KnotTh.Tangle.NonAlternating.TwistedDouble
-        Math.KnotTh.Tangle.Moves.DoublePass
-        Math.KnotTh.Tangle.Moves.Flype
-        Math.KnotTh.Tangle.Moves.Move
-        Math.KnotTh.Tangle.Moves.Pass
-        Math.KnotTh.Tangle.Moves.ReidemeisterIII
-        Math.KnotTh.Tangle.Moves.ReidemeisterReduction
-        Math.KnotTh.Tangle.Moves.Weak
-        Math.KnotTh.Tangle.Projection
-        Math.KnotTh.Tangle.Table
-        Math.Manifolds.SurfaceGraph
-        Math.Manifolds.SurfaceGraph.Embedding
-        Math.Manifolds.SurfaceGraph.SphereStar
+        Graphics.HP,
+        Math.Algebra.Group.D4,
+        Math.Algebra.Group.Dn,
+        Math.Algebra.RotationDirection,
+        Math.Combinatorics.ChordDiagrams.Generator,
+        Math.Combinatorics.Strings.Lyndon,
+        Math.KnotTh.Crossings.Arbitrary,
+        Math.KnotTh.Crossings.Projection,
+        Math.KnotTh.Crossings.SubTangle,
+        Math.KnotTh.Draw.DrawKnot,
+        Math.KnotTh.Enumeration.Applied.NonAlternatingTangles,
+        Math.KnotTh.Enumeration.DiagramInfo,
+        Math.KnotTh.Enumeration.DiagramInfo.AllDiagramsInfo,
+        Math.KnotTh.Enumeration.DiagramInfo.MinimalDiagramInfo,
+        Math.KnotTh.Enumeration.EquivalenceClasses,
+        Math.KnotTh.Enumeration.SiftByInvariant,
+        Math.KnotTh.Invariants.HomflyPolynomial,
+        Math.KnotTh.Invariants.JonesPolynomial,
+        Math.KnotTh.Invariants.KauffmanFPolynomial,
+        Math.KnotTh.Invariants.LinkingNumber,
+        Math.KnotTh.Invariants.Util.ThreadExpansion,
+        Math.KnotTh.Knotted,
+        Math.KnotTh.Link,
+        Math.KnotTh.Link.FromTangle,
+        Math.KnotTh.Link.GaussCode,
+        Math.KnotTh.Link.Table,
+        Math.KnotTh.Link.NonAlternating,
+        Math.KnotTh.Link.Projection,
+        Math.KnotTh.SurfaceLink,
+        Math.KnotTh.SurfaceLink.FromTangle,
+        Math.KnotTh.SurfaceLink.IsomorphismTest,
+        Math.KnotTh.SurfaceLink.NonAlternating,
+        Math.KnotTh.SurfaceLink.Projection,
+        Math.KnotTh.Tangle,
+        Math.KnotTh.Tangle.BorderIncremental.FlypeGenerator,
+        Math.KnotTh.Tangle.BorderIncremental.IncrementalGluing,
+        Math.KnotTh.Tangle.BorderIncremental.IncrementalTests,
+        Math.KnotTh.Tangle.BorderIncremental.RootingTest,
+        Math.KnotTh.Tangle.BorderIncremental.SimpleTypes,
+        Math.KnotTh.Tangle.CascadeCode,
+        Math.KnotTh.Tangle.Flypes,
+        Math.KnotTh.Tangle.IsomorphismTest,
+        Math.KnotTh.Tangle.NonAlternating,
+        Math.KnotTh.Tangle.NonAlternating.TwistedDouble,
+        Math.KnotTh.Tangle.Moves.DoublePass,
+        Math.KnotTh.Tangle.Moves.Flype,
+        Math.KnotTh.Tangle.Moves.Move,
+        Math.KnotTh.Tangle.Moves.Pass,
+        Math.KnotTh.Tangle.Moves.ReidemeisterIII,
+        Math.KnotTh.Tangle.Moves.ReidemeisterReduction,
+        Math.KnotTh.Tangle.Moves.Weak,
+        Math.KnotTh.Tangle.Projection,
+        Math.KnotTh.Tangle.Table,
+        Math.Manifolds.SurfaceGraph,
+        Math.Manifolds.SurfaceGraph.Embedding,
+        Math.Manifolds.SurfaceGraph.SphereStar,
         Math.Manifolds.SurfaceGraph.Util
     other-modules:
-        Graphics.HP.Color
-        Graphics.HP.DrawContext
-        Graphics.HP.Image
-        Graphics.HP.ImageBody
-        Graphics.HP.MetaPost
-        Graphics.HP.Path
-        Graphics.HP.PostScript
-        Graphics.HP.PostScript.Context
-        Graphics.HP.PostScript.Path
-        Graphics.HP.PostScript.Transform
-        Graphics.HP.Transform
-        Graphics.HP.Units
-        Math.KnotTh.Invariants.Skein.Applied
-        Math.KnotTh.Invariants.Skein.Knotted
-        Math.KnotTh.Invariants.Skein.Relation
-        Math.KnotTh.Invariants.Skein.SkeinM
-        Math.KnotTh.Invariants.Skein.SkeinM.ContractEdge
-        Math.KnotTh.Invariants.Skein.SkeinM.Reduction
-        Math.KnotTh.Invariants.Skein.SkeinM.RelaxVertex
-        Math.KnotTh.Invariants.Skein.SkeinM.State
-        Math.KnotTh.Invariants.Skein.StateSum
-        Math.KnotTh.Invariants.Util.BruteForceMinimization
-        Math.KnotTh.Knotted.CrossingState
-        Math.KnotTh.Knotted.Knotted
-        Math.KnotTh.Knotted.KnottedWithAccel
-        Math.KnotTh.Knotted.KnottedWithConnectivity
-        Math.KnotTh.Knotted.KnottedWithToPair
-        Math.KnotTh.Knotted.SurfaceKnotted
-        Math.KnotTh.Knotted.TH.Knotted
-        Math.KnotTh.Knotted.TH.Show
-        Math.KnotTh.Knotted.Threads
-        Math.KnotTh.Knotted.Util
-        Math.KnotTh.Link.Table.Access
-        Math.KnotTh.Link.Table.List
-        Math.KnotTh.Link.Table.Special
-        Math.KnotTh.Tangle.Def.Construction
-        Math.KnotTh.Tangle.Def.Tangle
-        Math.KnotTh.Tangle.Def.Util
-        Math.KnotTh.Tangle.Moves.Resting
+        Graphics.HP.Color,
+        Graphics.HP.DrawContext,
+        Graphics.HP.Image,
+        Graphics.HP.ImageBody,
+        Graphics.HP.MetaPost,
+        Graphics.HP.Path,
+        Graphics.HP.PostScript,
+        Graphics.HP.PostScript.Context,
+        Graphics.HP.PostScript.Path,
+        Graphics.HP.PostScript.Transform,
+        Graphics.HP.Transform,
+        Graphics.HP.Units,
+        Math.KnotTh.Invariants.Skein.Applied,
+        Math.KnotTh.Invariants.Skein.Knotted,
+        Math.KnotTh.Invariants.Skein.Relation,
+        Math.KnotTh.Invariants.Skein.SkeinM,
+        Math.KnotTh.Invariants.Skein.SkeinM.ContractEdge,
+        Math.KnotTh.Invariants.Skein.SkeinM.Reduction,
+        Math.KnotTh.Invariants.Skein.SkeinM.RelaxVertex,
+        Math.KnotTh.Invariants.Skein.SkeinM.State,
+        Math.KnotTh.Invariants.Skein.StateSum,
+        Math.KnotTh.Invariants.Util.BruteForceMinimization,
+        Math.KnotTh.Knotted.CrossingState,
+        Math.KnotTh.Knotted.Knotted,
+        Math.KnotTh.Knotted.KnottedWithAccel,
+        Math.KnotTh.Knotted.KnottedWithConnectivity,
+        Math.KnotTh.Knotted.KnottedWithToPair,
+        Math.KnotTh.Knotted.SurfaceKnotted,
+        Math.KnotTh.Knotted.TH.Knotted,
+        Math.KnotTh.Knotted.TH.Show,
+        Math.KnotTh.Knotted.Threads,
+        Math.KnotTh.Knotted.Util,
+        Math.KnotTh.Link.Table.Access,
+        Math.KnotTh.Link.Table.List,
+        Math.KnotTh.Link.Table.Special,
+        Math.KnotTh.Tangle.Def.Construction,
+        Math.KnotTh.Tangle.Def.Tangle,
+        Math.KnotTh.Tangle.Def.Util,
+        Math.KnotTh.Tangle.Moves.Resting,
         Math.Manifolds.SurfaceGraph.Embedding.Optimization
     if flag(test-modules)
         build-depends:      HUnit
         exposed-modules:
-            Math.Combinatorics.ChordDiagrams.Test
-            Math.KnotTh.Enumeration.Applied.Test
-            Math.KnotTh.Invariants.Test
-            Math.KnotTh.Tangle.BorderIncremental.Test
-            Math.KnotTh.Tangle.Moves.Test
+            Math.Combinatorics.ChordDiagrams.Test,
+            Math.KnotTh.Enumeration.Applied.Test,
+            Math.KnotTh.Invariants.Test,
+            Math.KnotTh.Tangle.BorderIncremental.Test,
+            Math.KnotTh.Tangle.Moves.Test,
             Math.KnotTh.Tangle.Test
 
 test-suite TestTangles
@@ -170,7 +171,7 @@ benchmark GraphDrawingBenchmark
     type:               exitcode-stdio-1.0
     default-language:   Haskell2010
     default-extensions: BangPatterns
-    ghc-options:        -O -threaded
+    ghc-options:        -threaded
     ghc-prof-options:   -rtsopts -prof -auto-all -caf-all
     ld-options:         -static
     build-depends:      base, array, tangles
@@ -184,7 +185,7 @@ benchmark TangleGeneratorBenchmark
     type:               exitcode-stdio-1.0
     default-language:   Haskell2010
     default-extensions: BangPatterns
-    ghc-options:        -O -threaded
+    ghc-options:        -threaded
     ghc-prof-options:   -rtsopts -prof -auto-all -caf-all
     ld-options:         -static
     build-depends:      base, mtl, containers, tangles
@@ -198,7 +199,7 @@ benchmark NonAlternatingBenchmark
     type:               exitcode-stdio-1.0
     default-language:   Haskell2010
     default-extensions: BangPatterns
-    ghc-options:        -O -threaded
+    ghc-options:        -threaded
     ghc-prof-options:   -rtsopts -prof -auto-all -caf-all
     ld-options:         -static
     build-depends:      base, mtl, containers, tangles
