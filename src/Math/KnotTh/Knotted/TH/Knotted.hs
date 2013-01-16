@@ -77,6 +77,8 @@ produceKnotted knotPattern inst = flip execStateT [] $ do
     let dartKnotN = mkName $ "dart" ++ nameBase knotTN
     let crosKnotN = mkName $ "crossing" ++ nameBase knotTN
 
+    let nameL = litE $ stringL $ nameBase knotTN
+
     let loopsCount = mkName "loopsCount"
     let crossCount = mkName "crossCount"
     let stateArray = mkName "stateArray"
@@ -345,7 +347,11 @@ produceKnotted knotPattern inst = flip execStateT [] $ do
     declare $ funD (mkName "changeNumberOfFreeLoops") $ (:[]) $ do
         loops <- newName "loops"
         knot <- newName "knot"
-        clause [varP knot, varP loops] (normalB $ recUpdE (varE knot) [(,) loopsCount `fmap` varE loops]) []
+        clause [varP knot, varP loops] (normalB
+            [|  if $(varE loops) >= (0 :: Int)
+                    then $(recUpdE (varE knot) [(,) loopsCount `fmap` varE loops])
+                    else error "changeNumberOfFreeLoops: number of free loops %i is negative" $(varE loops)
+            |]) []
 
     maybeM (implodeExplodeSettings inst) $ \ ies -> do
         declare $ do
@@ -357,10 +363,12 @@ produceKnotted knotPattern inst = flip execStateT [] $ do
             arg <- newName "arg"
             loops <- newName "loops"
             list <- newName "list"
+
             clause [asP arg $ tupP [bangP $ varP loops, bangP $ varP list]] (normalB [|
                 runST $ do
                     when ($(varE loops) < (0 :: Int)) $ fail $
-                        printf "implode: number of free loops is negative (%i)" $(varE loops)
+                        printf "%s.implode: number of free loops %i is negative at %s"
+                            $nameL $(varE loops) (show $(varE arg))
 
                     let n = length $(varE list)
                     cr <- newArray_ (0, 4 * n - 1) :: ST s (STUArray s Int Int)
@@ -368,28 +376,37 @@ produceKnotted knotPattern inst = flip execStateT [] $ do
 
                     forM_ (zip $(varE list) [0 ..]) $ \ ((!ns, !state), !i) -> do
                         unsafeWrite st i state
-                        when (length ns /= 4) $ fail $
-                            printf "implode: there must be 4 neighbours for every crossing, but found %i at %i" (length ns) (i + 1)
-                        forM_ (zip ns [0 ..]) $ \ ((!c, !p), !j) -> do
-                            when (c < 1 || c > n || p < 0 || p > 3) $ fail "implode: out of bound"
-                            let a = 4 * i + j
-                            let b = 4 * (c - 1) + p
-                            when (a == b) $ fail $
-                                printf "implode: dart (%i, %i) connected to itself in %s" (i + 1) j (show $(varE arg))
-                            unsafeWrite cr a b
-                            when (b < a) $ do
-                                x <- unsafeRead cr b
-                                when (x /= a) $ fail $
-                                    printf "implode: unconsistent data in %s" (show $(varE arg))
+                        case ns of
+                            [p0, p1, p2, p3] ->
+                                forM_ [(p0, 0), (p1, 1), (p2, 2), (p3, 3)] $ \ ((!c, !p), !j) -> do
+                                    let a = 4 * i + j
+                                    let b | c < 1 || c > n  = error $ printf "%s.implode: crossing index %i is out of bounds at %s" $nameL c (show $(varE arg))
+                                          | p < 0 || p > 3  = error $ printf "%s.implode: place index %i is out of bounds at %s" $nameL p (show $(varE arg))
+                                          | otherwise       = 4 * (c - 1) + p
+
+                                    when (a == b) $ fail $
+                                        printf "%s.implode: dart (%i, %i) connected to itself at %s"
+                                            $nameL (i + 1) j (show $(varE arg))
+
+                                    unsafeWrite cr a b
+                                    when (b < a) $ do
+                                        x <- unsafeRead cr b
+                                        when (x /= a) $ fail $
+                                            printf "%s.implode: unconsistent data at %s"
+                                                $nameL (show $(varE arg))
+
+                            _                -> fail $
+                                printf "%s.implode: there must be 4 neighbours for every crossing, but found %i for %i-th at %s"
+                                    $nameL (length ns) (i + 1) (show $(varE arg))
 
                     cr' <- unsafeFreeze cr
                     st' <- unsafeFreeze st
 
                     $(doE $ implodeExtra ies ++
                         [ noBindS $ [| return $! $(recConE knotCN $
-                            [ (,) crossCount `fmap` [|n|]
-                            , (,) crossArray `fmap` [|cr'|]
-                            , (,) stateArray `fmap` [|st'|]
+                            [ (,) crossCount `fmap` [| n |]
+                            , (,) crossArray `fmap` [| cr' |]
+                            , (,) stateArray `fmap` [| st' |]
                             , (,) loopsCount `fmap` varE loops
                             ] ++ implodeInitializers ies)
                         |] ])

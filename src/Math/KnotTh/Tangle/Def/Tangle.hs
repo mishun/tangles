@@ -39,46 +39,45 @@ produceKnotted
     in defaultKnotted
         { implodeExplodeSettings = Nothing
 
-        , modifyNumberOfEdges = Just $ \ t _ -> [|
-            2 * (numberOfCrossings $(t)) + ($(numberOfLegs) $(t) `div` 2)
+        , modifyNumberOfEdges = Just $ \ t _ ->
+            [| 2 * (numberOfCrossings $(t)) + ($(numberOfLegs) $(t) `div` 2) |]
+
+        , modifyIsDart = Just $ \ (t, i) ->
+            [| $(i) < 4 * numberOfCrossings $(t) |]
+
+        , modifyNextCCW = Just $ \ (t, d) e ->
+            [|  let n = (4 :: Int) * numberOfCrossings $(t)
+                in if $(d) >= n
+                    then $(dart) $(t) $! n + ($(d) - n + 1) `mod` ($(numberOfLegs) $(t))
+                    else $(e)
             |]
 
-        , modifyIsDart = Just $ \ (t, i) -> [|
-            $(i) < 4 * numberOfCrossings $(t)
+        , modifyNextCW = Just $ \ (t, d) e ->
+            [|  let n = (4 :: Int) * numberOfCrossings $(t)
+                in if $(d) >= n
+                    then $(dart) $(t) $! n + ($(d) - n - 1) `mod` ($(numberOfLegs) $(t))
+                    else $(e)
             |]
 
-        , modifyNextCCW = Just $ \ (t, d) e -> [|
-            let n = (4 :: Int) * numberOfCrossings $(t)
-            in if $(d) >= n
-                then $(dart) $(t) $! n + ($(d) - n + 1) `mod` ($(numberOfLegs) $(t))
-                else $(e)
+        , modifyDartPlace = Just $ \ (t, d) e ->
+            [|  let n = (4 :: Int) * numberOfCrossings $(t)
+                in if $(d) >= n
+                    then error $ printf "dartPlace: taken from %i-th leg" ($(d) - n)
+                    else $(e)
             |]
 
-        , modifyNextCW = Just $ \ (t, d) e -> [|
-            let n = (4 :: Int) * numberOfCrossings $(t)
-            in if $(d) >= n
-                then $(dart) $(t) $! n + ($(d) - n - 1) `mod` ($(numberOfLegs) $(t))
-                else $(e)
+        , modifyIncidentCrossing = Just $ \ (t, d) e ->
+            [|  let n = (4 :: Int) * numberOfCrossings $(t)
+                in if $(d) >= n
+                    then error $ printf "incidentCrossing: taken from %i-th leg" ($(d) - n)
+                    else $(e)
             |]
 
-        , modifyDartPlace = Just $ \ (t, d) e -> [|
-            let n = (4 :: Int) * numberOfCrossings $(t)
-            in if $(d) >= n
-                then error $ printf "dartPlace: taken from %i-th leg" ($(d) - n)
-                else $(e)
-            |]
-
-        , modifyIncidentCrossing = Just $ \ (t, d) e -> [|
-            let n = (4 :: Int) * numberOfCrossings $(t)
-            in if $(d) >= n
-                then error $ printf "incidentCrossing: taken from %i-th leg" ($(d) - n)
-                else $(e)
-            |]
-
-        , modifyFoldMIncidentDartsFrom = Just $ \ (d, _) e -> [|
-            if $(varE $ mkName "isLeg") $(d)
-                then error $ printf "foldMIncidentDartsFrom: taken from leg %i" ($(varE $ mkName "legPlace") $(d))
-                else $(e)
+        , modifyFoldMIncidentDartsFrom = Just $ \ (d, _) e ->
+            [|  if isDart $(d)
+                    then $(e)
+                    else error $ printf "foldMIncidentDartsFrom: taken from leg %i"
+                        ($(varE $ mkName "legPlace") $(d))
             |]
         }
 
@@ -198,7 +197,6 @@ implode arg@(!loops, !border, !list) = runST $ do
             _ | c < 0 || c > n  -> fail $ printf "implode: crossing index %i is out of bounds (1, %i)" c n
               | p < 0 || p > 3  -> fail $ printf "implode: place %i index is out of bound" p
               | otherwise       -> return ()
-
 
     cr <- newArray_ (0, 4 * n + l - 1) :: ST s (STUArray s Int Int)
     st <- newArray_ (0, n - 1) :: ST s (STArray s Int a)
