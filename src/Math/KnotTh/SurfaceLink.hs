@@ -18,7 +18,7 @@ import Language.Haskell.TH
 import Data.Function (fix)
 import Data.Array.ST (STUArray, newArray, newArray_, readArray, writeArray)
 import Control.Monad.ST (ST, runST)
-import Control.Monad (when, forM_, liftM)
+import Control.Monad (when, forM_)
 import Text.Printf
 import Math.KnotTh.Knotted
 import Math.KnotTh.Knotted.TH.Knotted
@@ -26,14 +26,13 @@ import Math.KnotTh.Knotted.TH.Show
 
 
 produceKnotted
-    [d|
-        data SurfaceLink ct = SurfaceLink
+    [d| data SurfaceLink ct = SurfaceLink
             { faceCount :: Int
             }
     |]
     defaultKnotted
         { implodeExplodeSettings = Just $ defaultImplodeExplode
-            { implodeInitializers = [liftM ((,) (mkName "faceCount")) $ litE (integerL 0)]
+            { implodeInitializers = [(,) (mkName "faceCount") `fmap` [| 0 :: Int |]]
             }
         }
 

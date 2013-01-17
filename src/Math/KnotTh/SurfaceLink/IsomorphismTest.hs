@@ -64,10 +64,9 @@ codeWithDirection !dir !start = runSTUArray $ do
                     unsafeWrite rc (2 + 2 * head) $! le + nb `shiftL` 3
             bfs $! head + 1
 
-    fix $ \ recheck -> do
+    fix $ \ _ -> do
         tail <- readSTRef free
         when (tail <= n) $ do
             fail "codeWithDirection: disconnected diagram (not implemented)"
-            recheck
 
     return $! rc

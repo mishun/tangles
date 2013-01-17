@@ -21,7 +21,7 @@ import Language.Haskell.TH
 import Data.List (intercalate, nub, sort, foldl')
 import qualified Data.Set as Set
 import qualified Data.Map as Map
-import Data.Array.Base (unsafeAt, unsafeWrite, unsafeRead)
+import Data.Array.Base (unsafeAt, unsafeWrite)
 import Data.Array.ST (STArray, STUArray, newArray_)
 import Data.Array.Unsafe (unsafeFreeze)
 import Control.Monad.ST (ST, runST)
@@ -37,7 +37,45 @@ produceKnotted
     let numberOfLegs = varE $ mkName "numberOfLegs"
         dart = conE $ mkName "Dart"
     in defaultKnotted
-        { implodeExplodeSettings = Nothing
+        { implodeExplodeSettings = Just $
+            let l = mkName "l"
+                brd = mkName "brd"
+            in defaultImplodeExplode
+                { extraImplodeParams  =
+                    [ (brd, [t| [(Int, Int)] |], \ knot -> [| map (toPair . opposite) $ $(varE $ mkName "allLegs") $(knot) |])
+                    ]
+
+                , extraPairCases      =
+                    [ \ n c p ->
+                        ([| $c == (0 :: Int) |],
+                            [|  if $p >= (0 :: Int) && $p < $(varE l)
+                                    then 4 * $n + $p :: Int
+                                    else error $ printf "Tangle.implode: leg index %i is out of bound" $p
+                            |])
+                    ]
+
+                , modifyImplodeLimit  = Just $ \ n _ -> [| 4 * $n + $(varE l) - 1 :: Int |]
+
+                , implodePreExtra     =
+                    [ letS $ (:[]) $ valD (varP l) (normalB [| length $(varE brd) |]) []
+                    , noBindS
+                        [|  when (odd ($(varE l) :: Int)) $ fail $
+                                printf "Tangle.implode: number of legs must be even (%i)" $(varE l)
+                        |]
+                    ]
+
+                , implodePostExtra    =
+                    [ \ n spliceFill -> noBindS
+                        [|  forM_ (zip $(varE brd) [0 :: Int ..]) $ \ ((!c, !p), !i) ->
+                                let a = 4 * $n + i
+                                in $(spliceFill [| a |] ([| c |], [| p |]))
+                        |]
+                    ]
+
+                , implodeInitializers =
+                    [ (,) (mkName "numberOfLegs") `fmap` varE l
+                    ]
+                }
 
         , modifyNumberOfEdges = Just $ \ t _ ->
             [| 2 * (numberOfCrossings $(t)) + ($(numberOfLegs) $(t) `div` 2) |]
@@ -46,28 +84,28 @@ produceKnotted
             [| $(i) < 4 * numberOfCrossings $(t) |]
 
         , modifyNextCCW = Just $ \ (t, d) e ->
-            [|  let n = (4 :: Int) * numberOfCrossings $(t)
+            [|  let n = 4 * numberOfCrossings $(t)
                 in if $(d) >= n
                     then $(dart) $(t) $! n + ($(d) - n + 1) `mod` ($(numberOfLegs) $(t))
                     else $(e)
             |]
 
         , modifyNextCW = Just $ \ (t, d) e ->
-            [|  let n = (4 :: Int) * numberOfCrossings $(t)
+            [|  let n = 4 * numberOfCrossings $(t)
                 in if $(d) >= n
                     then $(dart) $(t) $! n + ($(d) - n - 1) `mod` ($(numberOfLegs) $(t))
                     else $(e)
             |]
 
         , modifyDartPlace = Just $ \ (t, d) e ->
-            [|  let n = (4 :: Int) * numberOfCrossings $(t)
+            [|  let n = 4 * numberOfCrossings $(t)
                 in if $(d) >= n
                     then error $ printf "dartPlace: taken from %i-th leg" ($(d) - n)
                     else $(e)
             |]
 
         , modifyIncidentCrossing = Just $ \ (t, d) e ->
-            [|  let n = (4 :: Int) * numberOfCrossings $(t)
+            [|  let n = 4 * numberOfCrossings $(t)
                 in if $(d) >= n
                     then error $ printf "incidentCrossing: taken from %i-th leg" ($(d) - n)
                     else $(e)
@@ -122,12 +160,12 @@ allLegs t =
 -- ........|  +=========+          ........|                       ........|  +=========+
 glueToBorder :: (CrossingType ct) => Dart ct -> Int -> CrossingState ct -> Crossing ct
 glueToBorder leg legsToGlue crossingToGlue
-    | not (isLeg leg)                   = error $ printf "glueToBorder: leg expected, %s received" (show leg)
-    | legsToGlue < 1 || legsToGlue > 3  = error $ printf "glueToBorder: legsToGlue must be 1, 2 or 3, but %i found" legsToGlue
+    | not (isLeg leg)                   = error $ printf "glueToBorder: leg expected, but %s received" (show leg)
+    | legsToGlue < 0 || legsToGlue > 4  = error $ printf "glueToBorder: legsToGlue must be in [0 .. 4], but %i found" legsToGlue
     | otherwise                         = runST $ do
         let tangle = dartTangle leg
         let oldL = numberOfLegs tangle
-        when (oldL <= legsToGlue) $ fail $
+        when (oldL < legsToGlue) $ fail $
             printf "glueToBorder: not enough legs to glue (l = %i, legsToGlue = %i)" oldL legsToGlue
 
         let oldC = numberOfCrossings tangle
@@ -178,83 +216,6 @@ glueToBorder leg legsToGlue crossingToGlue
                 }
 
         return $! nthCrossing result newC
-
-
-implode :: (CrossingType ct) => (Int, [(Int, Int)], [([(Int, Int)], CrossingState ct)]) -> Tangle ct
-implode arg@(!loops, !border, !list) = runST $ do
-    when (loops < 0) $ fail $
-        printf "implode: number of free loops is negative (%i)" loops
-
-    let n = length list
-    let l = length border
-    when (odd l) $ fail $
-        printf "implode: number of legs must be even (%i) in %s" l (show arg)
-
-    let {-# INLINE testPair #-}
-        testPair c p = case c of
-            0 | p < 0 || p >= l -> fail $ printf "implode: leg index %i is out of bound" p
-              | otherwise       -> return ()
-            _ | c < 0 || c > n  -> fail $ printf "implode: crossing index %i is out of bounds (1, %i)" c n
-              | p < 0 || p > 3  -> fail $ printf "implode: place %i index is out of bound" p
-              | otherwise       -> return ()
-
-    cr <- newArray_ (0, 4 * n + l - 1) :: ST s (STUArray s Int Int)
-    st <- newArray_ (0, n - 1) :: ST s (STArray s Int a)
-
-    forM_ (zip list [0 ..]) $ \ ((!ns, !state), !i) -> do
-        unsafeWrite st i state
-        when (length ns /= 4) $ fail $
-            printf "implode: there must be 4 neighbours for every crossing, but got %i at %i" (length ns) (i + 1)
-
-        forM_ (zip ns [0 ..]) $ \ ((!c, !p), !j) -> do
-            testPair c p
-
-            let a = 4 * i + j
-            let b | c == 0     = 4 * n + p
-                  | otherwise  = 4 * (c - 1) + p
-
-            when (a == b) $ fail $
-                printf "implode: dart (%i, %i) connected to itself" (i + 1) j
-
-            unsafeWrite cr a b
-            when (b < a) $ do
-                x <- unsafeRead cr b
-                when (x /= a) $ fail $
-                    printf "implode: inconsistent data at dart (%i, %i) in %s" (i + 1) j (show arg)
-
-
-    forM_ (zip border [0 ..]) $ \ ((!c, !p), !i) -> do
-        testPair c p
-
-        let a = 4 * n + i
-        let b | c == 0     = 4 * n + p
-              | otherwise  = 4 * (c - 1) + p
-
-        when (a == b) $ fail $
-            printf "implode: leg %i connected to itself in %s" i (show arg)
-
-        unsafeWrite cr a b
-        when (b < a) $ do
-            x <- unsafeRead cr b
-            when (x /= a) $ fail $
-                printf "implode: inconsistent data at leg %i in %s" i (show arg)
-
-
-    cr' <- unsafeFreeze cr
-    st' <- unsafeFreeze st
-    return $! Tangle
-        { loopsCount   = loops
-        , crossCount   = n
-        , crossArray   = cr'
-        , stateArray   = st' 
-        , numberOfLegs = l
-        }
-
-
-explode :: (CrossingType ct) => Tangle ct -> (Int, [(Int, Int)], [([(Int, Int)], CrossingState ct)])
-explode tangle =
-    let crToList c = (map (toPair . opposite) $ incidentDarts c, crossingState c)
-    in (numberOfFreeLoops tangle, map (toPair . opposite) $ allLegs tangle, map crToList $ allCrossings tangle)
 
 
 instance Show (Dart ct) where
