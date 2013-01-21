@@ -43,11 +43,11 @@ produceKnotted
                 brdN = mkName "brd"
                 brd = varE brdN
             in defaultImplodeExplode
-                { extraImplodeParams  =
-                    [ (brdN, [t| [(Int, Int)] |], \ knot -> [| map (toPair . opposite) $ $(varE $ mkName "allLegs") $(knot) |])
+                { extraImplodeExplodeParams =
+                    [ (brdN, [t| [(Int, Int)] |], \ knot -> [| map (toPair . opposite) $ $(varE $ mkName "allLegs") $knot |])
                     ]
 
-                , extraPairCases      =
+                , extraImplodePairCases =
                     [ \ spliceError n c p ->
                         ([| $c == (0 :: Int) |],
                             [|  if $p >= (0 :: Int) && $p < $l
@@ -56,9 +56,13 @@ produceKnotted
                             |])
                     ]
 
-                , modifyImplodeLimit  = Just $ \ n _ -> [| 4 * $n + $l - 1 :: Int |]
+                , extraExplodePairCases =
+                    [ \ d -> ([| $(varE $ mkName "isLeg") $d |], [| (,) (0 :: Int) $! $(varE $ mkName "legPlace") $d |])
+                    ]
 
-                , implodePreExtra     = \ spliceError ->
+                , modifyImplodeLimit = Just $ \ n _ -> [| 4 * $n + $l - 1 :: Int |]
+
+                , implodePreExtra = \ spliceError ->
                     [ letS $ (:[]) $ valD (varP lN) (normalB [| length $brd |]) []
                     , noBindS
                         [|  when (odd ($l :: Int)) $
@@ -66,7 +70,7 @@ produceKnotted
                         |]
                     ]
 
-                , implodePostExtra    = \ n spliceFill ->
+                , implodePostExtra = \ n spliceFill ->
                     [ noBindS
                         [|  forM_ (zip $brd [0 :: Int ..]) $ \ ((!c, !p), !i) ->
                                 let a = 4 * $n + i
@@ -238,17 +242,6 @@ instance (CrossingType ct) => Show (Tangle ct) where
         in printf "(Tangle (%i O) %s)"
             (numberOfFreeLoops tangle)
             (intercalate " " $ border : map show (allCrossings tangle))
-
-
-instance KnottedWithToPair Tangle Crossing Dart where
-    toPair d
-        | isLeg d    =
-            let p = legPlace d
-            in p `seq` (0, p)
-        | otherwise  =
-            let c = crossingIndex $ incidentCrossing d
-                p = dartPlace d
-            in c `seq` p `seq` (c, p)
 
 
 instance KnottedWithConnectivity Tangle Crossing Dart where

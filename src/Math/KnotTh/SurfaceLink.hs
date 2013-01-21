@@ -41,9 +41,6 @@ produceShowCrossing ''Crossing
 produceShowKnot ''SurfaceLink
 
 
-instance KnottedWithToPair SurfaceLink Crossing Dart
-
-
 data Face ct = Face !(SurfaceLink ct) {-# UNPACK #-} !Int
 
 

@@ -23,6 +23,3 @@ produceKnotted
 produceShowDart ''Dart
 produceShowCrossing ''Crossing
 produceShowKnot ''Link
-
-
-instance KnottedWithToPair Link Crossing Dart

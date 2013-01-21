@@ -38,12 +38,13 @@ data KnottedSettings = KnottedSettings
 
 
 data ImplodeExplodeSettings = ImplodeExplodeSettings
-    { extraImplodeParams  :: [(Name, TypeQ, ExpQ -> ExpQ)]
-    , extraPairCases      :: [(String -> [ExpQ] -> ExpQ) -> ExpQ -> ExpQ -> ExpQ -> (ExpQ, ExpQ)]
-    , modifyImplodeLimit  :: Maybe (ExpQ -> ExpQ -> ExpQ)
-    , implodePreExtra     :: (String -> [ExpQ] -> ExpQ) -> [StmtQ]
-    , implodePostExtra    :: ExpQ -> (ExpQ -> (ExpQ, ExpQ) -> ExpQ) -> [StmtQ]
-    , implodeInitializers :: [Q (Name, Exp)]
+    { extraImplodeExplodeParams :: [(Name, TypeQ, ExpQ -> ExpQ)]
+    , extraImplodePairCases     :: [(String -> [ExpQ] -> ExpQ) -> ExpQ -> ExpQ -> ExpQ -> (ExpQ, ExpQ)]
+    , extraExplodePairCases     :: [ExpQ -> (ExpQ, ExpQ)]
+    , modifyImplodeLimit        :: Maybe (ExpQ -> ExpQ -> ExpQ)
+    , implodePreExtra           :: (String -> [ExpQ] -> ExpQ) -> [StmtQ]
+    , implodePostExtra          :: ExpQ -> (ExpQ -> (ExpQ, ExpQ) -> ExpQ) -> [StmtQ]
+    , implodeInitializers       :: [Q (Name, Exp)]
     }
 
 
@@ -62,12 +63,13 @@ defaultKnotted = KnottedSettings
 
 defaultImplodeExplode :: ImplodeExplodeSettings
 defaultImplodeExplode = ImplodeExplodeSettings
-    { extraImplodeParams  = []
-    , extraPairCases      = []
-    , modifyImplodeLimit  = Nothing
-    , implodePreExtra     = const []
-    , implodePostExtra    = const $ const []
-    , implodeInitializers = []
+    { extraImplodeExplodeParams = []
+    , extraImplodePairCases     = []
+    , extraExplodePairCases     = []
+    , modifyImplodeLimit        = Nothing
+    , implodePreExtra           = const []
+    , implodePostExtra          = const $ const []
+    , implodeInitializers       = []
     }
 
 
@@ -353,7 +355,7 @@ produceKnotted knotPattern inst = execWriterT $ do
 
     maybeM (implodeExplodeSettings inst) $ \ ies -> do
         let implodeParamT ct =
-                let types = [ [t| Int |] ] ++ map (\ (_, x, _) -> x) (extraImplodeParams ies) ++ [ [t| [([(Int, Int)], CrossingState $ct)] |] ]
+                let types = [ [t| Int |] ] ++ map (\ (_, x, _) -> x) (extraImplodeExplodeParams ies) ++ [ [t| [([(Int, Int)], CrossingState $ct)] |] ]
                 in foldl appT (tupleT $ length types) types
 
         declare $ do
@@ -372,7 +374,7 @@ produceKnotted knotPattern inst = execWriterT $ do
             cr' <- newName "cr'"
             st' <- newName "st'"
 
-            clause [asP arg $ tupP $ map (bangP . varP) $ [loops] ++ (map (\ (x, _, _) -> x) $ extraImplodeParams ies) ++ [list]] (normalB $
+            clause [asP arg $ tupP $ map (bangP . varP) $ [loops] ++ (map (\ (x, _, _) -> x) $ extraImplodeExplodeParams ies) ++ [list]] (normalB $
                 appE (varE 'runST) $ doE $ execWriter $ do
                     let spliceError text args =
                             let literal = litE $ stringL $ nameBase knotTN ++ ".implode: " ++ text ++ " at %s"
@@ -394,7 +396,7 @@ produceKnotted knotPattern inst = execWriterT $ do
                     tell $ (:[]) $ bindS (varP st) [| newArray_ (0, $(varE n) - 1) :: ST s (STArray s Int a) |]
 
                     let spliceFill a (c, p) =
-                            let guards = map (\ f -> f spliceError (varE n) c p) (extraPairCases ies) ++
+                            let guards = map (\ f -> f spliceError (varE n) c p) (extraImplodePairCases ies) ++
                                     [ ([| $c < (1 :: Int) || $c > $(varE n)  |], spliceError "crossing index %i is out of bounds [1 .. %i]" [c, varE n])
                                     , ([| $p < (0 :: Int) || $p > (3 :: Int) |], spliceError "place index %i is out of bounds [0 .. 3]" [p])
                                     , ([| otherwise                          |], [| 4 * ($c - 1) + $p :: Int |])
@@ -447,6 +449,19 @@ produceKnotted knotPattern inst = execWriterT $ do
             knot <- newName "knot"
             clause [varP knot] (normalB $ tupE $ execWriter $ do
                     tell $ (:[]) $ [| numberOfFreeLoops $(varE knot) |]
-                    tell $ map (\ (_, _, f) -> f $ varE knot) $ extraImplodeParams ies
+                    tell $ map (\ (_, _, f) -> f $ varE knot) $ extraImplodeExplodeParams ies
                     tell $ (:[]) [| map (\ c -> (map (toPair . opposite) $ incidentDarts c, crossingState c)) $ allCrossings $(varE knot) |]
                 ) []
+
+        declare $ instanceD (cxt []) ([t| KnottedWithToPair |] `appT` conT knotTN `appT` conT crosN `appT` conT dartN)
+            [ funD 'toPair $ (:[]) $ do
+                d <- newName "d"
+                clause [varP d] (guardedB $ map (uncurry normalGE) $ map ($ varE d) (extraExplodePairCases ies) ++
+                        [ ([| otherwise |],
+                            [|  let c = crossingIndex $ incidentCrossing $(varE d)
+                                    p = dartPlace $(varE d)
+                                in c `seq` p `seq` (c, p)
+                            |])
+                        ]
+                    ) []
+            ]
