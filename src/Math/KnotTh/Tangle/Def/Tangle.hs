@@ -38,42 +38,44 @@ produceKnotted
         dart = conE $ mkName "Dart"
     in defaultKnotted
         { implodeExplodeSettings = Just $
-            let l = mkName "l"
-                brd = mkName "brd"
+            let lN = mkName "l"
+                l = varE lN
+                brdN = mkName "brd"
+                brd = varE brdN
             in defaultImplodeExplode
                 { extraImplodeParams  =
-                    [ (brd, [t| [(Int, Int)] |], \ knot -> [| map (toPair . opposite) $ $(varE $ mkName "allLegs") $(knot) |])
+                    [ (brdN, [t| [(Int, Int)] |], \ knot -> [| map (toPair . opposite) $ $(varE $ mkName "allLegs") $(knot) |])
                     ]
 
                 , extraPairCases      =
-                    [ \ n c p ->
+                    [ \ spliceError n c p ->
                         ([| $c == (0 :: Int) |],
-                            [|  if $p >= (0 :: Int) && $p < $(varE l)
+                            [|  if $p >= (0 :: Int) && $p < $l
                                     then 4 * $n + $p :: Int
-                                    else error $ printf "Tangle.implode: leg index %i is out of bound" $p
+                                    else $(spliceError "leg index %i is out of bounds [0 .. %i]" [ p, [| $l - 1 :: Int |] ])
                             |])
                     ]
 
-                , modifyImplodeLimit  = Just $ \ n _ -> [| 4 * $n + $(varE l) - 1 :: Int |]
+                , modifyImplodeLimit  = Just $ \ n _ -> [| 4 * $n + $l - 1 :: Int |]
 
-                , implodePreExtra     =
-                    [ letS $ (:[]) $ valD (varP l) (normalB [| length $(varE brd) |]) []
+                , implodePreExtra     = \ spliceError ->
+                    [ letS $ (:[]) $ valD (varP lN) (normalB [| length $brd |]) []
                     , noBindS
-                        [|  when (odd ($(varE l) :: Int)) $ fail $
-                                printf "Tangle.implode: number of legs must be even (%i)" $(varE l)
+                        [|  when (odd ($l :: Int)) $
+                                $(spliceError "number of legs %i must be even" [l])
                         |]
                     ]
 
-                , implodePostExtra    =
-                    [ \ n spliceFill -> noBindS
-                        [|  forM_ (zip $(varE brd) [0 :: Int ..]) $ \ ((!c, !p), !i) ->
+                , implodePostExtra    = \ n spliceFill ->
+                    [ noBindS
+                        [|  forM_ (zip $brd [0 :: Int ..]) $ \ ((!c, !p), !i) ->
                                 let a = 4 * $n + i
                                 in $(spliceFill [| a |] ([| c |], [| p |]))
                         |]
                     ]
 
                 , implodeInitializers =
-                    [ (,) (mkName "numberOfLegs") `fmap` varE l
+                    [ (,) (mkName "numberOfLegs") `fmap` l
                     ]
                 }
 
@@ -85,7 +87,7 @@ produceKnotted
 
         , modifyNextCCW = Just $ \ (t, d) e ->
             [|  let n = 4 * numberOfCrossings $(t)
-                in if $(d) >= n
+                    in if $(d) >= n
                     then $(dart) $(t) $! n + ($(d) - n + 1) `mod` ($(numberOfLegs) $(t))
                     else $(e)
             |]
@@ -267,24 +269,24 @@ instance KnottedWithConnectivity Tangle Crossing Dart where
 
     isPrime tangle = connections == nub connections
         where
-            idm =    let faces = directedPathsDecomposition (nextCW, nextCCW)
-                in Map.fromList $ concatMap (\ (face, i) -> zip face $ repeat i) $ zip faces [(0 :: Int) ..]
+            idm = let faces = directedPathsDecomposition (nextCW, nextCCW)
+                  in Map.fromList $ concatMap (\ (face, i) -> zip face $ repeat i) $ zip faces [(0 :: Int) ..]
 
-            connections = sort $ map getPair $ allEdges tangle
-                where
-                    getPair (da, db) = (min a b, max a b)
-                        where
-                            a = idm Map.! da
+            connections =
+                let getPair (da, db) =
+                        let a = idm Map.! da
                             b = idm Map.! db
+                        in (min a b, max a b)
+                in sort $ map getPair $ allEdges tangle
 
-            directedPathsDecomposition continue = fst $ foldl' processDart ([], Set.empty) $ allHalfEdges tangle
-                where
-                    processDart (paths, s) d
+            directedPathsDecomposition continue =
+                let processDart (paths, s) d
                         | Set.member d s  = (paths, s)
                         | otherwise       = (path : paths, nextS)
                         where
                             path = containingDirectedPath continue d
                             nextS = foldl' (\ curs a -> Set.insert a curs) s path
+                in fst $ foldl' processDart ([], Set.empty) $ allHalfEdges tangle
 
             containingDirectedPath (adjForward, adjBackward) start
                 | isCycle    = forward
