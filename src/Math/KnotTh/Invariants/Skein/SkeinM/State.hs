@@ -13,7 +13,7 @@ module Math.KnotTh.Invariants.Skein.SkeinM.State
     , getAdjListST
     , resizeAdjListST
     , getStateSumST
-    , modifyStateSumST
+    , setStateSumST
     , numberOfAliveVerticesST
     , aliveVerticesST
     , extractStateSumST
@@ -201,13 +201,11 @@ resizeAdjListST s v degree = do
 
 
 getStateSumST :: SkeinState s r a -> Int -> ST s (StateSum a)
-getStateSumST s v = readArray (state s) v
+getStateSumST s = readArray (state s)
 
 
-modifyStateSumST :: SkeinState s r a -> Int -> (StateSum a -> StateSum a) -> ST s ()
-modifyStateSumST s v f = do
-    sumV <- readArray (state s) v
-    writeArray (state s) v $ f sumV
+setStateSumST :: SkeinState s r a -> Int -> StateSum a -> ST s ()
+setStateSumST s = writeArray (state s)
 
 
 numberOfAliveVerticesST :: SkeinState s r a -> ST s Int

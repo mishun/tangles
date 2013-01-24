@@ -10,6 +10,7 @@ import Math.KnotTh.Crossings.Arbitrary
 import qualified Math.KnotTh.Link.NonAlternating as L
 import qualified Math.KnotTh.Tangle.NonAlternating as T
 import Math.KnotTh.Invariants.Skein.StateSum
+import Math.KnotTh.Invariants.Skein.StateSum.Operations
 
 
 class (Knotted k c d, Eq (d ArbitraryCrossing)) => SkeinKnotted k c d | k -> c, c -> d, d -> k where
@@ -32,15 +33,14 @@ instance SkeinKnotted L.Link L.Crossing L.Dart where
 
 instance (Ord a, Num a) => SkeinResult a a L.Link L.Crossing L.Dart where
     resultFromStateSum _ s =
-        case s of
-            []                 -> 0
-            [StateSummand _ x] -> x
-            _                  -> error "incorrect end state sum for link"
+        case takeAsConst s of
+            Just x -> x
+            _      -> error "incorrect end state sum for link"
 
 
 instance SkeinKnotted T.Tangle T.Crossing T.Dart where
     endpointPlace = T.legPlace
 
 
-instance (Ord a, Num a) => SkeinResult a [StateSummand a] T.Tangle T.Crossing T.Dart where
+instance (Ord a, Num a) => SkeinResult a (StateSum a) T.Tangle T.Crossing T.Dart where
     resultFromStateSum _ s = sort s
