@@ -91,7 +91,7 @@ produceKnotted
 
         , modifyNextCCW = Just $ \ (t, d) e ->
             [|  let n = 4 * numberOfCrossings $(t)
-                    in if $(d) >= n
+                in if $(d) >= n
                     then $(dart) $(t) $! n + ($(d) - n + 1) `mod` ($(numberOfLegs) $(t))
                     else $(e)
             |]
@@ -224,21 +224,14 @@ glueToBorder leg legsToGlue crossingToGlue
         return $! nthCrossing result newC
 
 
-instance Show (Dart ct) where
-    show d
-        | isLeg d    = printf "(Leg %i)" $ legPlace d
-        | otherwise  =
-            let (c, p) = toPair d
-            in printf "(Dart %i %i)" c p
-
+produceShowDart ''Dart (\ d -> [([| isLeg $d |], [| printf "(Leg %i)" $ legPlace $d |])])
 
 produceShowCrossing ''Crossing
 
 
 instance (CrossingType ct) => Show (Tangle ct) where
     show tangle =
-        let border = printf "(Border [ %s ])" $
-                intercalate " " $ map (show . opposite) $ allLegs tangle
+        let border = printf "(Border [ %s ])" $ intercalate " " $ map (show . opposite) $ allLegs tangle
         in printf "(Tangle (%i O) %s)"
             (numberOfFreeLoops tangle)
             (intercalate " " $ border : map show (allCrossings tangle))

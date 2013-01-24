@@ -36,7 +36,7 @@ produceKnotted
             }
         }
 
-produceShowDart ''Dart
+produceShowDart ''Dart (const [])
 produceShowCrossing ''Crossing
 produceShowKnot ''SurfaceLink
 

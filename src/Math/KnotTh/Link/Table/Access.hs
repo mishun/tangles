@@ -5,6 +5,7 @@ module Math.KnotTh.Link.Table.Access
     , knot
     ) where
 
+import Data.Maybe (fromMaybe)
 import qualified Data.Map as M
 import Text.Printf
 import Math.KnotTh.Link.NonAlternating
@@ -31,11 +32,10 @@ sizes = M.fromList $ do
 
 numberOfLinks :: Int -> Int -> Int
 numberOfLinks comps cross
-    | cross < 1                      = error $ printf "numberOfLinks: crossing number %i is non-positive" cross
-    | comps < 1                      = error $ printf "numberOfLinks: components number %i is non-positive" comps
-    | cross > maxC                   = error $ printf "numberOfLinks: table contains only links with <= %i crossings, but %i crossings requested" maxC cross
-    | M.member (cross, comps) sizes  = sizes M.! (cross, comps)
-    | otherwise                      = 0
+    | cross < 1     = error $ printf "numberOfLinks: crossing number %i is non-positive" cross
+    | comps < 1     = error $ printf "numberOfLinks: components number %i is non-positive" comps
+    | cross > maxC  = error $ printf "numberOfLinks: table contains only links with <= %i crossings, but %i crossings requested" maxC cross
+    | otherwise     = fromMaybe 0 $ M.lookup (cross, comps) sizes
 
 
 link :: Int -> Int -> Int -> NonAlternatingLink

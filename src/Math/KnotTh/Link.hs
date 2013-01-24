@@ -20,6 +20,6 @@ produceKnotted
     [d| data Link ct = Link {} |]
     defaultKnotted
 
-produceShowDart ''Dart
+produceShowDart ''Dart (const [])
 produceShowCrossing ''Crossing
 produceShowKnot ''Link
