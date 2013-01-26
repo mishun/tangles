@@ -10,27 +10,26 @@ import Math.KnotTh.Tangle.Moves.Resting
 
 
 neighbours :: NonAlternatingTangle -> [NonAlternatingTangle]
-neighbours tangle = mapMaybe tryDoublePass $ allDartsOfCrossings tangle
-    where
-        tryDoublePass ab = do
-            let ba = opposite ab
-                bc = nextCCW ba
-                cb = opposite bc
-                cd = nextCW cb
-                dc = opposite cd
+neighbours tangle =
+    flip mapMaybe (allDartsOfCrossings tangle) $ \ ab -> do
+        let ba = opposite ab
+            bc = nextCCW ba
+            cb = opposite bc
+            cd = nextCW cb
+            dc = opposite cd
 
-            guard $ isDart ba && isDart cb && isDart dc
+        guard $ isDart ba && isDart cb && isDart dc
 
-            let incomingA = map opposite [threadContinuation ab, nextCW ab, nextCCW cb, threadContinuation cb]
-                incomingB = map opposite [threadContinuation dc, nextCW dc, nextCCW bc, threadContinuation bc]
+        let incomingA = map opposite [threadContinuation ab, nextCW ab, nextCCW cb, threadContinuation cb]
+            incomingB = map opposite [threadContinuation dc, nextCW dc, nextCCW bc, threadContinuation bc]
 
-            guard $ all isDart incomingA
-            guard $ all isDart incomingB
+        guard $ all isDart incomingA
+        guard $ all isDart incomingB
 
-            (outcomingA, _) <- restingPart tangle incomingA
-            (outcomingB, _) <- restingPart tangle incomingB
+        (outcomingA, _) <- restingPart tangle incomingA
+        (outcomingB, _) <- restingPart tangle incomingB
 
-            guard $ length outcomingA == 2
-            guard $ length outcomingB == 2
+        guard $ length outcomingA == 2
+        guard $ length outcomingB == 2
 
-            trace "Double Pass found" Nothing
+        trace "Double Pass found" Nothing

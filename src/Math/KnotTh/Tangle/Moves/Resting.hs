@@ -5,8 +5,8 @@ module Math.KnotTh.Tangle.Moves.Resting
 import Data.Maybe
 import Data.List (find)
 import qualified Data.Sequence as Seq
-import qualified Data.Set as Set
-import qualified Data.Map as Map
+import qualified Data.Set as S
+import qualified Data.Map as M
 import Data.Array.Unboxed (UArray, (!), (//), array, listArray)
 import Control.Monad.State.Strict (execState, evalState, gets, modify)
 import Control.Monad (when, forM_)
@@ -48,26 +48,26 @@ restingPart tangle incoming
 
         getSubtangle (flow, flowValue) = Just $ (result, flowValue)
             where
-                result = listArray (crossingIndexRange tangle) $ map (\ c -> Set.member c subtangle) $ allCrossings tangle
+                result = listArray (crossingIndexRange tangle) $ map (\ c -> S.member c subtangle) $ allCrossings tangle
 
-                subtangle = execState (forM_ starts dfs) Set.empty
+                subtangle = execState (forM_ starts dfs) S.empty
 
                 dfs c = do
-                    visited <- gets $ Set.member c
+                    visited <- gets $ S.member c
                     when (not visited) $ do
-                        modify $ Set.insert c
+                        modify $ S.insert c
                         mapM_ (dfs . adjacentCrossing) $ filter (\ d -> (flow ! dartIndex d) < 1) $ incidentDarts c
 
         checkConnectivity (sub, flowValue)
-            | all (\ s -> Set.member s mask) $ tail starts  = Just $! (sub, flowValue)
-            | otherwise                                     = Nothing
+            | all (\ s -> S.member s mask) $ tail starts  = Just $! (sub, flowValue)
+            | otherwise                                   = Nothing
             where
-                mask = execState (dfs $ head starts) Set.empty
+                mask = execState (dfs $ head starts) S.empty
 
                 dfs c = do
-                    visited <- gets $ Set.member c
+                    visited <- gets $ S.member c
                     when (not visited) $ do
-                        modify $ Set.insert c
+                        modify $ S.insert c
                         mapM_ dfs $ filter ((sub !) . crossingIndex) $ mapMaybe maybeAdjacentCrossing $ incidentDarts c
 
         outcoming (sub, flowValue)
@@ -98,7 +98,7 @@ restingPart tangle incoming
 pushResidualFlow :: Tangle ct -> [Crossing ct] -> [Crossing ct] -> UArray Int Int -> Maybe (UArray Int Int)
 pushResidualFlow tangle starts ends flow = (evalState bfs initial) >>= push
     where
-        initial = (Seq.fromList starts, Map.fromList $ zip starts (repeat []))
+        initial = (Seq.fromList starts, M.fromList $ zip starts (repeat []))
 
         endFlag :: UArray Int Bool
         endFlag = array (crossingIndexRange tangle) $!
@@ -138,11 +138,11 @@ pushResidualFlow tangle starts ends flow = (evalState bfs initial) >>= push
                     modify (\ (_, p) -> (rest, p))
                     return c
 
-                getPath v = gets (\ (_, p) -> p Map.! v)
+                getPath v = gets (\ (_, p) -> p M.! v)
 
-                enqueue c d = modify (\ (q, p) -> (q Seq.|> c, Map.insert c (d : p Map.! (incidentCrossing d)) p))
+                enqueue c d = modify (\ (q, p) -> (q Seq.|> c, M.insert c (d : p M.! (incidentCrossing d)) p))
 
-                isVisited c = gets (\ (_, p) -> Map.member c p)
+                isVisited c = gets (\ (_, p) -> M.member c p)
 
         push path = return $! flow // pathFlow
             where

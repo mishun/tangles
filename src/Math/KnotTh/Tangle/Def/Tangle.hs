@@ -19,8 +19,8 @@ module Math.KnotTh.Tangle.Def.Tangle
 
 import Language.Haskell.TH
 import Data.List (intercalate, nub, sort, foldl')
-import qualified Data.Set as Set
-import qualified Data.Map as Map
+import qualified Data.Set as S
+import qualified Data.Map as M
 import Data.Array.Base (unsafeAt, unsafeWrite)
 import Data.Array.ST (STArray, STUArray, newArray_)
 import Data.Array.Unsafe (unsafeFreeze)
@@ -241,13 +241,13 @@ instance KnottedWithConnectivity Tangle Crossing Dart where
     isConnected tangle
         | numberOfEdges tangle == 0 && numberOfFreeLoops tangle <= 1  = True
         | numberOfFreeLoops tangle /= 0                               = False
-        | otherwise                                                   = all (\ (a, b) -> Set.member a con && Set.member b con) edges
+        | otherwise                                                   = all (\ (a, b) -> S.member a con && S.member b con) edges
         where
             edges = allEdges tangle
-            con = dfs (Set.empty) $ fst $ head edges
+            con = dfs (S.empty) $ fst $ head edges
             dfs vis c
-                | Set.member c vis  = vis
-                | otherwise         = foldl' dfs (Set.insert c vis) neigh
+                | S.member c vis  = vis
+                | otherwise       = foldl' dfs (S.insert c vis) neigh
                 where
                     neigh
                         | isLeg c    = [opposite c]
@@ -256,23 +256,23 @@ instance KnottedWithConnectivity Tangle Crossing Dart where
     isPrime tangle = connections == nub connections
         where
             idm = let faces = directedPathsDecomposition (nextCW, nextCCW)
-                  in Map.fromList $ concatMap (\ (face, i) -> zip face $ repeat i) $ zip faces [(0 :: Int) ..]
+                  in M.fromList $ concatMap (\ (face, i) -> zip face $ repeat i) $ zip faces [(0 :: Int) ..]
 
             connections =
                 let getPair (da, db) =
-                        let a = idm Map.! da
-                            b = idm Map.! db
+                        let a = idm M.! da
+                            b = idm M.! db
                         in (min a b, max a b)
                 in sort $ map getPair $ allEdges tangle
 
             directedPathsDecomposition continue =
                 let processDart (paths, s) d
-                        | Set.member d s  = (paths, s)
-                        | otherwise       = (path : paths, nextS)
+                        | S.member d s  = (paths, s)
+                        | otherwise     = (path : paths, nextS)
                         where
                             path = containingDirectedPath continue d
-                            nextS = foldl' (\ curs a -> Set.insert a curs) s path
-                in fst $ foldl' processDart ([], Set.empty) $ allHalfEdges tangle
+                            nextS = foldl' (\ curs a -> S.insert a curs) s path
+                in fst $ foldl' processDart ([], S.empty) $ allHalfEdges tangle
 
             containingDirectedPath (adjForward, adjBackward) start
                 | isCycle    = forward

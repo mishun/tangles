@@ -3,111 +3,77 @@ module Math.KnotTh.Tangle.BorderIncremental.Test
     ( tests
     ) where
 
-import qualified Data.Map as Map
-import Control.Monad.State.Strict (execState, get, put)
-import Control.Monad (forM_)
-import Text.Printf
+import Control.Monad (when)
 import Test.HUnit
-import Math.Algebra.Group.Dn (DnSubGroup, hasReflectionPart, rotationPeriod)
 import Math.KnotTh.Tangle.Projection
+import Math.KnotTh.Tangle.NonAlternating
 import Math.KnotTh.Tangle.BorderIncremental.SimpleTypes
 import Math.KnotTh.Tangle.BorderIncremental.FlypeGenerator
-
-
-generateTable :: Bool -> (forall m. (Monad m) => (Tangle ct -> DnSubGroup -> m ()) -> m ()) -> Map.Map (Int, Int) Int
-generateTable isLabelled generator =
-    let yield !tangle !symmetry = do
-            let weight
-                    | isLabelled  = rotationPeriod symmetry * (if hasReflectionPart symmetry then 1 else 2)
-                    | otherwise   = 1
-            get >>= (\ !m -> put $! Map.insertWith (+) (numberOfCrossings tangle, numberOfLegs tangle) weight m)
-    in execState (generator yield) Map.empty
+import TestUtil.Table
 
 
 tests :: Test
 tests = "Tangle generators" ~:
-    [ "Numbers of prime tangle projections" ~: do
-        let table = generateTable False $
-                simpleIncrementalGenerator
-                    primeProjectionType
-                    [ProjectionCrossing]
-                    8
+    [ "Numbers of prime tangle projections" ~:
+        testTable (\ n -> generateTable False $ simpleIncrementalGenerator primeProjectionType [ProjectionCrossing] n)
+            [ [1]
+            , [1, 1]
+            , [2, 2, 2]
+            , [6, 8, 8, 5]
+            , [19, 29, 41, 31, 16]
+            , [71, 138, 210, 231, 161, 60]
+            , [293, 638, 1125, 1458, 1406, 840, 261]
+            , [1348, 3237, 6138, 9183, 10572, 8818, 4702, 1243]
+            ]
 
-        let target = Map.fromList
-                [ ((1, 4), 1)
-                , ((2, 4), 1), ((2, 6), 1)
-                , ((3, 4), 2), ((3, 6), 2), ((3, 8), 2)
-                , ((4, 4), 6), ((4, 6), 8), ((4, 8), 8), ((4, 10), 5)
-                , ((5, 4), 19), ((5, 6), 29), ((5, 8), 41), ((5, 10), 31), ((5, 12), 16)
-                , ((6, 4), 71), ((6, 6), 138), ((6, 8), 210), ((6, 10), 231), ((6, 12), 161), ((6, 14), 60)
-                , ((7, 4), 293), ((7, 6), 638), ((7, 8), 1125), ((7, 10), 1458), ((7, 12), 1406), ((7, 14), 840), ((7, 16), 261)
-                , ((8, 4), 1348), ((8, 6), 3237), ((8, 8), 6138), ((8, 10), 9183), ((8, 12), 10572), ((8, 14), 8818), ((8, 16), 4702), ((8, 18), 1243)
-                ]
+    , "Numbers of basic polyhedral tangle projections" ~:
+        testTable (\ n -> generateTable False $ simpleIncrementalGenerator reducedProjectionType [ProjectionCrossing] n)
+            [ [1]
+            , [0, 1]
+            , [0, 1, 2]
+            , [0, 1, 2, 5]
+            , [1, 1, 4, 9, 16]
+            , [1, 4, 7, 22, 42, 60]
+            , [3, 7, 21, 49, 126, 228, 261]
+            ]
 
-        forM_ (Map.assocs table) $ \ ((n, l), actual) ->
-            assertEqual (printf "for n = %i and l = %i" n l) (Map.lookup (n, l) target) (Just actual)
+    , "Numbers of tangle templates" ~:
+        testTable (\ n -> generateTable False $ simpleIncrementalGenerator templateProjectionType [ProjectionCrossing] n)
+            [ [1]
+            , [0, 1]
+            , [0, 1, 2]
+            , [0, 1, 2, 5]
+            , [1, 1, 4, 9, 16]
+            , [0, 3, 7, 22, 42, 60]
+            , [1, 4, 17, 49, 126, 228, 261]
+            , [2, 12, 43, 139, 355, 799, 1288, 1243]
+            ]
 
-    , "Numbers of prime tangle projections" ~: do
-        let table = generateTable False $
-                simpleIncrementalGenerator
-                    primeProjectionType
-                    [ProjectionCrossing]
-                    8
+    , "Numbers of tangle diagrams" ~:
+        testTable (\ n -> generateTable False $ simpleIncrementalGenerator primeIrreducibleDiagramType [ArbitraryCrossing] n)
+            [ [1]
+            , [1, 3] -- [1, 2]
+            , [3, 6, 10] -- [3, 4, 6]
+            , [18, 41, 58, 58] -- [14, 25, 33, 32]
+            , [116, 268, 484, 564, 397] -- [76, 148, 258, 290, 206]
+            , [836, 2168, 4120, 6070, 6099, 3388] -- [486, 1146, 2125, 3086, 3081, 1718]
+            ]
 
-        let target = Map.fromList
-                [ ((1, 4), 1)
-                , ((2, 4), 1), ((2, 6), 1)
-                , ((3, 4), 2), ((3, 6), 2), ((3, 8), 2)
-                , ((4, 4), 6), ((4, 6), 8), ((4, 8), 8), ((4, 10), 5)
-                , ((5, 4), 19), ((5, 6), 29), ((5, 8), 41), ((5, 10), 31), ((5, 12), 16)
-                , ((6, 4), 71), ((6, 6), 138), ((6, 8), 210), ((6, 10), 231), ((6, 12), 161), ((6, 14), 60)
-                , ((7, 4), 293), ((7, 6), 638), ((7, 8), 1125), ((7, 10), 1458), ((7, 12), 1406), ((7, 14), 840), ((7, 16), 261)
-                , ((8, 4), 1348), ((8, 6), 3237), ((8, 8), 6138), ((8, 10), 9183), ((8, 12), 10572), ((8, 14), 8818), ((8, 16), 4702), ((8, 18), 1243)
-                ]
+    , "Numbers of alternating tangles" ~:
+        testTable (\ n -> generateTable False $ generateFlypeEquivalent n)
+            [ [1]
+            , [1, 1]
+            , [2, 2, 2]
+            , [5, 7, 8, 5]
+            , [13, 20, 37, 31, 16]
+            , [36, 77, 157, 209, 161, 60]
+            , [111, 276, 687, 1128, 1294, 840, 261]
+            , [373, 1135, 3052, 5986, 8528, 8206, 4702, 1243]
+            , [1362, 4823, 13981, 30556, 51475, 62895, 52815, 26753, 6257]
+            ]
 
-        forM_ (Map.assocs table) $ \ ((n, l), actual) ->
-            assertEqual (printf "for n = %i and l = %i" n l) (Map.lookup (n, l) target) (Just actual)
-
-    , "Numbers of tangle templates" ~: do
-        let table = generateTable False $
-                simpleIncrementalGenerator
-                    templateProjectionType
-                    [ProjectionCrossing]
-                    8
-
-        let target = Map.fromList
-                [ ((1, 4), 1)
-                , ((2, 4), 0), ((2, 6), 1)
-                , ((3, 4), 0), ((3, 6), 1), ((3, 8), 2)
-                , ((4, 4), 0), ((4, 6), 1), ((4, 8), 2), ((4, 10), 5)
-                , ((5, 4), 1), ((5, 6), 1), ((5, 8), 4), ((5, 10), 9), ((5, 12), 16)
-                , ((6, 4), 0), ((6, 6), 3), ((6, 8), 7), ((6, 10), 22), ((6, 12), 42), ((6, 14), 60)
-                , ((7, 4), 1), ((7, 6), 4), ((7, 8), 17), ((7, 10), 49), ((7, 12), 126), ((7, 14), 228), ((7, 16), 261)
-                , ((8, 4), 2), ((8, 6), 12), ((8, 8), 43), ((8, 10), 139), ((8, 12), 355), ((8, 14), 799), ((8, 16), 1288), ((8, 18), 1243)
-                ]
-
-        forM_ (Map.assocs table) $ \ ((n, l), actual) ->
-            assertEqual (printf "for n = %i and l = %i" n l) (Map.lookup (n, l) target) (Just actual)
-
-    , "Numbers of aternating tangles" ~: do
-        let table = generateTable False (generateFlypeEquivalent 9)
-        let target = Map.fromList
-                [ ((1, 4), 1)
-                , ((2, 4), 1), ((2, 6), 1)
-                , ((3, 4), 2), ((3, 6), 2), ((3, 8), 2)
-                , ((4, 4), 5), ((4, 6), 7), ((4, 8), 8), ((4, 10), 5)
-                , ((5, 4), 13), ((5, 6), 20), ((5, 8), 37), ((5, 10), 31), ((5, 12), 16)
-                , ((6, 4), 36), ((6, 6), 77), ((6, 8), 157), ((6, 10), 209), ((6, 12), 161), ((6, 14), 60)
-                , ((7, 4), 111), ((7, 6), 276), ((7, 8), 687), ((7, 10), 1128), ((7, 12), 1294), ((7, 14), 840), ((7, 16), 261)
-                , ((8, 4), 373), ((8, 6), 1135), ((8, 8), 3052), ((8, 10), 5986), ((8, 12), 8528), ((8, 14), 8206), ((8, 16), 4702), ((8, 18), 1243)
-                , ((9, 4), 1362), ((9, 6), 4823), ((9, 8), 13981), ((9, 10), 30556), ((9, 12), 51475), ((9, 14), 62895), ((9, 16), 52815), ((9, 18), 26753), ((9, 20), 6257)
-                ]
-
-        forM_ (Map.assocs table) $ \ ((n, l), actual) ->
-            assertEqual (printf "for n = %i and l = %i" n l) (Map.lookup (n, l) target) (Just actual)
-
-    , "Numbers of 4-leg alternating tangles without symmetry" ~: do
-        let table = generateTable True (generateFlypeEquivalentInTriangle 10)
-        forM_ [(1, 1), (2, 2), (3, 4), (4, 10), (5, 29), (6, 98), (7, 372), (8, 1538), (9, 6755), (10, 30996)] $ \ (n, t) ->
-            assertEqual (printf "for n = %i and l = 4" n) t (table Map.! (n, 4))
+    , "Numbers of 4-leg alternating tangles without symmetry" ~:
+        testTable
+            (\ n -> generateTable True $ \ yield -> generateFlypeEquivalentInTriangle n (\ t s -> when (numberOfLegs t == 4) $ yield t s))
+            [[1], [2], [4], [10], [29], [98], [372], [1538], [6755], [30996]]
     ]

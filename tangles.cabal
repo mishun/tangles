@@ -22,7 +22,12 @@ flag test-modules
 
 library
     default-language:   Haskell2010
-    default-extensions: BangPatterns, FlexibleContexts, FlexibleInstances, MultiParamTypeClasses, FunctionalDependencies
+    default-extensions:
+        BangPatterns,
+        FlexibleContexts,
+        FlexibleInstances,
+        FunctionalDependencies,
+        MultiParamTypeClasses
     ghc-options:        -Wall
     ghc-prof-options:   -prof -auto-all -caf-all
     cc-options:         -Wall -std=c++11
@@ -156,6 +161,7 @@ library
             Math.KnotTh.Tangle.BorderIncremental.Test,
             Math.KnotTh.Tangle.Moves.Test,
             Math.KnotTh.Tangle.Test
+            TestUtil.Table
 
 test-suite TestTangles
     type:               exitcode-stdio-1.0
@@ -167,8 +173,6 @@ test-suite TestTangles
     build-depends:      base, containers, mtl, HUnit, tangles
     main-is:            TestTangles.hs
     hs-source-dirs:     test
-    other-modules:
-        Tests.Table
     extra-lib-dirs:     ext/gsl-1.15/lib/
 
 benchmark GraphDrawingBenchmark
@@ -181,8 +185,6 @@ benchmark GraphDrawingBenchmark
     build-depends:      base, array, tangles
     main-is:            GraphDrawingBenchmark.hs
     hs-source-dirs:     test
-    other-modules:
-        Tests.Table
     extra-lib-dirs:     ext/gsl-1.15/lib/
 
 benchmark TangleGeneratorBenchmark
@@ -195,8 +197,6 @@ benchmark TangleGeneratorBenchmark
     build-depends:      base, mtl, containers, tangles
     main-is:            TangleGeneratorBenchmark.hs
     hs-source-dirs:     test
-    other-modules:
-        Tests.Table
     extra-lib-dirs:     ext/gsl-1.15/lib/
 
 benchmark NonAlternatingBenchmark
@@ -209,6 +209,4 @@ benchmark NonAlternatingBenchmark
     build-depends:      base, mtl, containers, tangles
     main-is:            NonAlternatingBenchmark.hs
     hs-source-dirs:     test
-    other-modules:
-        Tests.Table
     extra-lib-dirs:     ext/gsl-1.15/lib/

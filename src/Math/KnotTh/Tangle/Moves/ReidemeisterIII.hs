@@ -9,8 +9,8 @@ import Math.KnotTh.Tangle.Moves.Move
 
 
 neighbours :: NonAlternatingTangle -> [NonAlternatingTangle]
-neighbours tangle = mapMaybe try3rdReidemeister $ allDartsOfCrossings tangle
-    where
+neighbours tangle =
+    flip mapMaybe (allDartsOfCrossings tangle) $ \ ab -> do
         -- \sc           /rb             \sc   /rb
         --  \           /                 \   /
         -- cs\ cb   bc /br               ac\ /ab
@@ -22,38 +22,35 @@ neighbours tangle = mapMaybe try3rdReidemeister $ allDartsOfCrossings tangle
         --     ap/a\aq               ca/ cb   bc \ba
         --      /   \                 /           \
         --   pa/     \qa             /pa           \qa
-        try3rdReidemeister ab = do
-            guard $ isDart ab
+        guard $ isDart ab
 
-            let ac = nextCCW ab
-                ba = opposite ab
-                ca = opposite ac
+        let ac = nextCCW ab
+            ba = opposite ab
+            ca = opposite ac
 
-            guard $ isDart ba && isDart ca
+        guard $ isDart ba && isDart ca
 
-            let bc = nextCW ba
-                cb = nextCCW ca
+        let bc = nextCW ba
+            cb = nextCCW ca
 
-            guard $ bc == opposite cb
+        guard $ bc == opposite cb
 
-            let a = incidentCrossing ab
-                b = incidentCrossing ba
-                c = incidentCrossing ca
+        let a = incidentCrossing ab
+            b = incidentCrossing ba
+            c = incidentCrossing ca
 
-            guard $ (a /= b) && (a /= c) && (b /= c)
-            guard $ (passOver bc) == (passOver cb)
+        guard $ (a /= b) && (a /= c) && (b /= c)
+        guard $ (passOver bc) == (passOver cb)
 
-            guard $
-                let altRoot
-                        | passOver ab == passOver ba  = ca
-                        | otherwise                   = bc
+        guard $ let altRoot | passOver ab == passOver ba  = ca
+                            | otherwise                   = bc
                 in ab < altRoot
 
-            let ap = threadContinuation ab
-                aq = nextCW ab
-                br = nextCW bc
-                cs = nextCCW cb
+        let ap = threadContinuation ab
+            aq = nextCW ab
+            br = nextCW bc
+            cs = nextCCW cb
 
-            return $! move tangle $ do
-                substituteC [(ca, ap), (ba, aq), (ab, br), (ac, cs)]
-                connectC [(br, aq), (cs, ap)]
+        return $! move tangle $ do
+            substituteC [(ca, ap), (ba, aq), (ab, br), (ac, cs)]
+            connectC [(br, aq), (cs, ap)]

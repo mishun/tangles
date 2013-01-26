@@ -6,35 +6,21 @@ import Data.Maybe (mapMaybe)
 import Data.List (sortBy, groupBy)
 import Control.Monad
 import Text.Printf
-import Math.KnotTh.Tangle.BorderIncremental.SimpleTypes
 import Math.KnotTh.Enumeration.DiagramInfo.MinimalDiagramInfo
 import Math.KnotTh.Enumeration.Applied.NonAlternatingTangles
 import Math.KnotTh.Draw.DrawKnot
 import Math.KnotTh.Link.FromTangle
 import Graphics.HP
-import Tests.Table
+import TestUtil.Table
 import Math.KnotTh.Tangle.Moves.Test
 
 
 main :: IO ()
 main = do
-    let diagrams n yield =
-            simpleIncrementalGenerator
-                (triangleBoundedType n primeIrreducibleDiagramType)
-                [ArbitraryCrossing]
-                n
-                (\ t _ -> when (numberOfLegs t <= 6) $ yield t)
+    printTable "Diagrams" $ generateTable' $ tangleDiagrams False (-1) 5
 
-    printTable "Diagrams" $ generateTable' $ diagrams 5
-
-    let tangles n k =
-            let classes = tangleClasses (diagrams $ n + k) :: [MinimalDiagramInfo NonAlternatingTangle]
-            in siftTangles $ filter ((<= n) . numberOfCrossings . representative) classes
-
-    let sifted = tangles 8 0
-
+    let sifted = lookingForwardTanglesEnumeration True 6 0 6
     printTable "Tangles" $ generateTable' $ forM_ (mapMaybe maybePrimeDiagram $ singleRepresentativeClasses sifted)
-
     printf "Collision classes: %i" (length $ collisionClasses sifted)
     writePostScriptFile "collisions.ps" $ do
         let a4Width = 595
