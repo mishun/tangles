@@ -2,13 +2,16 @@ module Math.KnotTh.Invariants.Skein.StateSum.Operations
     ( glueHandle
     , connect
     , takeAsConst
+    , extractStateSum
     ) where
 
-import Data.Array.Base ((!), newArray, newArray_, writeArray)
+import Data.Array.Base ((!), bounds, newArray, newArray_, readArray, writeArray)
+import Data.Array (Array)
 import Data.Array.Unboxed (UArray)
-import Data.Array.ST (STUArray, runSTUArray)
-import Control.Monad.ST (ST)
-import Control.Monad (forM_, when, foldM_)
+import Data.Array.ST (STArray, STUArray, runSTUArray)
+import Data.Array.Unsafe (unsafeFreeze)
+import Control.Monad.ST (ST, runST)
+import Control.Monad (forM, forM_, when, foldM_)
 import Math.KnotTh.Invariants.Skein.StateSum.Summand
 import Math.KnotTh.Invariants.Skein.StateSum.Sum
 import Math.KnotTh.Invariants.Skein.Relation    
@@ -102,3 +105,31 @@ takeAsConst :: (Num a) => StateSum a -> Maybe a
 takeAsConst [] = Just 0
 takeAsConst [StateSummand _ x] = Just $! x
 takeAsConst _ = Nothing
+
+
+extractStateSum :: (SkeinRelation r a) => r -> Array Int (Int, Int) -> Array Int (Array Int (Int, Int)) -> Array Int (StateSum a) -> a -> StateSum a
+extractStateSum _ border connections sums global = runST $ do
+    let (1, n) = bounds connections
+    let (0, l) = bounds border
+    st <- newArray_ (bounds connections) :: ST s (STArray s Int (UArray Int Int))
+    let substState f [] = do
+            t <- newArray_ (0, l) :: ST s (STUArray s Int Int)
+            forM_ [0 .. l] $ \ !i -> do
+                let (v, x) = border ! i
+                j <- if v == 0
+                    then return x
+                    else do
+                        vt <- readArray st v
+                        let (0, x') = (connections ! v) ! (vt ! x)
+                        return x'
+                writeArray t i j
+            t' <- unsafeFreeze t
+            return [StateSummand t' f]
+
+        substState f (h : t) =
+            fmap concat $ forM (sums ! h) $ \ (StateSummand ct cf) -> do
+                writeArray st h ct
+                substState (f * cf) t
+
+    result <- substState global [1 .. n]
+    return $! normalizeStateSum result

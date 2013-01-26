@@ -20,7 +20,8 @@ import Text.Printf
 import Math.KnotTh.Tangle
 
 
-data CrossingFlag = Direct | Flipped | Masked deriving (Eq, Enum)
+data CrossingFlag = Direct | Flipped | Masked deriving (Eq)
+
 
 data MoveState s ct = MoveState
     { stateSource      :: !(Tangle ct)
@@ -121,7 +122,8 @@ emitCircle = ask >>= \ !st -> lift $ do
 
 maskC :: [Crossing ct] -> MoveM s ct ()
 maskC crossings = ask >>= \ !st -> lift $
-    forM_ crossings $ \ !c -> writeArray (stateMask st) (crossingIndex c) Masked
+    forM_ crossings $ \ !c ->
+        writeArray (stateMask st) (crossingIndex c) Masked
 
 
 flipC :: (CrossingType ct) => [Crossing ct] -> MoveM s ct ()
@@ -156,7 +158,10 @@ substituteC substitutions = do
             then modifySTRef (stateCircles st) (+ 1)
             else writeArray arr (dartIndex b) a
 
-        mapM (\ (a, b) -> do { b' <- readArray arr (dartIndex b) ; return (a, b' ) }) reconnections >>= reconnect st
+        mapM (\ (a, b) -> do
+                b' <- readArray arr (dartIndex b)
+                return (a, b')
+            ) reconnections >>= reconnect st
 
 
 greedy :: [Dart ct -> MoveM s ct Bool] -> MoveM s ct ()

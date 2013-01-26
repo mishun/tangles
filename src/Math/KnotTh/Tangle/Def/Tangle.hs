@@ -187,7 +187,7 @@ glueToBorder leg legsToGlue crossingToGlue
                       | ml < oldL - legsToGlue  = 4 * newC + 4 - legsToGlue + ml
                       | otherwise               = 4 * newC - 5 + oldL - ml
                       where
-                          x = crossArray tangle `unsafeAt` index' 
+                          x = crossArray tangle `unsafeAt` index'
                           ml = (x - 4 * oldC - lp - 1) `mod` oldL
                 unsafeWrite cr index y
 
@@ -217,7 +217,7 @@ glueToBorder leg legsToGlue crossingToGlue
                 { loopsCount   = numberOfFreeLoops tangle
                 , crossCount   = newC
                 , crossArray   = cr'
-                , stateArray   = st' 
+                , stateArray   = st'
                 , numberOfLegs = newL
                 }
 

@@ -33,13 +33,13 @@ maybeThreadContinuation d
 allThreads :: (ThreadedCrossing ct, Knotted k c d, Eq (d ct)) => k ct -> [[(d ct, d ct)]]
 allThreads knot =
     let (_, _, threads) = allThreadsWithMarks knot
-    in threads
+    in map snd threads
 
 
-allThreadsWithMarks :: (ThreadedCrossing ct, Knotted k c d, Eq (d ct)) => k ct -> (Int, UArray Int Int, [[(d ct, d ct)]])
+allThreadsWithMarks :: (ThreadedCrossing ct, Knotted k c d, Eq (d ct)) => k ct -> (Int, UArray Int Int, [(Int, [(d ct, d ct)])])
 allThreadsWithMarks knot = runST $ do
     visited <- newArray (dartIndexRange knot) 0 :: ST s (STUArray s Int Int)
-    threads <- newSTRef $ replicate (numberOfFreeLoops knot) []
+    threads <- newSTRef $ replicate (numberOfFreeLoops knot) (0, [])
 
     n <- flip (flip foldM 1) (allEdges knot) $ \ !i (!startA, !startB) -> do
         v <- readArray visited $ dartIndex startA
@@ -69,13 +69,13 @@ allThreadsWithMarks knot = runST $ do
                             traceFront ((a, b) : prev) b
 
                 tb <- traceBack [] startB
-                case tb of
-                    Left thread  -> readSTRef threads >>= \ !list -> writeSTRef threads $! thread : list
+                thread <- case tb of
+                    Left thread  -> return $! thread
                     Right prefix -> do
                         !suffix <- traceFront [] startB
-                        readSTRef threads >>= \ !list ->
-                            writeSTRef threads $! (prefix ++ suffix) : list
+                        return $! prefix ++ suffix
 
+                readSTRef threads >>= \ !list -> writeSTRef threads $! (i, thread) : list
                 return $! i + 1
 
     visited' <- unsafeFreeze visited

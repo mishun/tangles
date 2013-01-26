@@ -16,6 +16,7 @@ module Math.KnotTh.Crossings.Arbitrary
     , isNonAlternating
     , selfWrithe
     , selfWritheArray
+    , invertCrossing
     , invertCrossings
     ) where
 
@@ -136,8 +137,11 @@ selfWritheArray knot =
     in listArray (crossingIndexRange knot) $ map writhe $ allCrossings knot
 
 
+invertCrossing :: CrossingState ArbitraryCrossing -> CrossingState ArbitraryCrossing
+invertCrossing s
+    | isOverCrossing s  = underCrossing
+    | otherwise         = overCrossing
+
+
 invertCrossings :: (Knotted k c d) => k ArbitraryCrossing -> k ArbitraryCrossing
-invertCrossings = mapCrossings $ \ s ->
-    if isOverCrossing s
-        then underCrossing
-        else overCrossing
+invertCrossings = mapCrossings invertCrossing
