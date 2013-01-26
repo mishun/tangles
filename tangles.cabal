@@ -132,7 +132,6 @@ library
         Math.KnotTh.Invariants.Skein.StateSum.Operations,
         Math.KnotTh.Invariants.Skein.StateSum.Sum,
         Math.KnotTh.Invariants.Skein.StateSum.Summand,
-        Math.KnotTh.Invariants.Skein.StateSum.TangleRelation,
         Math.KnotTh.Invariants.Util.BruteForceMinimization,
         Math.KnotTh.Knotted.CrossingState,
         Math.KnotTh.Knotted.Knotted,
@@ -157,11 +156,15 @@ library
         exposed-modules:
             Math.Combinatorics.ChordDiagrams.Test,
             Math.KnotTh.Enumeration.Applied.Test,
+            Math.KnotTh.Invariants.Skein.StateSum.TangleRelation,
             Math.KnotTh.Invariants.Test,
             Math.KnotTh.Tangle.BorderIncremental.Test,
             Math.KnotTh.Tangle.Moves.Test,
             Math.KnotTh.Tangle.Test
             TestUtil.Table
+    else
+        other-modules:
+            Math.KnotTh.Invariants.Skein.StateSum.TangleRelation
 
 test-suite TestTangles
     type:               exitcode-stdio-1.0

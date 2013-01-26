@@ -3,10 +3,13 @@ module Math.KnotTh.Tangle.Table
     , infinityTangle
     , lonerOverCrossingTangle
     , lonerUnderCrossingTangle
+    , altTriangleTangle
+    , naTriangleTangle
     , groupTangle
     ) where
 
 import Math.KnotTh.Tangle.NonAlternating
+import Math.KnotTh.Tangle.CascadeCode
 
 
 lonerOverCrossingTangle :: NonAlternatingTangle
@@ -15,6 +18,14 @@ lonerOverCrossingTangle = lonerTangle overCrossing
 
 lonerUnderCrossingTangle :: NonAlternatingTangle
 lonerUnderCrossingTangle = lonerTangle underCrossing
+
+
+altTriangleTangle :: NonAlternatingTangle
+altTriangleTangle = decodeCascadeCode [(MU, 0), (XO, 1)]
+
+
+naTriangleTangle :: NonAlternatingTangle
+naTriangleTangle = decodeCascadeCode [(MU, 0), (XU, 1)]
 
 
 groupTangle :: Int -> NonAlternatingTangle

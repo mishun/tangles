@@ -421,7 +421,7 @@ namespace Math { namespace Manifolds { namespace Embedding { namespace Optimizat
 		}
 
 		void relaxEmbedding
-			( const InteractionConst & interaction
+			( const InteractionConst & interaction, const int _verbose
 			, const size_t numberOfMovableVertices, const size_t numberOfFrozenVertices, Vector2 * x
 			, const size_t numberOfThreads, const size_t * const lengthOfThread, const size_t * const * const threads
 			, const size_t numberOfCrossings, const size_t * const crossingDegree, const size_t * const * const crossingAdjacencyList
@@ -440,7 +440,7 @@ namespace Math { namespace Manifolds { namespace Embedding { namespace Optimizat
 				, .crossingAdjacencyList   = crossingAdjacencyList
 				};
 
-			const bool verbose = true;
+			const bool verbose = _verbose != 0;
 			const double eps = 1e-3;
 			const size_t maxIterations = 2048;
 

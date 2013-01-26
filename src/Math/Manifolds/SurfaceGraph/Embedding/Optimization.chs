@@ -49,16 +49,16 @@ instance Storable InteractionConst where
 		{# set InteractionConst.cross    #} p $ realToFrac $ interactionCross x
 
 
-foreign import ccall "_ZN4Math9Manifolds9Embedding12Optimization5Relax14relaxEmbeddingERKNS3_16InteractionConstEjjPNS_7Numeric7Vector2EjPKjPKSB_jSB_SD_"
-	c_relaxEmbedding :: InteractionConstPtr
+foreign import ccall "_ZN4Math9Manifolds9Embedding12Optimization5Relax14relaxEmbeddingERKNS3_16InteractionConstEijjPNS_7Numeric7Vector2EjPKjPKSB_jSB_SD_"
+	c_relaxEmbedding :: InteractionConstPtr -> CInt
 		-> CSize -> CSize -> Ptr CDouble
 		-> CSize -> Ptr CSize -> Ptr (Ptr CSize)
 		-> CSize -> Ptr CSize -> Ptr (Ptr CSize)
 		-> IO ()
 
 
-relaxEmbedding' :: InteractionConst -> Int -> Int -> StorableArray Int CDouble -> [[Int]] -> [[Int]] -> IO ()
-relaxEmbedding' interaction numberOfMovablePoints numberOfFrozenPoints coords threads aliveVertices =
+relaxEmbedding' :: InteractionConst -> Bool -> Int -> Int -> StorableArray Int CDouble -> [[Int]] -> [[Int]] -> IO ()
+relaxEmbedding' interaction verbose numberOfMovablePoints numberOfFrozenPoints coords threads aliveVertices =
 	with interaction $ \ interactionPtr ->
 		withStorableArray coords $ \ xPtr -> do
 			let numberOfThreads = length threads
@@ -71,7 +71,7 @@ relaxEmbedding' interaction numberOfMovablePoints numberOfFrozenPoints coords th
 				A.withArray (map (fromIntegral . length) threads) $ \ lensPtr ->
 					A.withArray (map (fromIntegral . length) aliveVertices) $ \ vertexDegreePtr ->
 						withStorableArray adjPtrs $ \ adjPtrsPtr ->
-							c_relaxEmbedding interactionPtr
+							c_relaxEmbedding interactionPtr (if verbose then 1 else 0)
 								(fromIntegral numberOfMovablePoints) (fromIntegral numberOfFrozenPoints) xPtr
 								(fromIntegral numberOfThreads) lensPtr threadsPtrsPtr
 								(fromIntegral numberOfAliveVertices) vertexDegreePtr adjPtrsPtr

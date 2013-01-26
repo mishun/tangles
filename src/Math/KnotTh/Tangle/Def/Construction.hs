@@ -3,10 +3,11 @@ module Math.KnotTh.Tangle.Def.Construction
     , zeroTangle
     , infinityTangle
     , transformTangle
+    , allOrientationsOfTangle
     ) where
 
 import Text.Printf
-import Math.Algebra.Group.Dn (Dn, pointsUnderGroup, reflection, rotation, permute)
+import Math.Algebra.Group.Dn (Dn, pointsUnderGroup, reflection, rotation, permute, fromReflectionRotation)
 import Math.Algebra.Group.D4 ((<*>), ec)
 import Math.KnotTh.Tangle.Def.Tangle
 
@@ -52,3 +53,13 @@ transformTangle g tangle
                 rotated =
                     let (pre, post) = splitAt (l - rotation g) $ map (pair . opposite) $ allLegs tangle
                     in post ++ pre
+
+
+allOrientationsOfTangle :: (CrossingType ct) => Tangle ct -> [Tangle ct]
+allOrientationsOfTangle tangle = do
+    let l = numberOfLegs tangle
+    if l == 0
+        then return $! tangle
+        else do
+            g <- [ fromReflectionRotation l (refl, rot) | rot <- [0 .. l - 1], refl <- [False, True] ]
+            return $! transformTangle g tangle

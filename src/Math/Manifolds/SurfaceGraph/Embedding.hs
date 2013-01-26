@@ -221,7 +221,7 @@ relaxEmbedding root initial
                 writeArray coords (2 * i) (realToFrac x)
                 writeArray coords (2 * i + 1) (realToFrac y)
 
-        relaxEmbedding' interaction numberOfMovablePoints numberOfFrozenPoints coords threads $
+        relaxEmbedding' interaction False numberOfMovablePoints numberOfFrozenPoints coords threads $
             let aliveVertices = filter ((/= root) . Left) $! graphVertices g
             in map (map ((!! 1) . (dartIndices !)) . dartsIncidentToVertex) aliveVertices
 
