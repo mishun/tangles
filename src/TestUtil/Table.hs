@@ -1,6 +1,7 @@
 {-# LANGUAGE Rank2Types #-}
 module TestUtil.Table
-    ( generateTable
+    ( Table
+    , generateTable
     , generateTable'
     , testTable
     , testTable'

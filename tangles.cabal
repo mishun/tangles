@@ -155,6 +155,7 @@ library
         build-depends:      HUnit
         exposed-modules:
             Math.Combinatorics.ChordDiagrams.Test,
+            Math.Combinatorics.Strings.Test,
             Math.KnotTh.Enumeration.Applied.Test,
             Math.KnotTh.Invariants.Skein.StateSum.TangleRelation,
             Math.KnotTh.Invariants.Test,
@@ -162,6 +163,7 @@ library
             Math.KnotTh.Tangle.Moves.Test,
             Math.KnotTh.Tangle.Test
             TestUtil.Table
+            TestUtil.TestCollection
     else
         other-modules:
             Math.KnotTh.Invariants.Skein.StateSum.TangleRelation

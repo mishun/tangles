@@ -25,9 +25,7 @@ tests = "Basic tangle tests" ~:
             (nextCW $ nthLeg t i) @?= (nthLeg t $ (i - 1) `mod` 6)
             (nextCCW $ nthLeg t i) @?= (nthLeg t $ (i + 1) `mod` 6)
 
-        do
-            s <- foldMIncidentDartsFrom (nthIncidentDart c1 2) ccw (\ _ s -> return $! s + 1) (0 :: Int)
-            s @?= 4
+        foldMIncidentDartsFrom (nthIncidentDart c1 2) ccw (\ _ s -> return $! s + 1) (0 :: Int) >>= (@?= 4)
 
     , "Show loner" ~:
         show lonerProjection ~?= "(Tangle (0 O) (Border [ (Dart 1 0) (Dart 1 1) (Dart 1 2) (Dart 1 3) ]) (Crossing 1 (I / D4 | +) [ (Leg 0) (Leg 1) (Leg 2) (Leg 3) ]))"
