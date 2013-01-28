@@ -1,10 +1,11 @@
 {-# LANGUAGE Rank2Types #-}
 module Math.KnotTh.Tangle.BorderIncremental.Test
-    ( tests
+    ( test
     ) where
 
 import Control.Monad (when)
-import Test.HUnit
+import Test.Framework (Test, testGroup)
+import Test.Framework.Providers.HUnit (testCase)
 import Math.KnotTh.Tangle.Projection
 import Math.KnotTh.Tangle.NonAlternating
 import Math.KnotTh.Tangle.BorderIncremental.SimpleTypes
@@ -12,9 +13,9 @@ import Math.KnotTh.Tangle.BorderIncremental.FlypeGenerator
 import TestUtil.Table
 
 
-tests :: Test
-tests = "Tangle generators" ~:
-    [ "Numbers of prime tangle projections" ~:
+test :: Test
+test = testGroup "Tangle generators"
+    [ testCase "Numbers of prime tangle projections" $
         testTable (\ n -> generateTable False $ simpleIncrementalGenerator primeProjectionType [ProjectionCrossing] n)
             [ [1]
             , [1, 1]
@@ -26,7 +27,7 @@ tests = "Tangle generators" ~:
             , [1348, 3237, 6138, 9183, 10572, 8818, 4702, 1243]
             ]
 
-    , "Numbers of basic polyhedral tangle projections" ~:
+    , testCase "Numbers of basic polyhedral tangle projections" $
         testTable (\ n -> generateTable False $ simpleIncrementalGenerator reducedProjectionType [ProjectionCrossing] n)
             [ [1]
             , [0, 1]
@@ -37,7 +38,7 @@ tests = "Tangle generators" ~:
             , [3, 7, 21, 49, 126, 228, 261]
             ]
 
-    , "Numbers of tangle templates" ~:
+    , testCase "Numbers of tangle templates" $
         testTable (\ n -> generateTable False $ simpleIncrementalGenerator templateProjectionType [ProjectionCrossing] n)
             [ [1]
             , [0, 1]
@@ -49,7 +50,7 @@ tests = "Tangle generators" ~:
             , [2, 12, 43, 139, 355, 799, 1288, 1243]
             ]
 
-    , "Numbers of tangle diagrams" ~:
+    , testCase "Numbers of tangle diagrams" $
         testTable (\ n -> generateTable False $ simpleIncrementalGenerator primeIrreducibleDiagramType [ArbitraryCrossing] n)
             [ [1]
             , [1, 3] -- [1, 2]
@@ -59,7 +60,7 @@ tests = "Tangle generators" ~:
             , [836, 2168, 4120, 6070, 6099, 3388] -- [486, 1146, 2125, 3086, 3081, 1718]
             ]
 
-    , "Numbers of alternating tangles" ~:
+    , testCase "Numbers of alternating tangles" $
         testTable (\ n -> generateTable False $ generateFlypeEquivalent n)
             [ [1]
             , [1, 1]
@@ -72,7 +73,7 @@ tests = "Tangle generators" ~:
             , [1362, 4823, 13981, 30556, 51475, 62895, 52815, 26753, 6257]
             ]
 
-    , "Numbers of 4-leg alternating tangles without symmetry" ~:
+    , testCase "Numbers of 4-leg alternating tangles without symmetry" $
         testTable
             (\ n -> generateTable True $ \ yield -> generateFlypeEquivalentInTriangle n (\ t s -> when (numberOfLegs t == 4) $ yield t s))
             [[1], [2], [4], [10], [29], [98], [372], [1538], [6755], [30996]]

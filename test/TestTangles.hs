@@ -1,7 +1,7 @@
 module Main (main) where
 
-import Test.HUnit
+import Test.Framework (defaultMain)
 import TestUtil.TestCollection
 
 
-main = runTestTT tests
+main = defaultMain tests

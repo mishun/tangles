@@ -1,17 +1,19 @@
 module Math.KnotTh.Tangle.Test
-    ( tests
+    ( test
     ) where
 
 import Control.Monad
-import Test.HUnit
+import Test.Framework (Test, testGroup)
+import Test.Framework.Providers.HUnit (testCase)
+import Test.HUnit hiding (Test, test)
 import Math.Algebra.RotationDirection
 import Math.KnotTh.Tangle.Projection
 import Math.KnotTh.Tangle.CascadeCode
 
 
-tests :: Test
-tests = "Basic tangle tests" ~:
-    [ "Basic functions" ~: do
+test :: Test
+test = testGroup "Basic tangle tests"
+    [ testCase "Basic functions" $ do
         let t = crossingTangle $ glueToBorder (firstLeg lonerProjection) 1 projectionCrossing
         let c1 = nthCrossing t 1
         crossingIndex c1 @?= 1
@@ -27,42 +29,38 @@ tests = "Basic tangle tests" ~:
 
         foldMIncidentDartsFrom (nthIncidentDart c1 2) ccw (\ _ s -> return $! s + 1) (0 :: Int) >>= (@?= 4)
 
-    , "Show loner" ~:
-        show lonerProjection ~?= "(Tangle (0 O) (Border [ (Dart 1 0) (Dart 1 1) (Dart 1 2) (Dart 1 3) ]) (Crossing 1 (I / D4 | +) [ (Leg 0) (Leg 1) (Leg 2) (Leg 3) ]))"
+    , testCase "Show loner" $
+        show lonerProjection @?= "(Tangle (0 O) (Border [ (Dart 1 0) (Dart 1 1) (Dart 1 2) (Dart 1 3) ]) (Crossing 1 (I / D4 | +) [ (Leg 0) (Leg 1) (Leg 2) (Leg 3) ]))"
 
-    , "Show empty" ~: do
+    , testCase "Show empty" $ do
         show (zeroTangle :: TangleProjection) @?= "(Tangle (0 O) (Border [ (Leg 3) (Leg 2) (Leg 1) (Leg 0) ]))"
         show (infinityTangle :: TangleProjection) @?= "(Tangle (0 O) (Border [ (Leg 1) (Leg 0) (Leg 3) (Leg 2) ]))"
 
-    , "Show implode 1" ~:
-        let t = implode
-                    ( 0
-                    , [(1, 0), (1, 1), (1, 2), (1, 3)]
-                    , [([(0, 0), (0, 1), (0, 2), (0, 3)], projectionCrossing)]
-                    )
-        in show t ~?= "(Tangle (0 O) (Border [ (Dart 1 0) (Dart 1 1) (Dart 1 2) (Dart 1 3) ]) (Crossing 1 (I / D4 | +) [ (Leg 0) (Leg 1) (Leg 2) (Leg 3) ]))"
+    , testCase "Show implode 1" $
+        let t = implode (0, [(1, 0), (1, 1), (1, 2), (1, 3)], [([(0, 0), (0, 1), (0, 2), (0, 3)], projectionCrossing)])
+        in show t @?= "(Tangle (0 O) (Border [ (Dart 1 0) (Dart 1 1) (Dart 1 2) (Dart 1 3) ]) (Crossing 1 (I / D4 | +) [ (Leg 0) (Leg 1) (Leg 2) (Leg 3) ]))"
 
-    , "Show glue 0" ~:
+    , testCase "Show glue 0" $
         let t = crossingTangle $ glueToBorder (nthLeg lonerProjection 0) 0 projectionCrossing
-        in show t ~?= "(Tangle (0 O) (Border [ (Dart 2 0) (Dart 2 1) (Dart 2 2) (Dart 2 3) (Dart 1 1) (Dart 1 2) (Dart 1 3) (Dart 1 0) ]) (Crossing 1 (I / D4 | +) [ (Leg 7) (Leg 4) (Leg 5) (Leg 6) ]) (Crossing 2 (I / D4 | +) [ (Leg 0) (Leg 1) (Leg 2) (Leg 3) ]))"
+        in show t @?= "(Tangle (0 O) (Border [ (Dart 2 0) (Dart 2 1) (Dart 2 2) (Dart 2 3) (Dart 1 1) (Dart 1 2) (Dart 1 3) (Dart 1 0) ]) (Crossing 1 (I / D4 | +) [ (Leg 7) (Leg 4) (Leg 5) (Leg 6) ]) (Crossing 2 (I / D4 | +) [ (Leg 0) (Leg 1) (Leg 2) (Leg 3) ]))"
 
-    , "Show glue 1" ~:
+    , testCase "Show glue 1" $
         let t = crossingTangle $ glueToBorder (firstLeg lonerProjection) 1 projectionCrossing
-        in show t ~?= "(Tangle (0 O) (Border [ (Dart 2 1) (Dart 2 2) (Dart 2 3) (Dart 1 1) (Dart 1 2) (Dart 1 3) ]) (Crossing 1 (I / D4 | +) [ (Dart 2 0) (Leg 3) (Leg 4) (Leg 5) ]) (Crossing 2 (I / D4 | +) [ (Dart 1 0) (Leg 0) (Leg 1) (Leg 2) ]))"
+        in show t @?= "(Tangle (0 O) (Border [ (Dart 2 1) (Dart 2 2) (Dart 2 3) (Dart 1 1) (Dart 1 2) (Dart 1 3) ]) (Crossing 1 (I / D4 | +) [ (Dart 2 0) (Leg 3) (Leg 4) (Leg 5) ]) (Crossing 2 (I / D4 | +) [ (Dart 1 0) (Leg 0) (Leg 1) (Leg 2) ]))"
 
-    , "Show glue 2" ~:
+    , testCase "Show glue 2" $
         let t = crossingTangle $ glueToBorder (nthLeg lonerProjection 1) 2 projectionCrossing
-        in show t ~?= "(Tangle (0 O) (Border [ (Dart 2 2) (Dart 2 3) (Dart 1 2) (Dart 1 3) ]) (Crossing 1 (I / D4 | +) [ (Dart 2 1) (Dart 2 0) (Leg 2) (Leg 3) ]) (Crossing 2 (I / D4 | +) [ (Dart 1 1) (Dart 1 0) (Leg 0) (Leg 1) ]))"
+        in show t @?= "(Tangle (0 O) (Border [ (Dart 2 2) (Dart 2 3) (Dart 1 2) (Dart 1 3) ]) (Crossing 1 (I / D4 | +) [ (Dart 2 1) (Dart 2 0) (Leg 2) (Leg 3) ]) (Crossing 2 (I / D4 | +) [ (Dart 1 1) (Dart 1 0) (Leg 0) (Leg 1) ]))"
 
-    , "Show glue 3" ~:
+    , testCase "Show glue 3" $
         let t = crossingTangle $ glueToBorder (nthLeg lonerProjection 3) 3 projectionCrossing
-        in show t ~?= "(Tangle (0 O) (Border [ (Dart 2 3) (Dart 1 0) ]) (Crossing 1 (I / D4 | +) [ (Leg 1) (Dart 2 2) (Dart 2 1) (Dart 2 0) ]) (Crossing 2 (I / D4 | +) [ (Dart 1 3) (Dart 1 2) (Dart 1 1) (Leg 0) ]))"
+        in show t @?= "(Tangle (0 O) (Border [ (Dart 2 3) (Dart 1 0) ]) (Crossing 1 (I / D4 | +) [ (Leg 1) (Dart 2 2) (Dart 2 1) (Dart 2 0) ]) (Crossing 2 (I / D4 | +) [ (Dart 1 3) (Dart 1 2) (Dart 1 1) (Leg 0) ]))"
 
-    , "Show glue 4" ~:
+    , testCase "Show glue 4" $
         let t = crossingTangle $ glueToBorder (nthLeg lonerProjection 1) 4 projectionCrossing
-        in show t ~?= "(Tangle (0 O) (Border [  ]) (Crossing 1 (I / D4 | +) [ (Dart 2 1) (Dart 2 0) (Dart 2 3) (Dart 2 2) ]) (Crossing 2 (I / D4 | +) [ (Dart 1 1) (Dart 1 0) (Dart 1 3) (Dart 1 2) ]))"
+        in show t @?= "(Tangle (0 O) (Border [  ]) (Crossing 1 (I / D4 | +) [ (Dart 2 1) (Dart 2 0) (Dart 2 3) (Dart 2 2) ]) (Crossing 2 (I / D4 | +) [ (Dart 1 1) (Dart 1 0) (Dart 1 3) (Dart 1 2) ]))"
 
-    , "Cascade code" ~: do
+    , testCase "Cascade code" $ do
         let t = decodeCascadeCodeFromPairs [(1, 0), (0, 5), (0, 3), (0, 3), (0, 5)]
         let l =
                 ( 0
@@ -75,6 +73,5 @@ tests = "Basic tangle tests" ~:
                     , ([(5, 2), (1, 3), (0, 0), (0, 1)], projectionCrossing)
                     ]
                 )
-
         explode t @?= l
     ]

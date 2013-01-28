@@ -1,10 +1,12 @@
 module Math.KnotTh.Enumeration.Applied.Test
-    ( tests
+    ( test
     ) where
 
 import Data.Maybe (mapMaybe)
 import Control.Monad (forM_)
-import Test.HUnit
+import Test.Framework (Test, testGroup)
+import Test.Framework.Providers.HUnit (testCase)
+import Test.HUnit hiding (Test, test)
 import Math.KnotTh.Tangle.NonAlternating
 import Math.KnotTh.Tangle.NonAlternating.TwistedDouble
 import Math.KnotTh.Enumeration.DiagramInfo.MinimalDiagramInfo
@@ -15,27 +17,27 @@ import Math.KnotTh.Invariants.JonesPolynomial
 import TestUtil.Table
 
 
-testInvariantness :: (Eq a, Show a) => Int -> (NonAlternatingTangle -> a) -> IO ()
+testInvariantness :: (Eq a, Show a) => Int -> (NonAlternatingTangle -> a) -> Assertion
 testInvariantness n f =
     forM_ (map allDiagrams $ tangleClasses $ tangleDiagrams True (-1) n) $ \ cls -> do
         let inv = map f cls
         mapM_ (@?= head inv) inv
 
 
-tests :: Test
-tests = "Enumeration tests" ~:
-    [ "Invariantness checking for computed classes of tangles" ~: 
-        [ "Linking numbers" ~:
+test :: Test
+test = testGroup "Enumeration tests" $
+    [ testGroup "Invariantness checking for computed classes of tangles" $
+        [ testCase "Linking numbers" $
             testInvariantness 6 linkingNumbersSet
 
-        , "Jones polynomial" ~:
+        , testCase "Jones polynomial" $
             testInvariantness 6 minimalJonesPolynomialOfTangle
 
-        , "Jones polynomial of doubling" ~:
+        , testCase "Jones polynomial of doubling" $
             testInvariantness 4 (minimalJonesPolynomialOfTangle . twistedDouble)
         ]
 
-    , "Enumeration of tangles" ~:
+    , testCase "Enumeration of tangles" $
         testTable'
             (\ n -> do
                 let sifted = lookingForwardTanglesEnumeration True (-1) 0 n
@@ -51,7 +53,7 @@ tests = "Enumeration tests" ~:
             , [156]
             ]
 
-{-    , "Enumeration of weak tangles" ~:
+{-    , testCase "Enumeration of weak tangles" $
         testTable'
             (\ n -> do
                 let sifted = lookingForwardWeakTanglesEnumeration True (-1) 2 n

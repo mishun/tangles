@@ -1,8 +1,10 @@
 module Math.KnotTh.Invariants.Test
-    ( tests
+    ( test
     ) where
 
-import Test.HUnit
+import Test.Framework (Test, testGroup)
+import Test.Framework.Providers.HUnit (testCase)
+import Test.HUnit hiding (Test, test)
 import Math.KnotTh.Link.Table
 import Math.KnotTh.Link.GaussCode (fromDTCode)
 import Math.KnotTh.Tangle.Table
@@ -12,17 +14,17 @@ import Math.KnotTh.Invariants.JonesPolynomial
 import Math.KnotTh.Invariants.KauffmanFPolynomial
 
 
-tests :: Test
-tests = "Invariants" ~:
-    [ "Linking numbers of link" ~:
-        map (\ (name, l, target) -> name ~: (linkingNumbersSet l ~?= target))
+test :: Test
+test = testGroup "Invariants"
+    [ testGroup "Linking numbers of link" $
+        map (\ (name, l, target) -> testCase name (linkingNumbersSet l @?= target))
             [ ("whitehead link" , whiteheadLink     , [0]      )
             , ("hopf link"      , hopfLink          , [2]      )
             , ("borromean rings", borromeanRingsLink, [0, 0, 0])
             ]
 
-    , "Jones polynomial of link" ~:
-        map (\ (name, l, target) -> name ~: (show (normalizedJonesPolynomialOfLink l) ~?= target))
+    , testGroup "Jones polynomial of link" $
+        map (\ (name, l, target) -> testCase name (show (normalizedJonesPolynomialOfLink l) @?= target))
             [ ("unknot"                 , unknot               , "1"                                             )
             , ("unknot '8'"             , singleCrossingUnknot , "1"                                             )
             , ("left trefoil knot"      , leftTrefoilKnot      , "-t^-4+t^-3+t^-1"                               )
@@ -57,8 +59,8 @@ tests = "Invariants" ~:
               )
             ]
 
-    , "Kauffman X polynomial of link" ~:
-        map (\ (name, l, target) -> name ~: (show (kauffmanXPolynomial l) ~?= target))
+    , testGroup "Kauffman X polynomial of link" $
+        map (\ (name, l, target) -> testCase name (show (kauffmanXPolynomial l) @?= target))
             [ ("unknot"             , unknot              , "-A^-2-A^2"         )
             , ("unknot '8'"         , singleCrossingUnknot, "-A^-2-A^2"         )
             , ("left trefoil knot"  , leftTrefoilKnot     , "-A^2-A^6-A^10+A^18")
@@ -66,16 +68,16 @@ tests = "Invariants" ~:
             , ("hopf link"          , hopfLink            , "A^-6+A^-2+A^2+A^6" )
             ]
 
-    , "Kauffman F polynomial of link" ~:
-        map (\ (name, l, target) -> name ~: (show (normalizedKauffmanFPolynomialOfLink l) ~?= target))
+    , testGroup "Kauffman F polynomial of link" $
+        map (\ (name, l, target) -> testCase name (show (normalizedKauffmanFPolynomialOfLink l) @?= target))
             [ ("unknot"           , unknot              , "1"                                                                                  )
             , ("unknot '8'"       , singleCrossingUnknot, "1"                                                                                  )
             , ("left trefoil knot", leftTrefoilKnot     , "(-a^(-4)-2*a^(-2))*z^(0)+(a^(-5)+a^(-3))*z^(1)+(a^(-4)+ a^(-2))*z^(2)"              )
             , ("figure eight knot", figureEightKnot     , "(-a^(-2)-1-a^2)*z^(0)+ (-a^(-1)-a)*z^(1)+ (a^(-2)+ 2+ a^2)*z^(2)+ (a^(-1)+ a)*z^(3)")
             ]
 
-    , "Jones polynomial of tangle" ~: 
-        map (\ (name, t, target) -> name ~: (show (jonesPolynomial t) ~?= target))
+    , testGroup "Jones polynomial of tangle" $
+        map (\ (name, t, target) -> testCase name (show (jonesPolynomial t) @?= target))
             [ ("zero"          , zeroTangle                 , "[(1)[3,2,1,0]]"                       )
             , ("infinity"      , infinityTangle             , "[(1)[1,0,3,2]]"                       )
             , ("over crossing" , lonerOverCrossingTangle    , "[(t^1/4)[1,0,3,2],(t^-1/4)[3,2,1,0]]" )

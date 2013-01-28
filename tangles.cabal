@@ -152,7 +152,12 @@ library
         Math.KnotTh.Tangle.Moves.Resting,
         Math.Manifolds.SurfaceGraph.Embedding.Optimization
     if flag(test-modules)
-        build-depends:      HUnit
+        build-depends:
+            HUnit,
+            QuickCheck ==1.*,
+            test-framework,
+            test-framework-hunit,
+            test-framework-quickcheck
         exposed-modules:
             Math.Combinatorics.ChordDiagrams.Test,
             Math.Combinatorics.Strings.Test,
@@ -167,18 +172,6 @@ library
     else
         other-modules:
             Math.KnotTh.Invariants.Skein.StateSum.TangleRelation
-
-test-suite TestTangles
-    type:               exitcode-stdio-1.0
-    default-language:   Haskell2010
-    default-extensions: BangPatterns
-    ghc-options:        -O -threaded
-    ghc-prof-options:   -rtsopts -prof -auto-all -caf-all
-    ld-options:         -static
-    build-depends:      base, containers, mtl, HUnit, tangles
-    main-is:            TestTangles.hs
-    hs-source-dirs:     test
-    extra-lib-dirs:     ext/gsl-1.15/lib/
 
 benchmark GraphDrawingBenchmark
     type:               exitcode-stdio-1.0
@@ -213,5 +206,17 @@ benchmark NonAlternatingBenchmark
     ld-options:         -static
     build-depends:      base, mtl, containers, tangles
     main-is:            NonAlternatingBenchmark.hs
+    hs-source-dirs:     test
+    extra-lib-dirs:     ext/gsl-1.15/lib/
+
+test-suite TestTangles
+    type:               exitcode-stdio-1.0
+    default-language:   Haskell2010
+    default-extensions: BangPatterns
+    ghc-options:        -O -threaded
+    ghc-prof-options:   -rtsopts -prof -auto-all -caf-all
+    ld-options:         -static
+    build-depends:      base, test-framework, tangles
+    main-is:            TestTangles.hs
     hs-source-dirs:     test
     extra-lib-dirs:     ext/gsl-1.15/lib/
