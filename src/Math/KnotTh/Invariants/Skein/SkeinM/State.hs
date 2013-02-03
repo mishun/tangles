@@ -31,7 +31,6 @@ import Text.Printf
 import Math.KnotTh.Crossings.Arbitrary
 import Math.KnotTh.Knotted
 import Math.KnotTh.Invariants.Skein.StateSum
-import Math.KnotTh.Invariants.Skein.Knotted
 import Math.KnotTh.Invariants.Skein.Relation
 
 
@@ -48,7 +47,7 @@ data SkeinState s r a = SkeinState
     }
 
 
-stateFromKnotted :: (SkeinRelation rel a, SkeinKnotted k c d) => rel -> k ArbitraryCrossing -> ST s (SkeinState s rel a)
+stateFromKnotted :: (SkeinRelation rel a, SkeinStructure k c d) => rel -> k ArbitraryCrossing -> ST s (SkeinState s rel a)
 stateFromKnotted relation' knot = do
     s <- do
         let n = numberOfCrossings knot

@@ -16,7 +16,6 @@ import Control.Monad (when)
 import Text.Printf
 import Math.KnotTh.Crossings.Arbitrary
 import Math.KnotTh.Invariants.Skein.StateSum
-import Math.KnotTh.Invariants.Skein.Knotted
 import Math.KnotTh.Invariants.Skein.Relation
 import Math.KnotTh.Invariants.Skein.SkeinM.State
 import Math.KnotTh.Invariants.Skein.SkeinM.ContractEdge
@@ -45,7 +44,7 @@ contract (Vertex !v, !p) = ask >>= \ !s -> lift $ contractEdgeST s (v, p)
 
 
 evaluateStateSum ::
-    (SkeinRelation rel a, SkeinKnotted k c d)
+    (SkeinRelation rel a, SkeinStructure k c d)
         => rel
         -> (forall s. [(Vertex, Int)] -> SkeinM s rel a ())
         -> k ArbitraryCrossing
@@ -65,12 +64,12 @@ evaluateStateSum rel action knot = runST $ do
 
 
 runSkein ::
-    (SkeinRelation rel a, SkeinResult a res k c d)
+    (SkeinRelation rel a, SkeinStructure k c d)
         => rel
         -> (forall s. [(Vertex, Int)] -> SkeinM s rel a ())
         -> k ArbitraryCrossing
-        -> res
+        -> SkeinResult k a
 
 runSkein rel action knot =
     let f = finalNormalization rel knot
-    in resultFromStateSum knot $ map (fmap f) $ evaluateStateSum rel action knot
+    in resultFromStateSum rel knot $ fmap (fmap f) $ evaluateStateSum rel action knot

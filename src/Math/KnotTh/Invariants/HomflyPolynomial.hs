@@ -35,7 +35,7 @@ instance (Ord a, Num a, Show a) => SkeinRelation (HomflyRelation a) a where
         in (factor *)
 
 
-homflyPolynomial :: (SkeinResult Poly r k c d) => k ArbitraryCrossing -> r
+homflyPolynomial :: (SkeinStructure k c d) => k ArbitraryCrossing -> SkeinResult k Poly
 homflyPolynomial = evaluateSkeinRelation $
     HomflyRelation
         (monomial 1 "a" 1) (monomial 1 "a" (-1))

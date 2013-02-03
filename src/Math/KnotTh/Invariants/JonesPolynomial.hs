@@ -62,7 +62,7 @@ jonesVar = "t"
 kauffmanXVar = "A"
 
 
-jonesPolynomial :: (SkeinResult Poly r k c d) => k ArbitraryCrossing -> r
+jonesPolynomial :: (SkeinStructure k c d) => k ArbitraryCrossing -> SkeinResult k Poly
 jonesPolynomial = evaluateSkeinRelation $ BracketLikeRelation (monomial 1 jonesVar (-1 / 4)) (monomial 1 jonesVar (1 / 4))
 
 
@@ -79,7 +79,7 @@ normalizedJonesPolynomialOfLink link
         (q, _) = LP.quotRemLP (big * p * (-LP.sqrtvar jonesVar)) (1 + t)
 
 
-kauffmanXPolynomial :: (SkeinResult Poly r k c d) => k ArbitraryCrossing -> r
+kauffmanXPolynomial :: (SkeinStructure k c d) => k ArbitraryCrossing -> SkeinResult k Poly
 kauffmanXPolynomial = evaluateSkeinRelation $ BracketLikeRelation (monomial 1 kauffmanXVar 1) (monomial 1 kauffmanXVar (-1))
 
 

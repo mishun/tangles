@@ -39,7 +39,7 @@ instance (Ord a, Num a, Show a) => SkeinRelation (KauffmanFRelation a) a where
         in (factor *)
 
 
-kauffmanFPolynomial :: (SkeinResult Poly r k c d) => k ArbitraryCrossing -> r
+kauffmanFPolynomial :: (SkeinStructure k c d) => k ArbitraryCrossing -> SkeinResult k Poly
 kauffmanFPolynomial = evaluateSkeinRelation $
     KauffmanFRelation
         (monomial 1 "a" 1) (monomial 1 "a" (-1))

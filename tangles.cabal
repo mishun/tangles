@@ -110,7 +110,6 @@ library
         Math.Manifolds.SurfaceGraph.Util
     other-modules:
         Math.KnotTh.Invariants.Skein.Applied,
-        Math.KnotTh.Invariants.Skein.Knotted,
         Math.KnotTh.Invariants.Skein.Relation,
         Math.KnotTh.Invariants.Skein.SkeinM,
         Math.KnotTh.Invariants.Skein.SkeinM.ContractEdge,

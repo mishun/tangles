@@ -1,7 +1,6 @@
 module Math.KnotTh.Invariants.Skein.StateSum.Operations
     ( glueHandle
     , connect
-    , takeAsConst
     , extractStateSum
     ) where
 
@@ -99,12 +98,6 @@ connect _ (!degreeV, !sumV, !p) (!degreeU, !sumU, !q) =
 
             return $! StateSummand x $! ka * kb
     in (substV, substU, result)
-
-
-takeAsConst :: (Num a) => StateSum a -> Maybe a
-takeAsConst [] = Just 0
-takeAsConst [StateSummand _ x] = Just $! x
-takeAsConst _ = Nothing
 
 
 extractStateSum :: (SkeinRelation r a) => r -> Array Int (Int, Int) -> Array Int (Array Int (Int, Int)) -> Array Int (StateSum a) -> a -> StateSum a

@@ -4,8 +4,11 @@ module Math.KnotTh.Invariants.Skein.StateSum.TangleRelation
     ) where
 
 import Data.Function (on)
-import Data.Array.Base ((!), array)
+import Data.Array.Base ((!), array, bounds, newListArray)
 import Data.Array (Array)
+import Data.Array.ST (STArray)
+import Control.Monad.ST (ST, runST)
+import Control.Monad (forM_, when)
 import Math.KnotTh.Knotted.Threads
 import Math.KnotTh.Tangle.NonAlternating
 import Math.KnotTh.Tangle.Moves.Move
@@ -15,7 +18,14 @@ import Math.KnotTh.Invariants.Skein.StateSum.Summand
 
 
 extractTangle :: StateSummand a -> NonAlternatingTangle
-extractTangle = undefined
+extractTangle (StateSummand a _) = runST $ do
+    let (0, l) = bounds a
+    tags <- newListArray (0, l) $ map ((,) 0) [0 .. l] :: ST s (STArray s Int (Int, Int))
+    forM_ [0 .. l] $ \ !i ->
+        let j = a ! i
+        in when (i < j) $ do
+            return ()
+    return $! implode (0, undefined, undefined)
 
 
 tangleInSkeinBasis :: NonAlternatingTangle -> [NonAlternatingTangle]
