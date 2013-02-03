@@ -38,9 +38,11 @@ library
         deepseq,
         mtl,
         containers,
+        bytestring,
         template-haskell,
         disjoint-set,
-        HaskellForMaths
+        HaskellForMaths,
+        diagrams-lib
     hs-source-dirs:     src
     c-sources:
         src/Math/Manifolds/SurfaceGraph/Embedding/Optimization.cpp
@@ -50,7 +52,6 @@ library
         ext/gsl-1.15/include/
         src/
     exposed-modules:
-        Graphics.HP,
         Math.Algebra.Group.D4,
         Math.Algebra.Group.Dn,
         Math.Algebra.RotationDirection,
@@ -108,18 +109,6 @@ library
         Math.Manifolds.SurfaceGraph.SphereStar,
         Math.Manifolds.SurfaceGraph.Util
     other-modules:
-        Graphics.HP.Color,
-        Graphics.HP.DrawContext,
-        Graphics.HP.Image,
-        Graphics.HP.ImageBody,
-        Graphics.HP.MetaPost,
-        Graphics.HP.Path,
-        Graphics.HP.PostScript,
-        Graphics.HP.PostScript.Context,
-        Graphics.HP.PostScript.Path,
-        Graphics.HP.PostScript.Transform,
-        Graphics.HP.Transform,
-        Graphics.HP.Units,
         Math.KnotTh.Invariants.Skein.Applied,
         Math.KnotTh.Invariants.Skein.Knotted,
         Math.KnotTh.Invariants.Skein.Relation,
@@ -157,7 +146,9 @@ library
             QuickCheck ==1.*,
             test-framework,
             test-framework-hunit,
-            test-framework-quickcheck
+            test-framework-quickcheck,
+            diagrams-svg,
+            blaze-svg
         exposed-modules:
             Math.Combinatorics.ChordDiagrams.Test,
             Math.Combinatorics.Strings.Test,
@@ -167,6 +158,7 @@ library
             Math.KnotTh.Tangle.BorderIncremental.Test,
             Math.KnotTh.Tangle.Moves.Test,
             Math.KnotTh.Tangle.Test
+            TestUtil.Drawing
             TestUtil.Table
             TestUtil.TestCollection
     else
@@ -180,7 +172,7 @@ benchmark GraphDrawingBenchmark
     ghc-options:        -threaded
     ghc-prof-options:   -rtsopts -prof -auto-all -caf-all
     ld-options:         -static
-    build-depends:      base, array, tangles
+    build-depends:      base, array, mtl, diagrams-lib, tangles
     main-is:            GraphDrawingBenchmark.hs
     hs-source-dirs:     test
     extra-lib-dirs:     ext/gsl-1.15/lib/
@@ -192,7 +184,7 @@ benchmark TangleGeneratorBenchmark
     ghc-options:        -threaded
     ghc-prof-options:   -rtsopts -prof -auto-all -caf-all
     ld-options:         -static
-    build-depends:      base, mtl, containers, tangles
+    build-depends:      base, mtl, containers, diagrams-lib, tangles
     main-is:            TangleGeneratorBenchmark.hs
     hs-source-dirs:     test
     extra-lib-dirs:     ext/gsl-1.15/lib/
@@ -204,7 +196,7 @@ benchmark NonAlternatingBenchmark
     ghc-options:        -threaded
     ghc-prof-options:   -rtsopts -prof -auto-all -caf-all
     ld-options:         -static
-    build-depends:      base, mtl, containers, tangles
+    build-depends:      base, mtl, containers, diagrams-lib, tangles
     main-is:            NonAlternatingBenchmark.hs
     hs-source-dirs:     test
     extra-lib-dirs:     ext/gsl-1.15/lib/

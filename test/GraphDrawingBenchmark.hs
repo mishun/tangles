@@ -1,11 +1,13 @@
 module Main (main) where
 
 import Data.Array.Base ((!))
+import Control.Monad.Writer
 import Control.Monad (forM_)
-import Graphics.HP
+import Diagrams.Prelude
 import Math.Manifolds.SurfaceGraph
 import Math.Manifolds.SurfaceGraph.Util
 import Math.Manifolds.SurfaceGraph.Embedding
+import TestUtil.Drawing
 
 
 main :: IO ()
@@ -14,12 +16,9 @@ main = do
     --let g = constructFromList [[(0, 1), (0, 0)]]
     --let e = embeddingWithFaceRooting (3 :: Int) (head $ graphFaces g)
     let e = embeddingWithVertexRooting (3 :: Int) (head $ graphVertices g)
-    writePostScriptFile "graph.ps" $ do
-        let a4Width = 595
-        let a4Height = 842
-        transformed [shifted (0.5 * a4Width, 0.5 * a4Height), scaled 250] $ do
-            forM_ (graphEdges g) $ \ (a, _) -> do
-                stroke [withLineWidth 0.003] $ chain $ e ! a
-                forM_ (e ! a) $ \ p ->
-                    transformed [shifted p, scaled 0.006] $ fill [] circumference
-            stroke [withLineWidth 0.001] circumference
+    writeSVGImage "graph.svg" (Width 1000) $ execWriter $
+        forM_ (graphEdges g) $ \ (a, _) -> do
+            tell $ lw 0.006 $ fromVertices $ map p2 $ e ! a
+            forM_ (e ! a) $ \ p ->
+                tell $ translate (r2 p) $ fc black $ lw 0 $ circle 0.01
+            tell $ dashing [0.05, 0.02] 0 $ lw 0.004 $ circle 1

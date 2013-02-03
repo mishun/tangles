@@ -1,13 +1,15 @@
 module Main (main) where
 
+import Control.Monad.State
 import Control.Monad
+import Diagrams.Prelude
 import Math.KnotTh.Tangle.Projection
 import Math.KnotTh.Tangle.NonAlternating
 import Math.KnotTh.Draw.DrawKnot
 import Math.KnotTh.Tangle.BorderIncremental.SimpleTypes
 import Math.KnotTh.Tangle.BorderIncremental.FlypeGenerator
-import Graphics.HP
 import TestUtil.Table
+import TestUtil.Drawing
 
 
 main :: IO ()
@@ -17,15 +19,7 @@ main = do
     printTable "Alternating tangles"  $ generateTable False $ generateFlypeEquivalent 8
     printTable "Prime diagrams"       $ generateTable False $ simpleIncrementalGenerator primeDiagramType [ArbitraryCrossing] 6
 
-    writePostScriptFile "tangles.ps" $ do
-        let a4Width = 595
-        let a4Height = 842
-
-        transformed [shifted (0.2 * a4Width, 0.98 * a4Height), scaled 6] $
-            simpleIncrementalGenerator primeProjectionType [ProjectionCrossing] 5 $ \ tangle _ -> do
-            --generateFlypeEquivalentDecomposition 5 $ \ template _ -> do
-            --    let tangle = substitute template
-                when (numberOfLegs tangle == 4) $ do
-                    drawKnot 0.02 tangle
-            --        transformed [shifted (3, 0)] $ drawTangle 0.01 $ tangleProjection template
-                    appendTransform [shifted (0, -2.2)]
+    writeSVGImage "tangles.svg" (Width 250) $ flip execState mempty $
+        simpleIncrementalGenerator primeProjectionType [ProjectionCrossing] 5 $ \ tangle _ ->
+            when (numberOfLegs tangle == 4) $
+                modify (=== pad 1.1 (drawKnot defaultDraw tangle))

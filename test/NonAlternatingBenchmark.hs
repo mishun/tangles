@@ -1,18 +1,18 @@
 module Main (main) where
 
-import Data.Ord
-import Data.Function (on)
 import Data.Maybe (mapMaybe)
-import Data.List (sortBy, groupBy)
-import Control.Monad
+import Control.Monad.Writer
 import Text.Printf
+import Diagrams.Prelude
 import Math.KnotTh.Enumeration.DiagramInfo.MinimalDiagramInfo
 import Math.KnotTh.Enumeration.Applied.NonAlternatingTangles
 import Math.KnotTh.Draw.DrawKnot
 import Math.KnotTh.Link.FromTangle
-import Graphics.HP
-import TestUtil.Table
+import Math.KnotTh.Tangle.Table
 import Math.KnotTh.Tangle.Moves.Test
+import Math.KnotTh.Invariants.Skein.StateSum.TangleRelation
+import TestUtil.Table
+import TestUtil.Drawing
 
 
 main :: IO ()
@@ -22,23 +22,14 @@ main = do
     let sifted = lookingForwardTanglesEnumeration True 6 0 6
     printTable "Tangles" $ generateTable' $ forM_ (mapMaybe maybePrimeDiagram $ singleRepresentativeClasses sifted)
     printf "Collision classes: %i" (length $ collisionClasses sifted)
-    writePostScriptFile "collisions.ps" $ do
-        let a4Width = 595
-        let a4Height = 842
-        transformed [shifted (0.05 * a4Width, 0.98 * a4Height), scaled 10] $ do
-            forM_ (collisionClasses sifted) $ \ cc -> do
-                forM_ (zip cc [0 ..]) $ \ (info, i) ->
-                    transformed [shifted (2.2 * i, 0)] $ drawKnot 0.01 $ representative info
-                appendTransform [shifted (0, -2.2)]
+    writeSVGImage "collisions.svg" (Width 500) $ execWriter $
+        forM_ (collisionClasses sifted `zip` [0 ..]) $ \ (cc, j) ->
+            forM_ (cc `zip` [0 ..]) $ \ (info, i) ->
+                tell $ translate (r2 (2.2 * i, -2.2 * j)) $ drawKnot defaultDraw $ representative info
 
-{-
-    writePostScriptFile "tangles.ps" $ do
-        let a4Width = 595
-        let a4Height = 842
-        transformed [shifted (0.05 * a4Width, 0.98 * a4Height), scaled 10] $ do
-            forM_ passTests $ \ (t, n) -> do
-                drawKnot 0.01 t
-                forM_ (zip n [0 ..]) $ \ (nt, i) ->
-                    transformed [shifted (2.2 * i + 3, 0)] $ drawKnot 0.01 nt
-                appendTransform [shifted (0, -2.2)]
--}
+    let ts = concatMap allOrientationsOfTangle [altTriangleTangle, naTriangleTangle] --[lonerOverCrossingTangle, lonerUnderCrossingTangle]
+    writeSVGImage "basis.svg" (Width 1000) $ execWriter $
+        forM_ (zip ts [0 ..]) $ \ (t, j) -> do
+            tell $ translate (r2 (0, -2.2 * j)) $ drawKnot defaultDraw t
+            forM_ (zip (tangleInSkeinBasis t) [0 ..]) $ \ (nt, i) ->
+                tell $ translate (r2 (2.2 * i + 3, -2.2 * j)) $ drawKnot defaultDraw nt
