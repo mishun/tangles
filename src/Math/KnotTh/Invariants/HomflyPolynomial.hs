@@ -25,8 +25,11 @@ instance (Ord a, Num a, Show a) => SkeinRelation (HomflyRelation a) a where
     initialLplus _ = InitialSum { ofLplus = 1, ofLzero = 0, ofLinfty = 0 }
 
     twistPFactor (HomflyRelation a _ _ _) = a
-
     twistNFactor (HomflyRelation _ a' _ _) = a'
+
+    smoothLplusFactor  = undefined
+    smoothLzeroFactor  = undefined
+    smoothLinftyFactor = undefined
 
     finalNormalization (HomflyRelation a a' _ _) knot =
         let factor =

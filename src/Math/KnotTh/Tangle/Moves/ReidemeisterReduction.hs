@@ -66,16 +66,16 @@ reduce2nd abl = do
 
             if qa == ap || rb == bs
                 then if qa == ap && rb == bs
-                    then emitCircle
+                    then emitCircle 1
                     else do
                         when (qa /= ap) $ connectC [(pa, qa)]
                         when (rb /= bs) $ connectC [(rb, sb)]
                 else do
                     if qa == br
-                        then emitCircle
+                        then emitCircle 1
                         else connectC [(qa, rb)]
 
                     if pa == bs
-                        then emitCircle
+                        then emitCircle 1
                         else connectC [(pa, sb)]
             return True

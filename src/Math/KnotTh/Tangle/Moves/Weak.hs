@@ -32,7 +32,7 @@ neighboursBorderCrossing tangle =
         return $! move tangle $ do
             maskC [a]
             if qa == ap
-                then connectC [(xa, ya)] >> emitCircle
+                then connectC [(xa, ya)] >> emitCircle 1
                 else connectC [(pa, ya), (qa, xa)]
 
 

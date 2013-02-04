@@ -195,7 +195,7 @@ benchmark NonAlternatingBenchmark
     ghc-options:        -threaded
     ghc-prof-options:   -rtsopts -prof -auto-all -caf-all
     ld-options:         -static
-    build-depends:      base, mtl, containers, diagrams-lib, tangles
+    build-depends:      base, array, mtl, containers, diagrams-lib, tangles
     main-is:            NonAlternatingBenchmark.hs
     hs-source-dirs:     test
     extra-lib-dirs:     ext/gsl-1.15/lib/

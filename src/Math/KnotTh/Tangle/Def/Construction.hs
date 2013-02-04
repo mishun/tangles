@@ -1,15 +1,19 @@
 module Math.KnotTh.Tangle.Def.Construction
     ( lonerTangle
+    , emptyTangle
     , zeroTangle
     , infinityTangle
     , transformTangle
+    , rotateTangle
     , allOrientationsOfTangle
+    , fromLink
     ) where
 
 import Text.Printf
-import Math.Algebra.Group.Dn (Dn, pointsUnderGroup, reflection, rotation, permute, fromReflectionRotation)
+import Math.Algebra.Group.Dn (Dn, pointsUnderGroup, reflection, rotation, permute, fromRotation, fromReflectionRotation)
 import Math.Algebra.Group.D4 ((<*>), ec)
 import Math.KnotTh.Tangle.Def.Tangle
+import qualified Math.KnotTh.Link as L
 
 
 lonerTangle :: (CrossingType ct) => CrossingState ct -> Tangle ct
@@ -18,6 +22,10 @@ lonerTangle !cr = implode
     , [(1, 0), (1, 1), (1, 2), (1, 3)]
     , [([(0, 0), (0, 1), (0, 2), (0, 3)], cr)]
     )
+
+
+emptyTangle :: (CrossingType ct) => Tangle ct
+emptyTangle = implode (0, [], [])
 
 
 zeroTangle :: (CrossingType ct) => Tangle ct
@@ -55,6 +63,13 @@ transformTangle g tangle
                     in post ++ pre
 
 
+rotateTangle :: (CrossingType ct) => Int -> Tangle ct -> Tangle ct
+rotateTangle rot tangle =
+    case numberOfLegs tangle of
+        0 -> tangle
+        l -> transformTangle (fromRotation l rot) tangle
+
+
 allOrientationsOfTangle :: (CrossingType ct) => Tangle ct -> [Tangle ct]
 allOrientationsOfTangle tangle = do
     let l = numberOfLegs tangle
@@ -63,3 +78,9 @@ allOrientationsOfTangle tangle = do
         else do
             g <- [ fromReflectionRotation l (refl, rot) | rot <- [0 .. l - 1], refl <- [False, True] ]
             return $! transformTangle g tangle
+
+
+fromLink :: (CrossingType ct) => L.Link ct -> Tangle ct
+fromLink link =
+    let (loops, cross) = L.explode link
+    in implode (loops, [], cross)

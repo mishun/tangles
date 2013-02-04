@@ -18,11 +18,17 @@ import qualified Math.KnotTh.Tangle.NonAlternating as T
 --   / \      / \       /  \      / \
 class (Ord a, Num a, Show a) => SkeinRelation r a | r -> a where
     initialLplus       :: r -> InitialSum a
+
     circleFactor       :: r -> a
+
     twistPFactor       :: r -> a
     twistNFactor       :: r -> a
-    finalNormalization :: (SkeinStructure k c d) => r -> k ArbitraryCrossing -> a -> a
 
+    smoothLplusFactor  :: r -> a
+    smoothLzeroFactor  :: r -> a
+    smoothLinftyFactor :: r -> a
+
+    finalNormalization :: (SkeinStructure k c d) => r -> k ArbitraryCrossing -> a -> a
     finalNormalization _ _ = id
 
 

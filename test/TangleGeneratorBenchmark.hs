@@ -19,7 +19,7 @@ main = do
     printTable "Alternating tangles"  $ generateTable False $ generateFlypeEquivalent 8
     printTable "Prime diagrams"       $ generateTable False $ simpleIncrementalGenerator primeDiagramType [ArbitraryCrossing] 6
 
-    writeSVGImage "tangles.svg" (Width 250) $ flip execState mempty $
+    writeSVGImage "tangles.svg" (Width 250) $ pad 1.05 $ flip execState mempty $
         simpleIncrementalGenerator primeProjectionType [ProjectionCrossing] 5 $ \ tangle _ ->
             when (numberOfLegs tangle == 4) $
                 modify (=== pad 1.1 (drawKnot defaultDraw tangle))

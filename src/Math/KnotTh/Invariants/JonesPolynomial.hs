@@ -47,8 +47,11 @@ instance (Ord a, Num a, Show a) => SkeinRelation (BracketLikeRelation a) a where
     initialLplus (BracketLikeRelation a b) = InitialSum { ofLplus = 0, ofLzero = a, ofLinfty = b }
 
     twistPFactor = undefined
-
     twistNFactor = undefined
+
+    smoothLplusFactor  = undefined
+    smoothLzeroFactor  = undefined
+    smoothLinftyFactor = undefined
 
     finalNormalization (BracketLikeRelation a b) knot =
         let factor =

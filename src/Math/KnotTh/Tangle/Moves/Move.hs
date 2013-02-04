@@ -72,7 +72,7 @@ assemble st = do
                 case msk of
                     Direct _  -> return $! (off, dartPlace d)
                     Flipped _ -> return $! (off, 3 - dartPlace d)
-                    Masked    -> fail $ printf "assemble: %s is touching masked crossing at:\n%s" (show d) (show $ stateSource st)
+                    Masked    -> fail $ printf "assemble: %s is touching masked crossing %i at:\n%s" (show d) i (show $ stateSource st)
 
     let opp d = readArray (stateConnections st) (dartIndex d)
 
@@ -119,10 +119,10 @@ oppositeC d = ask >>= \ st -> lift $
     readArray (stateConnections st) (dartIndex d)
 
 
-emitCircle :: MoveM s ct ()
-emitCircle = ask >>= \ !st -> lift $ do
+emitCircle :: Int -> MoveM s ct ()
+emitCircle dn = ask >>= \ !st -> lift $ do
     !n <- readSTRef (stateCircles st)
-    writeSTRef (stateCircles st) $! n + 1
+    writeSTRef (stateCircles st) $! n + dn
 
 
 maskC :: [Crossing ct] -> MoveM s ct ()
