@@ -2,18 +2,9 @@ module Math.KnotTh.Invariants.HomflyPolynomial
     ( homflyPolynomial
     ) where
 
-import qualified Data.Map as M
-import qualified Math.Algebra.Field.Base as B
-import qualified Math.Projects.KnotTheory.LaurentMPoly as LP
 import Math.KnotTh.Crossings.Arbitrary
 import Math.KnotTh.Invariants.Skein.Applied
-
-
-type Poly = LP.LaurentMPoly Int
-
-
-monomial :: Int -> String -> B.Q -> Poly
-monomial a var d = LP.LP [(LP.LM $ M.fromList [(var, d)], a)]
+import Math.KnotTh.Invariants.Util.Poly
 
 
 data HomflyRelation a = HomflyRelation a a a a
@@ -38,8 +29,8 @@ instance (Ord a, Num a, Show a) => SkeinRelation (HomflyRelation a) a where
         in (factor *)
 
 
-homflyPolynomial :: (SkeinStructure k c d) => k ArbitraryCrossing -> SkeinResult k Poly
+homflyPolynomial :: (SkeinStructure k c d) => k ArbitraryCrossing -> SkeinResult k Poly2
 homflyPolynomial = evaluateSkeinRelation $
     HomflyRelation
-        (monomial 1 "a" 1) (monomial 1 "a" (-1))
-        (monomial 1 "z" 1) (monomial 1 "z" (-1))
+        (monomial2 1 "a" 1) (monomial2 1 "a" (-1))
+        (monomial2 1 "z" 1) (monomial2 1 "z" (-1))

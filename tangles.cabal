@@ -121,6 +121,7 @@ library
         Math.KnotTh.Invariants.Skein.StateSum.Sum,
         Math.KnotTh.Invariants.Skein.StateSum.Summand,
         Math.KnotTh.Invariants.Util.BruteForceMinimization,
+        Math.KnotTh.Invariants.Util.Poly,
         Math.KnotTh.Knotted.CrossingState,
         Math.KnotTh.Knotted.Knotted,
         Math.KnotTh.Knotted.KnottedWithAccel,

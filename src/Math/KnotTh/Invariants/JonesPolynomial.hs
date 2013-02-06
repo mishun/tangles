@@ -7,35 +7,16 @@ module Math.KnotTh.Invariants.JonesPolynomial
     , minimalJonesPolynomialOfTangle
     ) where
 
-import Data.Ratio ((%), numerator)
 import Data.List (sort)
 import Data.Array.Base ((!))
 import Data.Array.ST (runSTUArray, newArray_, writeArray)
-import qualified Data.Map as M
 import Control.Monad (forM_)
-import qualified Math.Algebra.Field.Base as B
-import qualified Math.Projects.KnotTheory.LaurentMPoly as LP
 import Math.KnotTh.Knotted
 import Math.KnotTh.Crossings.Arbitrary
 import qualified Math.KnotTh.Link.NonAlternating as L
 import qualified Math.KnotTh.Tangle.NonAlternating as T
 import Math.KnotTh.Invariants.Skein.Applied
-
-
-type Poly = LP.LaurentMPoly Int
-
-
-monomial :: Int -> String -> B.Q -> Poly
-monomial a var d = LP.LP [(LP.LM $ M.fromList [(var, d)], a)]
-
-
-invert :: String -> Poly -> Poly
-invert var (LP.LP monomials) = sum $ do
-    (LP.LM vars, coeff) <- monomials
-    let modify p@(x, d)
-            | x == var   = (x, -d)
-            | otherwise  = p
-    return $! LP.LP [(LP.LM $ M.fromList $ map modify $ M.toList vars, coeff)]
+import Math.KnotTh.Invariants.Util.Poly
 
 
 data BracketLikeRelation a = BracketLikeRelation a a
@@ -71,15 +52,8 @@ jonesPolynomial = evaluateSkeinRelation $ BracketLikeRelation (monomial 1 jonesV
 
 normalizedJonesPolynomialOfLink :: L.NonAlternatingLink -> Poly
 normalizedJonesPolynomialOfLink link
-    | empty      = error "jonesPolynomialOfLink: empty link provided"
-    | otherwise  = let (LP.LP q') = recip big * q in LP.LP $ map (\ (a, b) -> (a, numerator b)) q'
-    where
-        empty = (numberOfFreeLoops link == 0) && (numberOfCrossings link == 0)
-        (LP.LP mono) = jonesPolynomial link
-        t = LP.var jonesVar
-        big = t ^ (100 :: Int)
-        p = LP.LP $ map (\ (a, b) -> (a, b % 1)) mono
-        (q, _) = LP.quotRemLP (big * p * (-LP.sqrtvar jonesVar)) (1 + t)
+    | (numberOfFreeLoops link == 0) && (numberOfCrossings link == 0)  = error "jonesPolynomialOfLink: empty link provided"
+    | otherwise                                                       = normalizeJones $ jonesPolynomial link
 
 
 kauffmanXPolynomial :: (SkeinStructure k c d) => k ArbitraryCrossing -> SkeinResult k Poly

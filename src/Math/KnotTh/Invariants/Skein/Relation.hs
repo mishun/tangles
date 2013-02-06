@@ -4,7 +4,6 @@ module Math.KnotTh.Invariants.Skein.Relation
     , SkeinStructure(..)
     ) where
 
-import Data.Maybe (fromMaybe)
 import Math.KnotTh.Knotted
 import Math.KnotTh.Crossings.Arbitrary
 import Math.KnotTh.Invariants.Skein.StateSum
@@ -41,7 +40,7 @@ class (Knotted k c d, Eq (d ArbitraryCrossing), Eq (c ArbitraryCrossing)) => Ske
 instance SkeinStructure L.Link L.Crossing L.Dart where
     type SkeinResult L.Link a = a
     endpointPlace = error "endpointPlace: must be no endpoints for link"
-    resultFromStateSum _ _ = fromMaybe (error "incorrect end state sum for link") . takeAsConst
+    resultFromStateSum _ _ = takeAsConst
 
 
 instance SkeinStructure T.Tangle T.Crossing T.Dart where

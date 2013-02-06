@@ -4,6 +4,7 @@ module Math.KnotTh.Invariants.Skein.StateSum.TangleRelation
     , extractTangle
     , restoreBasicTangle
     , decomposeTangle
+    , bruteForceRotate
     ) where
 
 import Data.Function (on)
@@ -76,7 +77,9 @@ decomposeTangle relation factor tangle
                             _                    -> []
 
                     w = selfWrithe tangle
-                in return $! StateSummand a $! factor * ((if w >= 0 then twistPFactor else twistNFactor) relation ^ abs w)
+                in return $! StateSummand a $! factor *
+                    ((if w >= 0 then twistPFactor else twistNFactor) relation ^ abs w) *
+                        (circleFactor relation ^ (n - numberOfLegs tangle `div` 2))
 
             tryCrossing (c : rest) = do
                 let [d0, d1, d2, d3] = incidentDarts c
@@ -108,3 +111,10 @@ decomposeTangle relation factor tangle
                         ]
 
         in tryCrossing $ allCrossings tangle
+
+
+bruteForceRotate :: (SkeinRelation r a) => r -> Int -> StateSum a -> StateSum a
+bruteForceRotate relation rot =
+    normalizeStateSum . concatMap (\ (StateSummand a factor) ->
+            decomposeTangle relation factor $ rotateTangle rot $ restoreBasicTangle a
+        )

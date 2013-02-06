@@ -48,9 +48,7 @@ tryRelaxVertex s v = do
 dissolveVertexST :: (Num a) => SkeinState s r a -> Int -> ST s ()
 dissolveVertexST s v = do
     stateSum <- getStateSumST s v
-    case takeAsConst stateSum of
-        Just x -> appendMultipleST s x
-        _      -> fail "internal error: zero degree vertex and StateSum with length > 1"
+    appendMultipleST s $ takeAsConst stateSum
     killVertexST s v
 
 

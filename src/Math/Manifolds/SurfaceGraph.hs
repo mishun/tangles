@@ -57,6 +57,7 @@ import Data.Array.Unboxed
 import Data.Array.ST (STArray)
 import Control.Monad.ST (ST, runST)
 import Control.Monad
+import Text.Printf
 
 
 data SurfaceGraph = Graph
@@ -84,10 +85,10 @@ instance Ord Dart where
     compare = comparing dartIndex
 
 instance Ix Dart where
-    range (Dart g a, Dart _ b) = map (Dart g) [a .. b]
+    range (Dart _ a, Dart g b) = map (Dart g) [a .. b]
     index (Dart _ a, Dart _ b) (Dart _ c) = index (a, b) c
     inRange (Dart _ a, Dart _ b) (Dart _ c) = c >= a && c <= b
-    rangeSize (Dart _ a, Dart _ b) = max 0 (b - a + 1)
+    rangeSize (Dart _ a, Dart _ b) = max 0 $ b - a + 1
 
 
 data Vertex = Vertex { vertexOwnerGraph :: !SurfaceGraph, vertexIndex :: {-# UNPACK #-} !Int }
@@ -99,10 +100,10 @@ instance Ord Vertex where
     compare = comparing vertexIndex
 
 instance Ix Vertex where
-    range (Vertex g a, Vertex _ b) = map (Vertex g) [a .. b]
+    range (Vertex _ a, Vertex g b) = map (Vertex g) [a .. b]
     index (Vertex _ a, Vertex _ b) (Vertex _ c) = index (a, b) c
     inRange (Vertex _ a, Vertex _ b) (Vertex _ c) = c >= a && c <= b
-    rangeSize (Vertex _ a, Vertex _ b) = max 0 (b - a + 1)
+    rangeSize (Vertex _ a, Vertex _ b) = max 0 $ b - a + 1
 
 
 data Face = Face { faceOwnerGraph :: !SurfaceGraph, faceIndex :: {-# UNPACK #-} !Int }
@@ -114,10 +115,10 @@ instance Ord Face where
     compare = comparing faceIndex
 
 instance Ix Face where
-    range (Face g a, Face _ b) = map (Face g) [a .. b]
+    range (Face _ a, Face g b) = map (Face g) [a .. b]
     index (Face _ a, Face _ b) (Face _ c) = index (a, b) c
     inRange (Face _ a, Face _ b) (Face _ c) = c >= a && c <= b
-    rangeSize (Face _ a, Face _ b) = max 0 (b - a + 1)
+    rangeSize (Face _ a, Face _ b) = max 0 $ b - a + 1
 
 
 data Cell = Cell0D Vertex | Cell1D Dart | Cell2D Face deriving (Eq, Ord)
@@ -170,7 +171,7 @@ verticesRange g = (Vertex g 0, Vertex g $! numberOfVertices g - 1)
 nthVertex :: SurfaceGraph -> Int -> Vertex
 nthVertex g i
     | inRange (bounds $! _vertices g) i  = Vertex g i
-    | otherwise                          = error "nthVertex: index is out of bound"
+    | otherwise                          = error $ printf "nthVertex: index %i is out of bound" i
 
 
 vertexDegree :: Vertex -> Int
@@ -291,8 +292,8 @@ constructFromList g
         offset = listArray (0, n) $! scanl (\ k i -> k + s ! i) 0 [0 .. n - 1] :: UArray Int Int
 
         indexD (v, p)
-            | v < 0 || v >= n        = error "constructFromList: vertex index is out of bound"
-            | p < 0 || p >= (s ! v)  = error "constructFromList: dart index is out of bound"
+            | v < 0 || v >= n        = error $ printf "constructFromList: vertex index %i is out of bound" v
+            | p < 0 || p >= (s ! v)  = error $ printf "constructFromList: dart index %i is out of bound" p
             | otherwise              = (offset ! v) + p
 
         opp = listArray (0, (offset ! n) - 1) $! map indexD $! concat g

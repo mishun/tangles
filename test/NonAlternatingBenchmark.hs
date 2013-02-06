@@ -18,9 +18,9 @@ import TestUtil.Table
 import TestUtil.Drawing
 
 
-data KauffmanFRelation = KauffmanFRelation
+data Relation = Relation
 
-instance SkeinRelation KauffmanFRelation Int where
+instance SkeinRelation Relation Int where
     circleFactor _ = 0
     initialLplus _ = InitialSum { ofLplus = 1, ofLzero = 0, ofLinfty = 0 }
     twistPFactor _ = 1
@@ -52,5 +52,5 @@ main = do
     writeSVGImage "basis.svg" (Width 1000) $ pad 1.05 $ execWriter $
         forM_ (zip ts [0 ..]) $ \ (t, j) -> do
             tell $ translate (r2 (0, -2.2 * j)) $ drawKnot defaultDraw t
-            forM_ (map extractTangle (decomposeTangle KauffmanFRelation 1 t) `zip` [0 ..]) $ \ (nt, i) ->
+            forM_ (map extractTangle (decomposeTangle Relation 1 t) `zip` [0 ..]) $ \ (nt, i) ->
                 tell $ translate (r2 (2.2 * i + 3, -2.2 * j)) $ drawKnot defaultDraw nt
