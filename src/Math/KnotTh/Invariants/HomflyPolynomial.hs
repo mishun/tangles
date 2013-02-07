@@ -19,7 +19,7 @@ data HomflyRelation = HomflyRelation
 instance SkeinRelation HomflyRelation Poly2 where
     circleFactor _ = (a + a') * z' - 1
 
-    initialLplus _ = InitialSum { ofLplus = 1, ofLzero = 0, ofLinfty = 0 }
+    initialLplus _ = [(Lplus, 1)]
 
     twistPFactor _ = a
     twistNFactor _ = a'

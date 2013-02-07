@@ -22,7 +22,7 @@ data Relation = Relation
 
 instance SkeinRelation Relation Int where
     circleFactor _ = 0
-    initialLplus _ = InitialSum { ofLplus = 1, ofLzero = 0, ofLinfty = 0 }
+    initialLplus _ = []
     twistPFactor _ = 1
     twistNFactor _ = 1
     smoothLplusFactor  = 1

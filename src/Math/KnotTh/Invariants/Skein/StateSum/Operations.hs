@@ -1,5 +1,6 @@
 module Math.KnotTh.Invariants.Skein.StateSum.Operations
-    ( glueHandle
+    ( fromInitialSum
+    , glueHandle
     , connect
     , extractStateSum
     ) where
@@ -11,13 +12,23 @@ import Data.Array.ST (STArray, STUArray, runSTUArray)
 import Data.Array.Unsafe (unsafeFreeze)
 import Control.Monad.ST (ST, runST)
 import Control.Monad (forM, forM_, when, foldM_)
+import Math.KnotTh.Invariants.Skein.Relation
 import Math.KnotTh.Invariants.Skein.StateSum.Summand
 import Math.KnotTh.Invariants.Skein.StateSum.Sum
-import Math.KnotTh.Invariants.Skein.Relation    
+
+
+fromInitialSum :: (Ord a, Num a) => [(Skein, a)] -> StateSum a
+fromInitialSum =
+    normalizeStateSum . map (\ (skein, factor) ->
+            case skein of
+                Lplus  -> crossSummand factor
+                Lzero  -> zeroSummand factor
+                Linfty -> inftySummand factor
+        )
 
 
 glueHandle :: (SkeinRelation r a) => r -> Int -> Int -> StateSum a -> (UArray Int Int, StateSum a)
-glueHandle rel !degree !p preSum =
+glueHandle relation !degree !p preSum =
     let !p' = (p + 1) `mod` degree
 
         !subst = runSTUArray $ do
@@ -49,8 +60,8 @@ glueHandle rel !degree !p preSum =
                             writeArray xm (subst ! i) (subst ! j)
                     return $! xm
 
-            let k' | x ! p == p'                    = k * circleFactor rel
-                   | cross (x ! p, p) (x ! p', p')  = k * (if min p' (x ! p') < min p (x ! p) then twistPFactor else twistNFactor) rel
+            let k' | x ! p == p'                    = k * circleFactor relation
+                   | cross (x ! p, p) (x ! p', p')  = k * (if min p' (x ! p') < min p (x ! p) then twistPFactor else twistNFactor) relation
                    | otherwise                      = k
 
             return $! StateSummand x' k'

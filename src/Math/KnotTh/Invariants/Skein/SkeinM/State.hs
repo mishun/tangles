@@ -30,8 +30,8 @@ import Control.Monad (forM, forM_, when, unless, filterM)
 import Text.Printf
 import Math.KnotTh.Crossings.Arbitrary
 import Math.KnotTh.Knotted
-import Math.KnotTh.Invariants.Skein.StateSum
 import Math.KnotTh.Invariants.Skein.Relation
+import Math.KnotTh.Invariants.Skein.StateSum
 
 
 data SkeinState s r a = SkeinState

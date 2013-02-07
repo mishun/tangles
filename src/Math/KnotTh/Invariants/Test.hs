@@ -5,7 +5,6 @@ module Math.KnotTh.Invariants.Test
 import Test.Framework (Test, testGroup)
 import Test.Framework.Providers.HUnit (testCase)
 import Test.HUnit hiding (Test, test)
-import Math.KnotTh.Crossings.Arbitrary
 import Math.KnotTh.Link.Table
 import Math.KnotTh.Link.GaussCode (fromDTCode)
 import Math.KnotTh.Tangle.Table
@@ -88,5 +87,6 @@ test = testGroup "Invariants"
             , ("left trefoil knot"  , rightTrefoilKnot                    , "a^-5z-a^-4+a^-4z^2+a^-3z-2a^-2+a^-2z^2"                                                  )
             , ("figure eight knot"  , figureEightKnot                     , "-a^-2+a^-2z^2-a^-1z-1+a^-1z^3+2z^2-az-a^2+az^3+a^2z^2"                                   )
             , ("solomon's seal knot", rightCinquefoilKnot                 , "a^-9z+a^-8z^2-a^-7z+2a^-6+a^-7z^3-3a^-6z^2-2a^-5z+3a^-4+a^-6z^4+a^-5z^3-4a^-4z^2+a^-4z^4")
+            , ("hopf link"          , hopfLink                            , "-a^-1z^-1+a^-1z+1-az^-1+az"                                                              )
             ]
     ]

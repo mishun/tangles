@@ -1,12 +1,13 @@
 {-# LANGUAGE TypeFamilies #-}
 module Math.KnotTh.Invariants.Skein.Relation
-    ( SkeinRelation(..)
+    ( Skein(..)
+    , SkeinRelation(..)
     , SkeinStructure(..)
     ) where
 
 import Math.KnotTh.Knotted
 import Math.KnotTh.Crossings.Arbitrary
-import Math.KnotTh.Invariants.Skein.StateSum
+import Math.KnotTh.Invariants.Skein.StateSum.Sum
 import qualified Math.KnotTh.Link.NonAlternating as L
 import qualified Math.KnotTh.Tangle.NonAlternating as T
 
@@ -15,8 +16,11 @@ import qualified Math.KnotTh.Tangle.NonAlternating as T
 --   \ /      \ /       \  /      \ /
 --    /        \         ||        =
 --   / \      / \       /  \      / \
+data Skein = Lplus | Lzero | Linfty
+
+
 class (Ord a, Num a, Show a) => SkeinRelation r a | r -> a where
-    initialLplus       :: r -> InitialSum a
+    initialLplus       :: r -> [(Skein, a)]
 
     circleFactor       :: r -> a
 

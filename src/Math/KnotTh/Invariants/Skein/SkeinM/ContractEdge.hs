@@ -9,7 +9,7 @@ import Control.Monad (forM_, when)
 import Text.Printf
 import Math.KnotTh.Invariants.Skein.Relation
 import Math.KnotTh.Invariants.Skein.SkeinM.State
-import Math.KnotTh.Invariants.Skein.StateSum.Operations
+import Math.KnotTh.Invariants.Skein.StateSum
 
 
 tryGreedyContract :: (SkeinRelation r a) => SkeinState s r a -> Int -> ST s Bool

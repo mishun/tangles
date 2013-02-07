@@ -25,7 +25,7 @@ data BracketLikeRelation a = BracketLikeRelation a a
 instance (Ord a, Num a, Show a) => SkeinRelation (BracketLikeRelation a) a where
     circleFactor (BracketLikeRelation a b) = -(a * a + b * b)
 
-    initialLplus (BracketLikeRelation a b) = InitialSum { ofLplus = 0, ofLzero = a, ofLinfty = b }
+    initialLplus (BracketLikeRelation a b) = [(Lzero, a), (Linfty, b)]
 
     twistPFactor = undefined
     twistNFactor = undefined
