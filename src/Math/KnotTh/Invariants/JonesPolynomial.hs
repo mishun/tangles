@@ -52,8 +52,10 @@ jonesPolynomial = evaluateSkeinRelation $ BracketLikeRelation (monomial 1 jonesV
 
 normalizedJonesPolynomialOfLink :: L.NonAlternatingLink -> Poly
 normalizedJonesPolynomialOfLink link
-    | (numberOfFreeLoops link == 0) && (numberOfCrossings link == 0)  = error "jonesPolynomialOfLink: empty link provided"
-    | otherwise                                                       = normalizeJones $ jonesPolynomial link
+    | (numberOfFreeLoops link == 0) && (numberOfCrossings link == 0)  =
+        error "jonesPolynomialOfLink: empty link provided"
+    | otherwise                                                       =
+        normalizeBy (1 + monomial 1 jonesVar 1) (monomial (-1) jonesVar (1 / 2) * jonesPolynomial link)
 
 
 kauffmanXPolynomial :: (SkeinStructure k c d) => k ArbitraryCrossing -> SkeinResult k Poly

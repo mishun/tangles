@@ -13,22 +13,29 @@ import Math.KnotTh.Invariants.Skein.StateSum.TangleRelation
 import Math.KnotTh.Invariants.Util.Poly
 
 
-data KauffmanFRelation a = KauffmanFRelation a a a a
+a, a', z, z' :: Poly2
+a  = monomial 1 "a" 1
+a' = monomial 1 "a" (-1)
+z  = monomial 1 "z" 1
+z' = monomial 1 "z" (-1)
 
 
-instance (Ord a, Num a, Show a) => SkeinRelation (KauffmanFRelation a) a where
-    circleFactor (KauffmanFRelation a a' _ z') = (a + a') * z' - 1
+data KauffmanFRelation = KauffmanFRelation
+
+
+instance SkeinRelation KauffmanFRelation Poly2 where
+    circleFactor _ = (a + a') * z' - 1
 
     initialLplus _ = InitialSum { ofLplus = 1, ofLzero = 0, ofLinfty = 0 }
 
-    twistPFactor (KauffmanFRelation a _ _ _) = a
-    twistNFactor (KauffmanFRelation _ a' _ _) = a'
+    twistPFactor _ = a
+    twistNFactor _ = a'
 
     smoothLplusFactor _ = -1
-    smoothLzeroFactor (KauffmanFRelation _ _ z _) = z
-    smoothLinftyFactor (KauffmanFRelation _ _ z _) = z
+    smoothLzeroFactor _ = z
+    smoothLinftyFactor _ = z
 
-    finalNormalization (KauffmanFRelation a a' _ _) knot =
+    finalNormalization _ knot =
         let factor =
                 let w = selfWrithe knot
                 in (if w <= 0 then a else a') ^ (abs w)
@@ -36,10 +43,7 @@ instance (Ord a, Num a, Show a) => SkeinRelation (KauffmanFRelation a) a where
 
 
 kauffmanFPolynomial :: (SkeinStructure k c d) => k ArbitraryCrossing -> SkeinResult k Poly2
-kauffmanFPolynomial = evaluateSkeinRelation $
-    KauffmanFRelation
-        (monomial2 1 "a" 1) (monomial2 1 "a" (-1))
-        (monomial2 1 "z" 1) (monomial2 1 "z" (-1))
+kauffmanFPolynomial = evaluateSkeinRelation KauffmanFRelation
 
 
 normalizedKauffmanFPolynomialOfLink :: L.NonAlternatingLink -> Poly2
@@ -50,6 +54,9 @@ normalizedKauffmanFPolynomialOfLink link
 
 bruteForceKauffmanF :: L.NonAlternatingLink -> Poly2
 bruteForceKauffmanF link =
-    let relation = KauffmanFRelation (monomial2 1 "a" 1) (monomial2 1 "a" (-1)) (monomial2 1 "z" 1) (monomial2 1 "z" (-1)) 
-    in normalizeKauffmanF $ finalNormalization relation link $
-        takeAsConst $ decomposeTangle relation 1 $ T.fromLink link
+    normalizeKauffmanF $ finalNormalization KauffmanFRelation link $
+        takeAsConst $ decomposeTangle KauffmanFRelation 1 $ T.fromLink link
+
+
+normalizeKauffmanF :: Poly2 -> Poly2
+normalizeKauffmanF poly = normalizeBy2 (a * a + 1 - a * z) (a * z * poly)
