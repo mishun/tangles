@@ -537,11 +537,7 @@ produceKnotted knotPattern inst = execWriterT $ do
             [ funD 'toPair $ (:[]) $ do
                 d <- newName "d"
                 clause [varP d] (guardedB $ map (uncurry normalGE) $ map ($ varE d) (extraExplodePairCases ies) ++
-                        [ ([| otherwise |],
-                            [|  let c = crossingIndex $ incidentCrossing $(varE d)
-                                    p = dartPlace $(varE d)
-                                in c `seq` p `seq` (c, p)
-                            |])
+                        [ ([| otherwise |], [| ((,) $! crossingIndex $ incidentCrossing $(varE d)) $! dartPlace $(varE d) |])
                         ]
                     ) []
             ]

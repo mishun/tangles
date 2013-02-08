@@ -15,7 +15,7 @@ threadExpansion invariant tangle =
             subsets (x : xl) = let nx = subsets xl in nx ++ map (x :) nx
         in subsets $ allThreads tangle
     where
-        processThreadSet threads = (ecode, invariant threadTangle)
+        processThreadSet threads = (ecode, invariant threadSubset)
             where
                 targetLegs = sort $ do
                     t <- threads
@@ -46,7 +46,7 @@ threadExpansion invariant tangle =
                         v = opposite u
                         ix = indices ! crossingIndex (incidentCrossing v)
 
-                threadTangle =
+                threadSubset =
                     let loops = length $ flip filter threads $ \ thread ->
                             case thread of
                                 []          -> True

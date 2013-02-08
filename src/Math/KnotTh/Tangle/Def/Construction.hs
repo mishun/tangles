@@ -1,7 +1,5 @@
 module Math.KnotTh.Tangle.Def.Construction
-    ( lonerTangle
-    , emptyTangle
-    , zeroTangle
+    ( zeroTangle
     , infinityTangle
     , transformTangle
     , rotateTangle
@@ -14,26 +12,6 @@ import Math.Algebra.Group.Dn (Dn, pointsUnderGroup, reflection, rotation, permut
 import Math.Algebra.Group.D4 ((<*>), ec)
 import Math.KnotTh.Tangle.Def.Tangle
 import qualified Math.KnotTh.Link as L
-
-
-lonerTangle :: (CrossingType ct) => CrossingState ct -> Tangle ct
-lonerTangle !cr = implode
-    ( 0
-    , [(1, 0), (1, 1), (1, 2), (1, 3)]
-    , [([(0, 0), (0, 1), (0, 2), (0, 3)], cr)]
-    )
-
-
-emptyTangle :: (CrossingType ct) => Tangle ct
-emptyTangle = implode (0, [], [])
-
-
-zeroTangle :: (CrossingType ct) => Tangle ct
-zeroTangle = implode (0, [(0, 3), (0, 2), (0, 1), (0, 0)], [])
-
-
-infinityTangle :: (CrossingType ct) => Tangle ct
-infinityTangle = implode (0, [(0, 1), (0, 0), (0, 3), (0, 2)], [])
 
 
 transformTangle :: (CrossingType ct) => Dn -> Tangle ct -> Tangle ct

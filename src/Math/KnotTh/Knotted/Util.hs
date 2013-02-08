@@ -53,10 +53,7 @@ nextPi = nextCCW . nextCCW
 
 {-# INLINE begin #-}
 begin :: (Knotted k c d) => d ct -> (c ct, Int)
-begin d =
-    let c = incidentCrossing d
-        p = dartPlace d
-    in c `seq` p `seq` (c, p)
+begin d = ((,) $! incidentCrossing d) $! dartPlace d
 
 
 {-# INLINE maybeIncidentCrossing #-}
