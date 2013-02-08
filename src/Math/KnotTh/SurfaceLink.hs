@@ -8,6 +8,7 @@ module Math.KnotTh.SurfaceLink
     , crossingSurfaceLink
     , faceSurfaceLink
     , dartSurfaceLink
+    , emptySurfaceLink
     , changeNumberOfFreeLoops
     , implode
     , explode
@@ -34,6 +35,10 @@ produceKnotted
         { implodeExplodeSettings = Just $ defaultImplodeExplode
             { implodeInitializers = [(,) (mkName "faceCount") `fmap` [| 0 :: Int |]]
             }
+
+        , emptyExtraInitializers =
+            [ (,) (mkName "faceCount") `fmap` [| 0 :: Int |]
+            ]
         }
 
 produceShowDart ''Dart (const [])

@@ -6,6 +6,7 @@ module Math.KnotTh.Link
     , Dart
     , crossingLink
     , dartLink
+    , emptyLink
     , changeNumberOfFreeLoops
     , implode
     , explode

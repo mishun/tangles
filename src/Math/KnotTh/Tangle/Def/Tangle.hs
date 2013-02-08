@@ -12,7 +12,7 @@ module Math.KnotTh.Tangle.Def.Tangle
     , nthLeg
     , allLegs
     , emptyTangle
-    , threadTangle
+    , identityTangle
     , zeroTangle
     , infinityTangle
     , lonerTangle
@@ -129,6 +129,10 @@ produceKnotted
                     else error $ printf "foldMIncidentDartsFrom: taken from leg %i"
                         ($(varE $ mkName "legPlace") $(d))
             |]
+
+        , emptyExtraInitializers =
+            [ (,) (mkName "numberOfLegs") `fmap` [| 0 :: Int |]
+            ]
         }
 
 
@@ -162,18 +166,8 @@ allLegs t =
     in map (Dart t) [n .. n + l - 1]
 
 
-emptyTangle :: (CrossingType ct) => Tangle ct
-emptyTangle = Tangle
-    { loopsCount   = 0
-    , crossCount   = 0
-    , crossArray   = listArray (0, -1) []
-    , stateArray   = listArray (0, -1) []
-    , numberOfLegs = 0
-    }
-
-
-threadTangle :: (CrossingType ct) => Tangle ct
-threadTangle = Tangle
+identityTangle :: (CrossingType ct) => Tangle ct
+identityTangle = Tangle
     { loopsCount   = 0
     , crossCount   = 0
     , crossArray   = listArray (0, 1) [1, 0]

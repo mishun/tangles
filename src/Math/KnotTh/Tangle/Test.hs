@@ -29,12 +29,17 @@ test = testGroup "Basic tangle tests"
 
         foldMIncidentDartsFrom (nthIncidentDart c1 2) ccw (\ _ s -> return $! s + 1) (0 :: Int) >>= (@?= 4)
 
+    , testCase "Show empty tangle" $
+        show (emptyTangle :: TangleProjection) @?= "(Tangle (0 O) (Border [  ]))"
+
+    , testCase "Show zero tangle" $
+        show (zeroTangle :: TangleProjection) @?= "(Tangle (0 O) (Border [ (Leg 3) (Leg 2) (Leg 1) (Leg 0) ]))"
+
+    , testCase "Show infinity tangle" $
+        show (infinityTangle :: TangleProjection) @?= "(Tangle (0 O) (Border [ (Leg 1) (Leg 0) (Leg 3) (Leg 2) ]))"
+
     , testCase "Show loner tangle" $
         show lonerProjection @?= "(Tangle (0 O) (Border [ (Dart 1 0) (Dart 1 1) (Dart 1 2) (Dart 1 3) ]) (Crossing 1 (I / D4 | +) [ (Leg 0) (Leg 1) (Leg 2) (Leg 3) ]))"
-
-    , testCase "Show empty tangle" $ do
-        show (zeroTangle :: TangleProjection) @?= "(Tangle (0 O) (Border [ (Leg 3) (Leg 2) (Leg 1) (Leg 0) ]))"
-        show (infinityTangle :: TangleProjection) @?= "(Tangle (0 O) (Border [ (Leg 1) (Leg 0) (Leg 3) (Leg 2) ]))"
 
     , testCase "Show implode 1" $
         let t = implode (0, [(1, 0), (1, 1), (1, 2), (1, 3)], [([(0, 0), (0, 1), (0, 2), (0, 3)], projectionCrossing)])
@@ -116,4 +121,12 @@ test = testGroup "Basic tangle tests"
     , testCase "Glue two infinity tangles to get circle inside" $
         let i = infinityTangle :: TangleProjection
         in explode (glueTangles 2 (nthLeg i 0) (nthLeg i 3)) @?= (1, [(0, 1), (0, 0), (0, 3), (0, 2)], [])
+
+    , testCase "Glue loner and thread" $
+        explode (glueTangles 2 (firstLeg lonerProjection) (firstLeg identityTangle)) @?=
+            ( 0
+            , [(1, 2), (1, 3)]
+            ,   [ ([(1, 1), (1, 0), (0, 0), (0, 1)], projectionCrossing)
+                ]
+            )
     ]

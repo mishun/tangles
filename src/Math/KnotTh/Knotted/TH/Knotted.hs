@@ -11,11 +11,11 @@ import Language.Haskell.TH
 import Data.Ix (Ix(..))
 import Data.List (foldl')
 import Data.Bits ((.&.), shiftL, shiftR, complement)
-import Data.Array.Base (bounds, unsafeAt, unsafeWrite, unsafeRead)
+import Data.Array.Base (listArray, bounds, unsafeAt, unsafeWrite, unsafeRead, newArray_)
 import Data.Array (Array)
 import Data.Array.Unboxed (UArray)
 import Data.Array.Unsafe (unsafeFreeze)
-import Data.Array.ST (STArray, STUArray, runSTArray, newArray_)
+import Data.Array.ST (STArray, STUArray, runSTArray)
 import Control.Monad.ST (ST, runST)
 import Control.Monad.Writer (execWriter, execWriterT, tell)
 import Control.Monad ((>=>), when, forM_)
@@ -35,6 +35,7 @@ data KnottedSettings = KnottedSettings
     , modifyIncidentCrossing       :: Maybe ((ExpQ, ExpQ) -> ExpQ -> ExpQ)
     , modifyFoldMIncidentDartsFrom :: Maybe ((ExpQ, (ExpQ, ExpQ)) -> ExpQ -> ExpQ)
     , implodeExplodeSettings       :: Maybe ImplodeExplodeSettings
+    , emptyExtraInitializers       :: [Q (Name, Exp)]
     }
 
 
@@ -59,6 +60,7 @@ defaultKnotted = KnottedSettings
     , modifyIncidentCrossing       = Nothing
     , modifyFoldMIncidentDartsFrom = Nothing
     , implodeExplodeSettings       = Just defaultImplodeExplode
+    , emptyExtraInitializers       = []
     }
 
 
@@ -83,9 +85,6 @@ produceKnotted knotPattern inst = execWriterT $ do
 
     let dartN = mkName "Dart"
     let crosN = mkName "Crossing"
-    let dartKnotN = mkName $ "dart" ++ nameBase knotTN
-    let crosKnotN = mkName $ "crossing" ++ nameBase knotTN
-
     let nameL = litE $ stringL $ nameBase knotTN
 
     let loopsCount = mkName "loopsCount"
@@ -107,16 +106,18 @@ produceKnotted knotPattern inst = execWriterT $ do
             , (,) Unpacked `fmap` [t| Int |]
             ]] []
 
-    declare $ do
-        ct <- newName "ct"
-        sigD dartKnotN $ forallT [PlainTV ct] (cxt [])
-            [t| $(conT dartN) $(varT ct) -> $(conT knotTN) $(varT ct) |]
+    do
+        let dartKnotN = mkName $ "dart" ++ nameBase knotTN
 
-    declare $ return $ PragmaD $ InlineP dartKnotN $ InlineSpec True False Nothing
+        declare $ return $ PragmaD $ InlineP dartKnotN $ InlineSpec True False Nothing
 
-    declare $ funD dartKnotN $ (:[]) $ do
-        k <- newName "k"
-        clause [conP dartN [varP k, wildP]] (normalB $ varE k) []
+        declare $ do
+            ct <- newName "ct"
+            sigD dartKnotN $ forallT [PlainTV ct] (cxt []) [t| $(conT dartN) $(varT ct) -> $(conT knotTN) $(varT ct) |]
+
+        declare $ funD dartKnotN $ (:[]) $ do
+            k <- newName "k"
+            clause [conP dartN [varP k, wildP]] (normalB $ varE k) []
 
     declare $ do
         ct <- newName "ct"
@@ -177,16 +178,18 @@ produceKnotted knotPattern inst = execWriterT $ do
             , (,) Unpacked `fmap` [t| Int |]
             ]] []
 
-    declare $ do
-        ct <- newName "ct"
-        sigD crosKnotN $ forallT [PlainTV ct] (cxt [])
-            [t| $(conT crosN) $(varT ct) -> $(conT knotTN) $(varT ct) |]
+    do
+        let crosKnotN = mkName $ "crossing" ++ nameBase knotTN
 
-    declare $ return $ PragmaD $ InlineP crosKnotN $ InlineSpec True False Nothing
+        declare $ return $ PragmaD $ InlineP crosKnotN $ InlineSpec True False Nothing
 
-    declare $ funD crosKnotN $ (:[]) $ do
-        k <- newName "k"
-        clause [conP crosN [varP k, wildP]] (normalB $ varE k) []
+        declare $ do
+            ct <- newName "ct"
+            sigD crosKnotN $ forallT [PlainTV ct] (cxt []) [t| $(conT crosN) $(varT ct) -> $(conT knotTN) $(varT ct) |]
+
+        declare $ funD crosKnotN $ (:[]) $ do
+            k <- newName "k"
+            clause [conP crosN [varP k, wildP]] (normalB $ varE k) []
 
     declare $ do
         ct <- newName "ct"
@@ -240,19 +243,37 @@ produceKnotted knotPattern inst = execWriterT $ do
                         ]) []
             ]
 
-    declare $ do
-        ct <- newName "ct"
-        sigD (mkName "changeNumberOfFreeLoops") $ forallT [PlainTV ct] (cxt [])
-            [t| $(conT knotTN) $(varT ct) -> Int -> $(conT knotTN) $(varT ct) |]
+    do
+        let name = mkName $ "empty" ++ nameBase knotTN
 
-    declare $ funD (mkName "changeNumberOfFreeLoops") $ (:[]) $ do
-        loops <- newName "loops"
-        knot <- newName "knot"
-        clause [varP knot, varP loops] (normalB
-            [|  if $(varE loops) >= (0 :: Int)
-                    then $(recUpdE (varE knot) [(,) loopsCount `fmap` varE loops])
-                    else error "changeNumberOfFreeLoops: number of free loops %i is negative" $(varE loops)
-            |]) []
+        declare $ do
+            ct <- newName "ct"
+            sigD name $ forallT [PlainTV ct] (cxt []) [t| $(conT knotTN) $(varT ct) |]
+
+        declare $ funD name $ (:[]) $
+            clause [] (normalB $ recConE knotCN $
+                    [ (,) crossCount `fmap` [| 0 :: Int |]
+                    , (,) crossArray `fmap` [| listArray (0 :: Int, -1 :: Int) [] |]
+                    , (,) stateArray `fmap` [| listArray (0 :: Int, -1 :: Int) [] |]
+                    , (,) loopsCount `fmap` [| 0 :: Int |]
+                    ] ++ emptyExtraInitializers inst
+                ) []
+
+    do
+        let name = mkName "changeNumberOfFreeLoops"
+
+        declare $ do
+            ct <- newName "ct"
+            sigD name $ forallT [PlainTV ct] (cxt []) [t| $(conT knotTN) $(varT ct) -> Int -> $(conT knotTN) $(varT ct) |]
+
+        declare $ funD name $ (:[]) $ do
+            loops <- newName "loops"
+            knot <- newName "knot"
+            clause [varP knot, varP loops] (normalB
+                [|  if $(varE loops) >= (0 :: Int)
+                        then $(recUpdE (varE knot) [(,) loopsCount `fmap` varE loops])
+                        else error "changeNumberOfFreeLoops: number of free loops %i is negative" $(varE loops)
+                |]) []
 
     declare $ do
         ct <- newName "ct"
@@ -313,13 +334,13 @@ produceKnotted knotPattern inst = execWriterT $ do
         , funD 'mapCrossings $ (:[]) $ do
             f <- newName "f"
             k <- newName "k"
-            clause [varP f, varP k] (normalB $ recUpdE (varE k) [(,) stateArray `fmap` [|
-                runSTArray $ do
-                    let n = numberOfCrossings $(varE k)
-                    st <- newArray_ (0, n - 1)
-                    forM_ [0 .. n - 1] $ \ !i ->
-                        unsafeWrite st i $! $(varE f) $! $(varE stateArray) $(varE k) `unsafeAt` i
-                    return $! st
+            clause [varP f, varP k] (normalB $ recUpdE (varE k) [(,) stateArray `fmap`
+                [|  runSTArray $ do
+                        let n = numberOfCrossings $(varE k)
+                        st <- newArray_ (0, n - 1)
+                        forM_ [0 .. n - 1] $ \ !i ->
+                            unsafeWrite st i $! $(varE f) $! $(varE stateArray) $(varE k) `unsafeAt` i
+                        return $! st
                 |]]) []
 
         , funD 'nthIncidentDart $ (:[]) $ do
@@ -432,8 +453,6 @@ produceKnotted knotPattern inst = execWriterT $ do
 
     maybeM (implodeExplodeSettings inst) $ \ ies -> do
         let implodeN = mkName "implode"
-            explodeN = mkName "explode"
-
             implodeParamT ct =
                 let types = [ [t| Int |] ] ++ map (\ (_, x, _) -> x) (extraImplodeExplodeParams ies) ++ [ [t| [([(Int, Int)], CrossingState $ct)] |] ]
                 in foldl appT (tupleT $ length types) types
@@ -520,18 +539,21 @@ produceKnotted knotPattern inst = execWriterT $ do
                         |]
                 ) []
 
-        declare $ do
-            ct <- newName "ct"
-            sigD explodeN $ forallT [PlainTV ct] (cxt [classP ''CrossingType [varT ct]])
-                [t| $(conT knotTN) $(varT ct) -> $(implodeParamT $ varT ct) |]
+        do
+            let explodeN = mkName "explode"
 
-        declare $ funD explodeN $ (:[]) $ do
-            knot <- newName "knot"
-            clause [varP knot] (normalB $ tupE $ execWriter $ do
-                    tell $ (:[]) $ [| numberOfFreeLoops $(varE knot) |]
-                    tell $ map (\ (_, _, f) -> f $ varE knot) $ extraImplodeExplodeParams ies
-                    tell $ (:[]) [| map (\ c -> (map (toPair . opposite) $ incidentDarts c, crossingState c)) $ allCrossings $(varE knot) |]
-                ) []
+            declare $ do
+                ct <- newName "ct"
+                sigD explodeN $ forallT [PlainTV ct] (cxt [classP ''CrossingType [varT ct]])
+                    [t| $(conT knotTN) $(varT ct) -> $(implodeParamT $ varT ct) |]
+
+            declare $ funD explodeN $ (:[]) $ do
+                knot <- newName "knot"
+                clause [varP knot] (normalB $ tupE $ execWriter $ do
+                        tell $ (:[]) $ [| numberOfFreeLoops $(varE knot) |]
+                        tell $ map (\ (_, _, f) -> f $ varE knot) $ extraImplodeExplodeParams ies
+                        tell $ (:[]) [| map (\ c -> (map (toPair . opposite) $ incidentDarts c, crossingState c)) $ allCrossings $(varE knot) |]
+                    ) []
 
         declare $ instanceD (cxt []) ([t| KnottedWithToPair |] `appT` conT knotTN `appT` conT crosN `appT` conT dartN)
             [ funD 'toPair $ (:[]) $ do
