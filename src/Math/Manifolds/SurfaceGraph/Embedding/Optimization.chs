@@ -1,9 +1,9 @@
 module Math.Manifolds.SurfaceGraph.Embedding.Optimization
-	( InteractionConst(..)
-	, relaxEmbedding'
-	, conjugateGradientSolve'
-	, circlePacking'
-	) where
+    ( InteractionConst(..)
+    , relaxEmbedding'
+    , conjugateGradientSolve'
+    , circlePacking'
+    ) where
 
 import Data.Array.MArray (newArray, newArray_, newListArray, readArray, writeArray, getElems)
 import Data.Array.Storable (StorableArray, withStorableArray)
@@ -20,106 +20,118 @@ import qualified Foreign.Marshal.Array as A
 
 
 data InteractionConst = InteractionConst
-	{ interactionBorder   :: Double
-	, interactionElectric :: Double
-	, interactionBend     :: Double
-	, interactionElastic  :: Double
-	, interactionCross    :: Double
-	}
+    { interactionBorder   :: Double
+    , interactionElectric :: Double
+    , interactionBend     :: Double
+    , interactionElastic  :: Double
+    , interactionCross    :: Double
+    }
 
 {# pointer *InteractionConst as InteractionConstPtr -> InteractionConst #}
 
 instance Storable InteractionConst where
-	sizeOf _ = {# sizeof InteractionConst #}
+    sizeOf _ = {# sizeof InteractionConst #}
 
-	alignment _ = {# alignof InteractionConst #}
+    alignment _ = {# alignof InteractionConst #}
 
-	peek p = InteractionConst
-		<$> liftM realToFrac ({# get InteractionConst.border   #} p)
-		<*> liftM realToFrac ({# get InteractionConst.electric #} p)
-		<*> liftM realToFrac ({# get InteractionConst.bend     #} p)
-		<*> liftM realToFrac ({# get InteractionConst.elastic  #} p)
-		<*> liftM realToFrac ({# get InteractionConst.cross    #} p)
+    peek p = InteractionConst
+        <$> liftM realToFrac ({# get InteractionConst.border   #} p)
+        <*> liftM realToFrac ({# get InteractionConst.electric #} p)
+        <*> liftM realToFrac ({# get InteractionConst.bend     #} p)
+        <*> liftM realToFrac ({# get InteractionConst.elastic  #} p)
+        <*> liftM realToFrac ({# get InteractionConst.cross    #} p)
 
-	poke p x = do
-		{# set InteractionConst.border   #} p $ realToFrac $ interactionBorder x
-		{# set InteractionConst.electric #} p $ realToFrac $ interactionElectric x
-		{# set InteractionConst.bend     #} p $ realToFrac $ interactionBend x
-		{# set InteractionConst.elastic  #} p $ realToFrac $ interactionElastic x
-		{# set InteractionConst.cross    #} p $ realToFrac $ interactionCross x
+    poke p x = do
+        {# set InteractionConst.border   #} p $ realToFrac $ interactionBorder x
+        {# set InteractionConst.electric #} p $ realToFrac $ interactionElectric x
+        {# set InteractionConst.bend     #} p $ realToFrac $ interactionBend x
+        {# set InteractionConst.elastic  #} p $ realToFrac $ interactionElastic x
+        {# set InteractionConst.cross    #} p $ realToFrac $ interactionCross x
 
 
-foreign import ccall "_ZN4Math9Manifolds9Embedding12Optimization5Relax14relaxEmbeddingERKNS3_16InteractionConstEijjPNS_7Numeric7Vector2EjPKjPKSB_jSB_SD_"
-	c_relaxEmbedding :: InteractionConstPtr -> CInt
-		-> CSize -> CSize -> Ptr CDouble
-		-> CSize -> Ptr CSize -> Ptr (Ptr CSize)
-		-> CSize -> Ptr CSize -> Ptr (Ptr CSize)
-		-> IO ()
+foreign import ccall
+#if x86_64_HOST_ARCH
+#else
+    "_ZN4Math9Manifolds9Embedding12Optimization5Relax14relaxEmbeddingERKNS3_16InteractionConstEijjPNS_7Numeric7Vector2EjPKjPKSB_jSB_SD_"
+#endif
+    c_relaxEmbedding :: InteractionConstPtr -> CInt
+        -> CSize -> CSize -> Ptr CDouble
+        -> CSize -> Ptr CSize -> Ptr (Ptr CSize)
+        -> CSize -> Ptr CSize -> Ptr (Ptr CSize)
+        -> IO ()
 
 
 relaxEmbedding' :: InteractionConst -> Bool -> Int -> Int -> StorableArray Int CDouble -> [[Int]] -> [[Int]] -> IO ()
 relaxEmbedding' interaction verbose numberOfMovablePoints numberOfFrozenPoints coords threads aliveVertices =
-	with interaction $ \ interactionPtr ->
-		withStorableArray coords $ \ xPtr -> do
-			let numberOfThreads = length threads
-			threadPtrs <- newListArray (0, numberOfThreads - 1) =<< mapM (A.newArray . map fromIntegral) threads
+    with interaction $ \ interactionPtr ->
+        withStorableArray coords $ \ xPtr -> do
+            let numberOfThreads = length threads
+            threadPtrs <- newListArray (0, numberOfThreads - 1) =<< mapM (A.newArray . map fromIntegral) threads
 
-			let numberOfAliveVertices = length aliveVertices
-			adjPtrs <- newListArray (0, numberOfAliveVertices - 1) =<< mapM (A.newArray . map fromIntegral) aliveVertices
+            let numberOfAliveVertices = length aliveVertices
+            adjPtrs <- newListArray (0, numberOfAliveVertices - 1) =<< mapM (A.newArray . map fromIntegral) aliveVertices
 
-			withStorableArray threadPtrs $ \ threadsPtrsPtr ->
-				A.withArray (map (fromIntegral . length) threads) $ \ lensPtr ->
-					A.withArray (map (fromIntegral . length) aliveVertices) $ \ vertexDegreePtr ->
-						withStorableArray adjPtrs $ \ adjPtrsPtr ->
-							c_relaxEmbedding interactionPtr (if verbose then 1 else 0)
-								(fromIntegral numberOfMovablePoints) (fromIntegral numberOfFrozenPoints) xPtr
-								(fromIntegral numberOfThreads) lensPtr threadsPtrsPtr
-								(fromIntegral numberOfAliveVertices) vertexDegreePtr adjPtrsPtr
+            withStorableArray threadPtrs $ \ threadsPtrsPtr ->
+                A.withArray (map (fromIntegral . length) threads) $ \ lensPtr ->
+                    A.withArray (map (fromIntegral . length) aliveVertices) $ \ vertexDegreePtr ->
+                        withStorableArray adjPtrs $ \ adjPtrsPtr ->
+                            c_relaxEmbedding interactionPtr (if verbose then 1 else 0)
+                                (fromIntegral numberOfMovablePoints) (fromIntegral numberOfFrozenPoints) xPtr
+                                (fromIntegral numberOfThreads) lensPtr threadsPtrsPtr
+                                (fromIntegral numberOfAliveVertices) vertexDegreePtr adjPtrsPtr
 
-			getElems adjPtrs >>= mapM_ free
-			getElems threadPtrs >>= mapM_ free
+            getElems adjPtrs >>= mapM_ free
+            getElems threadPtrs >>= mapM_ free
 
 
-foreign import ccall "_ZN4Math9Manifolds9Embedding12Optimization14Initialization22conjugateGradientSolveEjjPKjPKdS7_Pd"
-	c_conjugateGradientSolve :: CSize -> CSize -> Ptr CSize -> Ptr CDouble -> Ptr CDouble -> Ptr CDouble -> IO CDouble
+foreign import ccall
+#if x86_64_HOST_ARCH
+#else
+    "_ZN4Math9Manifolds9Embedding12Optimization14Initialization22conjugateGradientSolveEjjPKjPKdS7_Pd"
+#endif
+    c_conjugateGradientSolve :: CSize -> CSize -> Ptr CSize -> Ptr CDouble -> Ptr CDouble -> Ptr CDouble -> IO CDouble
 
 
 conjugateGradientSolve' :: Int -> [(Int, Int, Double)] -> [(Int, Double, Double)] -> (StorableArray Int CDouble, StorableArray Int CDouble) -> IO ()
 conjugateGradientSolve' n defs brd (x, y) = do
-	let m = length defs
+    let m = length defs
 
-	coords <- newArray_ (0, 2 * m - 1) :: IO (StorableArray Int CSize)
-	a <- newArray_ (0, m - 1) :: IO (StorableArray Int CDouble)
-	forM_ (zip [0 ..] defs) $ \ (!i, (!cx, !cy, !d)) -> do
-		writeArray a i $ realToFrac d
-		writeArray coords (2 * i) $ fromIntegral cx
-		writeArray coords (2 * i + 1) $ fromIntegral cy
+    coords <- newArray_ (0, 2 * m - 1) :: IO (StorableArray Int CSize)
+    a <- newArray_ (0, m - 1) :: IO (StorableArray Int CDouble)
+    forM_ (zip [0 ..] defs) $ \ (!i, (!cx, !cy, !d)) -> do
+        writeArray a i $ realToFrac d
+        writeArray coords (2 * i) $ fromIntegral cx
+        writeArray coords (2 * i + 1) $ fromIntegral cy
 
-	bx <- newArray (0, n - 1) 0 :: IO (StorableArray Int CDouble)
-	by <- newArray (0, n - 1) 0 :: IO (StorableArray Int CDouble)
-	forM_ brd $ \ (!i, !cx, !cy) -> do
-		readArray bx i >>= writeArray bx i . (+ realToFrac cx)
-		readArray by i >>= writeArray by i . (+ realToFrac cy)
+    bx <- newArray (0, n - 1) 0 :: IO (StorableArray Int CDouble)
+    by <- newArray (0, n - 1) 0 :: IO (StorableArray Int CDouble)
+    forM_ brd $ \ (!i, !cx, !cy) -> do
+        readArray bx i >>= writeArray bx i . (+ realToFrac cx)
+        readArray by i >>= writeArray by i . (+ realToFrac cy)
 
-	withStorableArray coords $ \ pc ->
-		withStorableArray a $ \ pa -> do
-			withMany withStorableArray [bx, x] $ \ [pbx, px] ->
-				void $ c_conjugateGradientSolve (fromIntegral n) (fromIntegral m) pc pa pbx px
+    withStorableArray coords $ \ pc ->
+        withStorableArray a $ \ pa -> do
+            withMany withStorableArray [bx, x] $ \ [pbx, px] ->
+                void $ c_conjugateGradientSolve (fromIntegral n) (fromIntegral m) pc pa pbx px
 
-			withMany withStorableArray [by, y] $ \ [pby, py] ->
-				void $ c_conjugateGradientSolve (fromIntegral n) (fromIntegral m) pc pa pby py
+            withMany withStorableArray [by, y] $ \ [pby, py] ->
+                void $ c_conjugateGradientSolve (fromIntegral n) (fromIntegral m) pc pa pby py
 
 
-foreign import ccall "_ZN4Math9Manifolds9Embedding12Optimization13CirclePacking13circlePackingEjPKjPKS5_Pd"
-	c_circlePacking :: CSize -> Ptr CSize -> Ptr (Ptr CSize) -> Ptr CDouble -> IO ()
+foreign import ccall
+#if x86_64_HOST_ARCH
+#else
+    "_ZN4Math9Manifolds9Embedding12Optimization13CirclePacking13circlePackingEjPKjPKS5_Pd"
+#endif
+    c_circlePacking :: CSize -> Ptr CSize -> Ptr (Ptr CSize) -> Ptr CDouble -> IO ()
 
 
 circlePacking' :: [[Int]] -> StorableArray Int CDouble -> IO ()
 circlePacking' adj r = do
-	A.withArray (map (fromIntegral . length) adj) $ \ lensPtr -> do
-		let n = length adj
-		ls <- newListArray (0, n - 1) =<< mapM (A.newArray . map fromIntegral) adj
-		withStorableArray ls $ \ lsPtr ->
-			withStorableArray r $ \ rPtr ->
-				c_circlePacking (fromIntegral n) lensPtr lsPtr rPtr
-		getElems ls >>= mapM_ free
+    A.withArray (map (fromIntegral . length) adj) $ \ lensPtr -> do
+        let n = length adj
+        ls <- newListArray (0, n - 1) =<< mapM (A.newArray . map fromIntegral) adj
+        withStorableArray ls $ \ lsPtr ->
+            withStorableArray r $ \ rPtr ->
+                c_circlePacking (fromIntegral n) lensPtr lsPtr rPtr
+        getElems ls >>= mapM_ free
