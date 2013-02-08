@@ -146,10 +146,12 @@ legPlace d@(Dart t i)
 
 {-# INLINE nthLeg #-}
 nthLeg :: Tangle ct -> Int -> Dart ct
-nthLeg t i =
-    let n = 4 * numberOfCrossings t
+nthLeg t i
+    | l == 0     = error "nthLeg: tangle has no legs"
+    | otherwise  = Dart t $! n + i `mod` l
+    where
         l = numberOfLegs t
-    in Dart t $! n + i `mod` l
+        n = 4 * numberOfCrossings t
 
 
 {-# INLINE allLegs #-}
