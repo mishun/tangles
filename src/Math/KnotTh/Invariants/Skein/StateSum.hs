@@ -6,6 +6,7 @@ module Math.KnotTh.Invariants.Skein.StateSum
     , fromInitialSum
     , glueHandle
     , connect
+    , assembleStateSum
     ) where
 
 import Math.KnotTh.Invariants.Skein.StateSum.Summand

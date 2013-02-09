@@ -20,11 +20,9 @@ module Math.KnotTh.Invariants.Skein.SkeinM.State
     ) where
 
 import Data.STRef (STRef, newSTRef, readSTRef, writeSTRef)
-import Data.Array.Base ((!))
+import Data.Array.Base ((!), array, listArray, newArray, newArray_, readArray, writeArray, getBounds)
 import Data.Array.Unboxed (UArray)
-import Data.Array.MArray (newArray, newArray_, readArray, writeArray, getBounds)
 import Data.Array.ST (STUArray, STArray)
-import Data.Array.Unsafe (unsafeFreeze)
 import Control.Monad.ST (ST)
 import Control.Monad (forM, forM_, when, unless, filterM)
 import Text.Printf
@@ -217,29 +215,26 @@ aliveVerticesST s = filterM (readArray $ active s) [1 .. size s]
 
 extractStateSumST :: (SkeinRelation r a) => SkeinState s r a -> ST s (StateSum a)
 extractStateSumST s = do
-    brd <- readArray (adjacent s) 0
-    (0, l) <- getBounds brd
-    
-    st <- newArray_ (0, size s) :: ST s (STArray s Int (UArray Int Int))
-    let substState f [] = do
-            t <- newArray_ (0, l) :: ST s (STUArray s Int Int)
-            forM_ [0 .. l] $ \ !i -> do
-                (v, x) <- readArray brd i
-                j <- if v == 0
-                    then return x
-                    else do
-                        vt <- readArray st v
-                        (0, x') <- neighbourST s (v, vt ! x)
-                        return x'
-                writeArray t i j
-            t' <- unsafeFreeze t
-            return [StateSummand t' f]
+    vertices <- aliveVerticesST s
+    let n = length vertices
 
-        substState f (h : t) = do
-            stateSum <- getStateSumST s h
-            fmap concat $ forM stateSum $ \ (StateSummand ct cf) -> do
-                writeArray st h ct
-                substState (f * cf) t
+    border <- do
+        let ix :: UArray Int Int
+            ix = array (0, size s) $ zip vertices [1 ..]
+        b <- readArray (adjacent s) 0
+        (0, l) <- getBounds b
+        list <- forM [0 .. l] $ \ !i -> do
+            (v, p) <- readArray b i
+            return $! if v == 0 then (0, p) else (ix ! v, p)
+        return $! listArray (0, l) list
 
-    global <- readSTRef $ multiple s
-    aliveVerticesST s >>= substState global >>= (return . normalizeStateSum)
+    connections <- (fmap $ listArray (1, n)) $ forM vertices $ \ !v -> do
+        a <- readArray (adjacent s) v
+        (0, k) <- getBounds a
+        (fmap $ listArray (0, k)) $ forM [0 .. k] $ \ !i -> do
+            (0, p) <- readArray a i
+            return $! p
+
+    internals <- listArray (1, n) `fmap` forM vertices (readArray (state s))
+    global <- readSTRef (multiple s)
+    return $! assembleStateSum (relation s) border connections internals global

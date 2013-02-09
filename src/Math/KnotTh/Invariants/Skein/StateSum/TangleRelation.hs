@@ -1,7 +1,5 @@
 module Math.KnotTh.Invariants.Skein.StateSum.TangleRelation
-    ( module Math.KnotTh.Invariants.Skein.Relation
-    , module Math.KnotTh.Invariants.Skein.StateSum
-    , extractTangle
+    ( extractTangle
     , restoreBasicTangle
     , decomposeTangle
     , bruteForceRotate
@@ -13,8 +11,9 @@ import Data.Array.Unboxed (UArray)
 import Math.KnotTh.Knotted.Threads
 import Math.KnotTh.Tangle.NonAlternating
 import Math.KnotTh.Tangle.Moves.Move
+import Math.KnotTh.Invariants.Skein.StateSum.Summand
+import Math.KnotTh.Invariants.Skein.StateSum.Sum
 import Math.KnotTh.Invariants.Skein.Relation
-import Math.KnotTh.Invariants.Skein.StateSum
 
 
 extractTangle :: StateSummand a -> NonAlternatingTangle
@@ -114,7 +113,9 @@ decomposeTangle relation factor tangle
 
 
 bruteForceRotate :: (SkeinRelation r a) => r -> Int -> StateSum a -> StateSum a
-bruteForceRotate relation rot =
-    normalizeStateSum . concatMap (\ (StateSummand a factor) ->
-            decomposeTangle relation factor $ rotateTangle rot $ restoreBasicTangle a
-        )
+bruteForceRotate relation rot
+    | rot == 0   = id
+    | otherwise  =
+        normalizeStateSum . concatMap (\ (StateSummand a factor) ->
+                decomposeTangle relation factor $ rotateTangle rot $ restoreBasicTangle a
+            )

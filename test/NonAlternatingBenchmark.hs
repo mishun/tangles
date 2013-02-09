@@ -12,6 +12,8 @@ import Math.KnotTh.Draw.DrawKnot
 import Math.KnotTh.Link.FromTangle
 import Math.KnotTh.Tangle.Table
 import Math.KnotTh.Tangle.Moves.Test
+import Math.KnotTh.Invariants.Skein.Relation
+import Math.KnotTh.Invariants.Skein.StateSum
 import Math.KnotTh.Invariants.Skein.StateSum.TangleRelation
 import Math.KnotTh.Link.Table
 import TestUtil.Table
