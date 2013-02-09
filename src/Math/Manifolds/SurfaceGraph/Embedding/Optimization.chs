@@ -5,7 +5,7 @@ module Math.Manifolds.SurfaceGraph.Embedding.Optimization
     , circlePacking'
     ) where
 
-import Data.Array.MArray (newArray, newArray_, newListArray, readArray, writeArray, getElems)
+import Data.Array.Base (newArray, newArray_, newListArray, readArray, writeArray, getElems)
 import Data.Array.Storable (StorableArray, withStorableArray)
 import Control.Applicative ((<$>), (<*>))
 import Control.Monad (forM_, void, liftM)

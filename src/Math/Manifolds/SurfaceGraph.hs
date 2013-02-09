@@ -52,11 +52,12 @@ module Math.Manifolds.SurfaceGraph
 import Data.List (intercalate)
 import Data.Ord
 import Data.Ix
-import Data.Array.MArray
-import Data.Array.Unboxed
+import Data.Array.Base (IArray, (!), bounds, assocs, indices, elems, listArray, newArray, newArray_, readArray, writeArray, freeze)
+import Data.Array (Array)
+import Data.Array.Unboxed (UArray)
 import Data.Array.ST (STArray)
 import Control.Monad.ST (ST, runST)
-import Control.Monad
+import Control.Monad (forM_, foldM)
 import Text.Printf
 
 

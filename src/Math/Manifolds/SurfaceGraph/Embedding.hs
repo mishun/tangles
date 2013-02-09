@@ -7,8 +7,9 @@ import qualified Data.Sequence as Seq
 import System.IO.Unsafe (unsafePerformIO)
 import Data.Maybe (fromJust)
 import Data.List (find)
-import Data.Array (Array, (!), array, listArray)
-import Data.Array.MArray (newArray, newArray_, freeze, readArray, writeArray)
+import Data.Array.Base ((!), array, listArray, newArray, newArray_, freeze, readArray, writeArray)
+import Data.Array (Array)
+import Data.Array.Unboxed (UArray)
 import Data.Array.IO (IOArray, IOUArray)
 import Data.Array.Unsafe (unsafeFreeze)
 import Data.IORef (newIORef, readIORef, writeIORef, modifyIORef)
@@ -66,7 +67,8 @@ quadraticInitialization seed s brd
     | vertexDegree s /= length brd  = error "quadraticInitialization: wrong number of elements in border"
     | otherwise                     = unsafePerformIO $ do
         let g = vertexOwnerGraph s
-        let vi = listArray (verticesRange g) $! scanl (\ !x !v -> if v == s then x else x + 1) (0 :: Int) $! graphVertices g
+        let vi :: UArray Vertex Int
+            vi = listArray (verticesRange g) $! scanl (\ !x !v -> if v == s then x else x + 1) 0 $! graphVertices g
 
         let n = numberOfVertices g - 1
         x <- newArray (0, n - 1) 0
@@ -98,7 +100,7 @@ quadraticInitialization seed s brd
                             loop
 
                 loop
-                unsafeFreeze d
+                unsafeFreeze d :: IO (UArray Vertex Int)
 
             let dartWeight d =
                     let l = dist ! beginVertex d
@@ -124,7 +126,8 @@ quadraticInitialization seed s brd
 
             conjugateGradientSolve' n defs rp (x, y)
 
-        let border = listArray (0, length brd - 1) brd
+        let border :: Array Int (Double, Double)
+            border = listArray (0, length brd - 1) brd
         result <- forM (graphDarts g) $ \ !d -> do
                 let (v, p) = begin d
                 if v == s
