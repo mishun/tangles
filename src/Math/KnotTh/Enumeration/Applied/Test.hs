@@ -14,7 +14,7 @@ import Math.KnotTh.Enumeration.DiagramInfo.AllDiagramsInfo
 import Math.KnotTh.Enumeration.Applied.NonAlternatingTangles
 import Math.KnotTh.Invariants.LinkingNumber
 import Math.KnotTh.Invariants.JonesPolynomial
---import Math.KnotTh.Invariants.KauffmanFPolynomial
+import Math.KnotTh.Invariants.KauffmanFPolynomial
 import TestUtil.Table
 
 
@@ -33,6 +33,9 @@ test = testGroup "Enumeration tests" $
 
         , testCase "Jones polynomial" $
             testInvariantness 6 minimalJonesPolynomialOfTangle
+
+        , testCase "Kauffman F polynomial" $
+            testInvariantness 4 minimalKauffmanFPolynomialOfTangle
 
         , testCase "Jones polynomial of doubling" $
             testInvariantness 4 (minimalJonesPolynomialOfTangle . twistedDouble)

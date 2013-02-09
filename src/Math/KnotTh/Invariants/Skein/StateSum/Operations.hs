@@ -1,5 +1,7 @@
 module Math.KnotTh.Invariants.Skein.StateSum.Operations
     ( fromInitialSum
+    , rotateStateSum
+    , mirrorStateSum
     , glueHandle
     , connect
     , assembleStateSum
@@ -27,6 +29,14 @@ fromInitialSum =
                 Lzero  -> zeroSummand factor
                 Linfty -> inftySummand factor
         )
+
+
+rotateStateSum :: (SkeinRelation r a) => r -> Int -> StateSum a -> StateSum a
+rotateStateSum = bruteForceRotate
+
+
+mirrorStateSum :: (SkeinRelation r a) => r -> StateSum a -> StateSum a
+mirrorStateSum = bruteForceMirror
 
 
 glueHandle :: (SkeinRelation r a) => r -> Int -> Int -> StateSum a -> (UArray Int Int, StateSum a)

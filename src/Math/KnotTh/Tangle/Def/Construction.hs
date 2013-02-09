@@ -3,6 +3,7 @@ module Math.KnotTh.Tangle.Def.Construction
     , infinityTangle
     , transformTangle
     , rotateTangle
+    , mirrorTangle
     , allOrientationsOfTangle
     , fromLink
     ) where
@@ -46,6 +47,12 @@ rotateTangle rot tangle =
     case numberOfLegs tangle of
         0 -> tangle
         l -> transformTangle (fromRotation l rot) tangle
+
+
+mirrorTangle :: (CrossingType ct) => Tangle ct -> Tangle ct
+mirrorTangle tangle =
+    let l = numberOfLegs tangle
+    in transformTangle (fromReflectionRotation l (True, 0)) tangle
 
 
 allOrientationsOfTangle :: (CrossingType ct) => Tangle ct -> [Tangle ct]

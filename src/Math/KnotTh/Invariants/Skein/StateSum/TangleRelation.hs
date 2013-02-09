@@ -3,6 +3,7 @@ module Math.KnotTh.Invariants.Skein.StateSum.TangleRelation
     , restoreBasicTangle
     , decomposeTangle
     , bruteForceRotate
+    , bruteForceMirror
     ) where
 
 import Data.Function (on)
@@ -119,3 +120,10 @@ bruteForceRotate relation rot
         normalizeStateSum . concatMap (\ (StateSummand a factor) ->
                 decomposeTangle relation factor $ rotateTangle rot $ restoreBasicTangle a
             )
+
+
+bruteForceMirror :: (SkeinRelation r a) => r -> StateSum a -> StateSum a
+bruteForceMirror relation =
+    normalizeStateSum . concatMap (\ (StateSummand a factor) ->
+            decomposeTangle relation factor $ mirrorTangle $ restoreBasicTangle a
+        )

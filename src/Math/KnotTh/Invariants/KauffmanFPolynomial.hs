@@ -1,16 +1,17 @@
 module Math.KnotTh.Invariants.KauffmanFPolynomial
     ( kauffmanFPolynomial
     , normalizedKauffmanFPolynomialOfLink
-    , bruteForceKauffmanF
+    , minimalKauffmanFPolynomialOfLink
+    , minimalKauffmanFPolynomialOfTangle
     ) where
 
 import Math.KnotTh.Crossings.Arbitrary
 import Math.KnotTh.Knotted
 import qualified Math.KnotTh.Link.NonAlternating as L
-import qualified Math.KnotTh.Tangle as T
+import qualified Math.KnotTh.Tangle.NonAlternating as T
 import Math.KnotTh.Invariants.Skein.Applied
-import Math.KnotTh.Invariants.Skein.StateSum.TangleRelation
 import Math.KnotTh.Invariants.Util.Poly
+import Math.KnotTh.Invariants.Util.BruteForceMinimization
 
 
 a, a', z, z' :: Poly2
@@ -49,14 +50,24 @@ kauffmanFPolynomial = evaluateSkeinRelation KauffmanFRelation
 normalizedKauffmanFPolynomialOfLink :: L.NonAlternatingLink -> Poly2
 normalizedKauffmanFPolynomialOfLink link
     | (numberOfFreeLoops link == 0) && (numberOfCrossings link == 0)  = error "kauffmanFPolynomialOfLink: emptry link provided"
-    | otherwise                                                       = normalizeKauffmanF $ kauffmanFPolynomial link
+    | otherwise                                                       = normalizeBy2 (a * a + 1 - a * z) (a * z * kauffmanFPolynomial link)
 
 
-bruteForceKauffmanF :: L.NonAlternatingLink -> Poly2
-bruteForceKauffmanF link =
-    normalizeKauffmanF $ finalNormalization KauffmanFRelation link $
-        takeAsConst $ decomposeTangle KauffmanFRelation 1 $ T.fromLink link
+minimalKauffmanFPolynomialOfLink :: L.NonAlternatingLink -> Poly2
+minimalKauffmanFPolynomialOfLink link =
+    let p = kauffmanFPolynomial link
+    in min p (invert2 "a" p)
 
 
-normalizeKauffmanF :: Poly2 -> Poly2
-normalizeKauffmanF poly = normalizeBy2 (a * a + 1 - a * z) (a * z * poly)
+minimalKauffmanFPolynomialOfTangle :: T.NonAlternatingTangle -> StateSum Poly2
+minimalKauffmanFPolynomialOfTangle tangle = bruteForceMinimumOfTangle kauffmanFPolynomial tangle
+{-    | l == 0     = min p (map (fmap $ invert2 "a") p)
+    | otherwise  = minimum $ do
+        rot <- [0 .. l - 1]
+        let rotated = rotateStateSum KauffmanFRelation rot p
+            mirrored = mirrorStateSum KauffmanFRelation rotated
+        [rotated, fmap (fmap $ invert2 "a") rotated, mirrored, fmap (fmap $ invert2 "a") mirrored]
+    where
+        p = kauffmanFPolynomial tangle
+        l = T.numberOfLegs tangle
+-}

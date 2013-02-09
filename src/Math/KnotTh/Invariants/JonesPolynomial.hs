@@ -1,16 +1,12 @@
 module Math.KnotTh.Invariants.JonesPolynomial
     ( jonesPolynomial
-    , kauffmanXPolynomial
     , normalizedJonesPolynomialOfLink
     , minimalJonesPolynomialOfLink
-    , minimalKauffmanXPolynomialOfLink
     , minimalJonesPolynomialOfTangle
+    , kauffmanXPolynomial
+    , minimalKauffmanXPolynomialOfLink
     ) where
 
-import Data.List (sort)
-import Data.Array.Base ((!))
-import Data.Array.ST (runSTUArray, newArray_, writeArray)
-import Control.Monad (forM_)
 import Math.KnotTh.Knotted
 import Math.KnotTh.Crossings.Arbitrary
 import qualified Math.KnotTh.Link.NonAlternating as L
@@ -41,13 +37,16 @@ instance (Ord a, Num a, Show a) => SkeinRelation (BracketLikeRelation a) a where
         in (factor *)
 
 
-jonesVar, kauffmanXVar :: String
+jonesVar :: String
 jonesVar = "t"
-kauffmanXVar = "A"
+
+
+jonesRelation :: BracketLikeRelation Poly
+jonesRelation = BracketLikeRelation (monomial 1 jonesVar (-1 / 4)) (monomial 1 jonesVar (1 / 4))
 
 
 jonesPolynomial :: (SkeinStructure k c d) => k ArbitraryCrossing -> SkeinResult k Poly
-jonesPolynomial = evaluateSkeinRelation $ BracketLikeRelation (monomial 1 jonesVar (-1 / 4)) (monomial 1 jonesVar (1 / 4))
+jonesPolynomial = evaluateSkeinRelation jonesRelation
 
 
 normalizedJonesPolynomialOfLink :: L.NonAlternatingLink -> Poly
@@ -58,42 +57,38 @@ normalizedJonesPolynomialOfLink link
         normalizeBy (1 + monomial 1 jonesVar 1) (monomial (-1) jonesVar (1 / 2) * jonesPolynomial link)
 
 
-kauffmanXPolynomial :: (SkeinStructure k c d) => k ArbitraryCrossing -> SkeinResult k Poly
-kauffmanXPolynomial = evaluateSkeinRelation $ BracketLikeRelation (monomial 1 kauffmanXVar 1) (monomial 1 kauffmanXVar (-1))
-
-
 minimalJonesPolynomialOfLink :: L.NonAlternatingLink -> Poly
 minimalJonesPolynomialOfLink link =
-    let jp = jonesPolynomial link
-    in min jp (invert jonesVar jp)
-
-
-minimalKauffmanXPolynomialOfLink :: L.NonAlternatingLink -> Poly
-minimalKauffmanXPolynomialOfLink link =
-    let kp = kauffmanXPolynomial link
-    in min kp (invert kauffmanXVar kp)
+    let p = jonesPolynomial link
+    in min p (invert jonesVar p)
 
 
 minimalJonesPolynomialOfTangle :: T.NonAlternatingTangle -> StateSum Poly
 minimalJonesPolynomialOfTangle tangle
-    | l == 0     = min jp (map (fmap $ invert jonesVar) jp)
+    | l == 0     = min p (map (fmap $ invert jonesVar) p)
     | otherwise  = minimum $ do
         rot <- [0 .. l - 1]
-
-        let mapSum fx fm s = sort $ flip map s $ \ (StateSummand x m) ->
-                flip StateSummand (fm m) $ runSTUArray $ do
-                    x' <- newArray_ (0, l - 1)
-                    forM_ [0 .. l - 1] $ \ i ->
-                        writeArray x' (fx i `mod` l) (fx (x ! i) `mod` l)
-                    return $! x'
-
-        f <- [ mapSum (+ rot) id
-             , mapSum (+ rot) (invert jonesVar)
-             , mapSum (\ i -> rot - i) id
-             , mapSum (\ i -> rot - i) (invert jonesVar)
-             ]
-
-        return $! f jp
+        let rotated = rotateStateSum jonesRelation rot p
+            mirrored = mirrorStateSum jonesRelation rotated
+        [rotated, fmap (fmap $ invert jonesVar) rotated, mirrored, fmap (fmap $ invert jonesVar) mirrored]
     where
-        jp = jonesPolynomial tangle
+        p = jonesPolynomial tangle
         l = T.numberOfLegs tangle
+
+
+kauffmanXVar :: String
+kauffmanXVar = "A"
+
+
+kauffmanXRelation :: BracketLikeRelation Poly
+kauffmanXRelation = BracketLikeRelation (monomial 1 kauffmanXVar 1) (monomial 1 kauffmanXVar (-1))
+
+
+kauffmanXPolynomial :: (SkeinStructure k c d) => k ArbitraryCrossing -> SkeinResult k Poly
+kauffmanXPolynomial = evaluateSkeinRelation kauffmanXRelation
+
+
+minimalKauffmanXPolynomialOfLink :: L.NonAlternatingLink -> Poly
+minimalKauffmanXPolynomialOfLink link =
+    let p = kauffmanXPolynomial link
+    in min p (invert kauffmanXVar p)

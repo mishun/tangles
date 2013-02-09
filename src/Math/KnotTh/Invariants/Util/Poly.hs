@@ -1,6 +1,7 @@
 module Math.KnotTh.Invariants.Util.Poly
     ( Poly2
     , monomial2
+    , invert2
     , normalizeBy2
     , Poly
     , monomial
@@ -20,6 +21,14 @@ type Poly2 = LMP.LaurentMPoly Int
 monomial2 :: Int -> String -> B.Q -> Poly2
 monomial2 a var d = LMP.LP [(LMP.LM $ M.fromList [(var, d)], a)]
 
+
+invert2 :: String -> Poly2 -> Poly2
+invert2 var (LMP.LP monomials) = sum $ do
+    (LMP.LM vars, coeff) <- monomials
+    let modify p@(x, d)
+            | x == var   = (x, -d)
+            | otherwise  = p
+    return $! LMP.LP [(LMP.LM $ M.fromList $ map modify $ M.toList vars, coeff)]
 
 normalizeBy2 :: Poly -> Poly -> Poly
 normalizeBy2 (LMP.LP denominator) (LMP.LP monomials)
