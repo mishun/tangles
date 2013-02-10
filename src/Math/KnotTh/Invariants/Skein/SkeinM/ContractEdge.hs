@@ -57,7 +57,7 @@ contract s (!v, !p) (!u, !q) = do
 
     sumV <- getStateSumST s v
     sumU <- getStateSumST s u
-    let (substV, substU, resultSum) = connect (relation s) (degreeV, sumV, p) (degreeU, sumU, q)
+    let (substV, substU, resultSum) = connect (relation s) (p, sumV) (q, sumU)
     setStateSumST s v resultSum
 
     do

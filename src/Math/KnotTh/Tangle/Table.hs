@@ -1,5 +1,7 @@
 module Math.KnotTh.Tangle.Table
-    ( zeroTangle
+    ( emptyTangle
+    , identityTangle
+    , zeroTangle
     , infinityTangle
     , lonerOverCrossingTangle
     , lonerUnderCrossingTangle

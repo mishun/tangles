@@ -71,5 +71,6 @@ runSkein ::
         -> SkeinResult k a
 
 runSkein rel action knot =
-    let f = finalNormalization rel knot
-    in resultFromStateSum rel knot $ fmap (fmap f) $ evaluateStateSum rel action knot
+    resultFromStateSum rel knot $
+        fmap (finalNormalization rel knot) $
+            evaluateStateSum rel action knot

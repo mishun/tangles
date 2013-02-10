@@ -25,10 +25,10 @@ monomial2 a var d = LMP.LP [(LMP.LM $ M.fromList [(var, d)], a)]
 invert2 :: String -> Poly2 -> Poly2
 invert2 var (LMP.LP monomials) = sum $ do
     (LMP.LM vars, coeff) <- monomials
-    let modify p@(x, d)
-            | x == var   = (x, -d)
-            | otherwise  = p
-    return $! LMP.LP [(LMP.LM $ M.fromList $ map modify $ M.toList vars, coeff)]
+    let modify x d | x == var   = -d
+                   | otherwise  = d
+    return $! LMP.LP [(LMP.LM $ M.mapWithKey modify vars, coeff)]
+
 
 normalizeBy2 :: Poly -> Poly -> Poly
 normalizeBy2 (LMP.LP denominator) (LMP.LP monomials)
@@ -53,10 +53,9 @@ monomial a var d = LMP.LP [(LMP.LM $ M.fromList [(var, d)], a)]
 invert :: String -> Poly -> Poly
 invert var (LMP.LP monomials) = sum $ do
     (LMP.LM vars, coeff) <- monomials
-    let modify p@(x, d)
-            | x == var   = (x, -d)
-            | otherwise  = p
-    return $! LMP.LP [(LMP.LM $ M.fromList $ map modify $ M.toList vars, coeff)]
+    let modify x d | x == var   = -d
+                   | otherwise  = d
+    return $! LMP.LP [(LMP.LM $ M.mapWithKey modify vars, coeff)]
 
 
 normalizeBy :: Poly -> Poly -> Poly

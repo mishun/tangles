@@ -12,7 +12,6 @@ import Data.Array.Unboxed (UArray)
 import Math.KnotTh.Knotted.Threads
 import Math.KnotTh.Tangle.NonAlternating
 import Math.KnotTh.Tangle.Moves.Move
-import Math.KnotTh.Invariants.Skein.StateSum.Summand
 import Math.KnotTh.Invariants.Skein.StateSum.Sum
 import Math.KnotTh.Invariants.Skein.Relation
 
@@ -39,7 +38,8 @@ restoreBasicTangle chordDiagram =
                 i' = a ! i
                 j = (i + 1) `mod` (l + 1)
                 j' = a ! j
-                cross = (min i i' < min j j' && max i i' < max j j' && min j j' < max i i') || (min j j' < min i i' && max j j' < max i i' && min i i' < max j j')
+                cross = (min i i' < min j j' && max i i' < max j j' && min j j' < max i i')
+                    || (min j j' < min i i' && max j j' < max i i' && min i i' < max j j')
 
     in restore chordDiagram (listArray (0, l) $ map (\ i -> min i $ chordDiagram ! i) [0 .. l]) [0 .. l]
 
@@ -77,15 +77,15 @@ decomposeTangle relation factor tangle
                             _                    -> []
 
                     w = selfWrithe tangle
-                in return $! StateSummand a $! factor *
+                in singletonStateSum $ StateSummand a $ factor *
                     ((if w >= 0 then twistPFactor else twistNFactor) relation ^ abs w) *
                         (circleFactor relation ^ (n - numberOfLegs tangle `div` 2))
 
-            tryCrossing (c : rest) = do
+            tryCrossing (c : rest) =
                 let [d0, d1, d2, d3] = incidentDarts c
-                if passOver d0 == on (<) ((\ d -> (threadIndex ! abs (marks ! d), order ! d)) . dartIndex) d0 d1
+                in if passOver d0 == on (<) ((\ d -> (threadIndex ! abs (marks ! d), order ! d)) . dartIndex) d0 d1
                     then tryCrossing rest
-                    else normalizeStateSum $ concat
+                    else concatStateSums
                         [ decomposeTangle relation (factor * smoothLplusFactor relation) $ move tangle $ do
                             modifyC False invertCrossing [c]
 
@@ -116,14 +116,9 @@ decomposeTangle relation factor tangle
 bruteForceRotate :: (SkeinRelation r a) => r -> Int -> StateSum a -> StateSum a
 bruteForceRotate relation rot
     | rot == 0   = id
-    | otherwise  =
-        normalizeStateSum . concatMap (\ (StateSummand a factor) ->
-                decomposeTangle relation factor $ rotateTangle rot $ restoreBasicTangle a
-            )
+    | otherwise  = mapStateSum (\ (StateSummand a factor) -> decomposeTangle relation factor $ rotateTangle rot $ restoreBasicTangle a)
 
 
 bruteForceMirror :: (SkeinRelation r a) => r -> StateSum a -> StateSum a
 bruteForceMirror relation =
-    normalizeStateSum . concatMap (\ (StateSummand a factor) ->
-            decomposeTangle relation factor $ mirrorTangle $ restoreBasicTangle a
-        )
+    mapStateSum (\ (StateSummand a factor) -> decomposeTangle relation factor $ mirrorTangle $ restoreBasicTangle a)

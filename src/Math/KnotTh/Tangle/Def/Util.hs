@@ -20,9 +20,7 @@ lastLeg t = nthLeg t (-1)
 
 {-# INLINE nextLeg #-}
 nextLeg :: Int -> Dart ct -> Dart ct
-nextLeg n d =
-    let p = legPlace d
-    in nthLeg  (dartTangle d)(p + n)
+nextLeg n d = nthLeg (dartTangle d) (legPlace d + n)
 
 
 {-# INLINE allLegOpposites #-}

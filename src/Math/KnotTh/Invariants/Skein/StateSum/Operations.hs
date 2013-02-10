@@ -7,7 +7,7 @@ module Math.KnotTh.Invariants.Skein.StateSum.Operations
     , assembleStateSum
     ) where
 
-import Data.Array.Base ((!), bounds, newArray, newArray_, readArray, writeArray, freeze)
+import Data.Array.Base ((!), bounds, listArray, newArray, newArray_, readArray, writeArray, freeze)
 import Data.Array (Array)
 import Data.Array.Unboxed (UArray)
 import Data.Array.ST (STUArray, runSTUArray)
@@ -16,18 +16,19 @@ import Control.Monad.ST (ST, runST)
 import Control.Monad (forM_, when, foldM_)
 import Math.KnotTh.Tangle
 import Math.KnotTh.Invariants.Skein.Relation
-import Math.KnotTh.Invariants.Skein.StateSum.Summand
 import Math.KnotTh.Invariants.Skein.StateSum.Sum
 import Math.KnotTh.Invariants.Skein.StateSum.TangleRelation
 
 
 fromInitialSum :: (Ord a, Num a) => [(Skein, a)] -> StateSum a
 fromInitialSum =
-    normalizeStateSum . map (\ (skein, factor) ->
-            case skein of
-                Lplus  -> crossSummand factor
-                Lzero  -> zeroSummand factor
-                Linfty -> inftySummand factor
+    concatStateSums . map (\ (skein, factor) ->
+            let a = listArray (0, 3) $
+                    case skein of
+                        Lplus  -> [2, 3, 0, 1]
+                        Lzero  -> [3, 2, 1, 0]
+                        Linfty -> [1, 0, 3, 2]
+            in singletonStateSum $ StateSummand a factor
         )
 
 
@@ -39,8 +40,8 @@ mirrorStateSum :: (SkeinRelation r a) => r -> StateSum a -> StateSum a
 mirrorStateSum = bruteForceMirror
 
 
-glueHandle :: (SkeinRelation r a) => r -> Int -> Int -> StateSum a -> (UArray Int Int, StateSum a)
-glueHandle relation !degree !p preSum =
+glueHandle :: (SkeinRelation r a) => r -> Int -> StateSum a -> (UArray Int Int, StateSum a)
+glueHandle relation !p !preSum @ (StateSum !degree _) =
     let !p' = (p + 1) `mod` degree
 
         !subst = runSTUArray $ do
@@ -52,15 +53,14 @@ glueHandle relation !degree !p preSum =
                 ) 0 $ [p .. degree - 1] ++ [0 .. p - 1]
             return $! a
 
-        !postSum = normalizeStateSum $ do
-            StateSummand x k <- preSum
+        !postSum = flip mapStateSum preSum $ \ (StateSummand x k) ->
             let t = restoreBasicTangle x
-            decomposeTangle relation k $ glueTangles 2 (nthLeg t p) (firstLeg identityTangle)
+            in decomposeTangle relation k $ glueTangles 2 (nthLeg t p) (firstLeg identityTangle)
     in (subst, postSum)
 
 
-connect :: (SkeinRelation r a) => r -> (Int, StateSum a, Int) -> (Int, StateSum a, Int) -> (UArray Int Int, UArray Int Int, StateSum a)
-connect relation (!degreeV, !sumV, !p) (!degreeU, !sumU, !q) =
+connect :: (SkeinRelation r a) => r -> (Int, StateSum a) -> (Int, StateSum a) -> (UArray Int Int, UArray Int Int, StateSum a)
+connect relation (!p, !sumV @ (StateSum !degreeV _)) (!q, !sumU @ (StateSum !degreeU _)) =
     let !substV = runSTUArray $ do
             a <- newArray (0, degreeV - 1) (-1) :: ST s (STUArray s Int Int)
             forM_ [p + 1 .. degreeV - 1] $ \ !i ->
@@ -77,12 +77,11 @@ connect relation (!degreeV, !sumV, !p) (!degreeU, !sumU, !q) =
                 writeArray a i $ i + (degreeV + degreeU - q - 2)
             return $! a
 
-        !result = normalizeStateSum $ do
-            StateSummand xa ka <- sumV
-            StateSummand xb kb <- sumU
+        !result = flip mapStateSum sumV $ \ (StateSummand xa ka) ->
             let ta = restoreBasicTangle xa
-                tb = restoreBasicTangle xb
-            decomposeTangle relation (ka * kb) $ glueTangles 1 (nthLeg ta p) (nthLeg tb q)  
+            in flip mapStateSum sumU $ \ (StateSummand xb kb) ->
+                let tb = restoreBasicTangle xb
+                in decomposeTangle relation (ka * kb) $ glueTangles 1 (nthLeg ta p) (nthLeg tb q)
     in (substV, substU, result)
 
 
@@ -110,7 +109,7 @@ assembleStateSum relation border connections internals global = runST $ do
 
         substState factor (v : rest) = do
             r <- readArray rot v
-            forM_ (bruteForceRotate relation (-r) $ internals ! v) $ \ (StateSummand x f) -> do
+            forAllSummands (bruteForceRotate relation (-r) $ internals ! v) $ \ (StateSummand x f) -> do
                 let (0, k) = bounds x
                 forM_ [0 .. k] $ \ !i -> do
                     let a = (connections ! v) ! ((i + r) `mod` (k + 1))
@@ -119,4 +118,4 @@ assembleStateSum relation border connections internals global = runST $ do
                 substState (factor * f) rest
 
     substState global [1 .. n]
-    normalizeStateSum `fmap` readSTRef result
+    (concatStateSums . map singletonStateSum) `fmap` readSTRef result

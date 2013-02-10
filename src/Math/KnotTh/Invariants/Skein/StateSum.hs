@@ -1,6 +1,5 @@
 module Math.KnotTh.Invariants.Skein.StateSum
     ( StateSum
-    , normalizeStateSum
     , takeAsConst
     , fromInitialSum
     , rotateStateSum

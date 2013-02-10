@@ -65,12 +65,12 @@ minimalJonesPolynomialOfLink link =
 
 minimalJonesPolynomialOfTangle :: T.NonAlternatingTangle -> StateSum Poly
 minimalJonesPolynomialOfTangle tangle
-    | l == 0     = min p (map (fmap $ invert jonesVar) p)
+    | l == 0     = min p $ fmap (invert jonesVar) p
     | otherwise  = minimum $ do
         rot <- [0 .. l - 1]
         let rotated = rotateStateSum jonesRelation rot p
             mirrored = mirrorStateSum jonesRelation rotated
-        [rotated, fmap (fmap $ invert jonesVar) rotated, mirrored, fmap (fmap $ invert jonesVar) mirrored]
+        [rotated, fmap (invert jonesVar) rotated, mirrored, fmap (invert jonesVar) mirrored]
     where
         p = jonesPolynomial tangle
         l = T.numberOfLegs tangle

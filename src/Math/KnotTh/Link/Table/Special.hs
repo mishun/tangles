@@ -1,5 +1,6 @@
 module Math.KnotTh.Link.Table.Special
-    ( unlink
+    ( emptyLink
+    , unlink
     , unknot
     , singleCrossingUnknot
     , hopfLink

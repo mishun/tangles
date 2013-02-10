@@ -59,7 +59,7 @@ contractLoopST s (!v, !p) = do
         printf "contractLoopST: not loop (%i, %i) <-> (%i, %i) / %i" v p v' p' degree
 
     preSum <- getStateSumST s v
-    let (subst, postSum) = glueHandle (relation s) degree p preSum
+    let (subst, postSum) = glueHandle (relation s) p preSum
     setStateSumST s v postSum
 
     prev <- resizeAdjListST s v $ degree - 2

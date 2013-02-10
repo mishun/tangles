@@ -25,7 +25,7 @@ test = testGroup "Invariants"
             ]
 
     , testGroup "Jones polynomial" $
-        [ testGroup "Of link" $
+        [ testGroup "Exact values on links" $
             map (\ (name, l, target) -> testCase name $ show (normalizedJonesPolynomialOfLink l) @?= target)
                 [ ("unknot"                 , unknot               , "1"                                             )
                 , ("unknot '8'"             , singleCrossingUnknot , "1"                                             )
@@ -61,18 +61,20 @@ test = testGroup "Invariants"
                   )
                 ]
 
-        , testGroup "Of tangle" $
+        , testGroup "Exact values on tangles" $
             map (\ (name, t, target) -> testCase name $ show (jonesPolynomial t) @?= target)
-                [ ("zero"          , zeroTangle                 , "[(1)[3,2,1,0]]"                       )
-                , ("infinity"      , infinityTangle             , "[(1)[1,0,3,2]]"                       )
-                , ("over crossing" , lonerOverCrossingTangle    , "[(t^1/4)[1,0,3,2],(t^-1/4)[3,2,1,0]]" )
-                , ("under crossing", lonerUnderCrossingTangle   , "[(t^-1/4)[1,0,3,2],(t^1/4)[3,2,1,0]]" )
-                , ("group 2"       , groupTangle 2              , "[(1-t)[1,0,3,2],(t^-1/2)[3,2,1,0]]"   )
-                , ("group -2"      , groupTangle (-2)           , "[(-t^-1+1)[1,0,3,2],(t^1/2)[3,2,1,0]]")
-                , ("II reducable"  , decodeCascadeCode [(XU, 0)], "[(1)[3,2,1,0]]"                       )
+                [ ("empty"         , emptyTangle                , "(1)[]"                              )
+                , ("identity"      , identityTangle             , "(1)[1,0]"                           )
+                , ("zero"          , zeroTangle                 , "(1)[3,2,1,0]"                       )
+                , ("infinity"      , infinityTangle             , "(1)[1,0,3,2]"                       )
+                , ("over crossing" , lonerOverCrossingTangle    , "(t^1/4)[1,0,3,2]+(t^-1/4)[3,2,1,0]" )
+                , ("under crossing", lonerUnderCrossingTangle   , "(t^-1/4)[1,0,3,2]+(t^1/4)[3,2,1,0]" )
+                , ("group 2"       , groupTangle 2              , "(1-t)[1,0,3,2]+(t^-1/2)[3,2,1,0]"   )
+                , ("group -2"      , groupTangle (-2)           , "(-t^-1+1)[1,0,3,2]+(t^1/2)[3,2,1,0]")
+                , ("II reducable"  , decodeCascadeCode [(XU, 0)], "(1)[3,2,1,0]"                       )
                 ]
 
-        , testGroup "Kauffman X polynomial of link" $
+        , testGroup "Kauffman X polynomial" $
             map (\ (name, l, target) -> testCase name $ show (kauffmanXPolynomial l) @?= target)
                 [ ("unknot"           , unknot              , "-A^-2-A^2"         )
                 , ("unknot left '8'"  , singleCrossingUnknot, "-A^-2-A^2"         )
@@ -83,7 +85,7 @@ test = testGroup "Invariants"
         ]
 
     , testGroup "Kauffman F polynomial"
-        [ testGroup "Of link" $
+        [ testGroup "Exact values on links" $
             map (\ (name, l, target) -> testCase name $ show (normalizedKauffmanFPolynomialOfLink l) @?= target)
                 [ ("unknot"             , unknot                              , "1"                                                                                       )
                 , ("unknot left '8'"    , singleCrossingUnknot                , "1"                                                                                       )
@@ -94,12 +96,17 @@ test = testGroup "Invariants"
                 , ("hopf link"          , hopfLink                            , "-a^-1z^-1+a^-1z+1-az^-1+az"                                                              )
                 ]
 
-        , testGroup "Of tangle" $
+        , testGroup "Exact values on tangles" $
             map (\ (name, t, target) -> testCase name $ show (kauffmanFPolynomial t) @?= target)
-                [ ("zero"          , zeroTangle                 , "[(1)[3,2,1,0]]"                           )
-                , ("infinity"      , infinityTangle             , "[(1)[1,0,3,2]]"                           )
-                , ("over crossing" , lonerOverCrossingTangle    , "[(1)[2,3,0,1]]"                           )
-                , ("under crossing", lonerUnderCrossingTangle   , "[(z)[1,0,3,2],(-1)[2,3,0,1],(z)[3,2,1,0]]")
+                [ ("empty"         , emptyTangle                , "(1)[]"                                  )
+                , ("identity"      , identityTangle             , "(1)[1,0]"                               )
+                , ("zero"          , zeroTangle                 , "(1)[3,2,1,0]"                           )
+                , ("infinity"      , infinityTangle             , "(1)[1,0,3,2]"                           )
+                , ("over crossing" , lonerOverCrossingTangle    , "(1)[2,3,0,1]"                           )
+                , ("under crossing", lonerUnderCrossingTangle   , "(z)[1,0,3,2]+(-1)[2,3,0,1]+(z)[3,2,1,0]")
                 ]
+
+        , testCase "Collision between Conway and Kinoshita-Terasaka knots" $
+            kauffmanFPolynomial conwayKnot @?= kauffmanFPolynomial kinoshitaTerasakaKnot
         ]
     ]

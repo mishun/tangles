@@ -35,7 +35,7 @@ test = testGroup "Enumeration tests" $
             testInvariantness 6 minimalJonesPolynomialOfTangle
 
         , testCase "Kauffman F polynomial" $
-            testInvariantness 4 minimalKauffmanFPolynomialOfTangle
+            testInvariantness 5 minimalKauffmanFPolynomialOfTangle
 
         , testCase "Jones polynomial of doubling" $
             testInvariantness 4 (minimalJonesPolynomialOfTangle . twistedDouble)
