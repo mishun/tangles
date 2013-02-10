@@ -1,6 +1,6 @@
 module Math.KnotTh.Invariants.Skein.StateSum.Sum
-    ( StateSummand(..)
-    , StateSum(..)
+    ( ChordDiagram(..)
+    , ChordDiagramsSum(..)
     , singletonStateSum
     , concatStateSums
     , mapStateSum
@@ -16,60 +16,60 @@ import Control.Monad (forM_)
 import Text.Printf
 
 
-data StateSummand a = StateSummand !(UArray Int Int) !a deriving (Eq, Ord)
+data ChordDiagram a = ChordDiagram !(UArray Int Int) !a deriving (Eq, Ord)
 
 
-instance Functor StateSummand where
-    fmap f (StateSummand p x) = StateSummand p $! f x
+instance Functor ChordDiagram where
+    fmap f (ChordDiagram p x) = ChordDiagram p $! f x
 
 
-instance (Show a) => Show (StateSummand a) where
-    show (StateSummand a x) =
+instance (Show a) => Show (ChordDiagram a) where
+    show (ChordDiagram a x) =
         printf "(%s)%s" (show x) (show $ elems a)
 
 
-data StateSum a = StateSum !Int ![StateSummand a] deriving (Eq, Ord)
+data ChordDiagramsSum a = ChordDiagramsSum !Int ![ChordDiagram a] deriving (Eq, Ord)
 
 
-instance Functor StateSum where
-    fmap f (StateSum order list) = StateSum order $ map (fmap f) list
+instance Functor ChordDiagramsSum where
+    fmap f (ChordDiagramsSum order list) = ChordDiagramsSum order $ map (fmap f) list
 
 
-instance (Show a) => Show (StateSum a) where
-    show (StateSum _ list) =
+instance (Show a) => Show (ChordDiagramsSum a) where
+    show (ChordDiagramsSum _ list) =
         case list of
             [] -> "0"
             _  -> intercalate "+" $ map show list
 
 
-singletonStateSum :: StateSummand a -> StateSum a
-singletonStateSum summand @ (StateSummand a _) =
-    StateSum (1 + snd (bounds a)) [summand]
+singletonStateSum :: ChordDiagram a -> ChordDiagramsSum a
+singletonStateSum summand @ (ChordDiagram a _) =
+    ChordDiagramsSum (1 + snd (bounds a)) [summand]
 
 
-concatStateSums :: (Eq a, Num a) => [StateSum a] -> StateSum a
+concatStateSums :: (Eq a, Num a) => [ChordDiagramsSum a] -> ChordDiagramsSum a
 concatStateSums [] = error $ printf "concatStateSum: empty"
-concatStateSums list @ (StateSum order _ : _) =
-    StateSum order $ map (\ (!k, !v) -> StateSummand k v) $
+concatStateSums list @ (ChordDiagramsSum order _ : _) =
+    ChordDiagramsSum order $ map (\ (!k, !v) -> ChordDiagram k v) $
         filter ((/= 0) . snd) $ M.toList $
-            foldl' (\ !m (StateSummand !k !v) -> M.insertWith' (+) k v m) M.empty $
-                concatMap (\ (StateSum order' list') ->
+            foldl' (\ !m (ChordDiagram !k !v) -> M.insertWith' (+) k v m) M.empty $
+                concatMap (\ (ChordDiagramsSum order' list') ->
                         if order' == order
                             then list'
                             else error $ printf "concatStateSums: order conflict with %i and %i" order order'
                     ) list
 
 
-mapStateSum :: (Eq a, Num a) => (StateSummand a -> StateSum a) -> StateSum a -> StateSum a
-mapStateSum _ (StateSum order []) = StateSum order []
-mapStateSum f (StateSum _ list) = concatStateSums $ map f list
+mapStateSum :: (Eq a, Num a) => (ChordDiagram a -> ChordDiagramsSum a) -> ChordDiagramsSum a -> ChordDiagramsSum a
+mapStateSum _ (ChordDiagramsSum order []) = ChordDiagramsSum order []
+mapStateSum f (ChordDiagramsSum _ list) = concatStateSums $ map f list
 
 
-forAllSummands :: (Monad m) => StateSum a -> (StateSummand a -> m ()) -> m ()
-forAllSummands (StateSum _ list) = forM_ list
+forAllSummands :: (Monad m) => ChordDiagramsSum a -> (ChordDiagram a -> m ()) -> m ()
+forAllSummands (ChordDiagramsSum _ list) = forM_ list
 
 
-takeAsConst :: (Num a) => StateSum a -> a
-takeAsConst (StateSum _ []) = 0
-takeAsConst (StateSum _ [StateSummand _ x]) = x
+takeAsConst :: (Num a) => ChordDiagramsSum a -> a
+takeAsConst (ChordDiagramsSum _ []) = 0
+takeAsConst (ChordDiagramsSum _ [ChordDiagram _ x]) = x
 takeAsConst _ = error "takeAsConst: constant expected"

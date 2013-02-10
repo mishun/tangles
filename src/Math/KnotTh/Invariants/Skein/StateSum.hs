@@ -1,5 +1,5 @@
 module Math.KnotTh.Invariants.Skein.StateSum
-    ( StateSum
+    ( ChordDiagramsSum
     , takeAsConst
     , fromInitialSum
     , rotateStateSum

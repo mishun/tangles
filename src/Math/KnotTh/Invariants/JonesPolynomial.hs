@@ -63,7 +63,7 @@ minimalJonesPolynomialOfLink link =
     in min p (invert jonesVar p)
 
 
-minimalJonesPolynomialOfTangle :: T.NonAlternatingTangle -> StateSum Poly
+minimalJonesPolynomialOfTangle :: T.NonAlternatingTangle -> ChordDiagramsSum Poly
 minimalJonesPolynomialOfTangle tangle
     | l == 0     = min p $ fmap (invert jonesVar) p
     | otherwise  = minimum $ do

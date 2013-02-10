@@ -37,7 +37,7 @@ data SkeinState s r a = SkeinState
     , size     :: !Int
     , alive    :: !(STRef s Int)
     , active   :: !(STUArray s Int Bool)
-    , state    :: !(STArray s Int (StateSum a))
+    , state    :: !(STArray s Int (ChordDiagramsSum a))
     , adjacent :: !(STArray s Int (STArray s Int (Int, Int)))
     , queue    :: !(STRef s [Int])
     , queued   :: !(STUArray s Int Bool)
@@ -197,11 +197,11 @@ resizeAdjListST s v degree = do
     return $! prev
 
 
-getStateSumST :: SkeinState s r a -> Int -> ST s (StateSum a)
+getStateSumST :: SkeinState s r a -> Int -> ST s (ChordDiagramsSum a)
 getStateSumST s = readArray (state s)
 
 
-setStateSumST :: SkeinState s r a -> Int -> StateSum a -> ST s ()
+setStateSumST :: SkeinState s r a -> Int -> ChordDiagramsSum a -> ST s ()
 setStateSumST s = writeArray (state s)
 
 
@@ -213,7 +213,7 @@ aliveVerticesST :: SkeinState s r a -> ST s [Int]
 aliveVerticesST s = filterM (readArray $ active s) [1 .. size s]
 
 
-extractStateSumST :: (SkeinRelation r a) => SkeinState s r a -> ST s (StateSum a)
+extractStateSumST :: (SkeinRelation r a) => SkeinState s r a -> ST s (ChordDiagramsSum a)
 extractStateSumST s = do
     vertices <- aliveVerticesST s
     let n = length vertices

@@ -1,6 +1,5 @@
 module Math.KnotTh.Invariants.Skein.StateSum.TangleRelation
-    ( extractTangle
-    , restoreBasicTangle
+    ( restoreBasicTangle
     , decomposeTangle
     , bruteForceRotate
     , bruteForceMirror
@@ -14,10 +13,6 @@ import Math.KnotTh.Tangle.NonAlternating
 import Math.KnotTh.Tangle.Moves.Move
 import Math.KnotTh.Invariants.Skein.StateSum.Sum
 import Math.KnotTh.Invariants.Skein.Relation
-
-
-extractTangle :: StateSummand a -> NonAlternatingTangle
-extractTangle (StateSummand a _) = restoreBasicTangle a
 
 
 restoreBasicTangle :: UArray Int Int -> NonAlternatingTangle
@@ -44,7 +39,7 @@ restoreBasicTangle chordDiagram =
     in restore chordDiagram (listArray (0, l) $ map (\ i -> min i $ chordDiagram ! i) [0 .. l]) [0 .. l]
 
 
-decomposeTangle :: (SkeinRelation r a) => r -> a -> NonAlternatingTangle -> StateSum a
+decomposeTangle :: (SkeinRelation r a) => r -> a -> NonAlternatingTangle -> ChordDiagramsSum a
 decomposeTangle relation factor tangle
     | numberOfFreeLoops tangle > 0  =
         decomposeTangle relation
@@ -77,7 +72,7 @@ decomposeTangle relation factor tangle
                             _                    -> []
 
                     w = selfWrithe tangle
-                in singletonStateSum $ StateSummand a $ factor *
+                in singletonStateSum $ ChordDiagram a $ factor *
                     ((if w >= 0 then twistPFactor else twistNFactor) relation ^ abs w) *
                         (circleFactor relation ^ (n - numberOfLegs tangle `div` 2))
 
@@ -113,12 +108,12 @@ decomposeTangle relation factor tangle
         in tryCrossing $ allCrossings tangle
 
 
-bruteForceRotate :: (SkeinRelation r a) => r -> Int -> StateSum a -> StateSum a
+bruteForceRotate :: (SkeinRelation r a) => r -> Int -> ChordDiagramsSum a -> ChordDiagramsSum a
 bruteForceRotate relation rot
     | rot == 0   = id
-    | otherwise  = mapStateSum (\ (StateSummand a factor) -> decomposeTangle relation factor $ rotateTangle rot $ restoreBasicTangle a)
+    | otherwise  = mapStateSum (\ (ChordDiagram a factor) -> decomposeTangle relation factor $ rotateTangle rot $ restoreBasicTangle a)
 
 
-bruteForceMirror :: (SkeinRelation r a) => r -> StateSum a -> StateSum a
+bruteForceMirror :: (SkeinRelation r a) => r -> ChordDiagramsSum a -> ChordDiagramsSum a
 bruteForceMirror relation =
-    mapStateSum (\ (StateSummand a factor) -> decomposeTangle relation factor $ mirrorTangle $ restoreBasicTangle a)
+    mapStateSum (\ (ChordDiagram a factor) -> decomposeTangle relation factor $ mirrorTangle $ restoreBasicTangle a)

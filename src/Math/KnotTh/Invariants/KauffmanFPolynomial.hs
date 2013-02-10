@@ -64,7 +64,7 @@ minimalKauffmanFPolynomialOfLink link =
     in min p (invertF p)
 
 
-minimalKauffmanFPolynomialOfTangle :: T.NonAlternatingTangle -> StateSum Poly2
+minimalKauffmanFPolynomialOfTangle :: T.NonAlternatingTangle -> ChordDiagramsSum Poly2
 minimalKauffmanFPolynomialOfTangle tangle
     | l == 0     =
         let p = kauffmanFPolynomial tangle

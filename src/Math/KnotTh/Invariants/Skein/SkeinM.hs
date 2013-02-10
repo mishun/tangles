@@ -48,7 +48,7 @@ evaluateStateSum ::
         => rel
         -> (forall s. [(Vertex, Int)] -> SkeinM s rel a ())
         -> k ArbitraryCrossing
-        -> StateSum a
+        -> ChordDiagramsSum a
 
 evaluateStateSum rel action knot = runST $ do
     s <- stateFromKnotted rel knot

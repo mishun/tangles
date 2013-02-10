@@ -38,7 +38,7 @@ class (Ord a, Num a, Show a) => SkeinRelation r a | r -> a where
 class (Knotted k c d, Eq (d ArbitraryCrossing), Eq (c ArbitraryCrossing)) => SkeinStructure k c d | k -> c, c -> d, d -> k where
     type SkeinResult k a :: *
     endpointPlace      :: d ArbitraryCrossing -> Int
-    resultFromStateSum :: (SkeinRelation r a) => r -> k ArbitraryCrossing -> StateSum a -> SkeinResult k a
+    resultFromStateSum :: (SkeinRelation r a) => r -> k ArbitraryCrossing -> ChordDiagramsSum a -> SkeinResult k a
 
 
 instance SkeinStructure L.Link L.Crossing L.Dart where
@@ -48,6 +48,6 @@ instance SkeinStructure L.Link L.Crossing L.Dart where
 
 
 instance SkeinStructure T.Tangle T.Crossing T.Dart where
-    type SkeinResult T.Tangle a = StateSum a
+    type SkeinResult T.Tangle a = ChordDiagramsSum a
     endpointPlace = T.legPlace
     resultFromStateSum _ _ = id
