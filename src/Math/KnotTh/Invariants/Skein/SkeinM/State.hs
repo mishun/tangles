@@ -29,15 +29,14 @@ import Text.Printf
 import Math.KnotTh.Crossings.Arbitrary
 import Math.KnotTh.Knotted
 import Math.KnotTh.Invariants.Skein.Relation
-import Math.KnotTh.Invariants.Skein.StateSum
 
 
-data SkeinState s r a = SkeinState
+data (SkeinRelation r a) => SkeinState s r a = SkeinState
     { relation :: !r
     , size     :: !Int
     , alive    :: !(STRef s Int)
     , active   :: !(STUArray s Int Bool)
-    , state    :: !(STArray s Int (ChordDiagramsSum a))
+    , state    :: !(STArray s Int (SkeinRelationModel r a))
     , adjacent :: !(STArray s Int (STArray s Int (Int, Int)))
     , queue    :: !(STRef s [Int])
     , queued   :: !(STUArray s Int Bool)
@@ -55,7 +54,7 @@ stateFromKnotted relation' knot = do
 
         alive' <- newSTRef n
         active' <- newArray (1, n) True
-        state' <- newArray (1, n) $ fromInitialSum $ initialLplus relation'
+        state' <- newArray (1, n) $ initialize $ initialLplus relation'
         queue' <- newSTRef [1 .. n]
         queued' <- newArray (1, n) True
         multiple' <- newSTRef $ circleFactor relation' ^ numberOfFreeLoops knot
@@ -107,7 +106,7 @@ copyState s = do
         }
 -}
 
-dumpStateST :: (Show a) => SkeinState s r a -> ST s String
+dumpStateST :: (SkeinRelation r a, Show (SkeinRelationModel r a)) => SkeinState s r a -> ST s String
 dumpStateST s = do
     cross <- forM [1 .. size s] $ \ i -> do
         act <- readArray (active s) i
@@ -125,33 +124,33 @@ dumpStateST s = do
     return $! printf "\nalive = %i\nmultiple=%s\n%s" alive' (show multiple') $ concatMap (++ "\n") cross
 
 
-appendMultipleST :: (Num a) => SkeinState s r a -> a -> ST s ()
+appendMultipleST :: (SkeinRelation r a) => SkeinState s r a -> a -> ST s ()
 appendMultipleST s x =
     readSTRef (multiple s) >>= \ !m ->
         writeSTRef (multiple s) $! x * m
 
 
-connectST :: SkeinState s r a -> (Int, Int) -> (Int, Int) -> ST s ()
+connectST :: (SkeinRelation r a) => SkeinState s r a -> (Int, Int) -> (Int, Int) -> ST s ()
 connectST s a@(!v, !p) b@(!u, !q) = do
     readArray (adjacent s) v >>= \ d -> writeArray d p b
     readArray (adjacent s) u >>= \ d -> writeArray d q a
 
 
-vertexDegreeST :: SkeinState s r a -> Int -> ST s Int
+vertexDegreeST :: (SkeinRelation r a) => SkeinState s r a -> Int -> ST s Int
 vertexDegreeST s v = do
     readArray (adjacent s) v >>=
         getBounds >>= \ (0, n) ->
             return $! n + 1
 
 
-neighbourST :: SkeinState s r a -> (Int, Int) -> ST s (Int, Int)
+neighbourST :: (SkeinRelation r a) => SkeinState s r a -> (Int, Int) -> ST s (Int, Int)
 neighbourST s (!v, !p) = do
     x <- readArray (adjacent s) v
     (_, d) <- getBounds x
     readArray x $ p `mod` (d + 1)
 
 
-killVertexST :: SkeinState s r a -> Int -> ST s ()
+killVertexST :: (SkeinRelation r a) => SkeinState s r a -> Int -> ST s ()
 killVertexST s v = do
     a <- readArray (active s) v
     unless a $ fail "killVertexST: vertex is already dead"
@@ -162,7 +161,7 @@ killVertexST s v = do
         writeSTRef (alive s) $! x - 1
 
 
-enqueueST :: SkeinState s r a -> Int -> ST s ()
+enqueueST :: (SkeinRelation r a) => SkeinState s r a -> Int -> ST s ()
 enqueueST s v = do
     a <- readArray (active s) v
     e <- readArray (queued s) v
@@ -171,7 +170,7 @@ enqueueST s v = do
         readSTRef (queue s) >>= \ !l -> writeSTRef (queue s) $! v : l
 
 
-dequeueST :: SkeinState s r a -> ST s (Maybe Int)
+dequeueST :: (SkeinRelation r a) => SkeinState s r a -> ST s (Maybe Int)
 dequeueST s = do
     l <- readSTRef $ queue s
     case l of
@@ -185,11 +184,11 @@ dequeueST s = do
                 else dequeueST s
 
 
-getAdjListST :: SkeinState s r a -> Int -> ST s (STArray s Int (Int, Int))
+getAdjListST :: (SkeinRelation r a) => SkeinState s r a -> Int -> ST s (STArray s Int (Int, Int))
 getAdjListST s v = readArray (adjacent s) v
 
 
-resizeAdjListST :: SkeinState s r a -> Int -> Int -> ST s (STArray s Int (Int, Int))
+resizeAdjListST :: (SkeinRelation r a) => SkeinState s r a -> Int -> Int -> ST s (STArray s Int (Int, Int))
 resizeAdjListST s v degree = do
     prev <- readArray (adjacent s) v
     next <- newArray_ (0, degree - 1)
@@ -197,23 +196,23 @@ resizeAdjListST s v degree = do
     return $! prev
 
 
-getStateSumST :: SkeinState s r a -> Int -> ST s (ChordDiagramsSum a)
+getStateSumST :: (SkeinRelation r a) => SkeinState s r a -> Int -> ST s (SkeinRelationModel r a)
 getStateSumST s = readArray (state s)
 
 
-setStateSumST :: SkeinState s r a -> Int -> ChordDiagramsSum a -> ST s ()
+setStateSumST :: (SkeinRelation r a) => SkeinState s r a -> Int -> SkeinRelationModel r a -> ST s ()
 setStateSumST s = writeArray (state s)
 
 
-numberOfAliveVerticesST :: SkeinState s r a -> ST s Int
+numberOfAliveVerticesST :: (SkeinRelation r a) => SkeinState s r a -> ST s Int
 numberOfAliveVerticesST s = readSTRef $ alive s
 
 
-aliveVerticesST :: SkeinState s r a -> ST s [Int]
+aliveVerticesST :: (SkeinRelation r a) => SkeinState s r a -> ST s [Int]
 aliveVerticesST s = filterM (readArray $ active s) [1 .. size s]
 
 
-extractStateSumST :: (SkeinRelation r a) => SkeinState s r a -> ST s (ChordDiagramsSum a)
+extractStateSumST :: (SkeinRelation r a) => SkeinState s r a -> ST s (SkeinRelationModel r a)
 extractStateSumST s = do
     vertices <- aliveVerticesST s
     let n = length vertices
@@ -237,4 +236,4 @@ extractStateSumST s = do
 
     internals <- listArray (1, n) `fmap` forM vertices (readArray (state s))
     global <- readSTRef (multiple s)
-    return $! assembleStateSum (relation s) border connections internals global
+    return $! assemble (relation s) border connections internals global

@@ -109,14 +109,14 @@ library
         Math.Manifolds.SurfaceGraph.SphereStar,
         Math.Manifolds.SurfaceGraph.Util
     other-modules:
-        Math.KnotTh.Invariants.Skein.Applied,
+        Math.KnotTh.Invariants.Skein,
+        Math.KnotTh.Invariants.Skein.Relation,
         Math.KnotTh.Invariants.Skein.SkeinM,
         Math.KnotTh.Invariants.Skein.SkeinM.ContractEdge,
         Math.KnotTh.Invariants.Skein.SkeinM.Reduction,
         Math.KnotTh.Invariants.Skein.SkeinM.RelaxVertex,
         Math.KnotTh.Invariants.Skein.SkeinM.State,
-        Math.KnotTh.Invariants.Skein.StateSum.Operations,
-        Math.KnotTh.Invariants.Skein.StateSum.Sum,
+        Math.KnotTh.Invariants.Skein.StateModels.ChordDiagramsSum,
         Math.KnotTh.Invariants.Util.BruteForceMinimization,
         Math.KnotTh.Invariants.Util.Poly,
         Math.KnotTh.Knotted.CrossingState,
@@ -150,9 +150,6 @@ library
             Math.Combinatorics.ChordDiagrams.Test,
             Math.Combinatorics.Strings.Test,
             Math.KnotTh.Enumeration.Applied.Test,
-            Math.KnotTh.Invariants.Skein.Relation,
-            Math.KnotTh.Invariants.Skein.StateSum,
-            Math.KnotTh.Invariants.Skein.StateSum.TangleRelation,
             Math.KnotTh.Invariants.Test,
             Math.KnotTh.Tangle.BorderIncremental.Test,
             Math.KnotTh.Tangle.Moves.Test,
@@ -162,9 +159,6 @@ library
             TestUtil.TestCollection
     else
         other-modules:
-            Math.KnotTh.Invariants.Skein.Relation,
-            Math.KnotTh.Invariants.Skein.StateSum,
-            Math.KnotTh.Invariants.Skein.StateSum.TangleRelation
 
 benchmark GraphDrawingBenchmark
     type:               exitcode-stdio-1.0

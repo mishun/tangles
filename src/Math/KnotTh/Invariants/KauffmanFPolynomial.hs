@@ -1,3 +1,4 @@
+{-# LANGUAGE TypeFamilies #-}
 module Math.KnotTh.Invariants.KauffmanFPolynomial
     ( kauffmanFPolynomial
     , normalizedKauffmanFPolynomialOfLink
@@ -9,7 +10,7 @@ import Math.KnotTh.Crossings.Arbitrary
 import Math.KnotTh.Knotted
 import qualified Math.KnotTh.Link.NonAlternating as L
 import qualified Math.KnotTh.Tangle.NonAlternating as T
-import Math.KnotTh.Invariants.Skein.Applied
+import Math.KnotTh.Invariants.Skein
 import Math.KnotTh.Invariants.Util.Poly
 
 
@@ -34,6 +35,8 @@ data KauffmanFRelation = KauffmanFRelation
 
 
 instance SkeinRelation KauffmanFRelation Poly2 where
+    type SkeinRelationModel KauffmanFRelation = ChordDiagramsSum
+
     circleFactor _ = (a + a') * z' - 1
 
     initialLplus _ = [(Lplus, 1)]
@@ -48,7 +51,7 @@ instance SkeinRelation KauffmanFRelation Poly2 where
     finalNormalization _ knot = (writheFactor knot *)
 
 
-kauffmanFPolynomial :: (SkeinStructure k c d) => k ArbitraryCrossing -> SkeinResult k Poly2
+kauffmanFPolynomial :: (SkeinStructure k c d) => k ArbitraryCrossing -> ResultOnStructure k ChordDiagramsSum Poly2
 kauffmanFPolynomial = evaluateSkeinRelation KauffmanFRelation
 
 

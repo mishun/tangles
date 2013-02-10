@@ -8,7 +8,6 @@ import Control.Monad (forM_, when)
 import Text.Printf
 import Math.KnotTh.Invariants.Skein.Relation
 import Math.KnotTh.Invariants.Skein.SkeinM.State
-import Math.KnotTh.Invariants.Skein.StateSum
 
 
 tryRelaxVertex :: (SkeinRelation r a) => SkeinState s r a -> Int -> ST s Bool
@@ -44,10 +43,10 @@ tryRelaxVertex s v = do
             findLoop [0 .. degree - 1]
 
 
-dissolveVertexST :: (Num a) => SkeinState s r a -> Int -> ST s ()
+dissolveVertexST :: (SkeinRelation r a) => SkeinState s r a -> Int -> ST s ()
 dissolveVertexST s v = do
     stateSum <- getStateSumST s v
-    appendMultipleST s $ takeAsConst stateSum
+    appendMultipleST s $ asConst stateSum
     killVertexST s v
 
 

@@ -1,9 +1,10 @@
+{-# LANGUAGE TypeFamilies #-}
 module Math.KnotTh.Invariants.HomflyPolynomial
     ( homflyPolynomial
     ) where
 
 import Math.KnotTh.Crossings.Arbitrary
-import Math.KnotTh.Invariants.Skein.Applied
+import Math.KnotTh.Invariants.Skein
 import Math.KnotTh.Invariants.Util.Poly
 
 
@@ -17,6 +18,8 @@ data HomflyRelation = HomflyRelation
 
 
 instance SkeinRelation HomflyRelation Poly2 where
+    type SkeinRelationModel HomflyRelation = ChordDiagramsSum
+
     circleFactor _ = (a + a') * z' - 1
 
     initialLplus _ = [(Lplus, 1)]
@@ -35,5 +38,5 @@ instance SkeinRelation HomflyRelation Poly2 where
         in (factor *)
 
 
-homflyPolynomial :: (SkeinStructure k c d) => k ArbitraryCrossing -> SkeinResult k Poly2
+homflyPolynomial :: (SkeinStructure k c d) => k ArbitraryCrossing -> ResultOnStructure k ChordDiagramsSum Poly2
 homflyPolynomial = evaluateSkeinRelation HomflyRelation

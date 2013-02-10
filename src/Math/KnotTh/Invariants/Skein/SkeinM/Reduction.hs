@@ -11,7 +11,7 @@ import Math.KnotTh.Invariants.Skein.SkeinM.RelaxVertex
 import Math.KnotTh.Invariants.Skein.SkeinM.ContractEdge
 
 
-internalEdgesST :: SkeinState s r a -> ST s [(Int, Int)]
+internalEdgesST :: (SkeinRelation r a) => SkeinState s r a -> ST s [(Int, Int)]
 internalEdgesST s = do
     vs <- aliveVerticesST s
     fmap concat $ forM vs $ \ v -> do

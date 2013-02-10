@@ -1,3 +1,4 @@
+{-# LANGUAGE TypeFamilies #-}
 module Math.KnotTh.Invariants.JonesPolynomial
     ( jonesPolynomial
     , normalizedJonesPolynomialOfLink
@@ -11,7 +12,7 @@ import Math.KnotTh.Knotted
 import Math.KnotTh.Crossings.Arbitrary
 import qualified Math.KnotTh.Link.NonAlternating as L
 import qualified Math.KnotTh.Tangle.NonAlternating as T
-import Math.KnotTh.Invariants.Skein.Applied
+import Math.KnotTh.Invariants.Skein
 import Math.KnotTh.Invariants.Util.Poly
 
 
@@ -19,6 +20,8 @@ data BracketLikeRelation a = BracketLikeRelation a a
 
 
 instance (Ord a, Num a, Show a) => SkeinRelation (BracketLikeRelation a) a where
+    type SkeinRelationModel (BracketLikeRelation a) = ChordDiagramsSum
+
     circleFactor (BracketLikeRelation a b) = -(a * a + b * b)
 
     initialLplus (BracketLikeRelation a b) = [(Lzero, a), (Linfty, b)]
@@ -45,7 +48,7 @@ jonesRelation :: BracketLikeRelation Poly
 jonesRelation = BracketLikeRelation (monomial 1 jonesVar (-1 / 4)) (monomial 1 jonesVar (1 / 4))
 
 
-jonesPolynomial :: (SkeinStructure k c d) => k ArbitraryCrossing -> SkeinResult k Poly
+jonesPolynomial :: (SkeinStructure k c d) => k ArbitraryCrossing -> ResultOnStructure k ChordDiagramsSum Poly
 jonesPolynomial = evaluateSkeinRelation jonesRelation
 
 
@@ -84,7 +87,7 @@ kauffmanXRelation :: BracketLikeRelation Poly
 kauffmanXRelation = BracketLikeRelation (monomial 1 kauffmanXVar 1) (monomial 1 kauffmanXVar (-1))
 
 
-kauffmanXPolynomial :: (SkeinStructure k c d) => k ArbitraryCrossing -> SkeinResult k Poly
+kauffmanXPolynomial :: (SkeinStructure k c d) => k ArbitraryCrossing -> ResultOnStructure k ChordDiagramsSum Poly
 kauffmanXPolynomial = evaluateSkeinRelation kauffmanXRelation
 
 
