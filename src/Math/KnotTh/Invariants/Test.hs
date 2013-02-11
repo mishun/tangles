@@ -2,9 +2,13 @@ module Math.KnotTh.Invariants.Test
     ( test
     ) where
 
+import qualified Data.Map as M
+import Text.Printf
 import Test.Framework (Test, testGroup)
 import Test.Framework.Providers.HUnit (testCase)
 import Test.HUnit hiding (Test, test)
+import qualified Math.Algebra.Field.Base as B
+import qualified Math.Projects.KnotTheory.LaurentMPoly as LMP
 import Math.KnotTh.Crossings.Arbitrary
 import Math.KnotTh.Link.Table
 import Math.KnotTh.Link.GaussCode (fromDTCode)
@@ -13,6 +17,7 @@ import Math.KnotTh.Tangle.CascadeCode
 import Math.KnotTh.Invariants.LinkingNumber
 import Math.KnotTh.Invariants.JonesPolynomial
 import Math.KnotTh.Invariants.KauffmanFPolynomial
+import Math.KnotTh.Invariants.Util.Poly
 
 
 test :: Test
@@ -82,6 +87,9 @@ test = testGroup "Invariants"
                 , ("figure eight knot", figureEightKnot     , "-A^-10-A^10"       )
                 , ("hopf link"        , hopfLink            , "A^-6+A^-2+A^2+A^6" )
                 ]
+
+        , testCase "Collision between Conway and Kinoshita-Terasaka knots" $
+            jonesPolynomial conwayKnot @?= jonesPolynomial kinoshitaTerasakaKnot
         ]
 
     , testGroup "Kauffman F polynomial"
@@ -90,7 +98,7 @@ test = testGroup "Invariants"
                 [ ("unknot"             , unknot                              , "1"                                                                                       )
                 , ("unknot left '8'"    , singleCrossingUnknot                , "1"                                                                                       )
                 , ("unknot right '8'"   , invertCrossings singleCrossingUnknot, "1"                                                                                       )
-                , ("left trefoil knot"  , rightTrefoilKnot                    , "a^-5z-a^-4+a^-4z^2+a^-3z-2a^-2+a^-2z^2"                                                  )
+                , ("right trefoil knot" , rightTrefoilKnot                    , "a^-5z-a^-4+a^-4z^2+a^-3z-2a^-2+a^-2z^2"                                                  )
                 , ("figure eight knot"  , figureEightKnot                     , "-a^-2+a^-2z^2-a^-1z-1+a^-1z^3+2z^2-az-a^2+az^3+a^2z^2"                                   )
                 , ("solomon's seal knot", rightCinquefoilKnot                 , "a^-9z+a^-8z^2-a^-7z+2a^-6+a^-7z^3-3a^-6z^2-2a^-5z+3a^-4+a^-6z^4+a^-5z^3-4a^-4z^2+a^-4z^4")
                 , ("hopf link"          , hopfLink                            , "-a^-1z^-1+a^-1z+1-az^-1+az"                                                              )
@@ -104,6 +112,43 @@ test = testGroup "Invariants"
                 , ("infinity"      , infinityTangle             , "(1)[1,0,3,2]"                           )
                 , ("over crossing" , lonerOverCrossingTangle    , "(1)[2,3,0,1]"                           )
                 , ("under crossing", lonerUnderCrossingTangle   , "(z)[1,0,3,2]+(-1)[2,3,0,1]+(z)[3,2,1,0]")
+                ]
+
+        , testCase "Relation to Jones polynomial" $ do
+            let z = monomial2 1 "z" 1
+                z' = monomial 1 "t" (-1 / 4) + monomial 1 "t" (1 / 4)
+
+                toJones (LMP.LP monomials) =
+                    sum $ flip map monomials $ \ (LMP.LM m, f) ->
+                        (fromIntegral f *) $ product $ flip map (M.toList m) $ \ (var, p) ->
+                            let x = case var of
+                                    "a" | p >= 0    -> monomial (-1) "t" (-3 / 4)
+                                        | otherwise -> monomial (-1) "t" (3 / 4)
+                                    "z"             -> z'
+                                    _               -> undefined
+                            in x ^ (abs $ B.numeratorQ p)
+
+            mapM_ (\ (name, l) ->
+                    let kf = kauffmanFPolynomial l
+                        j = jonesPolynomial l
+                        n = 10 :: Int -- To get rid of negative z exponents
+                    in assertEqual (printf "on %s: %s vs %s" name (show kf) (show j)) (j * z' ^ n) (toJones $ kf * z ^ n)
+                )
+                [ ("right trefoil knot"     , rightTrefoilKnot     )
+                , ("left trefoil knot"      , leftTrefoilKnot      )
+                , ("figure eight knot"      , figureEightKnot      )
+                , ("hopf link"              , hopfLink             )
+                , ("solomon's seal knot"    , rightCinquefoilKnot  )
+                , ("granny knot"            , grannyKnot           )
+                , ("square knot"            , squareKnot           )
+                , ("whitehead link"         , whiteheadLink        )
+                , ("three-twist knot"       , threeTwistKnot       )
+                , ("stevedore knot"         , stevedoreKnot        )
+                , ("6_2 knot"               , knot 6 2             )
+                , ("6_3 kont"               , knot 6 3             )
+                , ("borromean rings"        , borromeanRingsLink   )
+                , ("Conway knot"            , conwayKnot           )
+                , ("Kinoshita-Terasaka knot", kinoshitaTerasakaKnot)
                 ]
 
         , testCase "Collision between Conway and Kinoshita-Terasaka knots" $
