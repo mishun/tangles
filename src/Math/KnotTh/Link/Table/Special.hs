@@ -88,8 +88,8 @@ borromeanRingsLink = link 3 6 1
 
 
 conwayKnot :: NonAlternatingLink
-conwayKnot = fromDTCode [4, 8, 12, 2, -16, -18, 6, -20, -22, -14, -10]
+conwayKnot = fromDTCode [[4, 8, 12, 2, -16, -18, 6, -20, -22, -14, -10]]
 
 
 kinoshitaTerasakaKnot :: NonAlternatingLink
-kinoshitaTerasakaKnot = fromDTCode [4, 8, 12, 2, -18, -20, 6, -10, -22, -14, -16]
+kinoshitaTerasakaKnot = fromDTCode [[4, 8, 12, 2, -18, -20, 6, -10, -22, -14, -16]]

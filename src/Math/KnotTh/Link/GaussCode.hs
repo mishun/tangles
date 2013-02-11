@@ -1,42 +1,55 @@
 module Math.KnotTh.Link.GaussCode
-    ( fromGaussCode
-    , toGaussCode
+    ( toDTCode
     , fromDTCode
-    , toDTCode
+    , toGaussCode
+    , fromGaussCode
     ) where
 
-import Data.List (findIndices)
+import Data.List (mapAccumL, findIndices)
 import qualified Data.Map as M
+import Data.Array.Base ((!), array, newArray, newArray_, readArray, writeArray)
+import Data.Array.Unboxed (UArray)
+import Data.Array.ST (STArray, STUArray, runSTUArray)
 import Data.STRef (newSTRef, readSTRef, writeSTRef)
-import Data.Array.Unboxed ((!))
-import Data.Array.ST (STArray, STUArray, runSTUArray, newArray, newArray_, readArray, writeArray, getElems)
 import Control.Monad.ST (ST, runST)
 import Control.Monad (forM, forM_, when, unless, foldM_, liftM2)
+import Text.Printf
 import Math.KnotTh.Link.NonAlternating
+
+
+toDTCode :: NonAlternatingLink -> [[Int]]
+toDTCode _ = undefined
+
+
+fromDTCode :: [[Int]] -> NonAlternatingLink
+fromDTCode code =
+    let common = concat code
+        sz = length common
+
+        a :: UArray Int Int
+        a = array (1, 2 * sz) $ do
+            (i, x) <- zip [0 ..] common
+            when (odd x) $ error $
+                printf "fromDTCode: at %s: all numbers must be even, but %i is not" (show code) x
+            when (abs x < 1 || abs x > 2 * sz) $ error $
+                printf "fromDTCode: at %s: absolute value of %i is out of bounds (1, %i)" (show code) x (2 * sz)
+            [(abs x, x), (2 * i + 1, -x)]
+
+    in fromGaussCode $ snd $ mapAccumL
+        (\ !i !thread ->
+            let n = 2 * length thread
+            in (i + n, map ((a !) . (i +)) [0 .. n - 1])
+        ) 1 code
+
+
+toGaussCode :: NonAlternatingLink -> [[Int]]
+toGaussCode link =
+    flip map (allThreads link) $ map $ \ (_, d) ->
+        (crossingIndex $ incidentCrossing d) * (if passOver d then 1 else -1)
 
 
 fromGaussCode :: [[Int]] -> NonAlternatingLink
 fromGaussCode = decode . simplifyGaussCode
-
-
-toGaussCode :: NonAlternatingLink -> [[Int]]
-toGaussCode link = flip map (allThreads link) $
-    map $ \ (_, d) ->
-        (crossingIndex $ incidentCrossing d) * (if passOver d then 1 else -1)
-
-
-fromDTCode :: [Int] -> NonAlternatingLink
-fromDTCode code = runST $ do
-    let n = length code
-    a <- newArray_ (1, 2 * n) :: ST s (STUArray s Int Int)
-    forM_ (zip [1 ..] code) $ \ (i, x) -> do
-        writeArray a (abs x) x
-        writeArray a (2 * i - 1) (-x)
-    (fromGaussCode . (:[])) `fmap` getElems a
-
-
-toDTCode :: NonAlternatingLink -> [Int]
-toDTCode _ = undefined
 
 
 splice :: Int -> [[Int]] -> [[Int]]
@@ -89,7 +102,8 @@ decode (n, threads) = implode (length $ filter null threads, incidence)
                         else do
                             writeArray vis i True
                             writeArray col i c
-                            forM_ [1 .. n] $ \ j -> when (edge chords i j) $ dfs (not c) j
+                            forM_ [1 .. n] $ \ j ->
+                                when (edge chords i j) $ dfs (not c) j
 
             forM_ [1 .. n] $ \ !i -> do
                 v <- readArray vis i
@@ -158,15 +172,13 @@ simplifyGaussCode code = runST $ do
     visitedP <- newArray (1, n) False :: ST s (STUArray s Int Bool)
     visitedN <- newArray (1, n) False :: ST s (STUArray s Int Bool)
 
-    let pickV x
-            | x > 0      = visitedP
-            | x < 0      = visitedN
-            | otherwise  = error "fromGaussCode: zero presented"
+    let pickV x | x > 0      = visitedP
+                | x < 0      = visitedN
+                | otherwise  = error "fromGaussCode: zero presented"
 
     simplified <-
         forM code $ mapM $ \ !raw -> do
             i <- index $ abs raw
-
             readArray (pickV raw) i >>= \ v ->
                 when v $ fail $ "fromGaussCode: duplication on " ++ show raw
             writeArray (pickV raw) i True
