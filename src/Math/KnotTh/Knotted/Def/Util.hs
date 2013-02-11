@@ -1,4 +1,4 @@
-module Math.KnotTh.Knotted.Util
+module Math.KnotTh.Knotted.Def.Util
     ( isEndpoint
     , numberOfEndpoints
     , isAdjacentToCrossing
@@ -21,7 +21,7 @@ module Math.KnotTh.Knotted.Util
     ) where
 
 import Math.Algebra.RotationDirection
-import Math.KnotTh.Knotted.Knotted
+import Math.KnotTh.Knotted.Def.Knotted
 
 
 {-# INLINE isEndpoint #-}

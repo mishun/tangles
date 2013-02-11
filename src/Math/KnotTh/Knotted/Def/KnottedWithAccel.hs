@@ -1,4 +1,4 @@
-module Math.KnotTh.Knotted.KnottedWithAccel
+module Math.KnotTh.Knotted.Def.KnottedWithAccel
     ( KnottedWithAccel(..)
     , forMAdjacentDarts
     , foldMAdjacentDarts
@@ -7,8 +7,8 @@ module Math.KnotTh.Knotted.KnottedWithAccel
 
 import Data.Bits ((.&.))
 import Math.Algebra.RotationDirection
-import Math.KnotTh.Knotted.Knotted
-import Math.KnotTh.Knotted.Util
+import Math.KnotTh.Knotted.Def.Knotted
+import Math.KnotTh.Knotted.Def.Util
 
 
 class (Knotted knot cross dart) => KnottedWithAccel knot cross dart | knot -> cross, cross -> dart, dart -> knot where

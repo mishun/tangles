@@ -1,5 +1,5 @@
 {-# LANGUAGE UnboxedTuples, KindSignatures #-}
-module Math.KnotTh.Knotted.Knotted
+module Math.KnotTh.Knotted.Def.Knotted
     ( CrossingType(..)
     , CrossingState
     , crossingType

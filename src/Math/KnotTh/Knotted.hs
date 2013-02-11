@@ -1,19 +1,19 @@
 module Math.KnotTh.Knotted
-    ( module Math.KnotTh.Knotted.Knotted
-    , module Math.KnotTh.Knotted.KnottedWithAccel
-    , module Math.KnotTh.Knotted.KnottedWithConnectivity
-    , module Math.KnotTh.Knotted.KnottedWithToPair
+    ( module Math.KnotTh.Knotted.Def.Knotted
+    , module Math.KnotTh.Knotted.Def.KnottedWithAccel
+    , module Math.KnotTh.Knotted.Def.KnottedWithConnectivity
+    , module Math.KnotTh.Knotted.Def.KnottedWithToPair
     , module Math.KnotTh.Knotted.SurfaceKnotted
-    , module Math.KnotTh.Knotted.CrossingState
-    , module Math.KnotTh.Knotted.Util
+    , module Math.KnotTh.Knotted.Def.CrossingState
+    , module Math.KnotTh.Knotted.Def.Util
     , module Math.KnotTh.Knotted.Threads
     ) where
 
-import Math.KnotTh.Knotted.Knotted
-import Math.KnotTh.Knotted.KnottedWithAccel
-import Math.KnotTh.Knotted.KnottedWithConnectivity
-import Math.KnotTh.Knotted.KnottedWithToPair
+import Math.KnotTh.Knotted.Def.Knotted
+import Math.KnotTh.Knotted.Def.KnottedWithAccel
+import Math.KnotTh.Knotted.Def.KnottedWithConnectivity
+import Math.KnotTh.Knotted.Def.KnottedWithToPair
 import Math.KnotTh.Knotted.SurfaceKnotted
-import Math.KnotTh.Knotted.CrossingState
-import Math.KnotTh.Knotted.Util
+import Math.KnotTh.Knotted.Def.CrossingState
+import Math.KnotTh.Knotted.Def.Util
 import Math.KnotTh.Knotted.Threads

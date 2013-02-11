@@ -1,4 +1,4 @@
-module Math.KnotTh.Knotted.CrossingState
+module Math.KnotTh.Knotted.Def.CrossingState
     ( crossingTypeInside
     , isCrossingOrientationInvertedInside
     , crossingLegIdByDart
@@ -7,7 +7,7 @@ module Math.KnotTh.Knotted.CrossingState
     ) where
 
 import Math.Algebra.Group.D4 (i)
-import Math.KnotTh.Knotted.Knotted
+import Math.KnotTh.Knotted.Def.Knotted
 
 
 {-# INLINE crossingTypeInside #-}

@@ -11,8 +11,8 @@ import Data.Array.Unsafe (unsafeFreeze)
 import Data.Array.ST (STUArray, newArray, readArray, writeArray)
 import Control.Monad.ST
 import Control.Monad (foldM)
-import Math.KnotTh.Knotted.Knotted
-import Math.KnotTh.Knotted.Util
+import Math.KnotTh.Knotted.Def.Knotted
+import Math.KnotTh.Knotted.Def.Util
 
 
 class (CrossingType ct) => ThreadedCrossing ct where
