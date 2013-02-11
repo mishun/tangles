@@ -20,7 +20,7 @@ data BracketLikeRelation a = BracketLikeRelation a a
 
 
 instance (Ord a, Num a, Show a) => SkeinRelation (BracketLikeRelation a) a where
-    type SkeinRelationModel (BracketLikeRelation a) = ChordDiagramsSum
+    type SkeinRelationModel (BracketLikeRelation a) = PlanarDiagramsSum
 
     circleFactor (BracketLikeRelation a b) = -(a * a + b * b)
 
@@ -48,7 +48,7 @@ jonesRelation :: BracketLikeRelation Poly
 jonesRelation = BracketLikeRelation (monomial 1 jonesVar (-1 / 4)) (monomial 1 jonesVar (1 / 4))
 
 
-jonesPolynomial :: (SkeinStructure k c d) => k ArbitraryCrossing -> ResultOnStructure k ChordDiagramsSum Poly
+jonesPolynomial :: (SkeinStructure k c d) => k ArbitraryCrossing -> ResultOnStructure k PlanarDiagramsSum Poly
 jonesPolynomial = evaluateSkeinRelation jonesRelation
 
 
@@ -66,13 +66,13 @@ minimalJonesPolynomialOfLink link =
     in min p (invert jonesVar p)
 
 
-minimalJonesPolynomialOfTangle :: T.NonAlternatingTangle -> ChordDiagramsSum Poly
+minimalJonesPolynomialOfTangle :: T.NonAlternatingTangle -> PlanarDiagramsSum Poly
 minimalJonesPolynomialOfTangle tangle
     | l == 0     = min p $ fmap (invert jonesVar) p
     | otherwise  = minimum $ do
         rot <- [0 .. l - 1]
-        let rotated = rotateStateSum jonesRelation rot p
-            mirrored = mirrorStateSum jonesRelation rotated
+        let rotated = rotatePlanarDiagramsSum rot p
+            mirrored = mirrorPlanarDiagramsSum rotated
         [rotated, fmap (invert jonesVar) rotated, mirrored, fmap (invert jonesVar) mirrored]
     where
         p = jonesPolynomial tangle
@@ -87,7 +87,7 @@ kauffmanXRelation :: BracketLikeRelation Poly
 kauffmanXRelation = BracketLikeRelation (monomial 1 kauffmanXVar 1) (monomial 1 kauffmanXVar (-1))
 
 
-kauffmanXPolynomial :: (SkeinStructure k c d) => k ArbitraryCrossing -> ResultOnStructure k ChordDiagramsSum Poly
+kauffmanXPolynomial :: (SkeinStructure k c d) => k ArbitraryCrossing -> ResultOnStructure k PlanarDiagramsSum Poly
 kauffmanXPolynomial = evaluateSkeinRelation kauffmanXRelation
 
 

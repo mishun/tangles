@@ -1,7 +1,7 @@
 module Math.KnotTh.Invariants.Skein.StateModels.ChordDiagramsSum
-    ( ChordDiagramsSum(..)
-    , rotateStateSum
-    , mirrorStateSum
+    ( ChordDiagramsSum
+    , rotateChordDiagramsSum
+    , mirrorChordDiagramsSum
     ) where
 
 import Data.Function (on)
@@ -267,9 +267,9 @@ instance StateModel ChordDiagramsSum where
         (concatStateSums . map singletonStateSum) `fmap` readSTRef result
 
 
-rotateStateSum :: (SkeinRelation r a) => r -> Int -> ChordDiagramsSum a -> ChordDiagramsSum a
-rotateStateSum = bruteForceRotate
+rotateChordDiagramsSum :: (SkeinRelation r a) => r -> Int -> ChordDiagramsSum a -> ChordDiagramsSum a
+rotateChordDiagramsSum = bruteForceRotate
 
 
-mirrorStateSum :: (SkeinRelation r a) => r -> ChordDiagramsSum a -> ChordDiagramsSum a
-mirrorStateSum = bruteForceMirror
+mirrorChordDiagramsSum :: (SkeinRelation r a) => r -> ChordDiagramsSum a -> ChordDiagramsSum a
+mirrorChordDiagramsSum = bruteForceMirror

@@ -77,8 +77,8 @@ minimalKauffmanFPolynomialOfTangle tangle
             wf' = invertF wf
             p = fmap (* wf') $ kauffmanFPolynomial tangle
         rot <- [0 .. l - 1]
-        let rotated = fmap (* wf) $ rotateStateSum KauffmanFRelation rot p
-            mirrored = mirrorStateSum KauffmanFRelation $ fmap invertF rotated
+        let rotated = fmap (* wf) $ rotateChordDiagramsSum KauffmanFRelation rot p
+            mirrored = mirrorChordDiagramsSum KauffmanFRelation $ fmap invertF rotated
             r = kauffmanFPolynomial $ T.rotateTangle rot $ invertCrossings tangle
             s = kauffmanFPolynomial $ T.mirrorTangle $ T.rotateTangle rot $ invertCrossings tangle
         [rotated, mirrored, r, s]
