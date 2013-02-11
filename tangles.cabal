@@ -117,6 +117,7 @@ library
         Math.KnotTh.Invariants.Skein.SkeinM.RelaxVertex,
         Math.KnotTh.Invariants.Skein.SkeinM.State,
         Math.KnotTh.Invariants.Skein.StateModels.ChordDiagramsSum,
+        Math.KnotTh.Invariants.Skein.StateModels.OrientedChordDiagramsSum,
         Math.KnotTh.Invariants.Skein.StateModels.PlanarDiagramsSum,
         Math.KnotTh.Invariants.Util.BruteForceMinimization,
         Math.KnotTh.Invariants.Util.Poly,

@@ -101,6 +101,7 @@ test = testGroup "Invariants"
                 , ("right trefoil knot" , rightTrefoilKnot                    , "a^-5z-a^-4+a^-4z^2+a^-3z-2a^-2+a^-2z^2"                                                  )
                 , ("figure eight knot"  , figureEightKnot                     , "-a^-2+a^-2z^2-a^-1z-1+a^-1z^3+2z^2-az-a^2+az^3+a^2z^2"                                   )
                 , ("solomon's seal knot", rightCinquefoilKnot                 , "a^-9z+a^-8z^2-a^-7z+2a^-6+a^-7z^3-3a^-6z^2-2a^-5z+3a^-4+a^-6z^4+a^-5z^3-4a^-4z^2+a^-4z^4")
+                , ("three twist knot"   , threeTwistKnot                      , "-a^2+a^2z^2+a^4+a^3z^3-a^4z^2-2a^5z+a^6+a^4z^4+2a^5z^3-2a^6z^2-2a^7z+a^6z^4+a^7z^3"      )
                 , ("hopf link"          , hopfLink                            , "-a^-1z^-1+a^-1z+1-az^-1+az"                                                              )
                 ]
 
