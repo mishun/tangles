@@ -20,10 +20,14 @@ import TestUtil.Table
 
 
 testInvariantness :: (Eq a, Show a) => Int -> (NonAlternatingTangle -> a) -> Assertion
-testInvariantness n f =
-    forM_ (map allDiagrams $ tangleClasses $ tangleDiagrams True (-1) n) $ \ cls -> do
-        let inv = parMap rseq f cls
-        mapM_ (@?= head inv) inv
+testInvariantness n f = do
+    let classes = map allDiagrams $ tangleClasses $ tangleDiagrams True (-1) n
+    let results =
+            parMap rdeepseq (\ cls ->
+                    let inv = map f cls
+                    in all (== head inv) inv
+                ) classes
+    assert $ and results
 
 
 test :: Test
