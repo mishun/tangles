@@ -13,6 +13,7 @@ import Data.Array.ST (STUArray, runSTUArray)
 import Data.STRef (newSTRef, readSTRef, writeSTRef)
 import Control.Monad.ST (ST, runST)
 import Control.Monad (forM_, when, foldM_)
+import Control.DeepSeq
 import Text.Printf
 import Math.KnotTh.Tangle.NonAlternating
 import Math.KnotTh.Tangle.Moves.Move
@@ -26,6 +27,10 @@ instance Functor ChordDiagram where
     fmap f (ChordDiagram p x) = ChordDiagram p $! f x
 
 
+instance (NFData a) => NFData (ChordDiagram a) where
+    rnf (ChordDiagram p x) = p `seq` rnf x
+
+
 instance (Show a) => Show (ChordDiagram a) where
     show (ChordDiagram a x) =
         printf "(%s)%s" (show x) (show $ elems a)
@@ -36,6 +41,10 @@ data ChordDiagramsSum a = ChordDiagramsSum !Int ![ChordDiagram a] deriving (Eq, 
 
 instance Functor ChordDiagramsSum where
     fmap f (ChordDiagramsSum order list) = ChordDiagramsSum order $ map (fmap f) list
+
+
+instance (NFData a) => NFData (ChordDiagramsSum a) where
+    rnf (ChordDiagramsSum _ list) = rnf list
 
 
 instance (Show a) => Show (ChordDiagramsSum a) where

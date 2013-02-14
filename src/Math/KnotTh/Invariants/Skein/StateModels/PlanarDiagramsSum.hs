@@ -12,6 +12,7 @@ import Data.Array.ST (STUArray, runSTUArray)
 import Data.STRef (newSTRef, readSTRef, writeSTRef)
 import Control.Monad.ST (ST, runST)
 import Control.Monad (forM_, when, foldM_)
+import Control.DeepSeq
 import Text.Printf
 import Math.KnotTh.Invariants.Skein.Relation
 
@@ -21,6 +22,10 @@ data PlanarDiagram a = PlanarDiagram !(UArray Int Int) !a deriving (Eq, Ord)
 
 instance Functor PlanarDiagram where
     fmap f (PlanarDiagram p x) = PlanarDiagram p $! f x
+
+
+instance (NFData a) => NFData (PlanarDiagram a) where
+    rnf (PlanarDiagram p x) = p `seq` rnf x
 
 
 instance (Show a) => Show (PlanarDiagram a) where
@@ -33,6 +38,10 @@ data PlanarDiagramsSum a = PlanarDiagramsSum !Int ![PlanarDiagram a] deriving (E
 
 instance Functor PlanarDiagramsSum where
     fmap f (PlanarDiagramsSum order list) = PlanarDiagramsSum order $ map (fmap f) list
+
+
+instance (NFData a) => NFData (PlanarDiagramsSum a) where
+    rnf (PlanarDiagramsSum _ list) = rnf list
 
 
 instance (Show a) => Show (PlanarDiagramsSum a) where

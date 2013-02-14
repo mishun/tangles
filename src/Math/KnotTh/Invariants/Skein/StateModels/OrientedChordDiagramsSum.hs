@@ -13,6 +13,7 @@ import Data.Array.ST (STUArray, runSTUArray)
 import Data.STRef (newSTRef, readSTRef, writeSTRef)
 import Control.Monad.ST (ST, runST)
 import Control.Monad (forM_, when, foldM_)
+import Control.DeepSeq
 import Text.Printf
 import Math.KnotTh.Tangle.NonAlternating
 import Math.KnotTh.Tangle.Moves.Move
@@ -26,6 +27,10 @@ instance Functor OrientedChordDiagram where
     fmap f (OrientedChordDiagram p x) = OrientedChordDiagram p $! f x
 
 
+instance (NFData a) => NFData (OrientedChordDiagram a) where
+    rnf (OrientedChordDiagram p x) = p `seq` rnf x
+
+
 instance (Show a) => Show (OrientedChordDiagram a) where
     show (OrientedChordDiagram a x) =
         printf "(%s)%s" (show x) (show $ elems a)
@@ -36,6 +41,10 @@ data OrientedChordDiagramsSum a = OrientedChordDiagramsSum !Int ![OrientedChordD
 
 instance Functor OrientedChordDiagramsSum where
     fmap f (OrientedChordDiagramsSum order list) = OrientedChordDiagramsSum order $ map (fmap f) list
+
+
+instance (NFData a) => NFData (OrientedChordDiagramsSum a) where
+    rnf (OrientedChordDiagramsSum _ list) = rnf list
 
 
 instance (Show a) => Show (OrientedChordDiagramsSum a) where
