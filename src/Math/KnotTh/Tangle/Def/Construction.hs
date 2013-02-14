@@ -6,6 +6,7 @@ module Math.KnotTh.Tangle.Def.Construction
     , mirrorTangle
     , allOrientationsOfTangle
     , fromLink
+    , (|=|)
     ) where
 
 import Text.Printf
@@ -69,3 +70,13 @@ fromLink :: (CrossingType ct) => L.Link ct -> Tangle ct
 fromLink link =
     let (loops, cross) = L.explode link
     in implode (loops, [], cross)
+
+
+(|=|) :: (CrossingType ct) => Tangle ct -> Tangle ct -> Tangle ct
+(|=|) a b
+    | al /= bl   = error $ printf "braidLikeGlue: different numbers of legs (%i and %i)" al bl
+    | otherwise  = glueTangles n (nthLeg a n) (nthLeg b (n - 1))
+    where
+        al = numberOfLegs a
+        bl = numberOfLegs b
+        n = al `div` 2

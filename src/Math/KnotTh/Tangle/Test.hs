@@ -8,12 +8,14 @@ import Test.Framework.Providers.HUnit (testCase)
 import Test.HUnit hiding (Test, test)
 import Math.Algebra.RotationDirection
 import Math.KnotTh.Tangle.Projection
+import Math.KnotTh.Tangle.NonAlternating
 import Math.KnotTh.Tangle.CascadeCode
+import Math.KnotTh.Tangle.Table
 
 
 test :: Test
 test = testGroup "Basic tangle tests"
-    [ testCase "Basic functions" $ do
+    [ testCase "Very basic functions" $ do
         let t = crossingTangle $ glueToBorder (firstLeg lonerProjection) 1 projectionCrossing
         let c1 = nthCrossing t 1
         crossingIndex c1 @?= 1
@@ -29,66 +31,21 @@ test = testGroup "Basic tangle tests"
 
         foldMIncidentDartsFrom (nthIncidentDart c1 2) ccw (\ _ s -> return $! s + 1) (0 :: Int) >>= (@?= 4)
 
-    , testCase "Show empty tangle" $
-        show (emptyTangle :: TangleProjection) @?= "(Tangle (0 O) (Border [  ]))"
+    , testCase "Show tangle" $ do
+        assertEqual "empty tangle" "(Tangle (0 O) (Border [  ]))" $
+            show (emptyTangle :: TangleProjection)
 
-    , testCase "Show zero tangle" $
-        show (zeroTangle :: TangleProjection) @?= "(Tangle (0 O) (Border [ (Leg 3) (Leg 2) (Leg 1) (Leg 0) ]))"
+        assertEqual "zero tangle" "(Tangle (0 O) (Border [ (Leg 3) (Leg 2) (Leg 1) (Leg 0) ]))" $
+            show (zeroTangle :: TangleProjection)
 
-    , testCase "Show infinity tangle" $
-        show (infinityTangle :: TangleProjection) @?= "(Tangle (0 O) (Border [ (Leg 1) (Leg 0) (Leg 3) (Leg 2) ]))"
+        assertEqual "infinity tangle" "(Tangle (0 O) (Border [ (Leg 1) (Leg 0) (Leg 3) (Leg 2) ]))" $
+            show (infinityTangle :: TangleProjection)
 
-    , testCase "Show loner tangle" $
-        show lonerProjection @?= "(Tangle (0 O) (Border [ (Dart 1 0) (Dart 1 1) (Dart 1 2) (Dart 1 3) ]) (Crossing 1 (I / D4 | +) [ (Leg 0) (Leg 1) (Leg 2) (Leg 3) ]))"
+        assertEqual "loner tangle" "(Tangle (0 O) (Border [ (Dart 1 0) (Dart 1 1) (Dart 1 2) (Dart 1 3) ]) (Crossing 1 (I / D4 | +) [ (Leg 0) (Leg 1) (Leg 2) (Leg 3) ]))" $
+            show lonerProjection
 
-    , testCase "Show implode 1" $
-        let t = implode (0, [(1, 0), (1, 1), (1, 2), (1, 3)], [([(0, 0), (0, 1), (0, 2), (0, 3)], projectionCrossing)])
-        in show t @?= "(Tangle (0 O) (Border [ (Dart 1 0) (Dart 1 1) (Dart 1 2) (Dart 1 3) ]) (Crossing 1 (I / D4 | +) [ (Leg 0) (Leg 1) (Leg 2) (Leg 3) ]))"
-
-    , testCase "Glue crossing 0" $
-        explode (crossingTangle $ glueToBorder (nthLeg lonerProjection 0) 0 projectionCrossing) @?=
-            ( 0
-            , [(2, 0), (2, 1), (2, 2), (2, 3), (1, 1), (1, 2), (1, 3), (1, 0)]
-            ,   [ ([(0, 7), (0, 4), (0, 5), (0, 6)], projectionCrossing)
-                , ([(0, 0), (0, 1), (0, 2), (0, 3)], projectionCrossing)
-                ]
-            )
-
-    , testCase "Glue crossing 1" $
-        explode (crossingTangle $ glueToBorder (firstLeg lonerProjection) 1 projectionCrossing) @?=
-            ( 0
-            , [(2, 1), (2, 2), (2, 3), (1, 1), (1, 2), (1, 3)]
-            ,   [ ([(2, 0), (0, 3), (0, 4), (0, 5)], projectionCrossing)
-                , ([(1, 0), (0, 0), (0, 1), (0, 2)], projectionCrossing)
-                ]
-            )
-
-    , testCase "Glue crossing 2" $
-        explode (crossingTangle $ glueToBorder (nthLeg lonerProjection 1) 2 projectionCrossing) @?=
-            ( 0
-            , [(2, 2), (2, 3), (1, 2), (1, 3)]
-            ,   [ ([(2, 1), (2, 0), (0, 2), (0, 3)], projectionCrossing)
-                , ([(1, 1), (1, 0), (0, 0), (0, 1)], projectionCrossing)
-                ]
-            )
-
-    , testCase "Glue crossing 3" $
-        explode (crossingTangle $ glueToBorder (nthLeg lonerProjection 3) 3 projectionCrossing) @?=
-            ( 0
-            , [(2, 3), (1, 0)]
-            ,   [ ([(0, 1), (2, 2), (2, 1), (2, 0)], projectionCrossing)
-                , ([(1, 3), (1, 2), (1, 1), (0, 0)], projectionCrossing)
-                ]
-            )
-
-    , testCase "Glue crossing 4" $
-        explode (crossingTangle $ glueToBorder (nthLeg lonerProjection 1) 4 projectionCrossing) @?=
-            ( 0
-            , []
-            ,   [ ([(2, 1), (2, 0), (2, 3), (2, 2)], projectionCrossing)
-                , ([(1, 1), (1, 0), (1, 3), (1, 2)], projectionCrossing)
-                ]
-            )
+        assertEqual "implode" "(Tangle (0 O) (Border [ (Dart 1 0) (Dart 1 1) (Dart 1 2) (Dart 1 3) ]) (Crossing 1 (I / D4 | +) [ (Leg 0) (Leg 1) (Leg 2) (Leg 3) ]))" $
+            show $ implode (0, [(1, 0), (1, 1), (1, 2), (1, 3)], [([(0, 0), (0, 1), (0, 2), (0, 3)], projectionCrossing)])
 
     , testCase "Cascade code" $
         explode (decodeCascadeCodeFromPairs [(1, 0), (0, 5), (0, 3), (0, 3), (0, 5)]) @?=
@@ -103,30 +60,99 @@ test = testGroup "Basic tangle tests"
                 ]
             )
 
-    , testCase "Glue 2 loner tangles" $
-        let t = lonerProjection
-        in explode (glueTangles 1 (nthLeg t 0) (nthLeg t 1)) @?=
-            ( 0
-            , [(1, 1), (1, 2), (1, 3), (2, 2), (2, 3), (2, 0)]
-            ,   [ ([(2, 1), (0, 0), (0, 1), (0, 2)], projectionCrossing)
-                , ([(0, 5), (1, 0), (0, 3), (0, 4)], projectionCrossing)
-                ]
-            )
+    , testGroup "Glue crossing"
+        [ testCase "With 0 legs" $
+            explode (crossingTangle $ glueToBorder (nthLeg lonerProjection 0) 0 projectionCrossing) @?=
+                ( 0
+                , [(2, 0), (2, 1), (2, 2), (2, 3), (1, 1), (1, 2), (1, 3), (1, 0)]
+                ,   [ ([(0, 7), (0, 4), (0, 5), (0, 6)], projectionCrossing)
+                    , ([(0, 0), (0, 1), (0, 2), (0, 3)], projectionCrossing)
+                    ]
+                )
 
-    , testCase "Glue zero and infinity tangles to infinity" $
-        let z = zeroTangle :: TangleProjection
-            i = infinityTangle :: TangleProjection
-        in explode (glueTangles 2 (nthLeg z 0) (nthLeg z 0)) @?= explode i
+        , testCase "With 1 leg" $
+            explode (crossingTangle $ glueToBorder (firstLeg lonerProjection) 1 projectionCrossing) @?=
+                ( 0
+                , [(2, 1), (2, 2), (2, 3), (1, 1), (1, 2), (1, 3)]
+                ,   [ ([(2, 0), (0, 3), (0, 4), (0, 5)], projectionCrossing)
+                    , ([(1, 0), (0, 0), (0, 1), (0, 2)], projectionCrossing)
+                    ]
+                )
 
-    , testCase "Glue two infinity tangles to get circle inside" $
-        let i = infinityTangle :: TangleProjection
-        in explode (glueTangles 2 (nthLeg i 0) (nthLeg i 3)) @?= (1, [(0, 1), (0, 0), (0, 3), (0, 2)], [])
+        , testCase "With 2 legs" $
+            explode (crossingTangle $ glueToBorder (nthLeg lonerProjection 1) 2 projectionCrossing) @?=
+                ( 0
+                , [(2, 2), (2, 3), (1, 2), (1, 3)]
+                ,   [ ([(2, 1), (2, 0), (0, 2), (0, 3)], projectionCrossing)
+                    , ([(1, 1), (1, 0), (0, 0), (0, 1)], projectionCrossing)
+                    ]
+                )
 
-    , testCase "Glue loner and thread" $
-        explode (glueTangles 2 (firstLeg lonerProjection) (firstLeg identityTangle)) @?=
-            ( 0
-            , [(1, 2), (1, 3)]
-            ,   [ ([(1, 1), (1, 0), (0, 0), (0, 1)], projectionCrossing)
-                ]
-            )
+        , testCase "with 3 legs" $
+            explode (crossingTangle $ glueToBorder (nthLeg lonerProjection 3) 3 projectionCrossing) @?=
+                ( 0
+                , [(2, 3), (1, 0)]
+                ,   [ ([(0, 1), (2, 2), (2, 1), (2, 0)], projectionCrossing)
+                    , ([(1, 3), (1, 2), (1, 1), (0, 0)], projectionCrossing)
+                    ]
+                )
+
+        , testCase "With 4 legs" $
+            explode (crossingTangle $ glueToBorder (nthLeg lonerProjection 1) 4 projectionCrossing) @?=
+                ( 0
+                , []
+                ,   [ ([(2, 1), (2, 0), (2, 3), (2, 2)], projectionCrossing)
+                    , ([(1, 1), (1, 0), (1, 3), (1, 2)], projectionCrossing)
+                    ]
+                )
+        ]
+
+    , testGroup "Glue tangles"
+        [ testCase "Glue 2 loner tangles" $
+            let t = lonerProjection
+            in explode (glueTangles 1 (nthLeg t 0) (nthLeg t 1)) @?=
+                ( 0
+                , [(1, 1), (1, 2), (1, 3), (2, 2), (2, 3), (2, 0)]
+                ,   [ ([(2, 1), (0, 0), (0, 1), (0, 2)], projectionCrossing)
+                    , ([(0, 5), (1, 0), (0, 3), (0, 4)], projectionCrossing)
+                    ]
+                )
+
+        , testCase "Glue zero and infinity tangles to infinity" $
+            let z = zeroTangle :: TangleProjection
+                i = infinityTangle :: TangleProjection
+            in explode (glueTangles 2 (nthLeg z 0) (nthLeg z 0)) @?= explode i
+
+        , testCase "Glue two infinity tangles to get circle inside" $
+            let i = infinityTangle :: TangleProjection
+            in explode (glueTangles 2 (nthLeg i 0) (nthLeg i 3)) @?= (1, [(0, 1), (0, 0), (0, 3), (0, 2)], [])
+
+        , testCase "Glue loner and thread" $
+            explode (glueTangles 2 (firstLeg lonerProjection) (firstLeg identityTangle)) @?=
+                ( 0
+                , [(1, 2), (1, 3)]
+                ,   [ ([(1, 1), (1, 0), (0, 0), (0, 1)], projectionCrossing)
+                    ]
+                )
+        ]
+
+    , testGroup "Braid tangles"
+        [ testCase "Identity braid tangle" $
+            explode (identityBraidTangle 4 :: TangleProjection) @?=
+                (0, [(0, 7), (0, 6), (0, 5), (0, 4), (0, 3), (0, 2), (0, 1), (0, 0)], [])
+
+        , testCase "Braid generator" $
+            explode (braidGeneratorTangle 3 (1, overCrossing)) @?=
+                (0, [(0, 5), (1, 0), (1, 1), (1, 2), (1, 3), (0, 0)], [([(0, 1), (0, 2), (0, 3), (0, 4)], overCrossing)])
+
+        , testCase "Braid tangle" $
+            explode (braidTangle 3 [(0, overCrossing), (1, overCrossing), (0, overCrossing)]) @?=
+                ( 0
+                , [(1, 0), (1, 1), (2, 1), (2, 2), (3, 2), (3, 3)]
+                ,   [ ([(0, 0), (0, 1), (2, 0), (3, 0)], overCrossing)
+                    , ([(1, 2), (0, 2), (0, 3), (3, 1)], overCrossing)
+                    , ([(1, 3), (2, 3), (0, 4), (0, 5)], overCrossing)
+                    ]
+                )
+        ]
     ]

@@ -74,8 +74,8 @@ test = testGroup "Invariants"
                 , ("infinity"      , infinityTangle             , "(1)[1,0,3,2]"                       )
                 , ("over crossing" , lonerOverCrossingTangle    , "(t^1/4)[1,0,3,2]+(t^-1/4)[3,2,1,0]" )
                 , ("under crossing", lonerUnderCrossingTangle   , "(t^-1/4)[1,0,3,2]+(t^1/4)[3,2,1,0]" )
-                , ("group 2"       , groupTangle 2              , "(1-t)[1,0,3,2]+(t^-1/2)[3,2,1,0]"   )
-                , ("group -2"      , groupTangle (-2)           , "(-t^-1+1)[1,0,3,2]+(t^1/2)[3,2,1,0]")
+                , ("group 2"       , rationalTangle [2]         , "(1-t)[1,0,3,2]+(t^-1/2)[3,2,1,0]"   )
+                , ("group -2"      , rationalTangle [-2]        , "(-t^-1+1)[1,0,3,2]+(t^1/2)[3,2,1,0]")
                 , ("II reducable"  , decodeCascadeCode [(XU, 0)], "(1)[3,2,1,0]"                       )
                 ]
 

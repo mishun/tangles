@@ -5,6 +5,7 @@ module Math.KnotTh.Knotted.Def.Util
     , nextDir
     , nextPi
     , begin
+    , beginIndex
     , maybeIncidentCrossing
     , maybeAdjacentCrossing
     , incidentDarts
@@ -54,6 +55,11 @@ nextPi = nextCCW . nextCCW
 {-# INLINE begin #-}
 begin :: (Knotted k c d) => d ct -> (c ct, Int)
 begin d = ((,) $! incidentCrossing d) $! dartPlace d
+
+
+{-# INLINE beginIndex #-}
+beginIndex :: (Knotted k c d) => d ct -> (Int, Int)
+beginIndex d = ((,) $! crossingIndex $! incidentCrossing d) $! dartPlace d
 
 
 {-# INLINE maybeIncidentCrossing #-}
