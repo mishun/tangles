@@ -4,11 +4,12 @@ module Math.KnotTh.Enumeration.Applied.Test
 
 import Data.Maybe (mapMaybe)
 import Control.Monad (forM_)
+import Control.Parallel.Strategies
 import Test.Framework (Test, testGroup)
 import Test.Framework.Providers.HUnit (testCase)
 import Test.HUnit hiding (Test, test)
 import Math.KnotTh.Tangle.NonAlternating
-import Math.KnotTh.Tangle.NonAlternating.TwistedDouble
+import Math.KnotTh.Tangle.NonAlternating.Satellites
 import Math.KnotTh.Enumeration.DiagramInfo.MinimalDiagramInfo
 import Math.KnotTh.Enumeration.DiagramInfo.AllDiagramsInfo
 import Math.KnotTh.Enumeration.Applied.NonAlternatingTangles
@@ -21,7 +22,7 @@ import TestUtil.Table
 testInvariantness :: (Eq a, Show a) => Int -> (NonAlternatingTangle -> a) -> Assertion
 testInvariantness n f =
     forM_ (map allDiagrams $ tangleClasses $ tangleDiagrams True (-1) n) $ \ cls -> do
-        let inv = map f cls
+        let inv = parMap rseq f cls
         mapM_ (@?= head inv) inv
 
 
@@ -39,6 +40,9 @@ test = testGroup "Enumeration tests" $
 
         , testCase "Jones polynomial of doubling" $
             testInvariantness 4 (minimalJonesPolynomialOfTangle . twistedDouble)
+
+        , testCase "Kauffman F polynomial of triple" $
+            testInvariantness 1 (minimalKauffmanFPolynomialOfTangle . twistedTriple)
         ]
 
     , testCase "Enumeration of tangles" $

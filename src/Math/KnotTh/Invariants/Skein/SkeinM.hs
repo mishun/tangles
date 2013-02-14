@@ -3,10 +3,10 @@ module Math.KnotTh.Invariants.Skein.SkeinM
     ( module Math.KnotTh.Invariants.Skein.Relation
     , SkeinM
     , Vertex
+    , StrategyResult(..)
     , vertexDegree
     , neighbour
-    , contract
-    , runSkein
+    , runSkeinStrategy
     ) where
 
 import Data.Function (fix)
@@ -23,8 +23,9 @@ import Math.KnotTh.Invariants.Skein.SkeinM.Reduction
 
 type SkeinM s r a = ReaderT (SkeinState s r a) (ST s)
 
+newtype Vertex = Vertex Int deriving (Eq, Show)
 
-newtype Vertex = Vertex Int deriving (Eq)
+data StrategyResult = Contract (Vertex, Int)
 
 
 vertexDegree :: (SkeinRelation r a) => Vertex -> SkeinM s r a Int
@@ -38,25 +39,23 @@ neighbour (Vertex !v, p) = ask >>= \ !s -> lift $ do
     return $! (Vertex u, q)
 
 
-contract :: (SkeinRelation r a) => (Vertex, Int) -> SkeinM s r a ()
-contract (Vertex !v, !p) = ask >>= \ !s -> lift $ contractEdgeST s (v, p)
-
-
-runSkein ::
+runSkeinStrategy ::
     (SkeinRelation r a, SkeinStructure k c d)
         => r
-        -> (forall s. [(Vertex, Int)] -> SkeinM s r a ())
+        -> (forall s. [(Vertex, Int)] -> SkeinM s r a StrategyResult)
         -> k ArbitraryCrossing
         -> ResultOnStructure k (SkeinRelationModel r) a
 
-runSkein rel action knot =
+runSkeinStrategy rel strategy knot =
     resultOnStructure rel knot $ runST $ do
         s <- stateFromKnotted rel knot
         fix $ \ continue -> do
             greedyReductionST s
-            e <- internalEdgesST s
-            case e of
+            edges <- internalEdgesST s
+            case edges of
                 [] -> extractStateSumST s
                 _  -> do
-                    runReaderT (action $ map (\ (v, p) -> (Vertex v, p)) e) s
+                    action <- runReaderT (strategy $ map (\ (v, p) -> (Vertex v, p)) edges) s
+                    case action of
+                        Contract (Vertex v, p) -> contractEdgeST s (v, p)
                     continue

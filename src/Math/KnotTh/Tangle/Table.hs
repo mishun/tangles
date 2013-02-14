@@ -13,6 +13,7 @@ module Math.KnotTh.Tangle.Table
     , identityBraidTangle
     , braidGeneratorTangle
     , braidTangle
+    , reversingBraidTangle
     ) where
 
 import Text.Printf
@@ -108,3 +109,12 @@ braidGeneratorTangle n (k, s)
 
 braidTangle :: (CrossingType ct) => Int -> [(Int, CrossingState ct)] -> Tangle ct
 braidTangle n = foldl (\ braid -> (braid |=|) . braidGeneratorTangle n) (identityBraidTangle n)
+
+
+reversingBraidTangle :: (CrossingType ct) => Int -> CrossingState ct -> Tangle ct
+reversingBraidTangle n s
+    | n < 0      = error $ printf "flipBraidTangle: requested number of strands %i is negative" n
+    | otherwise  = braidTangle n $ do
+        k <- [2 .. n]
+        i <- [0 .. n - k]
+        return $! (i, s)

@@ -19,11 +19,12 @@ import Math.KnotTh.Enumeration.SiftByInvariant
 import Math.KnotTh.Enumeration.DiagramInfo
 import Math.KnotTh.Enumeration.DiagramInfo.MinimalDiagramInfo
 import Math.KnotTh.Tangle.NonAlternating
-import Math.KnotTh.Tangle.NonAlternating.TwistedDouble
+import Math.KnotTh.Tangle.NonAlternating.Satellites
 import Math.KnotTh.Tangle.IsomorphismTest
 import Math.KnotTh.Tangle.BorderIncremental.SimpleTypes
 import Math.KnotTh.Link.FromTangle
 import Math.KnotTh.Invariants.JonesPolynomial
+import Math.KnotTh.Invariants.KauffmanFPolynomial
 import Math.KnotTh.Invariants.LinkingNumber
 import Math.KnotTh.Invariants.Util.ThreadExpansion
 import qualified Math.KnotTh.Tangle.Moves.Flype as Flype
@@ -70,6 +71,7 @@ siftTangles = siftByInvariant $ \ tangle ->
     ( linkingNumbersSet tangle
     , threadExpansion minimalJonesPolynomialOfTangle tangle
     , minimalJonesPolynomialOfTangle $ twistedDouble tangle
+    , minimalKauffmanFPolynomialOfTangle $ twistedTriple tangle
     )
 
 
