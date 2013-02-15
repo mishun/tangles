@@ -5,6 +5,8 @@ module Math.KnotTh.Draw.DrawKnot
     ) where
 
 import Data.Array.Base ((!))
+import Control.Monad.Writer (tell, execWriter)
+import Control.Monad (forM_, when)
 import Diagrams.Prelude
 import qualified Math.Manifolds.SurfaceGraph as G
 import qualified Math.Manifolds.SurfaceGraph.Embedding as GE
@@ -21,6 +23,7 @@ data DrawKnotSettings = DrawKnotSettings
     , borderWidth      :: Double
     , borderColour     :: Colour Double
     , backgroundColour :: Colour Double
+    , endpointsRadius  :: Double
     }
 
 
@@ -31,6 +34,7 @@ defaultDraw = DrawKnotSettings
     , borderWidth      = 0.013
     , borderColour     = black
     , backgroundColour = white
+    , endpointsRadius  = 0.03
     }
 
 
@@ -40,17 +44,17 @@ class (ThreadedCrossing ct) => DrawableCrossingType ct where
 
 instance DrawableCrossingType ProjectionCrossing where
     crossingDependentImage s _ threads =
-        lw (threadWidth s) $ mconcat $ do
-            thread <- threads
-            case thread of
-                []                          -> []
-                ((x, _), _) : _ | isDart x  -> return $! cubicSpline True $ map p2 $ concatMap (tail . snd) thread
-                                | otherwise -> return $! cubicSpline False $ map p2 $ concat $ zipWith ($) (snd : repeat (tail . snd)) thread
+        lineWidth (threadWidth s) $ lineColor (threadColour s) $ execWriter $
+            forM_ threads $ \ thread ->
+                case thread of
+                    []                          -> return ()
+                    ((x, _), _) : _ | isDart x  -> tell $ cubicSpline True $ map p2 $ concatMap (tail . snd) thread
+                                    | otherwise -> tell $ cubicSpline False $ map p2 $ concat $ zipWith ($) (snd : repeat (tail . snd)) thread
 
 
 instance DrawableCrossingType ArbitraryCrossing where
     crossingDependentImage s _ threads =
-        lw (threadWidth s) $ mconcat $ do
+        lineWidth (threadWidth s) $ lineColor (threadColour s) $ mconcat $ do
             thread <- threads
             ((a, b), chain) <- thread
             let n = length chain
@@ -89,10 +93,15 @@ instance DrawableKnotted T.Tangle T.Crossing T.Dart where
                         | T.isLeg d  = G.nthDartIncidentToVertex (G.nthVertex g 0) $ (-T.legPlace d) `mod` T.numberOfLegs tangle
                         | otherwise  = G.nthDartIncidentToVertex (G.nthVertex g $ crossingIndex $ incidentCrossing d) (dartPlace d)
                 in map (map (\ p@(a, _) -> (p, embedding ! toGraphDart a))) $ allThreads tangle
-        in mconcat
-            [ lc (borderColour s) $ dashing [0.03, 0.01] 0 $ lw (borderWidth s) $ circle 1
-            , lc (threadColour s) $ crossingDependentImage s tangle embeddedThreads
-            ]
+        in execWriter $ do
+            when (endpointsRadius s > 0.0) $ do
+                let l = T.numberOfLegs tangle
+                forM_ [0 .. l - 1] $ \ !i -> do
+                    let a = 2 * pi * fromIntegral i / fromIntegral l
+                    tell $ translate (r2 (cos a, sin a)) $ fillColor (threadColour s) $ lineWidth 0 $ circle $ endpointsRadius s
+            when (borderWidth s > 0.0) $
+                tell $ lineColor (borderColour s) $ dashing [0.03, 0.01] 0 $ lineWidth (borderWidth s) $ circle 1
+            tell $ crossingDependentImage s tangle embeddedThreads
 
 
 instance DrawableKnotted L.Link L.Crossing L.Dart where
@@ -102,4 +111,7 @@ instance DrawableKnotted L.Link L.Crossing L.Dart where
                     embedding = GE.embeddingWithVertexRooting 2 (G.nthVertex g 0)
                     toGraphDart d = G.nthDartIncidentToVertex (G.nthVertex g $ crossingIndex $ incidentCrossing d) (dartPlace d)
                 in map (map (\ p@(a, _) -> (p, embedding ! toGraphDart a))) $ allThreads link
-        in lc (threadColour s) $ crossingDependentImage s link embeddedThreads
+        in execWriter $ do
+            when (borderWidth s > 0.0) $
+                tell $ lineColor (borderColour s) $ dashing [0.03, 0.01] 0 $ lineWidth (borderWidth s) $ circle 1
+            tell $ crossingDependentImage s link embeddedThreads

@@ -18,7 +18,7 @@ main = do
     let e = embeddingWithVertexRooting (3 :: Int) (head $ graphVertices g)
     writeSVGImage "graph.svg" (Width 1000) $ execWriter $
         forM_ (graphEdges g) $ \ (a, _) -> do
-            tell $ lw 0.006 $ fromVertices $ map p2 $ e ! a
+            tell $ lineWidth 0.006 $ fromVertices $ map p2 $ e ! a
             forM_ (e ! a) $ \ p ->
-                tell $ translate (r2 p) $ fc black $ lw 0 $ circle 0.01
-            tell $ dashing [0.05, 0.02] 0 $ lw 0.004 $ circle 1
+                tell $ translate (r2 p) $ fillColor black $ lineWidth 0 $ circle 0.01
+            tell $ dashing [0.05, 0.02] 0 $ lineWidth 0.004 $ circle 1
