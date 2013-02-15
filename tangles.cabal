@@ -136,10 +136,10 @@ library
         Math.KnotTh.Link.Table.Access,
         Math.KnotTh.Link.Table.List,
         Math.KnotTh.Link.Table.Special,
-        Math.KnotTh.Tangle.Def.Construction,
-        Math.KnotTh.Tangle.Def.Tangle,
-        Math.KnotTh.Tangle.Def.Util,
         Math.KnotTh.Tangle.Moves.Resting,
+        Math.KnotTh.Tangle.TangleDefinition.Class,
+        Math.KnotTh.Tangle.TangleDefinition.Construction,
+        Math.KnotTh.Tangle.TangleDefinition.Tangle,
         Math.Manifolds.SurfaceGraph.Embedding.Optimization
     if flag(test-modules)
         build-depends:

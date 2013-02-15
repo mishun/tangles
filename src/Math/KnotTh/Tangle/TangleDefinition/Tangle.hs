@@ -1,16 +1,11 @@
 {-# LANGUAGE TemplateHaskell #-}
-module Math.KnotTh.Tangle.Def.Tangle
+module Math.KnotTh.Tangle.TangleDefinition.Tangle
     ( module Math.KnotTh.Knotted
     , Dart
     , Crossing
     , Tangle
     , crossingTangle
     , dartTangle
-    , numberOfLegs
-    , isLeg
-    , legPlace
-    , nthLeg
-    , allLegs
     , emptyTangle
     , identityTangle
     , zeroTangle
@@ -36,11 +31,12 @@ import Text.Printf
 import Math.KnotTh.Knotted.TH.Knotted
 import Math.KnotTh.Knotted.TH.Show
 import Math.KnotTh.Knotted
+import Math.KnotTh.Tangle.TangleDefinition.Class
 
 
 produceKnotted
-    [d| data Tangle ct = Tangle { numberOfLegs :: {-# UNPACK #-} !Int } |] $
-    let numberOfLegs = varE $ mkName "numberOfLegs"
+    [d| data Tangle ct = Tangle { legsCount :: {-# UNPACK #-} !Int } |] $
+    let legsCount = varE $ mkName "legsCount"
         dart = conE $ mkName "Dart"
     in defaultKnotted
         { implodeExplodeSettings = Just $
@@ -85,124 +81,116 @@ produceKnotted
                     ]
 
                 , implodeInitializers =
-                    [ (,) (mkName "numberOfLegs") `fmap` l
+                    [ (,) (mkName "legsCount") `fmap` l
                     ]
                 }
 
         , modifyNumberOfEdges = Just $ \ t _ ->
-            [| 2 * (numberOfCrossings $(t)) + ($(numberOfLegs) $(t) `div` 2) |]
+            [| 2 * numberOfCrossings $t + ($legsCount $t `div` 2) |]
 
         , modifyIsDart = Just $ \ (t, i) ->
-            [| $(i) < 4 * numberOfCrossings $(t) |]
+            [| $i < 4 * numberOfCrossings $t |]
 
         , modifyNextCCW = Just $ \ (t, d) e ->
-            [|  let n = 4 * numberOfCrossings $(t)
-                in if $(d) >= n
-                    then $(dart) $(t) $! n + ($(d) - n + 1) `mod` ($(numberOfLegs) $(t))
-                    else $(e)
+            [|  let n = 4 * numberOfCrossings $t
+                in if $d >= n
+                    then $dart $t $! n + ($d - n + 1) `mod` ($legsCount $t)
+                    else $e
             |]
 
         , modifyNextCW = Just $ \ (t, d) e ->
-            [|  let n = 4 * numberOfCrossings $(t)
-                in if $(d) >= n
-                    then $(dart) $(t) $! n + ($(d) - n - 1) `mod` ($(numberOfLegs) $(t))
-                    else $(e)
+            [|  let n = 4 * numberOfCrossings $t
+                in if $d >= n
+                    then $dart $t $! n + ($d - n - 1) `mod` ($legsCount $t)
+                    else $e
             |]
 
         , modifyDartPlace = Just $ \ (t, d) e ->
-            [|  let n = 4 * numberOfCrossings $(t)
-                in if $(d) >= n
-                    then error $ printf "dartPlace: taken from %i-th leg" ($(d) - n)
-                    else $(e)
+            [|  let n = 4 * numberOfCrossings $t
+                in if $d >= n
+                    then error $ printf "dartPlace: taken from %i-th leg" ($d - n)
+                    else $e
             |]
 
         , modifyIncidentCrossing = Just $ \ (t, d) e ->
-            [|  let n = 4 * numberOfCrossings $(t)
-                in if $(d) >= n
-                    then error $ printf "incidentCrossing: taken from %i-th leg" ($(d) - n)
-                    else $(e)
+            [|  let n = 4 * numberOfCrossings $t
+                in if $d >= n
+                    then error $ printf "incidentCrossing: taken from %i-th leg" ($d - n)
+                    else $e
             |]
 
         , modifyFoldMIncidentDartsFrom = Just $ \ (d, _) e ->
-            [|  if isDart $(d)
-                    then $(e)
+            [|  if isDart $d
+                    then $e
                     else error $ printf "foldMIncidentDartsFrom: taken from leg %i"
-                        ($(varE $ mkName "legPlace") $(d))
+                        ($(varE $ mkName "legPlace") $d)
             |]
 
         , emptyExtraInitializers =
-            [ (,) (mkName "numberOfLegs") `fmap` [| 0 :: Int |]
+            [ (,) (mkName "legsCount") `fmap` [| 0 :: Int |]
             ]
         }
 
 
-{-# INLINE isLeg #-}
-isLeg :: Dart ct -> Bool
-isLeg = not . isDart
+instance TangleLike Tangle Crossing Dart where
+    numberOfLegs = legsCount
 
+    allLegs t =
+        let n = 4 * numberOfCrossings t
+            l = numberOfLegs t
+        in map (Dart t) [n .. n + l - 1]
 
-{-# INLINE legPlace #-}
-legPlace :: Dart ct -> Int
-legPlace d@(Dart t i)
-    | isDart d   = error $ printf "legPlace: taken from non-leg %s" $ show d
-    | otherwise  = i - 4 * numberOfCrossings t
+    nthLeg t i
+        | l == 0     = error "nthLeg: tangle has no legs"
+        | otherwise  = Dart t $! n + i `mod` l
+        where
+            l = numberOfLegs t
+            n = 4 * numberOfCrossings t
 
+    isLeg = not . isDart
 
-{-# INLINE nthLeg #-}
-nthLeg :: Tangle ct -> Int -> Dart ct
-nthLeg t i
-    | l == 0     = error "nthLeg: tangle has no legs"
-    | otherwise  = Dart t $! n + i `mod` l
-    where
-        l = numberOfLegs t
-        n = 4 * numberOfCrossings t
-
-
-{-# INLINE allLegs #-}
-allLegs :: Tangle ct -> [Dart ct]
-allLegs t =
-    let n = 4 * numberOfCrossings t
-        l = numberOfLegs t
-    in map (Dart t) [n .. n + l - 1]
+    legPlace d@(Dart t i)
+        | isDart d   = error $ printf "legPlace: taken from non-leg %s" $ show d
+        | otherwise  = i - 4 * numberOfCrossings t
 
 
 identityTangle :: (CrossingType ct) => Tangle ct
 identityTangle = Tangle
-    { loopsCount   = 0
-    , crossCount   = 0
-    , crossArray   = listArray (0, 1) [1, 0]
-    , stateArray   = listArray (0, -1) []
-    , numberOfLegs = 2
+    { loopsCount = 0
+    , crossCount = 0
+    , crossArray = listArray (0, 1) [1, 0]
+    , stateArray = listArray (0, -1) []
+    , legsCount  = 2
     }
 
 
 zeroTangle :: (CrossingType ct) => Tangle ct
 zeroTangle = Tangle
-    { loopsCount   = 0
-    , crossCount   = 0
-    , crossArray   = listArray (0, 3) [3, 2, 1, 0]
-    , stateArray   = listArray (0, -1) []
-    , numberOfLegs = 4
+    { loopsCount = 0
+    , crossCount = 0
+    , crossArray = listArray (0, 3) [3, 2, 1, 0]
+    , stateArray = listArray (0, -1) []
+    , legsCount  = 4
     }
 
 
 infinityTangle :: (CrossingType ct) => Tangle ct
 infinityTangle = Tangle
-    { loopsCount   = 0
-    , crossCount   = 0
-    , crossArray   = listArray (0, 3) [1, 0, 3, 2]
-    , stateArray   = listArray (0, -1) []
-    , numberOfLegs = 4
+    { loopsCount = 0
+    , crossCount = 0
+    , crossArray = listArray (0, 3) [1, 0, 3, 2]
+    , stateArray = listArray (0, -1) []
+    , legsCount  = 4
     }
 
 
 lonerTangle :: (CrossingType ct) => CrossingState ct -> Tangle ct
 lonerTangle !cr = Tangle
-    { loopsCount   = 0
-    , crossCount   = 1
-    , crossArray   = listArray (0, 7) [4, 5, 6, 7, 0, 1, 2, 3]
-    , stateArray   = listArray (0, 0) [cr]
-    , numberOfLegs = 4
+    { loopsCount = 0
+    , crossCount = 1
+    , crossArray = listArray (0, 7) [4, 5, 6, 7, 0, 1, 2, 3]
+    , stateArray = listArray (0, 0) [cr]
+    , legsCount  = 4
     }
 
 
@@ -272,11 +260,11 @@ glueToBorder leg legsToGlue crossingToGlue = runST $ do
         unsafeFreeze st
  
     let result = Tangle
-            { loopsCount   = numberOfFreeLoops tangle
-            , crossCount   = newC
-            , crossArray   = cr
-            , stateArray   = st
-            , numberOfLegs = newL
+            { loopsCount = numberOfFreeLoops tangle
+            , crossCount = newC
+            , crossArray = cr
+            , stateArray = st
+            , legsCount  = newL
             }
 
     return $! nthCrossing result newC
@@ -377,11 +365,11 @@ glueTangles legsToGlue legA legB = runST $ do
             ) 0 [0 .. legsToGlue - 1]
 
     return $! Tangle
-        { loopsCount   = numberOfFreeLoops tangleA + numberOfFreeLoops tangleB + extraLoops
-        , crossCount   = newC
-        , crossArray   = cr
-        , stateArray   = st
-        , numberOfLegs = newL
+        { loopsCount = numberOfFreeLoops tangleA + numberOfFreeLoops tangleB + extraLoops
+        , crossCount = newC
+        , crossArray = cr
+        , stateArray = st
+        , legsCount  = newL
         }
 
 

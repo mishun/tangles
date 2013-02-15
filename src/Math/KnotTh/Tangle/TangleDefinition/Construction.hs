@@ -1,4 +1,4 @@
-module Math.KnotTh.Tangle.Def.Construction
+module Math.KnotTh.Tangle.TangleDefinition.Construction
     ( zeroTangle
     , infinityTangle
     , transformTangle
@@ -12,7 +12,8 @@ module Math.KnotTh.Tangle.Def.Construction
 import Text.Printf
 import Math.Algebra.Group.Dn (Dn, pointsUnderGroup, reflection, rotation, permute, fromRotation, fromReflectionRotation)
 import Math.Algebra.Group.D4 ((<*>), ec)
-import Math.KnotTh.Tangle.Def.Tangle
+import Math.KnotTh.Tangle.TangleDefinition.Class
+import Math.KnotTh.Tangle.TangleDefinition.Tangle
 import qualified Math.KnotTh.Link as L
 
 
