@@ -4,10 +4,16 @@ module Math.KnotTh.Tangle.NonAlternating
     , NonAlternatingTangle
     , NonAlternatingCrossing
     , NonAlternatingDart
+    , lonerOverCrossingTangle
+    , lonerUnderCrossingTangle
+    , altTriangleTangle
+    , naTriangleTangle
+    , rationalTangle
     ) where
 
 import Math.KnotTh.Crossings.Arbitrary
 import Math.KnotTh.Tangle
+import Math.KnotTh.Tangle.CascadeCode
 
 
 type NonAlternatingTangle = Tangle ArbitraryCrossing
@@ -15,3 +21,26 @@ type NonAlternatingTangle = Tangle ArbitraryCrossing
 type NonAlternatingCrossing = Crossing ArbitraryCrossing
 
 type NonAlternatingDart = Dart ArbitraryCrossing
+
+
+lonerOverCrossingTangle :: NonAlternatingTangle
+lonerOverCrossingTangle = lonerTangle overCrossing
+
+
+lonerUnderCrossingTangle :: NonAlternatingTangle
+lonerUnderCrossingTangle = lonerTangle underCrossing
+
+
+altTriangleTangle :: NonAlternatingTangle
+altTriangleTangle = decodeCascadeCode [(MU, 0), (XO, 1)]
+
+
+naTriangleTangle :: NonAlternatingTangle
+naTriangleTangle = decodeCascadeCode [(MU, 0), (XU, 1)]
+
+
+rationalTangle :: [Int] -> NonAlternatingTangle
+rationalTangle = foldl (\ tangle x ->
+        let g = groupTangle $ replicate (abs x) (if x >= 0 then overCrossing else underCrossing)
+        in glueTangles 2 (nthLeg g 2) (nthLeg tangle 2)
+    ) infinityTangle

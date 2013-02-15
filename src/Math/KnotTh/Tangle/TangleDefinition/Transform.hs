@@ -1,20 +1,14 @@
-module Math.KnotTh.Tangle.TangleDefinition.Construction
-    ( zeroTangle
-    , infinityTangle
-    , transformTangle
+module Math.KnotTh.Tangle.TangleDefinition.Transform
+    ( transformTangle
     , rotateTangle
     , mirrorTangle
     , allOrientationsOfTangle
-    , fromLink
-    , (|=|)
     ) where
 
 import Text.Printf
 import Math.Algebra.Group.Dn (Dn, pointsUnderGroup, reflection, rotation, permute, fromRotation, fromReflectionRotation)
-import Math.Algebra.Group.D4 ((<*>), ec)
 import Math.KnotTh.Tangle.TangleDefinition.Class
 import Math.KnotTh.Tangle.TangleDefinition.Tangle
-import qualified Math.KnotTh.Link as L
 
 
 transformTangle :: (CrossingType ct) => Dn -> Tangle ct -> Tangle ct
@@ -32,7 +26,7 @@ transformTangle g tangle
                 in (crossingIndex c, if reflection g then 3 - dartPlace d else dartPlace d)
 
         crossing c
-            | reflection g  = (reverse $ map pair $ adjacentDarts c, mapOrientation (ec <*>) $ crossingState c)
+            | reflection g  = (reverse $ map pair $ adjacentDarts c, mirrorReversingDartsOrder $ crossingState c)
             | otherwise     = (map pair $ adjacentDarts c, crossingState c)
 
         border
@@ -65,19 +59,3 @@ allOrientationsOfTangle tangle = do
         else do
             g <- [ fromReflectionRotation l (refl, rot) | rot <- [0 .. l - 1], refl <- [False, True] ]
             return $! transformTangle g tangle
-
-
-fromLink :: (CrossingType ct) => L.Link ct -> Tangle ct
-fromLink link =
-    let (loops, cross) = L.explode link
-    in implode (loops, [], cross)
-
-
-(|=|) :: (CrossingType ct) => Tangle ct -> Tangle ct -> Tangle ct
-(|=|) a b
-    | al /= bl   = error $ printf "braidLikeGlue: different numbers of legs (%i and %i)" al bl
-    | otherwise  = glueTangles n (nthLeg a n) (nthLeg b (n - 1))
-    where
-        al = numberOfLegs a
-        bl = numberOfLegs b
-        n = al `div` 2

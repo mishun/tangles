@@ -5,7 +5,7 @@ module Math.KnotTh.Knotted.SurfaceKnotted
     , allFaces
     ) where
 
-import Math.KnotTh.Knotted.Def.Knotted
+import Math.KnotTh.Knotted.KnottedDefinition.Knotted
 
 
 class (Knotted knot cross dart) => SurfaceKnotted knot cross (face :: * -> *) dart | knot -> cross, cross -> face, face -> dart, dart -> knot where

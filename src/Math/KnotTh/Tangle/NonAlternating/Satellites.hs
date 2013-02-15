@@ -5,7 +5,6 @@ module Math.KnotTh.Tangle.NonAlternating.Satellites
 
 import Data.Array.Base ((!))
 import Math.KnotTh.Tangle.NonAlternating
-import Math.KnotTh.Tangle.Table
 import Math.KnotTh.Tangle.TensorSubst
 
 

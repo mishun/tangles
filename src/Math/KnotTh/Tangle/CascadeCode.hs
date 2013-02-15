@@ -9,8 +9,9 @@ module Math.KnotTh.Tangle.CascadeCode
 import Data.Char (isSpace)
 import Text.Printf
 import Math.Algebra.Group.Dn (fromRotation)
-import Math.KnotTh.Tangle.Projection
-import Math.KnotTh.Tangle.NonAlternating
+import Math.KnotTh.Crossings.Projection
+import Math.KnotTh.Crossings.Arbitrary
+import Math.KnotTh.Tangle
 
 
 data ProjPattern = W | X | M deriving (Eq, Enum, Show, Read)
@@ -40,7 +41,7 @@ decodeCascadeCode code =
 
 
 instance CascadeCodePattern ProjPattern ProjectionCrossing where
-    cascadeCodeRoot _ = lonerProjection
+    cascadeCodeRoot _ = lonerTangle projectionCrossing
 
     decodeCrossing W = (W, 1, 0, projectionCrossing)
     decodeCrossing X = (X, 1, 0, projectionCrossing)
@@ -82,7 +83,7 @@ instance CascadeCodePattern DiagPattern ArbitraryCrossing where
     decodeCrossing MU = (M, 0, -1, underCrossing)
 
 
-decodeCascadeCodeFromPairs :: [(Int, Int)] -> TangleProjection
+decodeCascadeCodeFromPairs :: [(Int, Int)] -> Tangle ProjectionCrossing
 decodeCascadeCodeFromPairs = (decodeCascadeCode .) $ map $ \ (p, off) ->
     flip (,) off $ case p of
         -1 -> W

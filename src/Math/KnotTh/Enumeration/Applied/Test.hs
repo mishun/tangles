@@ -1,3 +1,4 @@
+{-# LANGUAGE RankNTypes #-}
 module Math.KnotTh.Enumeration.Applied.Test
     ( test
     ) where
@@ -10,6 +11,7 @@ import Test.Framework.Providers.HUnit (testCase)
 import Test.HUnit hiding (Test, test)
 import Math.KnotTh.Tangle.NonAlternating
 import Math.KnotTh.Tangle.NonAlternating.Satellites
+import Math.KnotTh.Link (tangleDoubling)
 import Math.KnotTh.Enumeration.DiagramInfo.MinimalDiagramInfo
 import Math.KnotTh.Enumeration.DiagramInfo.AllDiagramsInfo
 import Math.KnotTh.Enumeration.Applied.NonAlternatingTangles
@@ -19,9 +21,16 @@ import Math.KnotTh.Invariants.KauffmanFPolynomial
 import TestUtil.Table
 
 
-testInvariantness :: (Eq a, Show a) => Int -> (NonAlternatingTangle -> a) -> Assertion
-testInvariantness n f = do
-    let classes = map allDiagrams $ tangleClasses $ tangleDiagrams True (-1) n
+testInvariantness ::
+    (Eq a, Show a)
+        => ((forall m. (Monad m) => (NonAlternatingTangle -> m ()) -> m ())
+        -> [AllDiagramsInfo NonAlternatingTangle])
+        -> Int
+        -> (NonAlternatingTangle -> a)
+        -> Assertion
+
+testInvariantness sortClasses n f = do
+    let classes = map allDiagrams $ sortClasses $ tangleDiagrams True (-1) n
     let results =
             parMap rdeepseq (\ cls ->
                     let inv = map f cls
@@ -34,19 +43,22 @@ test :: Test
 test = testGroup "Enumeration tests" $
     [ testGroup "Invariantness checking for computed classes of tangles" $
         [ testCase "Linking numbers" $
-            testInvariantness 6 linkingNumbersSet
+            testInvariantness tangleClasses 6 linkingNumbersSet
 
         , testCase "Jones polynomial" $
-            testInvariantness 6 minimalJonesPolynomialOfTangle
+            testInvariantness tangleClasses 6 minimalJonesPolynomialOfTangle
 
         , testCase "Kauffman F polynomial" $
-            testInvariantness 5 minimalKauffmanFPolynomialOfTangle
+            testInvariantness tangleClasses 5 minimalKauffmanFPolynomialOfTangle
 
-        , testCase "Jones polynomial of doubling" $
-            testInvariantness 4 (minimalJonesPolynomialOfTangle . twistedDouble)
+        , testCase "Jones polynomial of gluing with mirror image (weak classes invariant)" $
+            testInvariantness weakTangleClasses 5 (jonesPolynomial . tangleDoubling id)
 
-        , testCase "Kauffman F polynomial of triple" $
-            testInvariantness 1 (minimalKauffmanFPolynomialOfTangle . twistedTriple)
+        , testCase "Jones polynomial of doubling satellite" $
+            testInvariantness tangleClasses 4 (minimalJonesPolynomialOfTangle . twistedDouble)
+
+        , testCase "Kauffman F polynomial of triple satellite" $
+            testInvariantness tangleClasses 1 (minimalKauffmanFPolynomialOfTangle . twistedTriple)
         ]
 
     , testCase "Enumeration of tangles" $

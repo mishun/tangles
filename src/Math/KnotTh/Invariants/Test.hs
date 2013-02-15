@@ -12,7 +12,7 @@ import qualified Math.Projects.KnotTheory.LaurentMPoly as LMP
 import Math.KnotTh.Crossings.Arbitrary
 import Math.KnotTh.Link.Table
 import Math.KnotTh.Link.GaussCode (fromDTCode)
-import Math.KnotTh.Tangle.Table
+import Math.KnotTh.Tangle.NonAlternating
 import Math.KnotTh.Tangle.CascadeCode
 import Math.KnotTh.Invariants.LinkingNumber
 import Math.KnotTh.Invariants.JonesPolynomial

@@ -43,6 +43,8 @@ instance CrossingType ArbitraryCrossing where
             Just g | equivalenceClassId subGroupDS g == 0 -> arbitraryCrossings
                    | otherwise                            -> overCrossingOnly
 
+    mirrorReversingDartsOrder = invertCrossing
+
 
 instance ThreadedCrossing ArbitraryCrossing
 

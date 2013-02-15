@@ -22,7 +22,7 @@ import Math.KnotTh.Tangle.NonAlternating
 import Math.KnotTh.Tangle.NonAlternating.Satellites
 import Math.KnotTh.Tangle.IsomorphismTest
 import Math.KnotTh.Tangle.BorderIncremental.SimpleTypes
-import Math.KnotTh.Link.FromTangle
+import Math.KnotTh.Link (tangleDoubling)
 import Math.KnotTh.Invariants.JonesPolynomial
 import Math.KnotTh.Invariants.KauffmanFPolynomial
 import Math.KnotTh.Invariants.LinkingNumber
@@ -34,7 +34,7 @@ import qualified Math.KnotTh.Tangle.Moves.ReidemeisterReduction as ReidemeisterR
 import qualified Math.KnotTh.Tangle.Moves.Weak as Weak
 
 
-tangleDiagrams :: (Monad m) => Bool -> Int -> Int -> (NonAlternatingTangle -> m ()) -> m()
+tangleDiagrams :: (Monad m) => Bool -> Int -> Int -> (NonAlternatingTangle -> m ()) -> m ()
 tangleDiagrams triangle legsLimit n yield =
     let t | triangle   = triangleBoundedType n primeIrreducibleDiagramType
           | otherwise  = primeIrreducibleDiagramType
@@ -43,7 +43,7 @@ tangleDiagrams triangle legsLimit n yield =
             yield tangle
 
 
-tangleClasses :: (DiagramInfo info) => (forall m. (Monad m) => (NonAlternatingTangle -> m ()) -> m ()) -> ([info NonAlternatingTangle])
+tangleClasses :: (DiagramInfo info) => (forall m. (Monad m) => (NonAlternatingTangle -> m ()) -> m ()) -> [info NonAlternatingTangle]
 tangleClasses =
     equivalenceClasses
         (\ t -> min (isomorphismTest t) (isomorphismTest $ invertCrossings t))
@@ -54,7 +54,7 @@ tangleClasses =
             ])
 
 
-weakTangleClasses :: (DiagramInfo info) => (forall m. (Monad m) => (NonAlternatingTangle -> m ()) -> m ()) -> ([info NonAlternatingTangle])
+weakTangleClasses :: (DiagramInfo info) => (forall m. (Monad m) => (NonAlternatingTangle -> m ()) -> m ()) -> [info NonAlternatingTangle]
 weakTangleClasses =
     equivalenceClasses
         (\ t -> min (isomorphismTest t) (isomorphismTest $ invertCrossings t))

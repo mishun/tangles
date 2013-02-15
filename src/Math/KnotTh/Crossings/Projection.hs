@@ -22,6 +22,8 @@ instance CrossingType ProjectionCrossing where
     localCrossingSymmetry _ = subGroupD4
 
     possibleOrientations _ _ = projectionCrossings
+    
+    mirrorReversingDartsOrder = id
 
 
 instance ThreadedCrossing ProjectionCrossing

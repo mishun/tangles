@@ -10,7 +10,6 @@ import Math.Algebra.RotationDirection
 import Math.KnotTh.Tangle.Projection
 import Math.KnotTh.Tangle.NonAlternating
 import Math.KnotTh.Tangle.CascadeCode
-import Math.KnotTh.Tangle.Table
 
 
 test :: Test

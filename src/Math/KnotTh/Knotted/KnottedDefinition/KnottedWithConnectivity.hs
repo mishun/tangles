@@ -1,8 +1,8 @@
-module Math.KnotTh.Knotted.Def.KnottedWithConnectivity
+module Math.KnotTh.Knotted.KnottedDefinition.KnottedWithConnectivity
     ( KnottedWithConnectivity(..)
     ) where
 
-import Math.KnotTh.Knotted.Def.Knotted
+import Math.KnotTh.Knotted.KnottedDefinition.Knotted
 
 
 class (Knotted knot cross dart) => KnottedWithConnectivity knot cross dart | knot -> cross, cross -> dart, dart -> knot where

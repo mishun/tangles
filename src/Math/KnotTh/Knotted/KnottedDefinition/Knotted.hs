@@ -1,5 +1,5 @@
 {-# LANGUAGE UnboxedTuples, KindSignatures #-}
-module Math.KnotTh.Knotted.Def.Knotted
+module Math.KnotTh.Knotted.KnottedDefinition.Knotted
     ( CrossingType(..)
     , CrossingState
     , crossingType
@@ -18,13 +18,25 @@ module Math.KnotTh.Knotted.Def.Knotted
 import Control.DeepSeq
 import Text.Printf
 import Math.Algebra.RotationDirection
-import Math.Algebra.Group.D4 (D4, D4SubGroup, inverse, (<*>), hasReflection, permute, fromReflectionRotation, equivalenceClassId, equvalenceClassRepresentatives)
+import Math.Algebra.Group.D4
+    ( D4
+    , D4SubGroup
+    , inverse
+    , (<*>)
+    , ec
+    , hasReflection
+    , permute
+    , fromReflectionRotation
+    , equivalenceClassId
+    , equvalenceClassRepresentatives
+    )
 
 
 class (Eq ct, Show ct) => CrossingType ct where
-    crossingTypeCode      :: ct -> Int
-    localCrossingSymmetry :: ct -> D4SubGroup
-    possibleOrientations  :: ct -> Maybe D4 -> [CrossingState ct]
+    crossingTypeCode          :: ct -> Int
+    localCrossingSymmetry     :: ct -> D4SubGroup
+    possibleOrientations      :: ct -> Maybe D4 -> [CrossingState ct]
+    mirrorReversingDartsOrder :: CrossingState ct -> CrossingState ct
 
     crossingTypeCode _ = 1
 
@@ -35,6 +47,8 @@ class (Eq ct, Show ct) => CrossingType ct where
             case extra of
                 Nothing -> orient
                 Just h  -> filter (\ !g -> equivalenceClassId s g <= equivalenceClassId s (h <*> g)) orient
+
+    mirrorReversingDartsOrder = mapOrientation (ec <*>)
 
 
 data CrossingState ct = Crossing
