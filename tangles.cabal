@@ -12,13 +12,17 @@ build-type:         Simple
 cabal-version:      >=1.14
 homepage:           http://github.com/mishun/tangles/
 
+
 source-repository head
     type:     git
     location: https://github.com/mishun/tangles.git
+    subdir:   code/
 
-flag test-modules
+
+flag enable-test-modules
     description: Compile and export test modules
-    default:     True
+    default:     False
+
 
 library
     default-language:   Haskell2010
@@ -31,7 +35,6 @@ library
     ghc-options:        -Wall
     ghc-prof-options:   -prof -auto-all -caf-all
     cc-options:         -Wall -std=c++11
-    ld-options:         -static
     build-depends:
         base ==4.5.*,
         array,
@@ -143,7 +146,7 @@ library
         Math.KnotTh.Tangle.TangleDefinition.Tangle,
         Math.KnotTh.Tangle.TangleDefinition.Transform,
         Math.Manifolds.SurfaceGraph.Embedding.Optimization
-    if flag(test-modules)
+    if flag(enable-test-modules)
         build-depends:
             HUnit,
             QuickCheck ==1.*,
@@ -166,49 +169,83 @@ library
     else
         other-modules:
 
+
+flag enable-GraphDrawingBenchmark
+    default: False
+
 benchmark GraphDrawingBenchmark
+    if !(flag(enable-test-modules) && flag(enable-GraphDrawingBenchmark))
+        buildable: False
     type:               exitcode-stdio-1.0
     default-language:   Haskell2010
     default-extensions: BangPatterns
     ghc-options:        -threaded
     ghc-prof-options:   -rtsopts -prof -auto-all -caf-all
-    ld-options:         -static
     build-depends:      base, array, mtl, diagrams-lib, tangles
     main-is:            GraphDrawingBenchmark.hs
     hs-source-dirs:     test
     extra-lib-dirs:     ext/gsl-1.15/lib/
 
+
+flag enable-TangleGeneratorBenchmark
+    default: False
+
 benchmark TangleGeneratorBenchmark
+    if !(flag(enable-test-modules) && flag(enable-TangleGeneratorBenchmark))
+        buildable: False
     type:               exitcode-stdio-1.0
     default-language:   Haskell2010
     default-extensions: BangPatterns
     ghc-options:        -threaded
     ghc-prof-options:   -rtsopts -prof -auto-all -caf-all
-    ld-options:         -static
     build-depends:      base, mtl, containers, diagrams-lib, tangles
     main-is:            TangleGeneratorBenchmark.hs
     hs-source-dirs:     test
     extra-lib-dirs:     ext/gsl-1.15/lib/
 
+
+flag enable-NonAlternatingBenchmark
+    default: False
+
 benchmark NonAlternatingBenchmark
+    if !(flag(enable-test-modules) && flag(enable-NonAlternatingBenchmark))
+        buildable: False
     type:               exitcode-stdio-1.0
     default-language:   Haskell2010
     default-extensions: BangPatterns
     ghc-options:        -threaded
     ghc-prof-options:   -rtsopts -prof -auto-all -caf-all
-    ld-options:         -static
     build-depends:      base, array, mtl, containers, diagrams-lib, tangles
     main-is:            NonAlternatingBenchmark.hs
     hs-source-dirs:     test
     extra-lib-dirs:     ext/gsl-1.15/lib/
 
+
+flag enable-KnotPolynomialsBenchmark
+    default: False
+
+benchmark KnotPolynomialsBenchmark
+    if !(flag(enable-test-modules) && flag(enable-KnotPolynomialsBenchmark))
+        buildable: False
+    type:               exitcode-stdio-1.0
+    default-language:   Haskell2010
+    default-extensions: BangPatterns
+    ghc-options:        -threaded
+    ghc-prof-options:   -rtsopts -prof -auto-all -caf-all
+    build-depends:      base, array, mtl, containers, criterion, tangles
+    main-is:            KnotPolynomialsBenchmark.hs
+    hs-source-dirs:     test
+    extra-lib-dirs:     ext/gsl-1.15/lib/
+
+
 test-suite TestTangles
+    if !flag(enable-test-modules)
+        buildable: False
     type:               exitcode-stdio-1.0
     default-language:   Haskell2010
     default-extensions: BangPatterns
     ghc-options:        -O -threaded
     ghc-prof-options:   -rtsopts -prof -auto-all -caf-all
-    ld-options:         -static
     build-depends:      base, test-framework, tangles
     main-is:            TestTangles.hs
     hs-source-dirs:     test

@@ -9,19 +9,18 @@ import Diagrams.Prelude
 import Math.KnotTh.Enumeration.DiagramInfo.MinimalDiagramInfo
 import Math.KnotTh.Enumeration.Applied.NonAlternatingTangles
 import Math.KnotTh.Draw.DrawKnot
-import Math.KnotTh.Link.FromTangle
-import Math.KnotTh.Tangle.Table
 import Math.KnotTh.Tangle.Moves.Test
 import Math.KnotTh.Link.Table
 import TestUtil.Table
 import TestUtil.Drawing
+import Math.KnotTh.Tangle.NonAlternating.Satellites
 
 
 main :: IO ()
 main = do
     printTable "Diagrams" $ generateTable' $ tangleDiagrams False (-1) 5
 
-    let sifted = lookingForwardTanglesEnumeration True 6 0 6
+    let sifted = lookingForwardTanglesEnumeration True 6 0 8
     printTable "Tangles" $ generateTable' $ forM_ (mapMaybe maybePrimeDiagram $ singleRepresentativeClasses sifted)
     printf "Collision classes: %i" (length $ collisionClasses sifted)
     writeSVGImage "collisions.svg" (Width 500) $ pad 1.05 $ execWriter $
