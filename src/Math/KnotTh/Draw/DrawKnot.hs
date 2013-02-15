@@ -82,7 +82,7 @@ class (Knotted k c d) => DrawableKnotted k c d | k -> c, c -> d, d -> k where
 instance DrawableKnotted T.Tangle T.Crossing T.Dart where
     drawKnot s tangle =
         let embeddedThreads =
-                let g = let (0, b, r) = T.explode tangle
+                let g = let (0, b, r) = explode tangle
                             change (0, j) = (0, (-j) `mod` T.numberOfLegs tangle)
                             change p = p
                         in G.constructFromList $ map (map change) ((head b : reverse (tail b)) : map fst r)
@@ -107,7 +107,7 @@ instance DrawableKnotted T.Tangle T.Crossing T.Dart where
 instance DrawableKnotted L.Link L.Crossing L.Dart where
     drawKnot s link =
         let embeddedThreads =
-                let g = G.constructFromList $ let (0, r) = L.explode link in map fst r
+                let g = G.constructFromList $ let (0, r) = explode link in map fst r
                     embedding = GE.embeddingWithVertexRooting 2 (G.nthVertex g 0)
                     toGraphDart d = G.nthDartIncidentToVertex (G.nthVertex g $ crossingIndex $ incidentCrossing d) (dartPlace d)
                 in map (map (\ p@(a, _) -> (p, embedding ! toGraphDart a))) $ allThreads link

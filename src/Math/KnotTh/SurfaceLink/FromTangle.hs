@@ -3,13 +3,13 @@ module Math.KnotTh.SurfaceLink.FromTangle
     , fromTangleAndStarByOffset
     ) where
 
-import Data.Array.IArray
+import Data.Array.Base
 import Math.KnotTh.Knotted
-import qualified Math.KnotTh.SurfaceLink as L
+import Math.KnotTh.SurfaceLink
 import qualified Math.KnotTh.Tangle as T
 
 
-fromTangleAndStarByPlace :: (CrossingType ct, IArray a Int) => T.Tangle ct -> a Int Int -> L.SurfaceLink ct
+fromTangleAndStarByPlace :: (CrossingType ct, IArray a Int) => T.Tangle ct -> a Int Int -> SurfaceLink ct
 fromTangleAndStarByPlace tangle star
     | bounds star /= (0, T.numberOfLegs tangle - 1)  = error "fromTangleAndStarByPlace: size conflict"
     | otherwise                                      =
@@ -17,7 +17,7 @@ fromTangleAndStarByPlace tangle star
         in fromTangleAndStar' changeLeg tangle
 
 
-fromTangleAndStarByOffset :: (CrossingType ct, IArray a Int) => T.Tangle ct -> a Int Int -> L.SurfaceLink ct
+fromTangleAndStarByOffset :: (CrossingType ct, IArray a Int) => T.Tangle ct -> a Int Int -> SurfaceLink ct
 fromTangleAndStarByOffset tangle star
     | bounds star /= (0, T.numberOfLegs tangle - 1)  = error "fromTangleAndStarByOffset: size conflict"
     | otherwise                                      =
@@ -30,12 +30,12 @@ fromTangleAndStarByOffset tangle star
 
 
 {-# INLINE fromTangleAndStar' #-}
-fromTangleAndStar' :: (CrossingType ct) => (T.Dart ct -> T.Dart ct) -> T.Tangle ct -> L.SurfaceLink ct
+fromTangleAndStar' :: (CrossingType ct) => (T.Dart ct -> T.Dart ct) -> T.Tangle ct -> SurfaceLink ct
 fromTangleAndStar' withLeg tangle =
     let watch d
             | T.isDart d  = T.toPair d
             | otherwise   = watch $ opposite $ withLeg d
-    in L.implode
+    in implode
         ( numberOfFreeLoops tangle + div (length $ filter (\ l -> opposite l == withLeg l) $ T.allLegs tangle) 2
         , map (\ c -> (map watch $ adjacentDarts c, crossingState c)) $ allCrossings tangle
         )

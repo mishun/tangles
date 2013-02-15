@@ -452,108 +452,98 @@ produceKnotted knotPattern inst = execWriterT $ do
         ]
 
     maybeM (implodeExplodeSettings inst) $ \ ies -> do
-        let implodeN = mkName "implode"
-            implodeParamT ct =
-                let types = [ [t| Int |] ] ++ map (\ (_, x, _) -> x) (extraImplodeExplodeParams ies) ++ [ [t| [([(Int, Int)], CrossingState $ct)] |] ]
-                in foldl appT (tupleT $ length types) types
-
         declare $ do
             ct <- newName "ct"
-            sigD implodeN $ forallT [PlainTV ct] (cxt [classP ''CrossingType [varT ct]])
-                [t| $(implodeParamT $ varT ct) -> $(conT knotTN) $(varT ct) |]
+            let appliedT = conT knotTN `appT` varT ct
+            instanceD (cxt [classP ''CrossingType [varT ct]]) ([t| Explodable |] `appT` appliedT)
+                [ tySynInstD ''ExplodeType [appliedT] $
+                    let types = [ [t| Int |] ] ++ map (\ (_, x, _) -> x) (extraImplodeExplodeParams ies) ++ [ [t| [([(Int, Int)], CrossingState $(varT ct))] |] ]
+                    in foldl appT (tupleT $ length types) types
 
-        declare $ funD implodeN $ (:[]) $ do
-            arg <- newName "arg"
-            loops <- newName "loops"
-            list <- newName "list"
+                , funD 'explode $ (:[]) $ do
+                    knot <- newName "knot"
+                    clause [varP knot] (normalB $ tupE $ execWriter $ do
+                            tell $ (:[]) $ [| numberOfFreeLoops $(varE knot) |]
+                            tell $ map (\ (_, _, f) -> f $ varE knot) $ extraImplodeExplodeParams ies
+                            tell $ (:[]) [| map (\ c -> (map (toPair . opposite) $ incidentDarts c, crossingState c)) $ allCrossings $(varE knot) |]
+                        ) []
 
-            n <- newName "n"
-            cr <- newName "cr"
-            st <- newName "st"
-            cr' <- newName "cr'"
-            st' <- newName "st'"
+                , funD 'implode $ (:[]) $ do
+                    arg <- newName "arg"
+                    loops <- newName "loops"
+                    list <- newName "list"
+                    n <- newName "n"
+                    cr <- newName "cr"
+                    st <- newName "st"
+                    cr' <- newName "cr'"
+                    st' <- newName "st'"
 
-            clause [asP arg $ tupP $ map (bangP . varP) $ [loops] ++ (map (\ (x, _, _) -> x) $ extraImplodeExplodeParams ies) ++ [list]] (normalB $
-                appE (varE 'runST) $ doE $ execWriter $ do
-                    let spliceError text args =
-                            let literal = litE $ stringL $ nameBase knotTN ++ ".implode: " ++ text ++ " at %s"
-                            in appE [| error |] $ foldl appE [| printf $literal |] $ args ++ [ [| show $(varE arg) |] ]
+                    clause [asP arg $ tupP $ map (bangP . varP) $ [loops] ++ (map (\ (x, _, _) -> x) $ extraImplodeExplodeParams ies) ++ [list]] (normalB $
+                        appE (varE 'runST) $ doE $ execWriter $ do
+                            let spliceError text args =
+                                    let literal = litE $ stringL $ nameBase knotTN ++ ".implode: " ++ text ++ " at %s"
+                                    in appE [| error |] $ foldl appE [| printf $literal |] $ args ++ [ [| show $(varE arg) |] ]
 
-                    tell $ (:[]) $ noBindS
-                        [|  when ($(varE loops) < (0 :: Int)) $
-                                $(spliceError "number of free loops %i is negative" [varE loops])
-                        |]
+                            tell $ (:[]) $ noBindS
+                                [|  when ($(varE loops) < (0 :: Int)) $
+                                        $(spliceError "number of free loops %i is negative" [varE loops])
+                                |]
 
-                    tell $ implodePreExtra ies spliceError
+                            tell $ implodePreExtra ies spliceError
 
-                    tell $ (:[]) $ letS $ (:[]) $ valD (varP n) (normalB [| length $(varE list) |]) []
-                    tell $ (:[]) $ bindS (varP cr)
-                        [|  let border = $(maybe id ($ varE n) (modifyImplodeLimit ies) [| 4 * $(varE n) - 1 :: Int |]) 
-                            in newArray_ (0, border) :: ST s (STUArray s Int Int)
-                        |]
+                            tell $ (:[]) $ letS $ (:[]) $ valD (varP n) (normalB [| length $(varE list) |]) []
+                            tell $ (:[]) $ bindS (varP cr)
+                                [|  let border = $(maybe id ($ varE n) (modifyImplodeLimit ies) [| 4 * $(varE n) - 1 :: Int |]) 
+                                    in newArray_ (0, border) :: ST s (STUArray s Int Int)
+                                |]
 
-                    tell $ (:[]) $ bindS (varP st) [| newArray_ (0, $(varE n) - 1) :: ST s (STArray s Int a) |]
+                            tell $ (:[]) $ bindS (varP st) [| newArray_ (0, $(varE n) - 1) :: ST s (STArray s Int a) |]
 
-                    let spliceFill a (c, p) =
-                            let guards = map (\ f -> f spliceError (varE n) c p) (extraImplodePairCases ies) ++
-                                    [ ([| $c < (1 :: Int) || $c > $(varE n)  |], spliceError "crossing index %i is out of bounds [1 .. %i]" [c, varE n])
-                                    , ([| $p < (0 :: Int) || $p > (3 :: Int) |], spliceError "place index %i is out of bounds [0 .. 3]" [p])
-                                    , ([| otherwise                          |], [| 4 * ($c - 1) + $p :: Int |])
-                                    ]
-                            in [|
-                                do
-                                    let b = $(caseE [| () |] [match wildP (guardedB $ map (uncurry normalGE) guards) []])
-                                    when ($a == b) $
-                                        $(spliceError "(%i, %i) connected to itself" [c, p])
+                            let spliceFill a (c, p) =
+                                    let guards = map (\ f -> f spliceError (varE n) c p) (extraImplodePairCases ies) ++
+                                            [ ([| $c < (1 :: Int) || $c > $(varE n)  |], spliceError "crossing index %i is out of bounds [1 .. %i]" [c, varE n])
+                                            , ([| $p < (0 :: Int) || $p > (3 :: Int) |], spliceError "place index %i is out of bounds [0 .. 3]" [p])
+                                            , ([| otherwise                          |], [| 4 * ($c - 1) + $p :: Int |])
+                                            ]
+                                    in [|
+                                        do
+                                            let b = $(caseE [| () |] [match wildP (guardedB $ map (uncurry normalGE) guards) []])
+                                            when ($a == b) $
+                                                $(spliceError "(%i, %i) connected to itself" [c, p])
 
-                                    unsafeWrite $(varE cr) $a b
-                                    when (b < $a) $ do
-                                        x <- unsafeRead $(varE cr) b
-                                        when (x /= $a) $
-                                            $(spliceError "(%i, %i) points to unconsistent position" [c, p])
-                            |]
+                                            unsafeWrite $(varE cr) $a b
+                                            when (b < $a) $ do
+                                                x <- unsafeRead $(varE cr) b
+                                                when (x /= $a) $
+                                                    $(spliceError "(%i, %i) points to unconsistent position" [c, p])
+                                    |]
 
-                    tell $ (:[]) $ noBindS
-                        [|  forM_ (zip $(varE list) [0 ..]) $ \ ((!ns, !cs), !i) -> do
-                                unsafeWrite $(varE st) i cs
-                                case ns of
-                                    [p0, p1, p2, p3] ->
-                                        forM_ [(p0, 0), (p1, 1), (p2, 2), (p3, 3)] $ \ ((!c, !p), !j) ->
-                                            let a = 4 * i + j
-                                            in $(spliceFill [| a |] ([| c |], [| p |]))
-                                    _                ->
-                                        $(spliceError "there must be 4 neighbours for every crossing, but found %i for %i-th" [ [| length ns |], [| i + 1 |] ])
-                        |]
+                            tell $ (:[]) $ noBindS
+                                [|  forM_ (zip $(varE list) [0 ..]) $ \ ((!ns, !cs), !i) -> do
+                                        unsafeWrite $(varE st) i cs
+                                        case ns of
+                                            [p0, p1, p2, p3] ->
+                                                forM_ [(p0, 0), (p1, 1), (p2, 2), (p3, 3)] $ \ ((!c, !p), !j) ->
+                                                    let a = 4 * i + j
+                                                    in $(spliceFill [| a |] ([| c |], [| p |]))
+                                            _                ->
+                                                $(spliceError "there must be 4 neighbours for every crossing, but found %i for %i-th" [ [| length ns |], [| i + 1 |] ])
+                                |]
 
-                    tell $ implodePostExtra ies (varE n) spliceFill
+                            tell $ implodePostExtra ies (varE n) spliceFill
 
-                    tell $ (:[]) $ bindS (varP cr') [| unsafeFreeze $(varE cr) |]
-                    tell $ (:[]) $ bindS (varP st') [| unsafeFreeze $(varE st) |]
-                    tell $ (:[]) $ noBindS
-                        [|  return $! $(recConE knotCN $
-                                [ (,) crossCount `fmap` varE n
-                                , (,) crossArray `fmap` varE cr'
-                                , (,) stateArray `fmap` varE st'
-                                , (,) loopsCount `fmap` varE loops
-                                ] ++ implodeInitializers ies)
-                        |]
-                ) []
-
-        do
-            let explodeN = mkName "explode"
-
-            declare $ do
-                ct <- newName "ct"
-                sigD explodeN $ forallT [PlainTV ct] (cxt [classP ''CrossingType [varT ct]])
-                    [t| $(conT knotTN) $(varT ct) -> $(implodeParamT $ varT ct) |]
-
-            declare $ funD explodeN $ (:[]) $ do
-                knot <- newName "knot"
-                clause [varP knot] (normalB $ tupE $ execWriter $ do
-                        tell $ (:[]) $ [| numberOfFreeLoops $(varE knot) |]
-                        tell $ map (\ (_, _, f) -> f $ varE knot) $ extraImplodeExplodeParams ies
-                        tell $ (:[]) [| map (\ c -> (map (toPair . opposite) $ incidentDarts c, crossingState c)) $ allCrossings $(varE knot) |]
-                    ) []
+                            tell $ (:[]) $ bindS (varP cr') [| unsafeFreeze $(varE cr) |]
+                            tell $ (:[]) $ bindS (varP st') [| unsafeFreeze $(varE st) |]
+                            tell $ (:[]) $ noBindS
+                                [|  return $! $(recConE knotCN $
+                                        [ (,) crossCount `fmap` varE n
+                                        , (,) crossArray `fmap` varE cr'
+                                        , (,) stateArray `fmap` varE st'
+                                        , (,) loopsCount `fmap` varE loops
+                                        ] ++ implodeInitializers ies)
+                                |]
+                        ) []
+                ]
 
         declare $ instanceD (cxt []) ([t| KnottedWithToPair |] `appT` conT knotTN `appT` conT crosN `appT` conT dartN)
             [ funD 'toPair $ (:[]) $ do

@@ -1,4 +1,4 @@
-{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TemplateHaskell, TypeFamilies #-}
 module Math.KnotTh.SurfaceLink
     ( module Math.KnotTh.Knotted
     , SurfaceLink
@@ -10,8 +10,6 @@ module Math.KnotTh.SurfaceLink
     , dartSurfaceLink
     , emptySurfaceLink
     , changeNumberOfFreeLoops
-    , implode
-    , explode
     , testPrime
     ) where
 

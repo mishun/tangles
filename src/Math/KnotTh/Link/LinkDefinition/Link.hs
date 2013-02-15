@@ -1,4 +1,4 @@
-{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TemplateHaskell, TypeFamilies #-}
 module Math.KnotTh.Link.LinkDefinition.Link
     ( module Math.KnotTh.Knotted
     , Link
@@ -8,8 +8,6 @@ module Math.KnotTh.Link.LinkDefinition.Link
     , dartLink
     , emptyLink
     , changeNumberOfFreeLoops
-    , implode
-    , explode
     ) where
 
 import Math.KnotTh.Knotted

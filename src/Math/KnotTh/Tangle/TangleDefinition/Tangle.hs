@@ -1,4 +1,4 @@
-{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TemplateHaskell, TypeFamilies #-}
 module Math.KnotTh.Tangle.TangleDefinition.Tangle
     ( module Math.KnotTh.Knotted
     , Dart
@@ -14,8 +14,6 @@ module Math.KnotTh.Tangle.TangleDefinition.Tangle
     , glueToBorder
     , glueTangles
     , changeNumberOfFreeLoops
-    , implode
-    , explode
     ) where
 
 import Language.Haskell.TH
