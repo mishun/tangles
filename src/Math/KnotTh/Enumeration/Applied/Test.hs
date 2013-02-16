@@ -40,8 +40,8 @@ testInvariantness sortClasses n f = do
 
 
 test :: Test
-test = testGroup "Enumeration tests" $
-    [ testGroup "Invariantness checking for computed classes of tangles" $
+test = testGroup "Enumeration tests"
+    [ testGroup "Invariantness checking for computed classes of tangles"
         [ testCase "Linking numbers" $
             testInvariantness tangleClasses 6 linkingNumbersSet
 
@@ -55,10 +55,10 @@ test = testGroup "Enumeration tests" $
             testInvariantness weakTangleClasses 5 (jonesPolynomial . tangleDoubling id)
 
         , testCase "Jones polynomial of doubling satellite" $
-            testInvariantness tangleClasses 4 (minimalJonesPolynomialOfTangle . twistedDouble)
+            testInvariantness tangleClasses 4 (minimalJonesPolynomialOfTangle . twistedDoubleSatellite)
 
         , testCase "Kauffman F polynomial of triple satellite" $
-            testInvariantness tangleClasses 1 (minimalKauffmanFPolynomialOfTangle . twistedTriple)
+            testInvariantness tangleClasses 1 (minimalKauffmanFPolynomialOfTangle . twistedTripleSatellite)
         ]
 
     , testCase "Enumeration of tangles" $

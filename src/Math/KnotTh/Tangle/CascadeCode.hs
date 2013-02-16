@@ -8,7 +8,6 @@ module Math.KnotTh.Tangle.CascadeCode
 
 import Data.Char (isSpace)
 import Text.Printf
-import Math.Algebra.Group.Dn (fromRotation)
 import Math.KnotTh.Crossings.Projection
 import Math.KnotTh.Crossings.Arbitrary
 import Math.KnotTh.Tangle
@@ -28,9 +27,7 @@ decodeCascadeCode code =
         (\ prev (pattern, offset) ->
             let (gl, shift, rot, c) = decodeCrossing pattern
                 p | rot == 0   = id
-                  | otherwise  = \ t ->
-                      let l = numberOfLegs t
-                      in transformTangle (fromRotation l rot) t
+                  | otherwise  = rotateTangle rot
             in p $ crossingTangle $ glueToBorder
                 (nthLeg prev $ offset + shift)
                 (case gl of { W -> 3 ; X -> 2 ; M -> 1 })

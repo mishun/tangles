@@ -12,6 +12,7 @@ import qualified Math.KnotTh.Link.NonAlternating as L
 import qualified Math.KnotTh.Tangle.NonAlternating as T
 import Math.KnotTh.Invariants.Skein
 import Math.KnotTh.Invariants.Util.Poly
+import Math.KnotTh.Invariants.Util.BruteForceMinimization
 
 
 a, a', z, z' :: Poly2
@@ -68,11 +69,11 @@ minimalKauffmanFPolynomialOfLink link =
 
 
 minimalKauffmanFPolynomialOfTangle :: T.NonAlternatingTangle -> ChordDiagramsSum Poly2
-minimalKauffmanFPolynomialOfTangle tangle
+minimalKauffmanFPolynomialOfTangle = bruteForceMinimumOfTangle kauffmanFPolynomial {-tangle
     | l == 0     =
         let p = kauffmanFPolynomial tangle
         in min p $ fmap invertF p
-    | otherwise  = minimum $ do
+    | otherwise  = trace ("started kauffman of " ++ show tangle) $ minimum $ do
         let wf = writheFactor tangle
             wf' = invertF wf
             p = fmap (* wf') $ kauffmanFPolynomial tangle
@@ -84,3 +85,4 @@ minimalKauffmanFPolynomialOfTangle tangle
         [rotated, mirrored, r, s]
     where
         l = T.numberOfLegs tangle
+-}

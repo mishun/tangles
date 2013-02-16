@@ -70,15 +70,14 @@ siftTangles :: (DiagramInfo info) => [info NonAlternatingTangle] -> SiftResult i
 siftTangles = siftByInvariant $ \ tangle ->
     ( linkingNumbersSet tangle
     , threadExpansion minimalJonesPolynomialOfTangle tangle
-    , minimalJonesPolynomialOfTangle $ twistedDouble tangle
-    , minimalKauffmanFPolynomialOfTangle $ twistedTriple tangle
+    , minimalJonesPolynomialOfTangle $ twistedDoubleSatellite tangle
+    , minimalKauffmanFPolynomialOfTangle $ twistedTripleSatellite tangle
     )
 
 
 siftWeakTangles :: (DiagramInfo info) => [info NonAlternatingTangle] -> SiftResult info NonAlternatingTangle
 siftWeakTangles = siftByInvariant $ \ tangle ->
-    ( jonesPolynomial $ tangleDoubling id tangle
-    )
+    jonesPolynomial $ tangleDoubling id tangle
 
 
 lookingForwardTanglesEnumeration :: Bool -> Int -> Int -> Int -> SiftResult MinimalDiagramInfo NonAlternatingTangle

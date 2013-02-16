@@ -1,6 +1,6 @@
 module Math.KnotTh.Tangle.NonAlternating.Satellites
-    ( twistedDouble
-    , twistedTriple
+    ( twistedDoubleSatellite
+    , twistedTripleSatellite
     ) where
 
 import Data.Array.Base ((!))
@@ -8,16 +8,20 @@ import Math.KnotTh.Tangle.NonAlternating
 import Math.KnotTh.Tangle.TensorSubst
 
 
-twistedDouble :: NonAlternatingTangle -> NonAlternatingTangle
-twistedDouble = twistedNple 2
+twistedDoubleSatellite :: NonAlternatingTangle -> NonAlternatingTangle
+twistedDoubleSatellite = twistedNSatellite 2
 
 
-twistedTriple :: NonAlternatingTangle -> NonAlternatingTangle
-twistedTriple = twistedNple 3
+twistedTripleSatellite :: NonAlternatingTangle -> NonAlternatingTangle
+twistedTripleSatellite = twistedNSatellite 3
 
 
-twistedNple :: Int -> NonAlternatingTangle -> NonAlternatingTangle
-twistedNple n tangle = tensorSubst n wrap tangle
+twistedNSatellite :: Int -> NonAlternatingTangle -> NonAlternatingTangle
+twistedNSatellite n tangle
+    | n < 0      = error "twistedNSattelite: negative order"
+    | n == 0     = emptyTangle
+    | n == 1     = tangle
+    | otherwise  = tensorSubst n wrap tangle
     where
         w = selfWritheArray tangle
 
