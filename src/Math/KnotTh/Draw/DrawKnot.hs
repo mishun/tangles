@@ -67,7 +67,7 @@ instance DrawableCrossingType ArbitraryCrossing where
                                 m = min 1.0 $ 3.0 * threadWidth s / sqrt (dx * dx + dy * dy)
                             in (x0 + m * dx, y0 + m * dy)
 
-                    let f | isDart a && passUnder a  = change (chain !! 0) (chain !! 1)
+                    let f | isDart a && passUnder a  = change (head chain) (chain !! 1)
                           | otherwise                = head chain
                         l | isDart b && passUnder b  = change (chain !! (n - 1)) (chain !! (n - 2))
                           | otherwise                = last chain

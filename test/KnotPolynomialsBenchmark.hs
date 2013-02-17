@@ -34,7 +34,8 @@ benchmarks =
 
 
 main :: IO ()
-main = defaultMainWith
-    (defaultConfig { cfgSamples = Last (Just 1) })
-    (return ())
-    benchmarks
+main =
+    defaultMainWith
+        (defaultConfig { cfgSamples = Last (Just 1) })
+        (return ())
+        benchmarks
