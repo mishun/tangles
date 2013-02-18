@@ -29,7 +29,7 @@ test = testGroup "Invariants"
             , ("borromean rings", borromeanRingsLink, [0, 0, 0])
             ]
 
-    , testGroup "Jones polynomial" $
+    , testGroup "Jones polynomial"
         [ testGroup "Exact values on links" $
             map (\ (name, l, target) -> testCase name $ show (normalizedJonesPolynomialOfLink l) @?= target)
                 [ ("unknot"                 , unknot               , "1"                                             )
@@ -127,7 +127,7 @@ test = testGroup "Invariants"
                                         | otherwise -> monomial (-1) "t" (3 / 4)
                                     "z"             -> z'
                                     _               -> undefined
-                            in x ^ (abs $ B.numeratorQ p)
+                            in x ^ abs (B.numeratorQ p)
 
             mapM_ (\ (name, l) ->
                     let kf = kauffmanFPolynomial l

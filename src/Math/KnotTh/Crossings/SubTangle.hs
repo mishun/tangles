@@ -44,7 +44,7 @@ data SubTangleCrossing ct = SubTangle
 
 
 instance Eq (SubTangleCrossing ct) where
-    (==) a b = (_code a == _code b)
+    (==) a b = _code a == _code b
 
 
 instance (NFData ct) => NFData (SubTangleCrossing ct) where
@@ -52,9 +52,8 @@ instance (NFData ct) => NFData (SubTangleCrossing ct) where
 
 
 instance (CrossingType ct) => CrossingType (SubTangleCrossing ct) where
-    crossingTypeCode c = _code c
-
-    localCrossingSymmetry c = _symmetry c
+    crossingTypeCode = _code
+    localCrossingSymmetry = _symmetry
 
 
 instance (CrossingType ct) => Show (SubTangleCrossing ct) where
@@ -158,7 +157,7 @@ substituteTangle tangle =
                 let nb = map (oppositeInt b) $! incidentDarts c
                 let st | rev        = mapOrientation (ec <*>) $! crossingState c
                        | otherwise  = crossingState c
-                return $! (if rev then reverse nb else nb, st)
+                return (if rev then reverse nb else nb, st)
         in concatMap connections $! allCrossings tangle
         )
     where

@@ -8,7 +8,7 @@ import Data.Array.Base (newArray, newArray_, unsafeRead, unsafeWrite)
 import Data.Array.ST (STArray, STUArray)
 import Data.STRef (newSTRef, readSTRef, writeSTRef)
 import Control.Monad.ST (ST, runST)
-import Control.Monad (when, forM_)
+import Control.Monad (when, unless, forM_)
 import Math.KnotTh.Tangle
 import Math.KnotTh.Tangle.NonAlternating
 
@@ -59,7 +59,7 @@ testFlow4 finish = runST $ do
             let touch !d = do
                     let ci = crossingIndex $! incidentCrossing d
                     visited <- unsafeRead v ci
-                    when (not visited) $ do
+                    unless visited $ do
                         unsafeWrite v ci True
                         unsafeWrite p ci d
                         i <- readSTRef tl

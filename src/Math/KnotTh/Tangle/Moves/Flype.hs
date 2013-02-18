@@ -31,7 +31,7 @@ neighbours tangle =
         ((rp, sq), sub) <-
             restingPart tangle [ba, ca] >>= \ (lst, s) ->
                 case lst of
-                    [x, y] -> return $! ((x, y), s)
+                    [x, y] -> return ((x, y), s)
                     _      -> Nothing
 
         return $! move tangle $ do

@@ -132,7 +132,7 @@ generateFlypeEquivalentDecomposition' triangle maxN yield = do
                     forM_ (canonicalGluing templateType sites) $ \ child@(childTangle, childSymmetry) ->
                         case numberOfLegs childTangle of
                             4 -> tree (curN + cn) child
-                            _ -> (lift $ yield childTangle childSymmetry) >> glueTemplates (curN + cn) child
+                            _ -> lift (yield childTangle childSymmetry) >> glueTemplates (curN + cn) child
 
         let glueDirectSums curN ancestor =
                 forM_ [1 .. min halfN (maxN - curN)] $ \ cn ->

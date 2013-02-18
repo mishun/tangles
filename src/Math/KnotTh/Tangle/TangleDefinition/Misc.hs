@@ -19,7 +19,7 @@ gridTangle (n, m) f
             body = do
                 j <- [1 .. m]
                 i <- [1 .. n]
-                return $! (
+                return (
                     [ if j > 1 then (n * (j - 2) + i, 2) else (0, i - 1)
                     , if i < n then (n * (j - 1) + i + 1, 3) else (0, j + n - 1)
                     , if j < m then (n * j + i, 0) else (0, 2 * n + m - i)

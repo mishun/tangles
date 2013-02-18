@@ -18,9 +18,7 @@ internalEdgesST s = do
         d <- vertexDegreeST s v
         fmap concat $ forM [0 .. d - 1] $ \ p -> do
             (u, q) <- neighbourST s (v, p)
-            return $ if u > v || (u == v && q > p)
-                then [(v, p)]
-                else []
+            return [(v, p) | u > v || (u == v && q > p)]
 
 
 greedyReductionST :: (SkeinRelation r a) => SkeinState s r a -> ST s ()

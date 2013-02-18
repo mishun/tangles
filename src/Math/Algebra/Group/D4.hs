@@ -36,7 +36,7 @@ instance Show D4 where
         case (hasReflection d, rotation d) of
             (False, 0) -> "I"
             (True , 0) -> "E"
-            (m    , x) -> (if m then "EC" else "C") ++ (if x > 1 then "_" ++ show x else "")
+            (m    , x) -> (if m then "EC" else "C") ++ (if x > 1 then '_' : show x else "")
 
 i, e, c, ec, c2, ec2, c3, ec3 :: D4
 i   = D4 0
@@ -89,7 +89,7 @@ data D4SubGroup = SubGroup {-# UNPACK #-} !Int {-# UNPACK #-} !(UArray Int Int) 
 
 
 instance Eq D4SubGroup where
-    (==) (SubGroup a _ _) (SubGroup b _ _) = (a == b)
+    (==) (SubGroup a _ _) (SubGroup b _ _) = a == b
 
 
 instance Show D4SubGroup where

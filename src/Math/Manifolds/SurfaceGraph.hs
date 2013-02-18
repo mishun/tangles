@@ -125,20 +125,20 @@ instance Ix Face where
 data Cell = Cell0D Vertex | Cell1D Dart | Cell2D Face deriving (Eq, Ord)
 
 
-nextCCW :: Dart -> Dart
-nextCCW (Dart g i) = Dart g $! (v !) $! if p + 1 == k then 0 else p + 1
+nextBy :: Int -> Dart -> Dart
+nextBy x (Dart g i) = Dart g $ (v !) $ (p + x) `mod` k
     where
         (vi, p) = _connToVert g ! i
         v = _vertices g ! vi
-        k = (+ 1) $! snd $! bounds v
+        k = snd (bounds v) + 1
+
+
+nextCCW :: Dart -> Dart
+nextCCW = nextBy 1
 
 
 nextCW :: Dart -> Dart
-nextCW (Dart g i) = Dart g $! (v !) $! if p == 0 then k - 1 else p - 1
-    where
-        (vi, p) = _connToVert g ! i
-        v = _vertices g ! vi
-        k = (+ 1) $! snd $! bounds v
+nextCW = nextBy (-1)
 
 
 opposite :: Dart -> Dart
@@ -274,7 +274,7 @@ completeDefinition opp vert = runST $ do
                 writeArray connF dart (face, place)
         freeze connF
 
-    return $! Graph
+    return Graph
         { _opposite   = opp
         , _vertices   = vert
         , _connToVert = connV

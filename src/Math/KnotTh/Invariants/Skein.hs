@@ -1,15 +1,13 @@
 module Math.KnotTh.Invariants.Skein
-    ( module Math.KnotTh.Invariants.Skein.Relation
-    , module Math.KnotTh.Invariants.Skein.StateModels.PlanarDiagramsSum
-    , module Math.KnotTh.Invariants.Skein.StateModels.ChordDiagramsSum
+    ( module X
     , evaluateSkeinRelation
     ) where
 
 import Math.KnotTh.Crossings.Arbitrary
-import Math.KnotTh.Invariants.Skein.Relation
+import Math.KnotTh.Invariants.Skein.Relation as X
 import Math.KnotTh.Invariants.Skein.SkeinM
-import Math.KnotTh.Invariants.Skein.StateModels.PlanarDiagramsSum
-import Math.KnotTh.Invariants.Skein.StateModels.ChordDiagramsSum
+import Math.KnotTh.Invariants.Skein.StateModels.PlanarDiagramsSum as X
+import Math.KnotTh.Invariants.Skein.StateModels.ChordDiagramsSum as X
 
 
 evaluateSkeinRelation :: (SkeinRelation r a, SkeinStructure k c d) => r -> k ArbitraryCrossing -> ResultOnStructure k (SkeinRelationModel r) a

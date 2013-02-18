@@ -54,4 +54,4 @@ reversingBraidTangle n s
     | otherwise  = braidTangle n $ do
         k <- [2 .. n]
         i <- [0 .. n - k]
-        return $! (i, s)
+        return (i, s)

@@ -13,9 +13,9 @@ import Math.KnotTh.Tangle.TangleDefinition.Tangle
 
 transformTangle :: (CrossingType ct) => Dn -> Tangle ct -> Tangle ct
 transformTangle g tangle
-    | l /= pointsUnderGroup g                   = error $ printf "transformTangle: order conflict: %i legs, %i order of group" l (pointsUnderGroup g)
-    | reflection g == False && rotation g == 0  = tangle
-    | otherwise                                 = implode (numberOfFreeLoops tangle, border, map crossing $ allCrossings tangle)
+    | l /= pointsUnderGroup g                = error $ printf "transformTangle: order conflict: %i legs, %i order of group" l (pointsUnderGroup g)
+    | not (reflection g) && rotation g == 0  = tangle
+    | otherwise                              = implode (numberOfFreeLoops tangle, border, map crossing $ allCrossings tangle)
     where
         l = numberOfLegs tangle
 

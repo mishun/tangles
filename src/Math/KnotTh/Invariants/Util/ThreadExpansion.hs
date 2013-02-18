@@ -4,7 +4,7 @@ module Math.KnotTh.Invariants.Util.ThreadExpansion
 
 import Data.List (sort, elemIndex)
 import Data.Array (array, (!))
-import qualified Data.Set as Set
+import qualified Data.Set as S
 import Math.KnotTh.Tangle
 
 
@@ -24,16 +24,17 @@ threadExpansion invariant tangle =
                         (a, _) : _ | isLeg a   -> [a, snd $ last t]
                                    | otherwise -> []
 
-                targets = sort $ snd $ foldl (foldl checkTarget) (Set.empty, []) threads
+                targets = sort $ snd $ foldl (foldl checkTarget) (S.empty, []) threads
                     where
                         checkTarget (s, lst) (_, b)
-                            | isLeg b         = (s, lst)
-                            | Set.member c s  = (s, c : lst)
-                            | otherwise       = (Set.insert c s, lst)
+                            | isLeg b       = (s, lst)
+                            | S.member c s  = (s, c : lst)
+                            | otherwise     = (S.insert c s, lst)
                             where
                                 c = incidentCrossing b
 
-                indices = array (crossingIndexRange tangle) $ map (\ (c, x) -> (crossingIndex c, x)) $ (zip (allCrossings tangle) (repeat 0)) ++ (zip targets [1 ..])
+                indices = array (crossingIndexRange tangle) $ map (\ (c, x) -> (crossingIndex c, x)) $
+                    zip (allCrossings tangle) (repeat 0) ++ zip targets [1 ..]
 
                 findTarget u
                     | isLeg v    =
@@ -62,4 +63,4 @@ threadExpansion invariant tangle =
                         l = numberOfLegs tangle
                         dist a b =
                             let d = legPlace a - legPlace b
-                            in min (mod d l) (mod (-d) l)
+                            in min (d `mod` l) ((-d) `mod` l)

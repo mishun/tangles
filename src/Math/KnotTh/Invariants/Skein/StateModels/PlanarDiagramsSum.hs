@@ -170,7 +170,7 @@ instance StateModel PlanarDiagramsSum where
         let substState factor [] = do
                 x <- freeze cd
                 readSTRef result >>= \ !list ->
-                    writeSTRef result $! (PlanarDiagram x factor) : list
+                    writeSTRef result $! PlanarDiagram x factor : list
 
             substState factor (v : rest) =
                 forAllSummands (internals ! v) $ \ (PlanarDiagram x f) -> do

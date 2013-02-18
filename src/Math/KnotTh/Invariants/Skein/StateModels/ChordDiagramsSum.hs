@@ -147,7 +147,7 @@ decomposeTangle relation factor tangle
                 in if passOver d0 == on (<) ((\ d -> (threadIndex ! abs (marks ! d), order ! d)) . dartIndex) d0 d1
                     then tryCrossing rest
                     else concatStateSums
-                        [ decomposeTangle relation (factor * smoothLplusFactor relation) $ move tangle $ do
+                        [ decomposeTangle relation (factor * smoothLplusFactor relation) $ move tangle $
                             modifyC False invertCrossing [c]
 
                         , decomposeTangle relation (factor * (if isOverCrossing (crossingState c) then smoothLzeroFactor else smoothLinftyFactor) relation) $
@@ -260,7 +260,7 @@ instance StateModel ChordDiagramsSum where
         let substState factor [] = do
                 x <- freeze cd
                 readSTRef result >>= \ !list ->
-                    writeSTRef result $! (ChordDiagram x factor) : list
+                    writeSTRef result $! ChordDiagram x factor : list
 
             substState factor (v : rest) = do
                 r <- readArray rot v

@@ -28,7 +28,7 @@ equivalenceClasses ::
         -> [info (knot ct)]
 
 equivalenceClasses isomorphismTest moves enumerateDiagrams =
-    IM.elems $ vals $ flip execState (St { set = DS.empty, keys = M.empty, vals = IM.empty }) $ do
+    IM.elems $ vals $ flip execState St{set = DS.empty, keys = M.empty, vals = IM.empty} $ do
         let declareEquivalent !a !b = do
                 eq <- do
                     !st <- get

@@ -9,7 +9,7 @@ import qualified Data.Set as S
 import qualified Data.Map as M
 import Data.Array.Unboxed (UArray, (!), (//), array, listArray)
 import Control.Monad.State.Strict (execState, evalState, gets, modify)
-import Control.Monad (when, forM_)
+import Control.Monad (unless, forM_)
 import Math.KnotTh.Tangle
 
 
@@ -30,13 +30,13 @@ restingPart tangle incoming
 
         ends = mapMaybe maybeAdjacentCrossing incoming
 
-        startsDifferent = all (\ (a, b) -> a /= b) $ zip starts (tail starts)
+        startsDifferent = all (uncurry (/=)) $ zip starts (tail starts)
 
         maxFlow = push (0 :: Int) flow0
             where
                 flow0 =
                     let blockingFlow = concatMap (\ l -> if isLeg l then [] else [(dartIndex l, 1)]) (incoming ++ map opposite incoming)
-                    in (zeroFlow tangle) // blockingFlow
+                    in zeroFlow tangle // blockingFlow
 
                 push flowValue flow
                     | flowValue > m       = Nothing
@@ -46,41 +46,41 @@ restingPart tangle incoming
                     where
                         nextFlow = pushResidualFlow tangle starts ends flow
 
-        getSubtangle (flow, flowValue) = Just $ (result, flowValue)
+        getSubtangle (flow, flowValue) = Just (result, flowValue)
             where
-                result = listArray (crossingIndexRange tangle) $ map (\ c -> S.member c subtangle) $ allCrossings tangle
+                result = listArray (crossingIndexRange tangle) $ map (`S.member` subtangle) $ allCrossings tangle
 
                 subtangle = execState (forM_ starts dfs) S.empty
 
                 dfs c = do
                     visited <- gets $ S.member c
-                    when (not visited) $ do
+                    unless visited $ do
                         modify $ S.insert c
                         mapM_ (dfs . adjacentCrossing) $ filter (\ d -> (flow ! dartIndex d) < 1) $ incidentDarts c
 
         checkConnectivity (sub, flowValue)
-            | all (\ s -> S.member s mask) $ tail starts  = Just $! (sub, flowValue)
-            | otherwise                                   = Nothing
+            | all (`S.member` mask) $ tail starts  = Just (sub, flowValue)
+            | otherwise                            = Nothing
             where
                 mask = execState (dfs $ head starts) S.empty
 
                 dfs c = do
                     visited <- gets $ S.member c
-                    when (not visited) $ do
+                    unless visited $ do
                         modify $ S.insert c
                         mapM_ dfs $ filter ((sub !) . crossingIndex) $ mapMaybe maybeAdjacentCrossing $ incidentDarts c
 
         outcoming (sub, flowValue)
             | any (not . onBorder) incoming  = Nothing
             | flowValue /= length result     = Nothing
-            | otherwise                      = Just $! (result, sub)
+            | otherwise                      = Just (result, sub)
             where
                 result = restoreOutcoming (opposite lastIncoming) []
 
                 firstIncoming = head incoming
                 lastIncoming = last incoming
 
-                onBorder xy = (not $ isLeg xy) && (sub ! crossingIndex x) && (isLeg yx || (not $ sub ! crossingIndex y))
+                onBorder xy = isDart xy && (sub ! crossingIndex x) && (isLeg yx || not (sub ! crossingIndex y))
                     where
                         yx = opposite xy
 
@@ -96,7 +96,7 @@ restingPart tangle incoming
 
 
 pushResidualFlow :: Tangle ct -> [Crossing ct] -> [Crossing ct] -> UArray Int Int -> Maybe (UArray Int Int)
-pushResidualFlow tangle starts ends flow = (evalState bfs initial) >>= push
+pushResidualFlow tangle starts ends flow = evalState bfs initial >>= push
     where
         initial = (Seq.fromList starts, M.fromList $ zip starts (repeat []))
 
@@ -108,7 +108,7 @@ pushResidualFlow tangle starts ends flow = (evalState bfs initial) >>= push
         bfs = do
             empty <- isEmpty
             if empty
-                then return $ Nothing
+                then return Nothing
                 else do
                     u <- dequeue
                     if endFlag ! crossingIndex u
@@ -129,7 +129,7 @@ pushResidualFlow tangle starts ends flow = (evalState bfs initial) >>= push
                 relax d = do
                     let v = adjacentCrossing d
                     vis <- isVisited v
-                    when (not vis) $ enqueue v d
+                    unless vis $ enqueue v d
 
                 isEmpty = gets (\ (q, _) -> Seq.null q)
 

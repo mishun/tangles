@@ -1,24 +1,17 @@
 {-# LANGUAGE TypeFamilies #-}
 module Math.KnotTh.Knotted
-    ( module Math.KnotTh.Knotted.KnottedDefinition.Knotted
-    , module Math.KnotTh.Knotted.KnottedDefinition.KnottedWithAccel
-    , module Math.KnotTh.Knotted.KnottedDefinition.KnottedWithConnectivity
-    , module Math.KnotTh.Knotted.KnottedDefinition.KnottedWithToPair
-    , module Math.KnotTh.Knotted.SurfaceKnotted
-    , module Math.KnotTh.Knotted.KnottedDefinition.CrossingState
-    , module Math.KnotTh.Knotted.KnottedDefinition.Misc
-    , module Math.KnotTh.Knotted.Threads
+    ( module X
     , Explodable(..)
     ) where
 
-import Math.KnotTh.Knotted.KnottedDefinition.Knotted
-import Math.KnotTh.Knotted.KnottedDefinition.KnottedWithAccel
-import Math.KnotTh.Knotted.KnottedDefinition.KnottedWithConnectivity
-import Math.KnotTh.Knotted.KnottedDefinition.KnottedWithToPair
-import Math.KnotTh.Knotted.SurfaceKnotted
-import Math.KnotTh.Knotted.KnottedDefinition.CrossingState
-import Math.KnotTh.Knotted.KnottedDefinition.Misc
-import Math.KnotTh.Knotted.Threads
+import Math.KnotTh.Knotted.KnottedDefinition.Knotted as X
+import Math.KnotTh.Knotted.KnottedDefinition.KnottedWithAccel as X
+import Math.KnotTh.Knotted.KnottedDefinition.KnottedWithConnectivity as X
+import Math.KnotTh.Knotted.KnottedDefinition.KnottedWithToPair as X
+import Math.KnotTh.Knotted.SurfaceKnotted as X
+import Math.KnotTh.Knotted.KnottedDefinition.CrossingState as X
+import Math.KnotTh.Knotted.KnottedDefinition.Misc as X
+import Math.KnotTh.Knotted.Threads as X
 
 
 class Explodable a where

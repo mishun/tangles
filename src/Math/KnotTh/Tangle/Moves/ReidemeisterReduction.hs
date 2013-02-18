@@ -46,8 +46,7 @@ reduce2nd abl = do
         let abr = nextCCW abl
             bar = nextCW bal
             b = incidentCrossing bal
-
-            crossingsOk = (passOver abl) == (passOver bal)
+            crossingsOk = passOver abl == passOver bal
 
         structureOk <- (== abr) <$> oppositeC bar
 

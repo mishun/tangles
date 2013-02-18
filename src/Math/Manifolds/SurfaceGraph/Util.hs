@@ -26,7 +26,9 @@ barycentricSubdivision g = constructFromList $! List.concat [vertexPart, facePar
 
         newFaceIndex fc = v + faceIndex fc
 
-        edgeIndexLookup = array (0, numberOfDarts g - 1) $ List.concat $ map (\ ((a, b), eId) -> [(dartIndex a, eId), (dartIndex b, eId)]) $ zip edges [(v + f) ..]
+        edgeIndexLookup = array (0, numberOfDarts g - 1) $
+            concatMap (\ ((a, b), eId) -> [(dartIndex a, eId), (dartIndex b, eId)]) $
+                zip edges [(v + f) ..]
 
         vertexPart = map make $ graphVertices g
             where

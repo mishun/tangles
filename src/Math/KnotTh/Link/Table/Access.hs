@@ -21,13 +21,13 @@ table :: M.Map (Int, Int, Int) NonAlternatingLink
 table = M.fromList $ do
     ((cross, comps), list) <- map (\ (n, l) -> ((n, 1), l)) listOfKnotCodes ++ listOfLinkCodes
     (code, number) <- zip list [1 ..]
-    return $! ((cross, comps, number), fromGaussCode code)
+    return ((cross, comps, number), fromGaussCode code)
 
 
 sizes :: M.Map (Int, Int) Int
 sizes = M.fromList $ do
     (k, l) <- map (\ (n, l) -> ((n, 1), l)) listOfKnotCodes ++ listOfLinkCodes
-    return $! (k, length l)
+    return (k, length l)
 
 
 numberOfLinks :: Int -> Int -> Int

@@ -1,8 +1,6 @@
 {-# LANGUAGE Rank2Types #-}
 module Math.KnotTh.Enumeration.Applied.NonAlternatingTangles
-    ( module Math.KnotTh.Tangle.NonAlternating
-    , module Math.KnotTh.Enumeration.DiagramInfo
-    , module Math.KnotTh.Enumeration.SiftByInvariant
+    ( module X
     , tangleDiagrams
     , tangleClasses
     , weakTangleClasses
@@ -15,10 +13,10 @@ module Math.KnotTh.Enumeration.Applied.NonAlternatingTangles
 import Control.Monad (when)
 import Text.Printf
 import Math.KnotTh.Enumeration.EquivalenceClasses
-import Math.KnotTh.Enumeration.SiftByInvariant
-import Math.KnotTh.Enumeration.DiagramInfo
+import Math.KnotTh.Enumeration.SiftByInvariant as X
+import Math.KnotTh.Enumeration.DiagramInfo as X
 import Math.KnotTh.Enumeration.DiagramInfo.MinimalDiagramInfo
-import Math.KnotTh.Tangle.NonAlternating
+import Math.KnotTh.Tangle.NonAlternating as X
 import Math.KnotTh.Tangle.NonAlternating.Satellites
 import Math.KnotTh.Tangle.IsomorphismTest
 import Math.KnotTh.Tangle.BorderIncremental.SimpleTypes

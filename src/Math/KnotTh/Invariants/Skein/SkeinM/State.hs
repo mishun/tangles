@@ -59,7 +59,7 @@ stateFromKnotted relation' knot = do
         queued' <- newArray (1, n) True
         multiple' <- newSTRef $ circleFactor relation' ^ numberOfFreeLoops knot
 
-        return $! SkeinState
+        return SkeinState
             { relation = relation'
             , size     = n
             , alive    = alive'
@@ -121,7 +121,7 @@ dumpStateST s = do
 
     alive' <- readSTRef $ alive s
     multiple' <- readSTRef $ multiple s
-    return $! printf "\nalive = %i\nmultiple=%s\n%s" alive' (show multiple') $ concatMap (++ "\n") cross
+    return $! printf "\nalive = %i\nmultiple=%s\n%s" alive' (show multiple') $ unlines cross
 
 
 appendMultipleST :: (SkeinRelation r a) => SkeinState s r a -> a -> ST s ()
@@ -137,7 +137,7 @@ connectST s a@(!v, !p) b@(!u, !q) = do
 
 
 vertexDegreeST :: (SkeinRelation r a) => SkeinState s r a -> Int -> ST s Int
-vertexDegreeST s v = do
+vertexDegreeST s v =
     readArray (adjacent s) v >>=
         getBounds >>= \ (0, n) ->
             return $! n + 1
@@ -185,7 +185,7 @@ dequeueST s = do
 
 
 getAdjListST :: (SkeinRelation r a) => SkeinState s r a -> Int -> ST s (STArray s Int (Int, Int))
-getAdjListST s v = readArray (adjacent s) v
+getAdjListST s = readArray (adjacent s)
 
 
 resizeAdjListST :: (SkeinRelation r a) => SkeinState s r a -> Int -> Int -> ST s (STArray s Int (Int, Int))
@@ -227,10 +227,10 @@ extractStateSumST s = do
             return $! if v == 0 then (0, p) else (ix ! v, p)
         return $! listArray (0, l) list
 
-    connections <- (fmap $ listArray (1, n)) $ forM vertices $ \ !v -> do
+    connections <- fmap (listArray (1, n)) $ forM vertices $ \ !v -> do
         a <- readArray (adjacent s) v
         (0, k) <- getBounds a
-        (fmap $ listArray (0, k)) $ forM [0 .. k] $ \ !i -> do
+        fmap (listArray (0, k)) $ forM [0 .. k] $ \ !i -> do
             (0, p) <- readArray a i
             return $! p
 

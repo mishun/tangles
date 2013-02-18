@@ -4,7 +4,7 @@ module Math.KnotTh.Tangle.Moves.Pass
 
 import Data.Maybe (mapMaybe)
 import Data.List (sort, nub)
-import Control.Monad (when, guard, msum)
+import Control.Monad (unless, guard, msum)
 import Math.KnotTh.Tangle.NonAlternating
 import Math.KnotTh.Tangle.Moves.Resting
 import Math.KnotTh.Tangle.Moves.Move
@@ -54,9 +54,9 @@ neighbours tangle = mapMaybe (\ d -> tryPass 1 d d [opposite d]) $ allDartsOfCro
             let m = length outcoming
                 toRemove = drop m incoming
 
-            substituteC $ (map (\ d -> (d, threadContinuation $ opposite d)) incoming) ++ (zip (map opposite incoming) outcoming)
+            substituteC $ map (\ d -> (d, threadContinuation $ opposite d)) incoming ++ zip (map opposite incoming) outcoming
             connectC $ zip outcoming $ map (threadContinuation . opposite) incoming
-            when (not $ null toRemove) $ do
+            unless (null toRemove) $ do
                 maskC $ map adjacentCrossing toRemove
                 let p = nextCCW $ opposite $ last toRemove
                 let q = opposite $ nextCW $ opposite $ head toRemove

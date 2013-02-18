@@ -12,7 +12,7 @@ minimumCyclicShift list = shift `seq` (shift, drop shift list ++ take shift list
 
         a = listArray (0, n - 1) list
 
-        get i = a ! (mod i n)
+        get i = a ! mod i n
 
         grow i j !lyn
             | i + j >= 2 * n || cp == LT  =

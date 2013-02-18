@@ -21,7 +21,7 @@ linkingNumbersArray knot =
             forM_ (allCrossings knot) $ \ !c -> do
                 let d0 = nthIncidentDart c 0
                     t0 = t ! dartIndex d0
-                    t1 = t ! (dartIndex $ nextCCW d0)
+                    t1 = t ! dartIndex (nextCCW d0)
                 when (abs t0 /= abs t1) $ do
                     let i = (max (abs t0) (abs t1), min (abs t0) (abs t1))
                     let s | (signum t0 == signum t1) == passOver d0  = 1

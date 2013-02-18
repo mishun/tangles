@@ -154,7 +154,7 @@ generateWithChecker minimalChordLength checker n yield initial = runST $ do
             full <- (>= p) <$> readSTRef begin
             if full
                 then yieldAction
-                else if ((period == p) && (isNothing mirror)) || (chordLength >= n)
+                else if ((period == p) && isNothing mirror) || (chordLength >= n)
                     then matchRest chordLength
                     else placeChords 0 1 0 0
 

@@ -6,7 +6,6 @@ module Math.KnotTh.Knotted.TH.Show
     ) where
 
 import Language.Haskell.TH
-import Data.List (intercalate)
 import Text.Printf
 import Math.KnotTh.Knotted
 
@@ -36,7 +35,7 @@ produceShowCrossing crosN = (:[]) `fmap` do
                     printf "(Crossing %i %s [ %s ])"
                         (crossingIndex c)
                         (show $ crossingState c)
-                        (intercalate " " $ map (show . opposite) $ incidentDarts c)
+                        (unwords $ map (show . opposite) $ incidentDarts c)
                 |]
             ) []
         ]
@@ -51,7 +50,7 @@ produceShowKnot knotN = (:[]) `fmap` do
                     printf "(%s (%i O) %s)"
                         $(litE $ stringL $ nameBase knotN)
                         (numberOfFreeLoops knot)
-                        (intercalate " " $ map show $ allCrossings knot)
+                        (unwords $ map show $ allCrossings knot)
                 |]
             ) []
         ]

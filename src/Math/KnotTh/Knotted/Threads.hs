@@ -41,7 +41,7 @@ allThreadsWithMarks knot = runST $ do
     visited <- newArray (dartIndexRange knot) 0 :: ST s (STUArray s Int Int)
     threads <- newSTRef $ replicate (numberOfFreeLoops knot) (0, [])
 
-    n <- flip (flip foldM 1) (allEdges knot) $ \ !i (!startA, !startB) -> do
+    n <- flip (`foldM` 1) (allEdges knot) $ \ !i (!startA, !startB) -> do
         v <- readArray visited $ dartIndex startA
         if v /= 0
             then return $! i

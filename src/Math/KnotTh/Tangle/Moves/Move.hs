@@ -40,7 +40,7 @@ disassemble tangle = do
 
     mask <- newListArray (crossingIndexRange tangle) $ map (Direct . crossingState) $ allCrossings tangle
     circlesCounter <- newSTRef $ numberOfFreeLoops tangle
-    return $! MoveState
+    return MoveState
         { stateSource      = tangle
         , stateMask        = mask
         , stateCircles     = circlesCounter
@@ -70,8 +70,8 @@ assemble st = do
                 msk <- readArray (stateMask st) i
                 off <- readArray offset i
                 case msk of
-                    Direct _  -> return $! (off, dartPlace d)
-                    Flipped _ -> return $! (off, 3 - dartPlace d)
+                    Direct _  -> return (off, dartPlace d)
+                    Flipped _ -> return (off, 3 - dartPlace d)
                     Masked    -> fail $ printf "assemble: %s is touching masked crossing %i at:\n%s" (show d) i (show $ stateSource st)
 
     let opp d = readArray (stateConnections st) (dartIndex d)
@@ -167,7 +167,7 @@ substituteC substitutions = do
 
         (reconnect st =<<) $ forM reconnections $ \ (a, b) -> do
             b' <- readArray arr (dartIndex b)
-            return $! (a, b')
+            return (a, b')
 
 
 greedy :: [Dart ct -> MoveM s ct Bool] -> MoveM s ct ()

@@ -87,7 +87,7 @@ representativeGluingSites' crossingsToGlue !gl (!tangle, !symmetry)
             if not $ hasReflectionPart symmetry
                 then [(x, Nothing) | x <- [0 .. period - 1]]
                 else do
-                    let mz = mod ((mirroredZero symmetry) + gl - 1) period
+                    let mz = (mirroredZero symmetry + gl - 1) `mod` period
 
                     let getEndpoint doubleIndex = (legIndex, induced)
                             where

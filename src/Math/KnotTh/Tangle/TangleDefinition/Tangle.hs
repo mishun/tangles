@@ -17,7 +17,7 @@ module Math.KnotTh.Tangle.TangleDefinition.Tangle
     ) where
 
 import Language.Haskell.TH
-import Data.List (intercalate, nub, sort, foldl')
+import Data.List (nub, sort, foldl')
 import qualified Data.Set as S
 import qualified Data.Map as M
 import Data.Array.Base (listArray, newArray, newArray_, readArray, unsafeAt, unsafeWrite)
@@ -92,14 +92,14 @@ produceKnotted
         , modifyNextCCW = Just $ \ (t, d) e ->
             [|  let n = 4 * numberOfCrossings $t
                 in if $d >= n
-                    then $dart $t $! n + ($d - n + 1) `mod` ($legsCount $t)
+                    then $dart $t $! n + ($d - n + 1) `mod` $legsCount $t
                     else $e
             |]
 
         , modifyNextCW = Just $ \ (t, d) e ->
             [|  let n = 4 * numberOfCrossings $t
                 in if $d >= n
-                    then $dart $t $! n + ($d - n - 1) `mod` ($legsCount $t)
+                    then $dart $t $! n + ($d - n - 1) `mod` $legsCount $t
                     else $e
             |]
 
@@ -204,7 +204,7 @@ lonerTangle !cr = Tangle
 -- ........|  +=========+          ........|                       ........|  +=========+
 glueToBorder :: (CrossingType ct) => Dart ct -> Int -> CrossingState ct -> Crossing ct
 glueToBorder leg legsToGlue crossingToGlue = runST $ do
-    when (not $ isLeg leg) $ fail $
+    unless (isLeg leg) $ fail $
         printf "glueToBorder: leg expected, but %s received" (show leg)
 
     when (legsToGlue < 0 || legsToGlue > 4) $ fail $
@@ -278,9 +278,9 @@ glueToBorder leg legsToGlue crossingToGlue = runST $ do
 --  ..............|     |..............
 glueTangles :: (CrossingType ct) => Int -> Dart ct -> Dart ct -> Tangle ct
 glueTangles legsToGlue legA legB = runST $ do
-    when (not $ isLeg legA) $ fail $
+    unless (isLeg legA) $ fail $
         printf "glueTangles: first leg parameter %s is not a leg" (show legA)
-    when (not $ isLeg legB) $ fail $
+    unless (isLeg legB) $ fail $
         printf "glueTangles: second leg parameter %s is not a leg" (show legB)
 
     let tangleA = dartTangle legA
@@ -371,15 +371,15 @@ glueTangles legsToGlue legA legB = runST $ do
         }
 
 
-produceShowDart ''Dart (\ d -> [([| isLeg $d |], [| printf "(Leg %i)" $ legPlace $d |])])
+produceShowDart ''Dart $ \ d -> [([| isLeg $d |], [| printf "(Leg %i)" $ legPlace $d |])]
 produceShowCrossing ''Crossing
 
 instance (CrossingType ct) => Show (Tangle ct) where
     show tangle =
-        let border = printf "(Border [ %s ])" $ intercalate " " $ map (show . opposite) $ allLegs tangle
+        let border = printf "(Border [ %s ])" $ unwords $ map (show . opposite) $ allLegs tangle
         in printf "(Tangle (%i O) %s)"
             (numberOfFreeLoops tangle)
-            (intercalate " " $ border : map show (allCrossings tangle))
+            (unwords $ border : map show (allCrossings tangle))
 
 
 instance KnottedWithConnectivity Tangle Crossing Dart where
@@ -389,7 +389,7 @@ instance KnottedWithConnectivity Tangle Crossing Dart where
         | otherwise                                                   = all (\ (a, b) -> S.member a con && S.member b con) edges
         where
             edges = allEdges tangle
-            con = dfs (S.empty) $ fst $ head edges
+            con = dfs S.empty $ fst $ head edges
             dfs vis c
                 | S.member c vis  = vis
                 | otherwise       = foldl' dfs (S.insert c vis) neigh
@@ -416,7 +416,7 @@ instance KnottedWithConnectivity Tangle Crossing Dart where
                         | otherwise     = (path : paths, nextS)
                         where
                             path = containingDirectedPath continue d
-                            nextS = foldl' (\ curs a -> S.insert a curs) s path
+                            nextS = foldl' (flip S.insert) s path
                 in fst $ foldl' processDart ([], S.empty) $ allHalfEdges tangle
 
             containingDirectedPath (adjForward, adjBackward) start

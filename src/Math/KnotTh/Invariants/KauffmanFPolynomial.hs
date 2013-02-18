@@ -29,7 +29,7 @@ invertF = invert2 "a"
 writheFactor :: (SkeinStructure k c d) => k ArbitraryCrossing -> Poly2
 writheFactor knot =
     let w = selfWrithe knot
-    in (if w <= 0 then a else a') ^ (abs w)
+    in (if w <= 0 then a else a') ^ abs w
 
 
 data KauffmanFRelation = KauffmanFRelation

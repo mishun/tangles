@@ -34,7 +34,7 @@ instance SkeinRelation HomflyRelation Poly2 where
     finalNormalization _ knot =
         let factor =
                 let w = selfWrithe knot
-                in (if w <= 0 then a else a') ^ (abs w)
+                in (if w <= 0 then a else a') ^ abs w
         in (factor *)
 
 

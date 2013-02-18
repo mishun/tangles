@@ -40,7 +40,7 @@ neighbours tangle =
             c = incidentCrossing ca
 
         guard $ (a /= b) && (a /= c) && (b /= c)
-        guard $ (passOver bc) == (passOver cb)
+        guard $ passOver bc == passOver cb
 
         guard $ let altRoot | passOver ab == passOver ba  = ca
                             | otherwise                   = bc

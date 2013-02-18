@@ -1,4 +1,3 @@
-{-# LANGUAGE FunctionalDependencies #-}
 module Math.KnotTh.Enumeration.DiagramInfo
     ( DiagramInfo(..)
     ) where

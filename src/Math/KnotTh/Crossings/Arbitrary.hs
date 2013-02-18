@@ -133,7 +133,7 @@ selfWritheArray knot =
             where
                 d0 = nthIncidentDart cross 0
                 t0 = t ! dartIndex d0
-                t1 = t ! (dartIndex $ nextCCW d0)
+                t1 = t ! dartIndex (nextCCW d0)
                 s | passOver d0  = 1
                   | otherwise    = -1
     in listArray (crossingIndexRange knot) $ map writhe $ allCrossings knot
