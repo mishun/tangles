@@ -10,6 +10,7 @@ import qualified Data.Map as M
 import Data.Array.Unboxed (UArray, (!), (//), array, listArray)
 import Control.Monad.State.Strict (execState, evalState, gets, modify)
 import Control.Monad (unless, forM_)
+import Control.Arrow (first)
 import Math.KnotTh.Tangle
 
 
@@ -101,8 +102,8 @@ pushResidualFlow tangle starts ends flow = evalState bfs initial >>= push
         initial = (Seq.fromList starts, M.fromList $ zip starts (repeat []))
 
         endFlag :: UArray Int Bool
-        endFlag = array (crossingIndexRange tangle) $!
-            map (\ (c, f) -> (crossingIndex c, f)) $!
+        endFlag = array (crossingIndexRange tangle) $
+            map (first crossingIndex) $
                 zip (allCrossings tangle) (repeat False) ++ zip ends (repeat True)
 
         bfs = do
@@ -121,7 +122,7 @@ pushResidualFlow tangle starts ends flow = evalState bfs initial >>= push
                             if isJust brd
                                 then do
                                     p <- getPath u
-                                    return $! Just $! (fromJust brd) : p
+                                    return $! Just $! fromJust brd : p
                                 else do
                                     mapM_ relax ud
                                     bfs
@@ -140,7 +141,7 @@ pushResidualFlow tangle starts ends flow = evalState bfs initial >>= push
 
                 getPath v = gets (\ (_, p) -> p M.! v)
 
-                enqueue c d = modify (\ (q, p) -> (q Seq.|> c, M.insert c (d : p M.! (incidentCrossing d)) p))
+                enqueue c d = modify (\ (q, p) -> (q Seq.|> c, M.insert c (d : p M.! incidentCrossing d) p))
 
                 isVisited c = gets (\ (_, p) -> M.member c p)
 

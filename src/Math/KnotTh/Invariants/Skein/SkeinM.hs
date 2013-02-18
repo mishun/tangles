@@ -13,6 +13,7 @@ import Data.Function (fix)
 import Control.Monad.ST (ST, runST)
 import Control.Monad.Reader (ReaderT, runReaderT, ask, lift)
 import Control.Monad (when)
+import Control.Arrow (first)
 import Text.Printf
 import Math.KnotTh.Crossings.Arbitrary
 import Math.KnotTh.Invariants.Skein.Relation
@@ -36,7 +37,7 @@ neighbour :: (SkeinRelation r a) => (Vertex, Int) -> SkeinM s r a (Vertex, Int)
 neighbour (Vertex !v, p) = ask >>= \ !s -> lift $ do
     (!u, !q) <- neighbourST s (v, p)
     when (u == 0) $ fail $ printf "touching border at (%i, %i) <-> (%i, %i)" v p u q
-    return $! (Vertex u, q)
+    return (Vertex u, q)
 
 
 runSkeinStrategy ::
@@ -55,7 +56,7 @@ runSkeinStrategy rel strategy knot =
             case edges of
                 [] -> extractStateSumST s
                 _  -> do
-                    action <- runReaderT (strategy $ map (\ (v, p) -> (Vertex v, p)) edges) s
+                    action <- runReaderT (strategy $ map (first Vertex) edges) s
                     case action of
                         Contract (Vertex v, p) -> contractEdgeST s (v, p)
                     continue

@@ -66,11 +66,8 @@ generateFlypeEquivalentDecomposition' triangle maxN yield = do
 
     let directSumDescendants crossings ancestor =
             let (loners, nonLoners) = partition ((== 1) . numberOfCrossings . subTangle) crossings
-            in concat
-                [ nubBy (\ (a, _) (b, _) -> minimumRootCode a == minimumRootCode b) $
-                    canonicalGluing directSumType $ allGluingSites' loners 2 $ fst ancestor
-                , canonicalGluing directSumType $ representativeGluingSites' nonLoners 2 ancestor
-                ]
+            in nubBy (\ (a, _) (b, _) -> minimumRootCode a == minimumRootCode b) (canonicalGluing directSumType $ allGluingSites' loners 2 $ fst ancestor)
+                ++ canonicalGluing directSumType (representativeGluingSites' nonLoners 2 ancestor)
 
     let buildCrossingType template symmetry =
             let sumType
@@ -92,7 +89,7 @@ generateFlypeEquivalentDecomposition' triangle maxN yield = do
             let rootN = numberOfCrossings $ subTangle rootCrossing
             let crossings = prevCrossings // [(rootN, rootCrossing : (prevCrossings ! rootN))]
             let root = lonerTangle $ makeCrossing' rootCrossing
-            put $! (free + 1, crossings, ((root, rootSymmetry), crossings) : prevList)
+            put (free + 1, crossings, ((root, rootSymmetry), crossings) : prevList)
 
             let glueTemplates curN ancestor@(ancestorTangle, _) =
                     forM_ [1 .. halfN - curN] $ \ cn -> do

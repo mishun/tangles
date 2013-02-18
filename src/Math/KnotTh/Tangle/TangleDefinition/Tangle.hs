@@ -362,7 +362,7 @@ glueTangles legsToGlue legA legB = runST $ do
                     else markA i >> (return $! s + 1)
             ) 0 [0 .. legsToGlue - 1]
 
-    return $! Tangle
+    return Tangle
         { loopsCount = numberOfFreeLoops tangleA + numberOfFreeLoops tangleB + extraLoops
         , crossCount = newC
         , crossArray = cr

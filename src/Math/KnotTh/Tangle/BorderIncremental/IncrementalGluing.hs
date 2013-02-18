@@ -67,7 +67,7 @@ allGluingSites' crossingsToGlue !gl !tangle = do
     !cr <- crossingsToGlue
     !leg <- allLegs tangle
     !state <- possibleOrientations cr Nothing
-    return $! (gl, leg, state)
+    return (gl, leg, state)
 
 
 allGluingSites :: (CrossingType ct) => [ct] -> Tangle ct -> [(Int, Dart ct, CrossingState ct)]
@@ -109,7 +109,7 @@ representativeGluingSites' crossingsToGlue !gl (!tangle, !symmetry)
         let !leg = nthLeg tangle legIndex
         !cr <- crossingsToGlue
         !state <- possibleOrientations cr inducedSymmetry
-        return $! (gl, leg, state)
+        return (gl, leg, state)
 
 
 representativeGluingSites :: (CrossingType ct) => [ct] -> (Tangle ct, DnSubGroup) -> [(Int, Dart ct, CrossingState ct)]
@@ -126,7 +126,7 @@ canonicalGluing gluing sites = do
     let root = glueToBorder leg gl st
     case rootingTest root >>= postGlueTest gluing root gl leg of
         Nothing -> []
-        Just r  -> return $! (crossingTangle root, r)
+        Just r  -> return (crossingTangle root, r)
 
 
 simpleIncrementalGenerator :: (Monad m, CrossingType ct) => GluingType ct DnSubGroup DnSubGroup -> [ct] -> Int -> (Tangle ct -> DnSubGroup -> m ()) -> m ()

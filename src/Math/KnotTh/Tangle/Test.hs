@@ -21,12 +21,12 @@ test = testGroup "Basic tangle tests"
         opposite (nthLeg t 3) @?= nthIncidentDart c1 1
 
         forM_ [0 .. 3] $ \ i -> do
-            (nextCW $ nthIncidentDart c1 i) @?= (nthIncidentDart c1 $ (i - 1) `mod` 4)
-            (nextCCW $ nthIncidentDart c1 i) @?= (nthIncidentDart c1 $ (i + 1) `mod` 4)
+            nextCW (nthIncidentDart c1 i) @?= nthIncidentDart c1 ((i - 1) `mod` 4)
+            nextCCW (nthIncidentDart c1 i) @?= nthIncidentDart c1 ((i + 1) `mod` 4)
 
         forM_ [0 .. 5] $ \ i -> do
-            (nextCW $ nthLeg t i) @?= (nthLeg t $ (i - 1) `mod` 6)
-            (nextCCW $ nthLeg t i) @?= (nthLeg t $ (i + 1) `mod` 6)
+            nextCW (nthLeg t i) @?= nthLeg t ((i - 1) `mod` 6)
+            nextCCW (nthLeg t i) @?= nthLeg t ((i + 1) `mod` 6)
 
         foldMIncidentDartsFrom (nthIncidentDart c1 2) ccw (\ _ s -> return $! s + 1) (0 :: Int) >>= (@?= 4)
 
@@ -44,7 +44,7 @@ test = testGroup "Basic tangle tests"
             show lonerProjection
 
         assertEqual "implode" "(Tangle (0 O) (Border [ (Dart 1 0) (Dart 1 1) (Dart 1 2) (Dart 1 3) ]) (Crossing 1 (I / D4 | +) [ (Leg 0) (Leg 1) (Leg 2) (Leg 3) ]))" $
-            show $ (implode (0, [(1, 0), (1, 1), (1, 2), (1, 3)], [([(0, 0), (0, 1), (0, 2), (0, 3)], projectionCrossing)]) :: TangleProjection)
+            show (implode (0, [(1, 0), (1, 1), (1, 2), (1, 3)], [([(0, 0), (0, 1), (0, 2), (0, 3)], projectionCrossing)]) :: TangleProjection)
 
     , testCase "Cascade code" $
         explode (decodeCascadeCodeFromPairs [(1, 0), (0, 5), (0, 3), (0, 3), (0, 5)]) @?=

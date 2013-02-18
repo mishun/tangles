@@ -5,6 +5,7 @@ module Math.KnotTh.Invariants.Util.ThreadExpansion
 import Data.List (sort, elemIndex)
 import Data.Array (array, (!))
 import qualified Data.Set as S
+import Control.Arrow (first)
 import Math.KnotTh.Tangle
 
 
@@ -33,8 +34,9 @@ threadExpansion invariant tangle =
                             where
                                 c = incidentCrossing b
 
-                indices = array (crossingIndexRange tangle) $ map (\ (c, x) -> (crossingIndex c, x)) $
-                    zip (allCrossings tangle) (repeat 0) ++ zip targets [1 ..]
+                indices = array (crossingIndexRange tangle) $
+                    map (first crossingIndex) $
+                        zip (allCrossings tangle) (repeat 0) ++ zip targets [1 ..]
 
                 findTarget u
                     | isLeg v    =

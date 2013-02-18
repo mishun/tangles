@@ -11,6 +11,7 @@ module Math.KnotTh.Invariants.Util.Poly
 
 import Data.Ratio ((%), numerator)
 import qualified Data.Map as M
+import Control.Arrow (second)
 import qualified Math.Algebra.Field.Base as B
 import qualified Math.Projects.KnotTheory.LaurentMPoly as LMP
 
@@ -35,7 +36,7 @@ normalizeBy2 (LMP.LP denominator) (LMP.LP monomials)
     | remainder /= 0  = error "normalizeBy: non-divisible"
     | otherwise       =
         let (LMP.LP q') = factor * quotient
-        in LMP.LP $ map (\ (a, b) -> (a, numerator b)) q'
+        in LMP.LP $ map (second numerator) q'
     where
         factor = LMP.LP [(LMP.LM $ M.map (+ (-1)) $ foldl (\ a (LMP.LM b, _) -> M.unionWith min a b) M.empty monomials, 1)]
         (quotient, remainder) = LMP.quotRemLP
@@ -63,7 +64,7 @@ normalizeBy (LMP.LP denominator) (LMP.LP monomials)
     | remainder /= 0  = error "normalizeBy: non-divisible"
     | otherwise       =
         let (LMP.LP q') = factor * quotient
-        in LMP.LP $ map (\ (a, b) -> (a, numerator b)) q'
+        in LMP.LP $ map (second numerator) q'
     where
         factor = LMP.LP [(LMP.LM $ M.map (+ (-1)) $ foldl (\ a (LMP.LM b, _) -> M.unionWith min a b) M.empty monomials, 1)]
         (quotient, remainder) = LMP.quotRemLP

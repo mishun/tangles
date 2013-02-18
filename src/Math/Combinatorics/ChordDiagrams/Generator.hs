@@ -68,18 +68,8 @@ generateWithChecker minimalChordLength checker n yield initial = runST $ do
                     let match !pv = do
                             v <- unsafeRead next pv
                             when (v < min p (p + u - minLength + 1)) $ do
-                                when (v - u >= minLength) $ do
-                                    ok <- checker a u v
-                                    when ok $ do
-                                        unsafeWrite a u (v - u)
-                                        unsafeWrite a v (p + u - v)
-                                        hide u
-                                        hide v
-                                        matchRest minLength
-                                        restore v
-                                        restore u
-                                        unsafeWrite a u 0
-                                        unsafeWrite a v 0
+                                when (v - u >= minLength) $
+                                    try u v $ matchRest minLength
                                 match v
                     match u
                 else yieldAction
