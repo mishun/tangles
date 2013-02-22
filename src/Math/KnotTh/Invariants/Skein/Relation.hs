@@ -23,11 +23,14 @@ data Skein = Lplus | Lzero | Linfty
 
 
 class (Functor s) => StateModel s where
-    initialize :: (Ord a, Num a) => [(Skein, a)] -> s a
-    asConst    :: (Num a) => s a -> a
-    glueHandle :: (SkeinRelation r a) => r -> Int -> s a -> (UArray Int Int, s a)
-    connect    :: (SkeinRelation r a) => r -> (Int, s a) -> (Int, s a) -> (UArray Int Int, UArray Int Int, s a)
-    assemble   :: (SkeinRelation r a) => r -> Array Int (Int, Int) -> Array Int (Array Int Int) -> Array Int (s a) -> a -> s a
+    complexityRank :: s a -> Int
+    initialize     :: (Ord a, Num a) => [(Skein, a)] -> s a
+    asConst        :: (Num a) => s a -> a
+    glueHandle     :: (SkeinRelation r a) => r -> Int -> s a -> (UArray Int Int, s a)
+    connect        :: (SkeinRelation r a) => r -> (Int, s a) -> (Int, s a) -> (UArray Int Int, UArray Int Int, s a)
+    assemble       :: (SkeinRelation r a) => r -> Array Int (Int, Int) -> Array Int (Array Int Int) -> Array Int (s a) -> a -> s a
+    rotate         :: (SkeinRelation r a) => r -> Int -> s a -> s a
+    mirror         :: (SkeinRelation r a) => r -> s a -> s a
 
 
 class (Ord a, Num a, Show a, StateModel (SkeinRelationModel r)) => SkeinRelation r a | r -> a where

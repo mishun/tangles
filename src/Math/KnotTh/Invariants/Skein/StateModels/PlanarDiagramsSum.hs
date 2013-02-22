@@ -1,7 +1,5 @@
 module Math.KnotTh.Invariants.Skein.StateModels.PlanarDiagramsSum
     ( PlanarDiagramsSum
-    , rotatePlanarDiagramsSum
-    , mirrorPlanarDiagramsSum
     ) where
 
 import Data.List (foldl', intercalate)
@@ -79,6 +77,8 @@ forAllSummands (PlanarDiagramsSum _ list) = forM_ list
 
 
 instance StateModel PlanarDiagramsSum where
+    complexityRank (PlanarDiagramsSum _ list) = length list
+
     initialize =
         concatStateSums . map (\ (skein, factor) ->
                 let a = listArray (0, 3) $
@@ -184,28 +184,24 @@ instance StateModel PlanarDiagramsSum where
         substState global [1 .. n]
         (concatStateSums . map singletonStateSum) `fmap` readSTRef result
 
+    rotate _ rot
+        | rot == 0   = id
+        | otherwise  =
+            mapStateSum $ \ (PlanarDiagram x f) ->
+                let x' = runSTUArray $ do
+                        let (0, l) = bounds x
+                        a <- newArray_ (0, l)
+                        forM_ [0 .. l] $ \ !i ->
+                            writeArray a ((i + rot) `mod` (l + 1)) (((x ! i) + rot) `mod` (l + 1))
+                        return $! a
+                in singletonStateSum $ PlanarDiagram x' f
 
-rotatePlanarDiagramsSum :: (Eq a, Ord a, Num a) => Int -> PlanarDiagramsSum a -> PlanarDiagramsSum a
-rotatePlanarDiagramsSum rot
-    | rot == 0   = id
-    | otherwise  =
+    mirror _ =
         mapStateSum $ \ (PlanarDiagram x f) ->
             let x' = runSTUArray $ do
                     let (0, l) = bounds x
                     a <- newArray_ (0, l)
                     forM_ [0 .. l] $ \ !i ->
-                        writeArray a ((i + rot) `mod` (l + 1)) (((x ! i) + rot) `mod` (l + 1))
+                        writeArray a ((-i) `mod` (l + 1)) ((-(x ! i)) `mod` (l + 1))
                     return $! a
-            in singletonStateSum $ PlanarDiagram x' f 
-
-
-mirrorPlanarDiagramsSum :: (Eq a, Ord a, Num a) => PlanarDiagramsSum a -> PlanarDiagramsSum a
-mirrorPlanarDiagramsSum =
-    mapStateSum $ \ (PlanarDiagram x f) ->
-        let x' = runSTUArray $ do
-                let (0, l) = bounds x
-                a <- newArray_ (0, l)
-                forM_ [0 .. l] $ \ !i ->
-                    writeArray a ((-i) `mod` (l + 1)) ((-(x ! i)) `mod` (l + 1))
-                return $! a
-        in singletonStateSum $ PlanarDiagram x' f
+            in singletonStateSum $ PlanarDiagram x' f

@@ -1,7 +1,5 @@
 module Math.KnotTh.Invariants.Skein.StateModels.ChordDiagramsSum
     ( ChordDiagramsSum
-    , rotateChordDiagramsSum
-    , mirrorChordDiagramsSum
     ) where
 
 import Data.Function (on)
@@ -14,6 +12,7 @@ import Data.STRef (newSTRef, readSTRef, writeSTRef)
 import Control.Monad.ST (ST, runST)
 import Control.Monad (forM_, when, foldM_)
 import Control.DeepSeq
+import Control.Parallel.Strategies
 import Text.Printf
 import Math.KnotTh.Tangle.NonAlternating
 import Math.KnotTh.Tangle.Moves.Move
@@ -62,14 +61,15 @@ singletonStateSum summand @ (ChordDiagram a _) =
 concatStateSums :: (Eq a, Num a) => [ChordDiagramsSum a] -> ChordDiagramsSum a
 concatStateSums [] = error $ printf "concatStateSum: empty"
 concatStateSums list @ (ChordDiagramsSum order _ : _) =
-    ChordDiagramsSum order $ map (\ (!k, !v) -> ChordDiagram k v) $
-        filter ((/= 0) . snd) $ M.toList $
-            foldl' (\ !m (ChordDiagram !k !v) -> M.insertWith' (+) k v m) M.empty $
-                concatMap (\ (ChordDiagramsSum order' list') ->
-                        if order' == order
-                            then list'
-                            else error $ printf "concatStateSums: order conflict with %i and %i" order order'
-                    ) list
+    let s = map (\ (!k, !v) -> ChordDiagram k v) $
+            filter ((/= 0) . snd) $! M.toList $
+                foldl' (\ !m (ChordDiagram !k !v) -> M.insertWith' (+) k v m) M.empty $
+                    concatMap (\ (ChordDiagramsSum order' list') ->
+                            if order' == order
+                                then list'
+                                else error $ printf "concatStateSums: order conflict with %i and %i" order order'
+                        ) list
+    in ChordDiagramsSum order (s `using` evalList rseq)
 
 
 mapStateSum :: (Eq a, Num a) => (ChordDiagram a -> ChordDiagramsSum a) -> ChordDiagramsSum a -> ChordDiagramsSum a
@@ -105,10 +105,10 @@ restoreBasicTangle chordDiagram =
     in restore chordDiagram (listArray (0, l) $ map (\ i -> min i $ chordDiagram ! i) [0 .. l]) [0 .. l]
 
 
-decomposeTangle :: (SkeinRelation r a) => r -> a -> NonAlternatingTangle -> ChordDiagramsSum a
-decomposeTangle relation factor tangle
+decomposeTangle :: (SkeinRelation r a) => r -> Int -> a -> NonAlternatingTangle -> ChordDiagramsSum a
+decomposeTangle relation !depth !factor !tangle
     | numberOfFreeLoops tangle > 0  =
-        decomposeTangle relation
+        decomposeTangle relation depth
             (factor * (circleFactor relation ^ numberOfFreeLoops tangle))
             (changeNumberOfFreeLoops tangle 0)
     | otherwise                     =
@@ -147,10 +147,10 @@ decomposeTangle relation factor tangle
                 in if passOver d0 == on (<) ((\ d -> (threadIndex ! abs (marks ! d), order ! d)) . dartIndex) d0 d1
                     then tryCrossing rest
                     else concatStateSums
-                        [ decomposeTangle relation (factor * smoothLplusFactor relation) $ move tangle $
+                        [ decomposeTangle relation (depth + 1) (factor * smoothLplusFactor relation) $ move tangle $
                             modifyC False invertCrossing [c]
 
-                        , decomposeTangle relation (factor * (if isOverCrossing (crossingState c) then smoothLzeroFactor else smoothLinftyFactor) relation) $
+                        , decomposeTangle relation (depth + 1) (factor * (if isOverCrossing (crossingState c) then smoothLzeroFactor else smoothLinftyFactor) relation) $
                             move tangle $ do
                                 case () of
                                     _ | opposite d0 == d1 && opposite d3 == d2 -> emitCircle 2
@@ -160,7 +160,7 @@ decomposeTangle relation factor tangle
                                       | otherwise                              -> substituteC [(opposite d0, d1), (opposite d3, d2)]
                                 maskC [c]
 
-                        , decomposeTangle relation (factor * (if isOverCrossing (crossingState c) then smoothLinftyFactor else smoothLzeroFactor) relation) $
+                        , decomposeTangle relation (depth + 1) (factor * (if isOverCrossing (crossingState c) then smoothLinftyFactor else smoothLzeroFactor) relation) $
                             move tangle $ do
                                 case () of
                                     _ | opposite d0 == d3 && opposite d1 == d2 -> emitCircle 2
@@ -177,15 +177,17 @@ decomposeTangle relation factor tangle
 bruteForceRotate :: (SkeinRelation r a) => r -> Int -> ChordDiagramsSum a -> ChordDiagramsSum a
 bruteForceRotate relation rot
     | rot == 0   = id
-    | otherwise  = mapStateSum (\ (ChordDiagram a factor) -> decomposeTangle relation factor $ rotateTangle rot $ restoreBasicTangle a)
+    | otherwise  = mapStateSum (\ (ChordDiagram a factor) -> decomposeTangle relation 0 factor $ rotateTangle rot $ restoreBasicTangle a)
 
 
 bruteForceMirror :: (SkeinRelation r a) => r -> ChordDiagramsSum a -> ChordDiagramsSum a
 bruteForceMirror relation =
-    mapStateSum (\ (ChordDiagram a factor) -> decomposeTangle relation factor $ mirrorTangle $ restoreBasicTangle a)
+    mapStateSum (\ (ChordDiagram a factor) -> decomposeTangle relation 0 factor $ mirrorTangle $ restoreBasicTangle a)
 
 
 instance StateModel ChordDiagramsSum where
+    complexityRank (ChordDiagramsSum _ list) = length list
+
     initialize =
         concatStateSums . map (\ (skein, factor) ->
                 let a = listArray (0, 3) $
@@ -214,7 +216,7 @@ instance StateModel ChordDiagramsSum where
 
             !postSum = flip mapStateSum preSum $ \ (ChordDiagram x k) ->
                 let t = restoreBasicTangle x
-                in decomposeTangle relation k $ glueTangles 2 (nthLeg t p) (firstLeg identityTangle)
+                in decomposeTangle relation 0 k $ glueTangles 2 (nthLeg t p) (firstLeg identityTangle)
         in (subst, postSum)
 
     connect relation (!p, !sumV @ (ChordDiagramsSum !degreeV _)) (!q, !sumU @ (ChordDiagramsSum !degreeU _)) =
@@ -238,7 +240,7 @@ instance StateModel ChordDiagramsSum where
                 let ta = restoreBasicTangle xa
                 in flip mapStateSum sumU $ \ (ChordDiagram xb kb) ->
                     let tb = restoreBasicTangle xb
-                    in decomposeTangle relation (ka * kb) $ glueTangles 1 (nthLeg ta p) (nthLeg tb q)
+                    in decomposeTangle relation 0 (ka * kb) $ glueTangles 1 (nthLeg ta p) (nthLeg tb q)
         in (substV, substU, result)
 
     assemble relation border connections internals global = runST $ do
@@ -275,10 +277,6 @@ instance StateModel ChordDiagramsSum where
         substState global [1 .. n]
         (concatStateSums . map singletonStateSum) `fmap` readSTRef result
 
+    rotate = bruteForceRotate
 
-rotateChordDiagramsSum :: (SkeinRelation r a) => r -> Int -> ChordDiagramsSum a -> ChordDiagramsSum a
-rotateChordDiagramsSum = bruteForceRotate
-
-
-mirrorChordDiagramsSum :: (SkeinRelation r a) => r -> ChordDiagramsSum a -> ChordDiagramsSum a
-mirrorChordDiagramsSum = bruteForceMirror
+    mirror = bruteForceMirror

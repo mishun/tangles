@@ -71,8 +71,8 @@ minimalJonesPolynomialOfTangle tangle
     | l == 0     = min p $ fmap (invert jonesVar) p
     | otherwise  = minimum $ do
         rot <- [0 .. l - 1]
-        let rotated = rotatePlanarDiagramsSum rot p
-            mirrored = mirrorPlanarDiagramsSum rotated
+        let rotated = rotate jonesRelation rot p
+            mirrored = mirror jonesRelation rotated
         [rotated, fmap (invert jonesVar) rotated, mirrored, fmap (invert jonesVar) mirrored]
     where
         p = jonesPolynomial tangle

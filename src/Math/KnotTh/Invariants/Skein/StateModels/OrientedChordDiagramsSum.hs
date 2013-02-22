@@ -1,7 +1,5 @@
 module Math.KnotTh.Invariants.Skein.StateModels.OrientedChordDiagramsSum
     ( OrientedChordDiagramsSum
-    , rotateChordDiagramsSum
-    , mirrorChordDiagramsSum
     ) where
 
 import Data.Function (on)
@@ -87,7 +85,7 @@ restoreBasicTangle chordDiagram =
 
         restore :: UArray Int Int -> UArray Int Int -> [Int] -> NonAlternatingTangle
         restore a _ [] = implode (0, map ((,) 0) $ elems a, [])
-        restore a h (i : rest)
+        restore !a !h (!i : rest)
             | not cross  = restore a h rest
             | otherwise  =
                 let tangle = restore (a // [(i, j'), (j, i'), (i', j), (j', i)]) (h // [(i, h ! j), (j, h ! i)]) [0 .. l]
@@ -106,7 +104,7 @@ restoreBasicTangle chordDiagram =
 
 
 decomposeTangle :: (SkeinRelation r a) => r -> a -> NonAlternatingTangle -> OrientedChordDiagramsSum a
-decomposeTangle relation factor tangle
+decomposeTangle relation !factor !tangle
     | numberOfFreeLoops tangle > 0  =
         decomposeTangle relation
             (factor * (circleFactor relation ^ numberOfFreeLoops tangle))
@@ -186,6 +184,8 @@ bruteForceMirror relation =
 
 
 instance StateModel OrientedChordDiagramsSum where
+    complexityRank (OrientedChordDiagramsSum _ list) = length list
+
     initialize =
         concatStateSums . map (\ (skein, factor) ->
                 let a = listArray (0, 3) $
@@ -275,10 +275,6 @@ instance StateModel OrientedChordDiagramsSum where
         substState global [1 .. n]
         (concatStateSums . map singletonStateSum) `fmap` readSTRef result
 
+    rotate = bruteForceRotate
 
-rotateChordDiagramsSum :: (SkeinRelation r a) => r -> Int -> OrientedChordDiagramsSum a -> OrientedChordDiagramsSum a
-rotateChordDiagramsSum = bruteForceRotate
-
-
-mirrorChordDiagramsSum :: (SkeinRelation r a) => r -> OrientedChordDiagramsSum a -> OrientedChordDiagramsSum a
-mirrorChordDiagramsSum = bruteForceMirror
+    mirror = bruteForceMirror

@@ -6,6 +6,7 @@ module Math.KnotTh.Invariants.Skein.SkeinM.State
     , appendMultipleST
     , connectST
     , vertexDegreeST
+    , vertexRankST
     , neighbourST
     , killVertexST
     , enqueueST
@@ -141,6 +142,12 @@ vertexDegreeST s v =
     readArray (adjacent s) v >>=
         getBounds >>= \ (0, n) ->
             return $! n + 1
+
+
+vertexRankST :: (SkeinRelation r a) => SkeinState s r a -> Int -> ST s Int
+vertexRankST s v =
+    readArray (state s) v >>= \ st ->
+        return $! complexityRank st
 
 
 neighbourST :: (SkeinRelation r a) => SkeinState s r a -> (Int, Int) -> ST s (Int, Int)

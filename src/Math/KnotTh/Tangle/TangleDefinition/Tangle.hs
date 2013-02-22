@@ -390,13 +390,11 @@ instance KnottedWithConnectivity Tangle Crossing Dart where
         where
             edges = allEdges tangle
             con = dfs S.empty $ fst $ head edges
-            dfs vis c
-                | S.member c vis  = vis
-                | otherwise       = foldl' dfs (S.insert c vis) neigh
+            dfs vis c | S.member c vis  = vis
+                      | otherwise       = foldl' dfs (S.insert c vis) neigh
                 where
-                    neigh
-                        | isLeg c    = [opposite c]
-                        | otherwise  = [opposite c, nextCCW c, nextCW c]
+                    neigh | isLeg c    = [opposite c]
+                          | otherwise  = [opposite c, nextCCW c, nextCW c]
 
     isPrime tangle = connections == nub connections
         where
