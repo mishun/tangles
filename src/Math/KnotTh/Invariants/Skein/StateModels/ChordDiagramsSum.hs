@@ -81,26 +81,34 @@ forAllSummands :: (Monad m) => ChordDiagramsSum a -> (ChordDiagram a -> m ()) ->
 forAllSummands (ChordDiagramsSum _ list) = forM_ list
 
 
+canonicalHeightOrder :: Int -> (Int, Int) -> (Int, Int) -> Ordering
+canonicalHeightOrder _ (!a', !b') (!c', !d') =
+    let a = min a' b' ; b = max a' b'
+        c = min c' d' ; d = max c' d'
+    in case () of
+        _ | a < c && b > c && b < d -> GT
+          | a > c && a < d && b > d -> LT
+          | otherwise               -> EQ
+
+
 restoreBasicTangle :: UArray Int Int -> NonAlternatingTangle
-restoreBasicTangle chordDiagram =
+restoreBasicTangle !chordDiagram =
     let (0, l) = bounds chordDiagram
 
         restore :: UArray Int Int -> UArray Int Int -> [Int] -> NonAlternatingTangle
         restore a _ [] = implode (0, map ((,) 0) $ elems a, [])
-        restore a h (i : rest)
-            | not cross  = restore a h rest
-            | otherwise  =
-                let tangle = restore (a // [(i, j'), (j, i'), (i', j), (j', i)]) (h // [(i, h ! j), (j, h ! i)]) [0 .. l]
-                in rotateTangle i $ crossingTangle $ glueToBorder (nthLeg tangle j) 2 $
-                    if h ! i < h ! j
-                        then overCrossing
-                        else underCrossing
+        restore a h (i : rest) =
+            case canonicalHeightOrder (l + 1) (i, i') (j, j') of
+                EQ -> restore a h rest
+                _  -> let tangle = restore (a // [(i, j'), (j, i'), (i', j), (j', i)]) (h // [(i, h ! j), (j, h ! i)]) [0 .. l]
+                      in rotateTangle i $ crossingTangle $ glueToBorder (nthLeg tangle j) 2 $
+                          if h ! i < h ! j
+                              then overCrossing
+                              else underCrossing
             where
                 i' = a ! i
                 j = (i + 1) `mod` (l + 1)
                 j' = a ! j
-                cross = (min i i' < min j j' && max i i' < max j j' && min j j' < max i i')
-                    || (min j j' < min i i' && max j j' < max i i' && min i i' < max j j')
 
     in restore chordDiagram (listArray (0, l) $ map (\ i -> min i $ chordDiagram ! i) [0 .. l]) [0 .. l]
 
@@ -114,18 +122,21 @@ decomposeTangle relation !depth !factor !tangle
     | otherwise                     =
         let (n, marks, threads) = allThreadsWithMarks tangle
 
-            threadIndex :: UArray Int Int
-            threadIndex = array (1, n) $ flip map threads $ \ (i, thread) ->
-                case thread of
-                    []                     -> error "internal error"
-                    (h, _) : _ | isLeg h   -> (i, on min legPlace (fst $ head thread) (snd $ last thread))
-                               | otherwise -> (i, numberOfLegs tangle + i)
+            expectedPassOver =
+                let threadIndex :: UArray Int Int
+                    threadIndex = array (1, n) $ flip map threads $ \ (i, thread) ->
+                        case thread of
+                            []                     -> error "internal error"
+                            (h, _) : _ | isLeg h   -> (i, on min legPlace (fst $ head thread) (snd $ last thread))
+                                       | otherwise -> (i, numberOfLegs tangle + i)
 
-            order :: UArray Int Int
-            order = array (dartIndexRange tangle) $ do
-                (_, thread) <- threads
-                (i, (a, b)) <- zip [0 ..] thread
-                [(dartIndex a, 2 * i), (dartIndex b, 2 * i + 1)]
+                    order :: UArray Int Int
+                    order = array (dartIndexRange tangle) $ do
+                        (_, thread) <- threads
+                        (i, (a, b)) <- zip [0 ..] thread
+                        [(dartIndex a, 2 * i), (dartIndex b, 2 * i + 1)]
+
+                in \ d0 -> on (<) ((\ d -> (threadIndex ! abs (marks ! d), order ! d)) . dartIndex) d0 (nextCCW d0)
 
             tryCrossing [] =
                 let a = array (0, numberOfLegs tangle - 1) $ do
@@ -144,7 +155,7 @@ decomposeTangle relation !depth !factor !tangle
 
             tryCrossing (c : rest) =
                 let [d0, d1, d2, d3] = incidentDarts c
-                in if passOver d0 == on (<) ((\ d -> (threadIndex ! abs (marks ! d), order ! d)) . dartIndex) d0 d1
+                in if passOver d0 == expectedPassOver d0
                     then tryCrossing rest
                     else concatStateSums
                         [ decomposeTangle relation (depth + 1) (factor * smoothLplusFactor relation) $ move tangle $
@@ -188,7 +199,7 @@ bruteForceMirror relation =
 instance StateModel ChordDiagramsSum where
     complexityRank (ChordDiagramsSum _ list) = length list
 
-    initialize =
+    initialize _ =
         concatStateSums . map (\ (skein, factor) ->
                 let a = listArray (0, 3) $
                         case skein of
@@ -198,9 +209,9 @@ instance StateModel ChordDiagramsSum where
                 in singletonStateSum $ ChordDiagram a factor
             )
 
-    asConst (ChordDiagramsSum _ []) = 0
-    asConst (ChordDiagramsSum _ [ChordDiagram _ x]) = x
-    asConst _ = error "takeAsConst: constant expected"
+    asConst _ (ChordDiagramsSum _ []) = 0
+    asConst _ (ChordDiagramsSum _ [ChordDiagram _ x]) = x
+    asConst _ _ = error "takeAsConst: constant expected"
 
     glueHandle relation !p !preSum @ (ChordDiagramsSum !degree _) =
         let !p' = (p + 1) `mod` degree

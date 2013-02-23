@@ -24,8 +24,8 @@ data Skein = Lplus | Lzero | Linfty
 
 class (Functor s) => StateModel s where
     complexityRank :: s a -> Int
-    initialize     :: (Ord a, Num a) => [(Skein, a)] -> s a
-    asConst        :: (Num a) => s a -> a
+    initialize     :: (SkeinRelation r a) => r -> [(Skein, a)] -> s a
+    asConst        :: (SkeinRelation r a) => r -> s a -> a
     glueHandle     :: (SkeinRelation r a) => r -> Int -> s a -> (UArray Int Int, s a)
     connect        :: (SkeinRelation r a) => r -> (Int, s a) -> (Int, s a) -> (UArray Int Int, UArray Int Int, s a)
     assemble       :: (SkeinRelation r a) => r -> Array Int (Int, Int) -> Array Int (Array Int Int) -> Array Int (s a) -> a -> s a
@@ -65,7 +65,7 @@ resultOnStructure relation knot =
 instance SkeinStructure L.Link L.Crossing L.Dart where
     type ResultOnStructure L.Link s a = a
     endpointPlace = error "endpointPlace: must be no endpoints for link"
-    resultFromStateSum _ _ = asConst
+    resultFromStateSum relation _ = asConst relation
 
 
 instance SkeinStructure T.Tangle T.Crossing T.Dart where

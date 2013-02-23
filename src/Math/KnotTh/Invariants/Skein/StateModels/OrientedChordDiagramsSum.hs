@@ -186,7 +186,7 @@ bruteForceMirror relation =
 instance StateModel OrientedChordDiagramsSum where
     complexityRank (OrientedChordDiagramsSum _ list) = length list
 
-    initialize =
+    initialize _ =
         concatStateSums . map (\ (skein, factor) ->
                 let a = listArray (0, 3) $
                         case skein of
@@ -196,9 +196,9 @@ instance StateModel OrientedChordDiagramsSum where
                 in singletonStateSum $ OrientedChordDiagram a factor
             )
 
-    asConst (OrientedChordDiagramsSum _ []) = 0
-    asConst (OrientedChordDiagramsSum _ [OrientedChordDiagram _ x]) = x
-    asConst _ = error "takeAsConst: constant expected"
+    asConst _ (OrientedChordDiagramsSum _ []) = 0
+    asConst _ (OrientedChordDiagramsSum _ [OrientedChordDiagram _ x]) = x
+    asConst _ _ = error "takeAsConst: constant expected"
 
     glueHandle relation !p !preSum @ (OrientedChordDiagramsSum !degree _) =
         let !p' = (p + 1) `mod` degree

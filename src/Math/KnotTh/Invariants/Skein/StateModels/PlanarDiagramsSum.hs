@@ -79,7 +79,7 @@ forAllSummands (PlanarDiagramsSum _ list) = forM_ list
 instance StateModel PlanarDiagramsSum where
     complexityRank (PlanarDiagramsSum _ list) = length list
 
-    initialize =
+    initialize _ =
         concatStateSums . map (\ (skein, factor) ->
                 let a = listArray (0, 3) $
                         case skein of
@@ -89,9 +89,9 @@ instance StateModel PlanarDiagramsSum where
                 in singletonStateSum $ PlanarDiagram a factor
             )
 
-    asConst (PlanarDiagramsSum _ []) = 0
-    asConst (PlanarDiagramsSum _ [PlanarDiagram _ x]) = x
-    asConst _ = error "takeAsConst: constant expected"
+    asConst _ (PlanarDiagramsSum _ []) = 0
+    asConst _ (PlanarDiagramsSum _ [PlanarDiagram _ x]) = x
+    asConst _ _ = error "takeAsConst: constant expected"
 
     glueHandle relation !p !preSum @ (PlanarDiagramsSum !degree _) =
         let !p' = (p + 1) `mod` degree

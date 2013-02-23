@@ -55,7 +55,7 @@ stateFromKnotted relation' knot = do
 
         alive' <- newSTRef n
         active' <- newArray (1, n) True
-        state' <- newArray (1, n) $ initialize $ initialLplus relation'
+        state' <- newArray (1, n) $ initialize relation' $ initialLplus relation'
         queue' <- newSTRef [1 .. n]
         queued' <- newArray (1, n) True
         multiple' <- newSTRef $ circleFactor relation' ^ numberOfFreeLoops knot

@@ -14,9 +14,7 @@ tryRelaxVertex :: (SkeinRelation r a) => SkeinState s r a -> Int -> ST s Bool
 tryRelaxVertex s v = do
     degree <- vertexDegreeST s v
     case degree of
-        0 -> do
-            dissolveVertexST s v
-            return True
+        0 -> dissolveVertexST s v >> return True
 
         2 -> do
             a@(av, _) <- neighbourST s (v, 0)
@@ -46,7 +44,7 @@ tryRelaxVertex s v = do
 dissolveVertexST :: (SkeinRelation r a) => SkeinState s r a -> Int -> ST s ()
 dissolveVertexST s v = do
     stateSum <- getStateSumST s v
-    appendMultipleST s $ asConst stateSum
+    appendMultipleST s $ asConst (relation s) stateSum
     killVertexST s v
 
 
