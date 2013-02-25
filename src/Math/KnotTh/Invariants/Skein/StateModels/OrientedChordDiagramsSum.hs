@@ -186,6 +186,10 @@ bruteForceMirror relation =
 instance StateModel OrientedChordDiagramsSum where
     complexityRank (OrientedChordDiagramsSum _ list) = length list
 
+    projection (OrientedChordDiagramsSum _ list) = do
+        OrientedChordDiagram cd x <- list
+        return (restoreBasicTangle cd, x)
+
     initialize _ =
         concatStateSums . map (\ (skein, factor) ->
                 let a = listArray (0, 3) $

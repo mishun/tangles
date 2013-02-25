@@ -6,6 +6,7 @@ import Data.Function (on)
 import Data.List (foldl', intercalate)
 import qualified Data.Map as M
 import Data.Array.Base ((!), (//), bounds, elems, array, listArray, newArray, newArray_, readArray, writeArray, freeze)
+import Data.Array (Array)
 import Data.Array.Unboxed (UArray)
 import Data.Array.ST (STUArray, runSTUArray)
 import Data.STRef (newSTRef, readSTRef, writeSTRef)
@@ -19,7 +20,7 @@ import Math.KnotTh.Tangle.Moves.Move
 import Math.KnotTh.Invariants.Skein.Relation
 
 
-data ChordDiagram a = ChordDiagram !(UArray Int Int) !a deriving (Eq, Ord)
+data ChordDiagram a = ChordDiagram {-# UNPACK #-} !(UArray Int Int) !a deriving (Eq, Ord)
 
 
 instance Functor ChordDiagram where
@@ -35,7 +36,7 @@ instance (Show a) => Show (ChordDiagram a) where
         printf "(%s)%s" (show x) (show $ elems a)
 
 
-data ChordDiagramsSum a = ChordDiagramsSum !Int ![ChordDiagram a] deriving (Eq, Ord)
+data ChordDiagramsSum a = ChordDiagramsSum {-# UNPACK #-} !Int ![ChordDiagram a] deriving (Eq, Ord)
 
 
 instance Functor ChordDiagramsSum where
@@ -81,36 +82,68 @@ forAllSummands :: (Monad m) => ChordDiagramsSum a -> (ChordDiagram a -> m ()) ->
 forAllSummands (ChordDiagramsSum _ list) = forM_ list
 
 
-canonicalHeightOrder :: Int -> (Int, Int) -> (Int, Int) -> Ordering
-canonicalHeightOrder _ (!a', !b') (!c', !d') =
+{-# INLINE haveIntersection #-}
+haveIntersection :: (Int, Int) -> (Int, Int) -> Bool
+haveIntersection (!a', !b') (!c', !d') =
     let a = min a' b' ; b = max a' b'
         c = min c' d' ; d = max c' d'
-    in case () of
-        _ | a < c && b > c && b < d -> GT
-          | a > c && a < d && b > d -> LT
-          | otherwise               -> EQ
+    in (a < c && b > c && b < d) || (a > c && a < d && b > d)
+
+
+{-# INLINE canonicalOver #-}
+canonicalOver :: Int -> (Int, Int) -> (Int, Int) -> Bool
+canonicalOver n (!a, !b) (!c, !d) =
+    let sa = min (abs $ a - b) $ n - abs (a - b)
+        sb = min (abs $ c - d) $ n - abs (c - d)
+    in (sa, min a b) < (sb, min c d)
 
 
 restoreBasicTangle :: UArray Int Int -> NonAlternatingTangle
 restoreBasicTangle !chordDiagram =
-    let (0, l) = bounds chordDiagram
+    let cdl = 1 + snd (bounds chordDiagram)
 
-        restore :: UArray Int Int -> UArray Int Int -> [Int] -> NonAlternatingTangle
-        restore a _ [] = implode (0, map ((,) 0) $ elems a, [])
-        restore a h (i : rest) =
-            case canonicalHeightOrder (l + 1) (i, i') (j, j') of
-                EQ -> restore a h rest
-                _  -> let tangle = restore (a // [(i, j'), (j, i'), (i', j), (j', i)]) (h // [(i, h ! j), (j, h ! i)]) [0 .. l]
-                      in rotateTangle i $ crossingTangle $ glueToBorder (nthLeg tangle j) 2 $
-                          if h ! i < h ! j
-                              then overCrossing
-                              else underCrossing
+        restore :: UArray Int Int -> Array Int (Int, Int) -> [Int] -> NonAlternatingTangle
+        restore _ _ [] = error "impossible happened"
+        restore a h (i : rest) = case () of
+            _ | l == 0                           -> emptyTangle
+              | l == 2                           -> identityTangle
+              | i' == j                          ->
+                  let tangle = restore
+                          (listArray (0, l - 3) $ map (\ x -> ((a ! ((i + 2 + x) `mod` l)) - i - 2) `mod` l) [0 .. l - 3])
+                          (listArray (0, l - 3) $ map (\ x -> h ! ((i + 2 + x) `mod` l)) [0 .. l - 3])
+                          [0 .. l - 3]
+                  in rotateTangle i $ glueTangles 0 (firstLeg identityTangle) (lastLeg tangle)
+              | haveIntersection (i, i') (j, j') ->
+                  let tangle = restore (a // [(i, j'), (j, i'), (i', j), (j', i)]) (h // [(i, h ! j), (j, h ! i)]) [0 .. l - 1]
+                  in rotateTangle i $ crossingTangle $ glueToBorder (nthLeg tangle j) 2 $
+                      if canonicalOver cdl (h ! i) (h ! j)
+                          then overCrossing
+                          else underCrossing
+              | otherwise                        -> restore a h rest
             where
+                l = 1 + snd (bounds a)
                 i' = a ! i
-                j = (i + 1) `mod` (l + 1)
+                j = (i + 1) `mod` l
                 j' = a ! j
 
-    in restore chordDiagram (listArray (0, l) $ map (\ i -> min i $ chordDiagram ! i) [0 .. l]) [0 .. l]
+    in restore
+        chordDiagram
+        (listArray (0, cdl - 1) $ map (\ i -> (i, chordDiagram ! i)) [0 .. cdl - 1])
+        [0 .. cdl - 1]
+
+
+data ThreadTag = BorderThread {-# UNPACK #-} !(Int, Int) {-# UNPACK #-} !Int
+               | InternalThread {-# UNPACK #-} !Int {-# UNPACK #-} !Int
+
+
+tagPassOver :: Int -> ThreadTag -> ThreadTag -> Bool
+tagPassOver _ (InternalThread a ai) (InternalThread b bi) = (a, ai) < (b, bi)
+tagPassOver _ (InternalThread _ _) (BorderThread _ _) = False
+tagPassOver _ (BorderThread _ _) (InternalThread _ _) = True
+tagPassOver n (BorderThread a ai) (BorderThread b bi)
+    | a == b                = ai < bi
+    | haveIntersection a b  = canonicalOver n a b
+    | otherwise             = a < b
 
 
 decomposeTangle :: (SkeinRelation r a) => r -> Int -> a -> NonAlternatingTangle -> ChordDiagramsSum a
@@ -120,23 +153,22 @@ decomposeTangle relation !depth !factor !tangle
             (factor * (circleFactor relation ^ numberOfFreeLoops tangle))
             (changeNumberOfFreeLoops tangle 0)
     | otherwise                     =
-        let (n, marks, threads) = allThreadsWithMarks tangle
+        let (n, _, threads) = allThreadsWithMarks tangle
 
             expectedPassOver =
-                let threadIndex :: UArray Int Int
-                    threadIndex = array (1, n) $ flip map threads $ \ (i, thread) ->
-                        case thread of
-                            []                     -> error "internal error"
-                            (h, _) : _ | isLeg h   -> (i, on min legPlace (fst $ head thread) (snd $ last thread))
-                                       | otherwise -> (i, numberOfLegs tangle + i)
+                let tags :: Array Int ThreadTag
+                    tags = array (dartIndexRange tangle) $ do
+                        (tid, thread) <- threads
+                        let make = case thread of
+                                []                     -> error "internal error"
+                                (h, _) : _ | isDart h  -> InternalThread $ numberOfLegs tangle + tid
+                                           | otherwise -> let a = legPlace h
+                                                              b = legPlace $ snd $ last thread
+                                                          in BorderThread (min a b, max a b)
+                        (ord, (a, b)) <- [0 ..] `zip` thread
+                        [(dartIndex a, make $ 2 * ord), (dartIndex b, make $ 2 * ord + 1)]
 
-                    order :: UArray Int Int
-                    order = array (dartIndexRange tangle) $ do
-                        (_, thread) <- threads
-                        (i, (a, b)) <- zip [0 ..] thread
-                        [(dartIndex a, 2 * i), (dartIndex b, 2 * i + 1)]
-
-                in \ d0 -> on (<) ((\ d -> (threadIndex ! abs (marks ! d), order ! d)) . dartIndex) d0 (nextCCW d0)
+                in \ d -> on (tagPassOver $ numberOfLegs tangle) ((tags !) . dartIndex) d (nextCCW d)
 
             tryCrossing [] =
                 let a = array (0, numberOfLegs tangle - 1) $ do
@@ -198,6 +230,10 @@ bruteForceMirror relation =
 
 instance StateModel ChordDiagramsSum where
     complexityRank (ChordDiagramsSum _ list) = length list
+
+    projection (ChordDiagramsSum _ list) = do
+        ChordDiagram cd x <- list
+        return (restoreBasicTangle cd, x)
 
     initialize _ =
         concatStateSums . map (\ (skein, factor) ->

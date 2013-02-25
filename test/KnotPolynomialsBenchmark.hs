@@ -30,6 +30,15 @@ benchmarks =
             , bench "Jones" $
                 nf (show . jonesPolynomial) tangle
             ]
+
+    , bgroup "Twisted triple of pair" $
+        let tangle = twistedTripleSatellite $ rationalTangle [2]
+        in  [ bench "Kauffman F" $
+                nf (show . kauffmanFPolynomial) tangle
+
+            , bench "Jones" $
+                nf (show . jonesPolynomial) tangle
+            ]
     ]
 
 

@@ -13,6 +13,7 @@ import Control.Monad (forM_, when, foldM_)
 import Control.DeepSeq
 import Text.Printf
 import Math.KnotTh.Invariants.Skein.Relation
+import Math.KnotTh.Tangle
 
 
 data PlanarDiagram a = PlanarDiagram !(UArray Int Int) !a deriving (Eq, Ord)
@@ -78,6 +79,10 @@ forAllSummands (PlanarDiagramsSum _ list) = forM_ list
 
 instance StateModel PlanarDiagramsSum where
     complexityRank (PlanarDiagramsSum _ list) = length list
+
+    projection (PlanarDiagramsSum _ list) = do
+        PlanarDiagram cd x <- list
+        return (implode (0, map ((,) 0) $ elems cd, []), x)
 
     initialize _ =
         concatStateSums . map (\ (skein, factor) ->
