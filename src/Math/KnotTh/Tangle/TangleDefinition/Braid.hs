@@ -1,5 +1,6 @@
 module Math.KnotTh.Tangle.TangleDefinition.Braid
     ( (|=|)
+    , (|~|)
     , identityBraidTangle
     , braidGeneratorTangle
     , braidTangle
@@ -9,6 +10,7 @@ module Math.KnotTh.Tangle.TangleDefinition.Braid
 import Text.Printf
 import Math.KnotTh.Tangle.TangleDefinition.Class
 import Math.KnotTh.Tangle.TangleDefinition.Tangle
+import Math.KnotTh.Tangle.TangleDefinition.Transform
 
 
 (|=|) :: (CrossingType ct) => Tangle ct -> Tangle ct -> Tangle ct
@@ -19,6 +21,12 @@ import Math.KnotTh.Tangle.TangleDefinition.Tangle
         al = numberOfLegs a
         bl = numberOfLegs b
         n = al `div` 2
+
+
+(|~|) :: (CrossingType ct) => Tangle ct -> Tangle ct -> Tangle ct
+(|~|) a b =
+    let k = numberOfLegs a `div` 2
+    in rotateTangle (-k) $ glueTangles 0 (nthLeg a k) (firstLeg b)
 
 
 identityBraidTangle :: (CrossingType ct) => Int -> Tangle ct

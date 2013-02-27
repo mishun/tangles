@@ -44,7 +44,7 @@ produceKnotted
                 brd = varE brdN
             in defaultImplodeExplode
                 { extraImplodeExplodeParams =
-                    [ (brdN, [t| [(Int, Int)] |], \ knot -> [| map (toPair . opposite) $ $(varE $ mkName "allLegs") $knot |])
+                    [ (brdN, [t| [(Int, Int)] |], \ t -> [| map (toPair . opposite) $ allLegs $t |])
                     ]
 
                 , extraImplodePairCases =
@@ -57,7 +57,7 @@ produceKnotted
                     ]
 
                 , extraExplodePairCases =
-                    [ \ d -> ([| $(varE $ mkName "isLeg") $d |], [| (,) (0 :: Int) $! $(varE $ mkName "legPlace") $d |])
+                    [ \ d -> ([| isLeg $d |], [| (,) (0 :: Int) $! legPlace $d |])
                     ]
 
                 , modifyImplodeLimit = Just $ \ n _ -> [| 4 * $n + $l - 1 :: Int |]
@@ -120,8 +120,7 @@ produceKnotted
         , modifyFoldMIncidentDartsFrom = Just $ \ (d, _) e ->
             [|  if isDart $d
                     then $e
-                    else error $ printf "foldMIncidentDartsFrom: taken from leg %i"
-                        ($(varE $ mkName "legPlace") $d)
+                    else error $ printf "foldMIncidentDartsFrom: taken from leg %i" (legPlace $d)
             |]
 
         , emptyExtraInitializers =
