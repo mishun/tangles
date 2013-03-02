@@ -2,16 +2,17 @@ module Math.KnotTh.Invariants.Skein.StateModels.ChordDiagramsSum
     ( ChordDiagramsSum
     ) where
 
+--import Debug.Trace
 import Data.Function (on)
 import Data.List (foldl', intercalate)
 import qualified Data.Map as M
 import Data.Array.Base ((!), (//), bounds, elems, array, listArray, newArray, newArray_, readArray, writeArray, freeze)
 import Data.Array (Array)
 import Data.Array.Unboxed (UArray)
-import Data.Array.ST (STUArray, runSTUArray)
+import Data.Array.ST (STUArray)
 import Data.STRef (newSTRef, readSTRef, writeSTRef)
 import Control.Monad.ST (ST, runST)
-import Control.Monad (forM_, when, foldM_)
+import Control.Monad (forM_, when)
 import Control.DeepSeq
 import Control.Parallel.Strategies
 import Text.Printf
@@ -92,10 +93,11 @@ haveIntersection (!a', !b') (!c', !d') =
 
 {-# INLINE canonicalOver #-}
 canonicalOver :: Int -> (Int, Int) -> (Int, Int) -> Bool
-canonicalOver n (!a, !b) (!c, !d) =
-    let sa = min (abs $ a - b) $ n - abs (a - b)
-        sb = min (abs $ c - d) $ n - abs (c - d)
-    in (sa, min a b) < (sb, min c d)
+canonicalOver _ (!a, !b) (!c, !d) =
+    min a b < min c d
+--    let sa = min (abs $ a - b) $ n - abs (a - b)
+--        sb = min (abs $ c - d) $ n - abs (c - d)
+--    in (sa, min a b) < (sb, min c d)
 
 
 restoreBasicTangle :: UArray Int Int -> NonAlternatingTangle
@@ -181,7 +183,7 @@ decomposeTangle relation !depth !factor !tangle
                             _                    -> []
 
                     w = selfWrithe tangle
-                in singletonStateSum $ ChordDiagram a $ factor *
+                in {- trace (printf "d = %i" depth) $ -} singletonStateSum $ ChordDiagram a $ factor *
                     ((if w >= 0 then twistPFactor else twistNFactor) relation ^ abs w) *
                         (circleFactor relation ^ (n - numberOfLegs tangle `div` 2))
 
@@ -249,48 +251,38 @@ instance StateModel ChordDiagramsSum where
     asConst _ (ChordDiagramsSum _ [ChordDiagram _ x]) = x
     asConst _ _ = error "takeAsConst: constant expected"
 
-    glueHandle relation !p !preSum @ (ChordDiagramsSum !degree _) =
+    glueHandle relation !p !preSum @ (ChordDiagramsSum !degree _) = {- trace (printf "%i[%i] ) %i" degree (complexityRank preSum) p) $ -}
         let !p' = (p + 1) `mod` degree
 
-            !subst = runSTUArray $ do
-                a <- newArray (0, degree - 1) (-1) :: ST s (STUArray s Int Int)
-                foldM_ (\ !k !i ->
-                    if i == p' || i == p
-                        then return $! k
-                        else writeArray a i k >> (return $! k + 1)
-                    ) 0 $ [p .. degree - 1] ++ [0 .. p - 1]
-                return $! a
+            !subst = listArray (0, degree - 1) $
+                if p' == 0
+                    then [-1] ++ [0 .. degree - 3] ++ [-1]
+                    else [0 .. p - 1] ++ [-1, -1] ++ [p .. degree - 3]
 
             !postSum = flip mapStateSum preSum $ \ (ChordDiagram x k) ->
                 let t = restoreBasicTangle x
-                in decomposeTangle relation 0 k $ glueTangles 2 (nthLeg t p) (firstLeg identityTangle)
+                in decomposeTangle relation 0 k $
+                    rotateTangle (if p == 0 || p' == 0 then 0 else p' + 1 - degree) $
+                        glueTangles 2 (nthLeg t p) (firstLeg identityTangle)
         in (subst, postSum)
 
-    connect relation (!p, !sumV @ (ChordDiagramsSum !degreeV _)) (!q, !sumU @ (ChordDiagramsSum !degreeU _)) =
-        let !substV = runSTUArray $ do
-                a <- newArray (0, degreeV - 1) (-1) :: ST s (STUArray s Int Int)
-                forM_ [p + 1 .. degreeV - 1] $ \ !i ->
-                    writeArray a i $ i - p - 1
-                forM_ [0 .. p - 1] $ \ !i ->
-                    writeArray a i $ i + degreeV - p - 1
-                return $! a
+    connect relation (!p, !sumV @ (ChordDiagramsSum !degreeV _)) (!q, !sumU @ (ChordDiagramsSum !degreeU _)) = {- trace (printf "%i[%i] -- %i[%i]" degreeV (complexityRank sumV) degreeU (complexityRank sumU)) $ -}
+        let !substV = listArray (0, degreeV - 1) $
+                [0 .. p - 1] ++ [-1] ++ [ i + degreeU - 2 | i <- [p + 1 .. degreeV - 1]]
 
-            !substU = runSTUArray $ do
-                a <- newArray (0, degreeU - 1) (-1) :: ST s (STUArray s Int Int)
-                forM_ [q + 1 .. degreeU - 1] $ \ !i ->
-                    writeArray a i $ i + (degreeV - q - 2)
-                forM_ [0 .. q - 1] $ \ !i ->
-                    writeArray a i $ i + (degreeV + degreeU - q - 2)
-                return $! a
+            !substU = listArray (0, degreeU - 1) $
+                [ i + degreeU - q + p - 1 | i <- [0 .. q - 1]] ++ [-1] ++ [ i - q - 1 + p | i <- [q + 1 .. degreeU - 1]]
 
             !result = flip mapStateSum sumV $ \ (ChordDiagram xa ka) ->
                 let ta = restoreBasicTangle xa
                 in flip mapStateSum sumU $ \ (ChordDiagram xb kb) ->
                     let tb = restoreBasicTangle xb
-                    in decomposeTangle relation 0 (ka * kb) $ glueTangles 1 (nthLeg ta p) (nthLeg tb q)
+                    in decomposeTangle relation 0 (ka * kb) $
+                        rotateTangle (p + 1 - degreeV) $
+                            glueTangles 1 (nthLeg ta p) (nthLeg tb q)
         in (substV, substU, result)
 
-    assemble relation border connections internals global = runST $ do
+    assemble relation border connections internals global = {- trace "assemble" $ -} runST $ do
         let (0, l) = bounds border
         let (1, n) = bounds internals
 

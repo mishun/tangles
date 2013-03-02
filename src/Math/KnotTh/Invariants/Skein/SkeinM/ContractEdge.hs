@@ -43,10 +43,10 @@ contractEdgeST s (!v, !p) = do
 
     degreeV <- vertexDegreeST s v
     degreeU <- vertexDegreeST s u
-
-    enqueueST s =<< if degreeV <= degreeU
-        then contract s (v, p) (u, q)
-        else contract s (u, q) (v, p)
+    enqueueST s =<<
+        if degreeV >= degreeU
+            then contract s (v, p) (u, q)
+            else contract s (u, q) (v, p)
 
 
 contract :: (SkeinRelation r a) => SkeinState s r a -> (Int, Int) -> (Int, Int) -> ST s Int
