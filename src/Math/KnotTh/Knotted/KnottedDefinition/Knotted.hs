@@ -16,6 +16,7 @@ module Math.KnotTh.Knotted.KnottedDefinition.Knotted
     ) where
 
 import Control.DeepSeq
+import Control.Monad (guard)
 import Text.Printf
 import Math.Algebra.RotationDirection
 import Math.Algebra.Group.D4
@@ -74,6 +75,19 @@ instance (Show ct) => Show (CrossingState ct) where
             (show $ orientation c)
             (show $ symmetry c)
             (show $ crossingType c)
+
+
+instance (CrossingType ct, Read ct) => Read (CrossingState ct) where
+    readsPrec _ =
+        readParen True $ \ s0 -> do
+            (g, s1) <- reads s0
+            ("/", s2) <- lex s1
+            (sym, s3) <- reads s2
+            ("|", s4) <- lex s3
+            (ct, s5) <- reads s4
+            let cs = makeCrossing ct g
+            guard $ symmetry cs == sym
+            return (cs, s5)
 
 
 {-# INLINE isCrossingOrientationInverted #-}

@@ -11,11 +11,9 @@ import Math.KnotTh.Invariants.JonesPolynomial
 import Math.KnotTh.Invariants.KauffmanFPolynomial
 
 
---polynomialsBenchmark :: (SkeinStructure k c d) => k ArbitraryCrossing -> [Benchmark]
 polynomialsBenchmark knot =
     [ bench "Kauffman F" $
         nf (show . kauffmanFPolynomial) knot
-
     , bench "Jones" $
         nf (show . jonesPolynomial) knot
     ]
@@ -33,6 +31,10 @@ benchmarks =
 
     , bgroup "Twisted triple of pair" $
         let tangle = twistedTripleSatellite $ rationalTangle [2]
+        in polynomialsBenchmark tangle
+
+    , bgroup "Twisted triple of ..." $
+        let tangle = twistedTripleSatellite $ rationalTangle [2, 1]
         in polynomialsBenchmark tangle
 
     , bgroup "Tricky link with 7 threads" $

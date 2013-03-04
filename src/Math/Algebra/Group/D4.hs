@@ -15,6 +15,7 @@ module Math.Algebra.Group.D4
     , toDnSubGroup
     ) where
 
+import Data.Char (isSpace)
 import Data.Bits ((.&.), xor, shiftL, shiftR)
 import Data.Array.Base (unsafeAt)
 import Data.Array.Unboxed (UArray, listArray)
@@ -37,6 +38,20 @@ instance Show D4 where
             (False, 0) -> "I"
             (True , 0) -> "E"
             (m    , x) -> (if m then "EC" else "C") ++ (if x > 1 then '_' : show x else "")
+
+
+instance Read D4 where
+    readsPrec _ s = case dropWhile isSpace s of
+        'E' : 'C' : '_' : '3' : t -> [(ec3, t)]
+        'E' : 'C' : '_' : '2' : t -> [(ec2, t)]
+        'E' : 'C' : t             -> [(ec, t)]
+        'E' : t                   -> [(e, t)]
+        'C' : '_' : '3' : t       -> [(c3, t)]
+        'C' : '_' : '2' : t       -> [(c2, t)]
+        'C' : t                   -> [(c, t)]
+        'I' : t                   -> [(i, t)]
+        _                         -> []
+
 
 i, e, c, ec, c2, ec2, c3, ec3 :: D4
 i   = D4 0
@@ -94,6 +109,21 @@ instance Eq D4SubGroup where
 
 instance Show D4SubGroup where
     show (SubGroup k _ _) = ["D4", "C4", "GS", "DS", "C2", "ES", "ECS", "EC2S", "EC3S", "ID"] !! k
+
+
+instance Read D4SubGroup where
+    readsPrec _ s = case dropWhile isSpace s of
+        'D' : '4' : t             -> [(subGroupD4, t)]
+        'C' : '4' : t             -> [(subGroupC4, t)]
+        'G' : 'S' : t             -> [(subGroupGS, t)]
+        'D' : 'S' : t             -> [(subGroupDS, t)]
+        'C' : '2' : t             -> [(subGroupC2, t)]
+        'E' : 'S' : t             -> [(subGroupES, t)]
+        'E' : 'C' : 'S' : t       -> [(subGroupECS, t)]
+        'E' : 'C' : '2' : 'S' : t -> [(subGroupEC2S, t)]
+        'E' : 'C' : '3' : 'S' : t -> [(subGroupEC3S, t)]
+        'I' : 'D' : t             -> [(subGroupID, t)]
+        _                         -> []
 
 
 subGroupD4, subGroupC4, subGroupGS, subGroupDS, subGroupC2, subGroupES, subGroupECS, subGroupEC2S, subGroupEC3S, subGroupID :: D4SubGroup

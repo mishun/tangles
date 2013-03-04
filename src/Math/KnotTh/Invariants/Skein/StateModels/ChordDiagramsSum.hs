@@ -2,7 +2,7 @@ module Math.KnotTh.Invariants.Skein.StateModels.ChordDiagramsSum
     ( ChordDiagramsSum
     ) where
 
---import Debug.Trace
+import Debug.Trace
 import Data.Function (on)
 import Data.List (foldl', intercalate)
 import qualified Data.Map as M
@@ -18,6 +18,7 @@ import Control.Parallel.Strategies
 import Text.Printf
 import Math.KnotTh.Tangle.NonAlternating
 import Math.KnotTh.Tangle.Moves.Move
+import Math.KnotTh.Tangle.Moves.ReidemeisterReduction
 import Math.KnotTh.Invariants.Skein.Relation
 
 
@@ -148,10 +149,10 @@ tagPassOver n (BorderThread a ai) (BorderThread b bi)
     | otherwise             = a < b
 
 
-decomposeTangle :: (SkeinRelation r a) => r -> Int -> a -> NonAlternatingTangle -> ChordDiagramsSum a
-decomposeTangle relation !depth !factor !tangle
+decomposeTangle :: (SkeinRelation r a) => r -> [(Int, [(Int, Int)], [([(Int, Int)], ArbitraryCrossingState)])] -> a -> NonAlternatingTangle -> ChordDiagramsSum a
+decomposeTangle relation path !factor !tangle
     | numberOfFreeLoops tangle > 0  =
-        decomposeTangle relation depth
+        decomposeTangle relation path
             (factor * (circleFactor relation ^ numberOfFreeLoops tangle))
             (changeNumberOfFreeLoops tangle 0)
     | otherwise                     =
@@ -183,7 +184,7 @@ decomposeTangle relation !depth !factor !tangle
                             _                    -> []
 
                     w = selfWrithe tangle
-                in {- trace (printf "d = %i" depth) $ -} singletonStateSum $ ChordDiagram a $ factor *
+                in (if length path >= 29 then trace (show $ explode tangle : path) else id) $ singletonStateSum $ ChordDiagram a $ factor *
                     ((if w >= 0 then twistPFactor else twistNFactor) relation ^ abs w) *
                         (circleFactor relation ^ (n - numberOfLegs tangle `div` 2))
 
@@ -192,10 +193,11 @@ decomposeTangle relation !depth !factor !tangle
                 in if passOver d0 == expectedPassOver d0
                     then tryCrossing rest
                     else concatStateSums
-                        [ decomposeTangle relation (depth + 1) (factor * smoothLplusFactor relation) $ move tangle $
+                        [ decomposeTangle relation (explode tangle : path) (factor * smoothLplusFactor relation) $ move tangle $ do
                             modifyC False invertCrossing [c]
+                            --greedy [reduce2nd]
 
-                        , decomposeTangle relation (depth + 1) (factor * (if isOverCrossing (crossingState c) then smoothLzeroFactor else smoothLinftyFactor) relation) $
+                        , decomposeTangle relation (explode tangle : path) (factor * (if isOverCrossing (crossingState c) then smoothLzeroFactor else smoothLinftyFactor) relation) $
                             move tangle $ do
                                 case () of
                                     _ | opposite d0 == d1 && opposite d3 == d2 -> emitCircle 2
@@ -204,8 +206,9 @@ decomposeTangle relation !depth !factor !tangle
                                       | opposite d1 == d2                      -> connectC [(opposite d0, opposite d3)]
                                       | otherwise                              -> substituteC [(opposite d0, d1), (opposite d3, d2)]
                                 maskC [c]
+                                greedy [reduce2nd]
 
-                        , decomposeTangle relation (depth + 1) (factor * (if isOverCrossing (crossingState c) then smoothLinftyFactor else smoothLzeroFactor) relation) $
+                        , decomposeTangle relation (explode tangle : path) (factor * (if isOverCrossing (crossingState c) then smoothLinftyFactor else smoothLzeroFactor) relation) $
                             move tangle $ do
                                 case () of
                                     _ | opposite d0 == d3 && opposite d1 == d2 -> emitCircle 2
@@ -214,6 +217,7 @@ decomposeTangle relation !depth !factor !tangle
                                       | opposite d3 == d2                      -> connectC [(opposite d0, opposite d1)]
                                       | otherwise                              -> substituteC [(opposite d0, d3), (opposite d1, d2)]
                                 maskC [c]
+                                greedy [reduce2nd]
                         ]
 
         in tryCrossing $ allCrossings tangle
@@ -222,12 +226,12 @@ decomposeTangle relation !depth !factor !tangle
 bruteForceRotate :: (SkeinRelation r a) => r -> Int -> ChordDiagramsSum a -> ChordDiagramsSum a
 bruteForceRotate relation rot
     | rot == 0   = id
-    | otherwise  = mapStateSum (\ (ChordDiagram a factor) -> decomposeTangle relation 0 factor $ rotateTangle rot $ restoreBasicTangle a)
+    | otherwise  = mapStateSum (\ (ChordDiagram a factor) -> decomposeTangle relation [] factor $ rotateTangle rot $ restoreBasicTangle a)
 
 
 bruteForceMirror :: (SkeinRelation r a) => r -> ChordDiagramsSum a -> ChordDiagramsSum a
 bruteForceMirror relation =
-    mapStateSum (\ (ChordDiagram a factor) -> decomposeTangle relation 0 factor $ mirrorTangle $ restoreBasicTangle a)
+    mapStateSum (\ (ChordDiagram a factor) -> decomposeTangle relation [] factor $ mirrorTangle $ restoreBasicTangle a)
 
 
 instance StateModel ChordDiagramsSum where
@@ -261,7 +265,7 @@ instance StateModel ChordDiagramsSum where
 
             !postSum = flip mapStateSum preSum $ \ (ChordDiagram x k) ->
                 let t = restoreBasicTangle x
-                in decomposeTangle relation 0 k $
+                in decomposeTangle relation [explode t] k $
                     rotateTangle (if p == 0 || p' == 0 then 0 else p' + 1 - degree) $
                         glueTangles 2 (nthLeg t p) (firstLeg identityTangle)
         in (subst, postSum)
@@ -277,7 +281,7 @@ instance StateModel ChordDiagramsSum where
                 let ta = restoreBasicTangle xa
                 in flip mapStateSum sumU $ \ (ChordDiagram xb kb) ->
                     let tb = restoreBasicTangle xb
-                    in decomposeTangle relation 0 (ka * kb) $
+                    in decomposeTangle relation [explode ta, explode tb] (ka * kb) $
                         rotateTangle (p + 1 - degreeV) $
                             glueTangles 1 (nthLeg ta p) (nthLeg tb q)
         in (substV, substU, result)
