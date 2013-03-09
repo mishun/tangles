@@ -11,10 +11,13 @@ module Math.KnotTh.Knotted.KnottedDefinition.Knotted
     , mapCrossing
     , Knotted(..)
     , crossingIndexRange
+    , crossingsRange
     , dartIndexRange
+    , dartsRange
     , crossingCode
     ) where
 
+import Data.Ix (Ix)
 import Control.DeepSeq
 import Control.Monad (guard)
 import Text.Printf
@@ -128,6 +131,7 @@ class Knotted (knot :: * -> *) (cross :: * -> *) (dart :: * -> *) | knot -> cros
     numberOfEdges     :: knot ct -> Int
     allEdges          :: knot ct -> [(dart ct, dart ct)]
     nthCrossing       :: knot ct -> Int -> cross ct
+    nthDart           :: knot ct -> Int -> dart ct
     mapCrossings      :: (CrossingType a, CrossingType b) => (CrossingState a -> CrossingState b) -> knot a -> knot b
 
     crossingOwner     :: cross ct -> knot ct
@@ -135,23 +139,41 @@ class Knotted (knot :: * -> *) (cross :: * -> *) (dart :: * -> *) | knot -> cros
     crossingState     :: (CrossingType ct) => cross ct -> CrossingState ct
     nthIncidentDart   :: cross ct -> Int -> dart ct
 
+    dartOwner         :: dart ct -> knot ct
+    dartIndex         :: dart ct -> Int
     isDart            :: dart ct -> Bool
     nextCW, nextCCW   :: dart ct -> dart ct
     opposite          :: dart ct -> dart ct
     incidentCrossing  :: dart ct -> cross ct
     dartPlace         :: dart ct -> Int
-    dartOwner         :: dart ct -> knot ct
-    dartIndex         :: dart ct -> Int
 
 
 {-# INLINE crossingIndexRange #-}
 crossingIndexRange :: (Knotted k c d) => k ct -> (Int, Int)
-crossingIndexRange k = (1, numberOfCrossings k)
+crossingIndexRange knot = (1, numberOfCrossings knot)
+
+
+{-# INLINE crossingsRange #-}
+crossingsRange :: (Knotted k c d, Ix (c ct)) => k ct -> (c ct, c ct)
+crossingsRange knot
+    | n > 0      = (nthCrossing knot 1, nthCrossing knot n)
+    | otherwise  = error "crossingsRange: no crossings"
+    where
+        n = numberOfCrossings knot
 
 
 {-# INLINE dartIndexRange #-}
 dartIndexRange :: (Knotted k c d) => k ct -> (Int, Int)
 dartIndexRange k = (0, 2 * numberOfEdges k - 1)
+
+
+{-# INLINE dartsRange #-}
+dartsRange :: (Knotted k c d, Ix (d ct)) => k ct -> (d ct, d ct)
+dartsRange knot
+    | e > 0      = (nthDart knot 0, nthDart knot $ 2 * e - 1)
+    | otherwise  = error "dartsRange: no darts"
+    where
+        e = numberOfEdges knot
 
 
 {-# INLINE crossingCode #-}

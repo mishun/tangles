@@ -119,11 +119,11 @@ decomposeTangle relation !factor !tangle
                     (h, _) : _ | isLeg h   -> (i, on min legPlace (fst $ head thread) (snd $ last thread))
                                | otherwise -> (i, numberOfLegs tangle + i)
 
-            order :: UArray Int Int
-            order = array (dartIndexRange tangle) $ do
+            order :: UArray (Dart ArbitraryCrossing) Int
+            order = array (dartsRange tangle) $ do
                 (_, thread) <- threads
                 (i, (a, b)) <- zip [0 ..] thread
-                [(dartIndex a, 2 * i), (dartIndex b, 2 * i + 1)]
+                [(a, 2 * i), (b, 2 * i + 1)]
 
             tryCrossing [] =
                 let a = array (0, numberOfLegs tangle - 1) $ do
@@ -142,7 +142,7 @@ decomposeTangle relation !factor !tangle
 
             tryCrossing (c : rest) =
                 let [d0, d1, d2, d3] = incidentDarts c
-                in if passOver d0 == on (<) ((\ d -> (threadIndex ! abs (marks ! d), order ! d)) . dartIndex) d0 d1
+                in if passOver d0 == on (<) (\ d -> (threadIndex ! abs (marks ! d), order ! d)) d0 d1
                     then tryCrossing rest
                     else concatStateSums
                         [ decomposeTangle relation (factor * smoothLplusFactor relation) $ move tangle $

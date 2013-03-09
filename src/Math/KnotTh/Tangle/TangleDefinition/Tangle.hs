@@ -29,7 +29,7 @@ import Text.Printf
 import Math.KnotTh.Knotted.TH.Knotted
 import Math.KnotTh.Knotted.TH.Show
 import Math.KnotTh.Knotted
-import Math.KnotTh.Tangle.TangleDefinition.Class
+import Math.KnotTh.Tangle.TangleDefinition.TangleLike
 
 
 produceKnotted
@@ -150,15 +150,168 @@ instance TangleLike Tangle Crossing Dart where
         | isDart d   = error $ printf "legPlace: taken from non-leg %s" $ show d
         | otherwise  = i - 4 * numberOfCrossings t
 
+    identityTangle = Tangle
+        { loopsCount = 0
+        , crossCount = 0
+        , crossArray = listArray (0, 1) [1, 0]
+        , stateArray = listArray (0, -1) []
+        , legsCount  = 2
+        }
 
-identityTangle :: (CrossingType ct) => Tangle ct
-identityTangle = Tangle
-    { loopsCount = 0
-    , crossCount = 0
-    , crossArray = listArray (0, 1) [1, 0]
-    , stateArray = listArray (0, -1) []
-    , legsCount  = 2
-    }
+    glueTangles legsToGlue legA legB = runST $ do
+        unless (isLeg legA) $ fail $
+            printf "glueTangles: first leg parameter %s is not a leg" (show legA)
+        unless (isLeg legB) $ fail $
+            printf "glueTangles: second leg parameter %s is not a leg" (show legB)
+
+        let tangleA = dartTangle legA
+            lA = numberOfLegs tangleA
+            nA = numberOfCrossings tangleA
+            lpA = legPlace legA
+
+            tangleB = dartTangle legB
+            lB = numberOfLegs tangleB
+            nB = numberOfCrossings tangleB
+            lpB = legPlace legB
+
+        when (legsToGlue < 0 || legsToGlue > min lA lB) $ fail $
+            printf "glueTangles: number of legs to glue %i is out of bound" legsToGlue
+
+        let newL = lA + lB - 2 * legsToGlue
+            newC = nA + nB
+
+        visited <- newArray (0, legsToGlue - 1) False :: ST s (STUArray s Int Bool)
+
+        cr <- do
+            let {-# INLINE convertA #-}
+                convertA !x
+                    | x < 4 * nA        = return $! x
+                    | ml >= legsToGlue  = return $! 4 * newC + ml - legsToGlue
+                    | otherwise         = unsafeWrite visited ml True >> convertB (crossArray tangleB `unsafeAt` (4 * nB + (lpB - ml) `mod` lB))
+                    where
+                        ml = (x - 4 * nA - lpA) `mod` lA
+
+                {-# INLINE convertB #-}
+                convertB !x
+                    | x < 4 * nB            = return $! 4 * nA + x
+                    | ml < lB - legsToGlue  = return $! 4 * newC + ml + lA - legsToGlue
+                    | otherwise             = unsafeWrite visited (lB - ml - 1) True >> convertA (crossArray tangleA `unsafeAt` (4 * nA + (lpA + lB - ml - 1) `mod` lA))
+                    where
+                        ml = (x - 4 * nB - lpB - 1) `mod` lB
+
+            cr <- newArray_ (0, 4 * newC + newL - 1) :: ST s (STUArray s Int Int)
+            forM_ [0 .. 4 * nA - 1] $ \ !i ->
+                convertA (crossArray tangleA `unsafeAt` i)
+                    >>= unsafeWrite cr i
+            forM_ [0 .. 4 * nB - 1] $ \ !i ->
+                convertB (crossArray tangleB `unsafeAt` i)
+                    >>= unsafeWrite cr (4 * nA + i)
+            forM_ [0 .. lA - legsToGlue - 1] $ \ !i ->
+                convertA (crossArray tangleA `unsafeAt` (4 * nA + (lpA + legsToGlue + i) `mod` lA))
+                    >>= unsafeWrite cr (4 * newC + i)
+            forM_ [0 .. lB - legsToGlue - 1] $ \ !i ->
+                convertB (crossArray tangleB `unsafeAt` (4 * nB + (lpB + 1 + i) `mod` lB))
+                    >>= unsafeWrite cr (4 * newC + lA - legsToGlue + i) 
+            unsafeFreeze cr
+
+        st <- do
+            st <- newArray_ (0, newC - 1) :: ST s (STArray s Int a)
+            forM_ [0 .. nA - 1] $ \ !i ->
+                unsafeWrite st i $ stateArray tangleA `unsafeAt` i
+            forM_ [0 .. nB - 1] $ \ !i ->
+                unsafeWrite st (i + nA) $ stateArray tangleB `unsafeAt` i
+            unsafeFreeze st
+
+        extraLoops <- do
+            let markA a = do
+                    let ai = 4 * nA + (lpA + a) `mod` lA
+                        bi = crossArray tangleA `unsafeAt` ai
+                        b = (bi - 4 * nA - lpA) `mod` lA
+                    v <- readArray visited b
+                    unless v $ unsafeWrite visited b True >> markB b
+
+                markB a = do
+                    let ai = 4 * nB + (lpB - a) `mod` lB
+                        bi = crossArray tangleB `unsafeAt` ai
+                        b = (lpB - (bi - 4 * nB)) `mod` lB
+                    v <- readArray visited b
+                    unless v $ unsafeWrite visited b True >> markA b
+
+            foldM (\ !s !i -> do
+                    v <- readArray visited i
+                    if v
+                        then return $! s
+                        else markA i >> (return $! s + 1)
+                ) 0 [0 .. legsToGlue - 1]
+
+        return Tangle
+            { loopsCount = numberOfFreeLoops tangleA + numberOfFreeLoops tangleB + extraLoops
+            , crossCount = newC
+            , crossArray = cr
+            , stateArray = st
+            , legsCount  = newL
+            }
+
+    glueToBorder leg legsToGlue !crossingToGlue = runST $ do
+        unless (isLeg leg) $ fail $
+            printf "glueToBorder: leg expected, but %s received" (show leg)
+
+        when (legsToGlue < 0 || legsToGlue > 4) $ fail $
+            printf "glueToBorder: legsToGlue must be in [0 .. 4], but %i found" legsToGlue
+
+        let tangle = dartTangle leg
+            oldL = numberOfLegs tangle
+        when (oldL < legsToGlue) $ fail $
+            printf "glueToBorder: not enough legs to glue (l = %i, legsToGlue = %i)" oldL legsToGlue
+
+        let oldC = numberOfCrossings tangle
+            newC = oldC + 1
+            newL = oldL + 4 - 2 * legsToGlue
+            lp = legPlace leg
+
+        cr <- do
+            cr <- newArray_ (0, 4 * newC + newL - 1) :: ST s (STUArray s Int Int)
+
+            let {-# INLINE copyModified #-}
+                copyModified !index !index' =
+                    let y | x < 4 * oldC            = x
+                          | ml < oldL - legsToGlue  = 4 * newC + 4 - legsToGlue + ml
+                          | otherwise               = 4 * newC - 5 + oldL - ml
+                          where
+                              x = crossArray tangle `unsafeAt` index'
+                              ml = (x - 4 * oldC - lp - 1) `mod` oldL
+                    in unsafeWrite cr index y
+
+            forM_ [0 .. 4 * oldC - 1] $ \ !i ->
+                copyModified i i
+
+            forM_ [0 .. legsToGlue - 1] $ \ !i ->
+                copyModified (4 * (newC - 1) + i) (4 * oldC + ((lp - i) `mod` oldL))
+
+            forM_ [0 .. 3 - legsToGlue] $ \ !i ->
+                let a = 4 * (newC - 1) + legsToGlue + i
+                    b = 4 * newC + i
+                in unsafeWrite cr a b >> unsafeWrite cr b a
+
+            forM_ [0 .. oldL - 1 - legsToGlue] $ \ !i ->
+                copyModified (4 * newC + i + 4 - legsToGlue) (4 * oldC + ((lp + 1 + i) `mod` oldL))
+
+            unsafeFreeze cr
+
+        st <- do
+            st <- newArray_ (0, newC - 1) :: ST s (STArray s Int a)
+            forM_ [0 .. oldC - 1] $ \ !i ->
+                unsafeWrite st i $ stateArray tangle `unsafeAt` i
+            unsafeWrite st (newC - 1) crossingToGlue
+            unsafeFreeze st
+
+        return $! flip nthCrossing newC Tangle
+            { loopsCount = numberOfFreeLoops tangle
+            , crossCount = newC
+            , crossArray = cr
+            , stateArray = st
+            , legsCount  = newL
+            }
 
 
 zeroTangle :: (CrossingType ct) => Tangle ct
@@ -189,185 +342,6 @@ lonerTangle !cr = Tangle
     , stateArray = listArray (0, 0) [cr]
     , legsCount  = 4
     }
-
-
--- |     edgesToGlue = 1                 edgesToGlue = 2                 edgesToGlue = 3
--- ........|                       ........|                       ........|
--- (leg+1)-|---------------3       (leg+1)-|---------------2       (leg+1)-|---------------1
---         |  +=========+                  |  +=========+                  |  +=========+
---  (leg)--|--|-0-\ /-3-|--2        (leg)--|--|-0-\ /-3-|--1        (leg)--|--|-0-\ /-3-|--0
--- ........|  |    *    |                  |  |    *    |                  |  |    *    |
--- ........|  |   / \-2-|--1       (leg-1)-|--|-1-/ \-2-|--0       (leg-1)-|--|-1-/ \   |
--- ........|  |  1      |          ........|  +=========+                  |  |      2  |
--- ........|  |   \-----|--0       ........|                       (leg-2)-|--|-----/   |
--- ........|  +=========+          ........|                       ........|  +=========+
-glueToBorder :: (CrossingType ct) => Dart ct -> Int -> CrossingState ct -> Crossing ct
-glueToBorder leg legsToGlue crossingToGlue = runST $ do
-    unless (isLeg leg) $ fail $
-        printf "glueToBorder: leg expected, but %s received" (show leg)
-
-    when (legsToGlue < 0 || legsToGlue > 4) $ fail $
-        printf "glueToBorder: legsToGlue must be in [0 .. 4], but %i found" legsToGlue
-
-    let tangle = dartTangle leg
-    let oldL = numberOfLegs tangle
-    when (oldL < legsToGlue) $ fail $
-        printf "glueToBorder: not enough legs to glue (l = %i, legsToGlue = %i)" oldL legsToGlue
-
-    let oldC = numberOfCrossings tangle
-    let newC = oldC + 1
-    let newL = oldL + 4 - 2 * legsToGlue
-    let lp = legPlace leg
-
-    cr <- do
-        cr <- newArray_ (0, 4 * newC + newL - 1) :: ST s (STUArray s Int Int)
-
-        let {-# INLINE copyModified #-}
-            copyModified !index !index' = do
-                let y | x < 4 * oldC            = x
-                      | ml < oldL - legsToGlue  = 4 * newC + 4 - legsToGlue + ml
-                      | otherwise               = 4 * newC - 5 + oldL - ml
-                      where
-                          x = crossArray tangle `unsafeAt` index'
-                          ml = (x - 4 * oldC - lp - 1) `mod` oldL
-                unsafeWrite cr index y
-
-        forM_ [0 .. 4 * oldC - 1] $ \ !i ->
-            copyModified i i
-
-        forM_ [0 .. legsToGlue - 1] $ \ !i ->
-            copyModified (4 * (newC - 1) + i) (4 * oldC + ((lp - i) `mod` oldL))
-
-        forM_ [0 .. 3 - legsToGlue] $ \ !i -> do
-            let a = 4 * (newC - 1) + legsToGlue + i
-            let b = 4 * newC + i
-            unsafeWrite cr a b
-            unsafeWrite cr b a
-
-        forM_ [0 .. oldL - 1 - legsToGlue] $ \ !i ->
-            copyModified (4 * newC + i + 4 - legsToGlue) (4 * oldC + ((lp + 1 + i) `mod` oldL))
-
-        unsafeFreeze cr
-
-    st <- do
-        st <- newArray_ (0, newC - 1) :: ST s (STArray s Int a)
-        forM_ [0 .. oldC - 1] $ \ !i ->
-            unsafeWrite st i $ stateArray tangle `unsafeAt` i
-        unsafeWrite st (newC - 1) crossingToGlue
-        unsafeFreeze st
- 
-    let result = Tangle
-            { loopsCount = numberOfFreeLoops tangle
-            , crossCount = newC
-            , crossArray = cr
-            , stateArray = st
-            , legsCount  = newL
-            }
-
-    return $! nthCrossing result newC
-
-
--- |           legsToGlue = 2
---  ..............|
---  (legA + 2) ---|- 0
---  ..............|     |..............
---  (legA + 1) ---|-----|--- (legB - 1)
---  ..............|     |..............
---  (legA) -------|-----|--- (legB)
---  ..............|     |..............
-glueTangles :: (CrossingType ct) => Int -> Dart ct -> Dart ct -> Tangle ct
-glueTangles legsToGlue legA legB = runST $ do
-    unless (isLeg legA) $ fail $
-        printf "glueTangles: first leg parameter %s is not a leg" (show legA)
-    unless (isLeg legB) $ fail $
-        printf "glueTangles: second leg parameter %s is not a leg" (show legB)
-
-    let tangleA = dartTangle legA
-        lA = numberOfLegs tangleA
-        nA = numberOfCrossings tangleA
-        lpA = legPlace legA
-        tangleB = dartTangle legB
-        lB = numberOfLegs tangleB
-        nB = numberOfCrossings tangleB
-        lpB = legPlace legB
-
-    when (legsToGlue < 0 || legsToGlue > min lA lB) $ fail $
-        printf "glueTangles: number of legs to glue %i is out of bound" legsToGlue
-
-    let newL = lA + lB - 2 * legsToGlue
-        newC = nA + nB
-
-    visited <- newArray (0, legsToGlue - 1) False :: ST s (STUArray s Int Bool)
-
-    cr <- do
-        let {-# INLINE convertA #-}
-            convertA !x
-                | x < 4 * nA        = return $! x
-                | ml >= legsToGlue  = return $! 4 * newC + ml - legsToGlue
-                | otherwise         = unsafeWrite visited ml True >> convertB (crossArray tangleB `unsafeAt` (4 * nB + (lpB - ml) `mod` lB))
-                where
-                    ml = (x - 4 * nA - lpA) `mod` lA
-
-            {-# INLINE convertB #-}
-            convertB !x
-                | x < 4 * nB            = return $! 4 * nA + x
-                | ml < lB - legsToGlue  = return $! 4 * newC + ml + lA - legsToGlue
-                | otherwise             = unsafeWrite visited (lB - ml - 1) True >> convertA (crossArray tangleA `unsafeAt` (4 * nA + (lpA + lB - ml - 1) `mod` lA))
-                where
-                    ml = (x - 4 * nB - lpB - 1) `mod` lB
-
-        cr <- newArray_ (0, 4 * newC + newL - 1) :: ST s (STUArray s Int Int)
-        forM_ [0 .. 4 * nA - 1] $ \ !i ->
-            convertA (crossArray tangleA `unsafeAt` i)
-                >>= unsafeWrite cr i
-        forM_ [0 .. 4 * nB - 1] $ \ !i ->
-            convertB (crossArray tangleB `unsafeAt` i)
-                >>= unsafeWrite cr (4 * nA + i)
-        forM_ [0 .. lA - legsToGlue - 1] $ \ !i ->
-            convertA (crossArray tangleA `unsafeAt` (4 * nA + (lpA + legsToGlue + i) `mod` lA))
-                >>= unsafeWrite cr (4 * newC + i)
-        forM_ [0 .. lB - legsToGlue - 1] $ \ !i ->
-            convertB (crossArray tangleB `unsafeAt` (4 * nB + (lpB + 1 + i) `mod` lB))
-                >>= unsafeWrite cr (4 * newC + lA - legsToGlue + i) 
-        unsafeFreeze cr
-
-    st <- do
-        st <- newArray_ (0, newC - 1) :: ST s (STArray s Int a)
-        forM_ [0 .. nA - 1] $ \ !i ->
-            unsafeWrite st i $ stateArray tangleA `unsafeAt` i
-        forM_ [0 .. nB - 1] $ \ !i ->
-            unsafeWrite st (i + nA) $ stateArray tangleB `unsafeAt` i
-        unsafeFreeze st
-
-    extraLoops <- do
-        let markA a = do
-                let ai = 4 * nA + (lpA + a) `mod` lA
-                    bi = crossArray tangleA `unsafeAt` ai
-                    b = (bi - 4 * nA - lpA) `mod` lA
-                v <- readArray visited b
-                unless v $ unsafeWrite visited b True >> markB b
-
-            markB a = do
-                let ai = 4 * nB + (lpB - a) `mod` lB
-                    bi = crossArray tangleB `unsafeAt` ai
-                    b = (lpB - (bi - 4 * nB)) `mod` lB
-                v <- readArray visited b
-                unless v $ unsafeWrite visited b True >> markA b
-
-        foldM (\ !s !i -> do
-                v <- readArray visited i
-                if v
-                    then return $! s
-                    else markA i >> (return $! s + 1)
-            ) 0 [0 .. legsToGlue - 1]
-
-    return Tangle
-        { loopsCount = numberOfFreeLoops tangleA + numberOfFreeLoops tangleB + extraLoops
-        , crossCount = newC
-        , crossArray = cr
-        , stateArray = st
-        , legsCount  = newL
-        }
 
 
 produceShowDart ''Dart $ \ d -> [([| isLeg $d |], [| printf "(Leg %i)" $ legPlace $d |])]

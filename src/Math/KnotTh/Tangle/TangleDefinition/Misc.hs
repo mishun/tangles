@@ -1,6 +1,6 @@
 module Math.KnotTh.Tangle.TangleDefinition.Misc
     ( gridTangle
-    , groupTangle
+    , chainTangle
     ) where
 
 import Text.Printf
@@ -20,18 +20,18 @@ gridTangle (n, m) f
                 j <- [1 .. m]
                 i <- [1 .. n]
                 return (
-                    [ if j > 1 then (n * (j - 2) + i, 2) else (0, i - 1)
-                    , if i < n then (n * (j - 1) + i + 1, 3) else (0, j + n - 1)
-                    , if j < m then (n * j + i, 0) else (0, 2 * n + m - i)
+                    [ if j > 1 then (n * (j - 2) + i    , 2) else (0, i - 1            )
+                    , if i < n then (n * (j - 1) + i + 1, 3) else (0, j + n - 1        )
+                    , if j < m then (n * j + i          , 0) else (0, 2 * n + m - i    )
                     , if i > 1 then (n * (j - 1) + i - 1, 1) else (0, 2 * m + 2 * n - j)
                     ], f (i, j))
 
         in implode (0, border, body)
 
 
-groupTangle :: (CrossingType ct) => [CrossingState ct] -> Tangle ct
-groupTangle [] = zeroTangle
-groupTangle list =
+chainTangle :: (CrossingType ct) => [CrossingState ct] -> Tangle ct
+chainTangle [] = zeroTangle
+chainTangle list =
     let n = length list
     in implode
         ( 0

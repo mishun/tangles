@@ -326,9 +326,20 @@ produceKnotted knotPattern inst = execWriterT $ do
             k <- newName "k"
             i <- newName "i"
             clause [varP k, varP i] (normalB
-                [|  if $(varE i) < (1 :: Int) || $(varE i) > numberOfCrossings $(varE k)
-                        then error $ printf "nthCrossing: index %i is out of bounds (1, %i)" $(varE i) (numberOfCrossings $(varE k))
+                [|  let b = numberOfCrossings $(varE k)
+                    in if $(varE i) < (1 :: Int) || $(varE i) > b
+                        then error $ printf "nthCrossing: index %i is out of bounds (1, %i)" $(varE i) b
                         else $(conE crosN) $(varE k) ($(varE i) - 1 :: Int)
+                |]) []
+
+        , funD 'nthDart $ (:[]) $ do
+            k <- newName "k"
+            i <- newName "i"
+            clause [varP k, varP i] (normalB
+                [|  let b = 2 * numberOfEdges $(varE k) - 1
+                    in if $(varE i) < (0 :: Int) || $(varE i) > b
+                        then error $ printf "nthDart: index %i is out of bounds (0, %i)" $(varE i) b
+                        else $(conE dartN) $(varE k) $(varE i)
                 |]) []
 
         , funD 'mapCrossings $ (:[]) $ do

@@ -8,12 +8,12 @@ module Math.KnotTh.Tangle.TangleDefinition.Braid
     ) where
 
 import Text.Printf
-import Math.KnotTh.Tangle.TangleDefinition.Class
+import Math.KnotTh.Tangle.TangleDefinition.TangleLike
 import Math.KnotTh.Tangle.TangleDefinition.Tangle
 import Math.KnotTh.Tangle.TangleDefinition.Transform
 
 
-(|=|) :: (CrossingType ct) => Tangle ct -> Tangle ct -> Tangle ct
+(|=|) :: (CrossingType ct, TangleLike tangle c d) => tangle ct -> tangle ct -> tangle ct
 (|=|) a b
     | al /= bl   = error $ printf "braidLikeGlue: different numbers of legs (%i and %i)" al bl
     | otherwise  = glueTangles n (nthLeg a n) (nthLeg b (n - 1))
@@ -59,7 +59,4 @@ braidTangle n = foldl (\ braid -> (braid |=|) . braidGeneratorTangle n) (identit
 reversingBraidTangle :: (CrossingType ct) => Int -> CrossingState ct -> Tangle ct
 reversingBraidTangle n s
     | n < 0      = error $ printf "flipBraidTangle: requested number of strands %i is negative" n
-    | otherwise  = braidTangle n $ do
-        k <- [2 .. n]
-        i <- [0 .. n - k]
-        return (i, s)
+    | otherwise  = braidTangle n [ (i, s) | k <- [2 .. n], i <- [0 .. n - k] ]

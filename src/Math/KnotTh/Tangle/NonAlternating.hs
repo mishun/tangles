@@ -40,7 +40,6 @@ naTriangleTangle = decodeCascadeCode [(MU, 0), (XU, 1)]
 
 
 rationalTangle :: [Int] -> NonAlternatingTangle
-rationalTangle = foldl (\ tangle x ->
-        let g = groupTangle $ replicate (abs x) (if x >= 0 then overCrossing else underCrossing)
-        in glueTangles 2 (nthLeg g 2) (nthLeg tangle 2)
-    ) infinityTangle
+rationalTangle = flip foldl infinityTangle $ \ tangle x ->
+    let g = chainTangle $ replicate (abs x) (if x >= 0 then overCrossing else underCrossing)
+    in glueTangles 2 (nthLeg g 2) (nthLeg tangle 2)

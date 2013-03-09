@@ -7,6 +7,7 @@ module Math.KnotTh.Invariants.Skein.Relation
     , resultOnStructure
     ) where
 
+import Data.Ix (Ix)
 import Data.Array (Array)
 import Data.Array.Unboxed (UArray)
 import Math.KnotTh.Knotted
@@ -52,7 +53,7 @@ class (Ord a, Num a, Show a, StateModel (SkeinRelationModel r)) => SkeinRelation
     finalNormalization _ _ = id
 
 
-class (Knotted k c d, Eq (d ArbitraryCrossing), Eq (c ArbitraryCrossing)) => SkeinStructure k c d | k -> c, c -> d, d -> k where
+class (Knotted k c d, Ix (d ArbitraryCrossing), Ix (c ArbitraryCrossing)) => SkeinStructure k c d | k -> c, c -> d, d -> k where
     type ResultOnStructure k s a :: *
     endpointPlace      :: d ArbitraryCrossing -> Int
     resultFromStateSum :: (SkeinRelation r a) => r -> k ArbitraryCrossing -> SkeinRelationModel r a -> ResultOnStructure k (SkeinRelationModel r) a

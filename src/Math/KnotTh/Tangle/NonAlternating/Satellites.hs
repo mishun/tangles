@@ -36,6 +36,6 @@ twistedNSatellite n tangle
                         in half |=| half
                 in glueTangles n (nthLeg braid n) (nthLeg cross $ n - 1)
             where
-                wc = w ! crossingIndex c
+                wc = w ! c
                 s = crossingState c
                 cross = gridTangle (n, n) (const s)

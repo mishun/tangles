@@ -7,7 +7,7 @@ module Math.KnotTh.Tangle.TangleDefinition.Transform
 
 import Text.Printf
 import Math.Algebra.Group.Dn (Dn, pointsUnderGroup, reflection, rotation, permute, fromRotation, fromReflectionRotation)
-import Math.KnotTh.Tangle.TangleDefinition.Class
+import Math.KnotTh.Tangle.TangleDefinition.TangleLike
 import Math.KnotTh.Tangle.TangleDefinition.Tangle
 
 

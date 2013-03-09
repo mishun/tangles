@@ -159,8 +159,8 @@ decomposeTangle relation path !factor !tangle
         let (n, _, threads) = allThreadsWithMarks tangle
 
             expectedPassOver =
-                let tags :: Array Int ThreadTag
-                    tags = array (dartIndexRange tangle) $ do
+                let tags :: Array (Dart ArbitraryCrossing) ThreadTag
+                    tags = array (dartsRange tangle) $ do
                         (tid, thread) <- threads
                         let make = case thread of
                                 []                     -> error "internal error"
@@ -169,9 +169,9 @@ decomposeTangle relation path !factor !tangle
                                                               b = legPlace $ snd $ last thread
                                                           in BorderThread (min a b, max a b)
                         (ord, (a, b)) <- [0 ..] `zip` thread
-                        [(dartIndex a, make $ 2 * ord), (dartIndex b, make $ 2 * ord + 1)]
+                        [(a, make $ 2 * ord), (b, make $ 2 * ord + 1)]
 
-                in \ d -> on (tagPassOver $ numberOfLegs tangle) ((tags !) . dartIndex) d (nextCCW d)
+                in \ d -> on (tagPassOver $ numberOfLegs tangle) (tags !) d (nextCCW d)
 
             tryCrossing [] =
                 let a = array (0, numberOfLegs tangle - 1) $ do

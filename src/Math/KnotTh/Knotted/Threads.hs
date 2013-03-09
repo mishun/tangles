@@ -5,6 +5,7 @@ module Math.KnotTh.Knotted.Threads
     , allThreadsWithMarks
     ) where
 
+import Data.Ix (Ix)
 import Data.STRef (newSTRef, readSTRef, writeSTRef)
 import Data.Array.Unboxed (UArray)
 import Data.Array.Unsafe (unsafeFreeze)
@@ -30,26 +31,26 @@ maybeThreadContinuation d
     | otherwise  = Nothing
 
 
-allThreads :: (ThreadedCrossing ct, Knotted k c d, Eq (d ct)) => k ct -> [[(d ct, d ct)]]
+allThreads :: (ThreadedCrossing ct, Knotted k c d, Ix (d ct)) => k ct -> [[(d ct, d ct)]]
 allThreads knot =
     let (_, _, threads) = allThreadsWithMarks knot
     in map snd threads
 
 
-allThreadsWithMarks :: (ThreadedCrossing ct, Knotted k c d, Eq (d ct)) => k ct -> (Int, UArray Int Int, [(Int, [(d ct, d ct)])])
+allThreadsWithMarks :: (ThreadedCrossing ct, Knotted k c d, Ix (d ct)) => k ct -> (Int, UArray (d ct) Int, [(Int, [(d ct, d ct)])])
 allThreadsWithMarks knot = runST $ do
-    visited <- newArray (dartIndexRange knot) 0 :: ST s (STUArray s Int Int)
+    visited <- (newArray :: Ix i => (i, i) -> Int -> ST s (STUArray s i Int)) (dartsRange knot) 0
     threads <- newSTRef $ replicate (numberOfFreeLoops knot) (0, [])
 
     n <- flip (`foldM` 1) (allEdges knot) $ \ !i (!startA, !startB) -> do
-        v <- readArray visited $ dartIndex startA
+        v <- readArray visited startA
         if v /= 0
             then return $! i
             else do
                 let traceBack !prev !b = do
                         let a = opposite b
-                        writeArray visited (dartIndex a) i
-                        writeArray visited (dartIndex b) (-i)
+                        writeArray visited a i
+                        writeArray visited b (-i)
                         let !next = (a, b) : prev
                         if isEndpoint a
                             then return $! Right $! next
@@ -64,8 +65,8 @@ allThreadsWithMarks knot = runST $ do
                         | otherwise      = do
                             let !a = threadContinuation b'
                             let !b = opposite a
-                            writeArray visited (dartIndex a) i
-                            writeArray visited (dartIndex b) (-i)
+                            writeArray visited a i
+                            writeArray visited b (-i)
                             traceFront ((a, b) : prev) b
 
                 tb <- traceBack [] startB
