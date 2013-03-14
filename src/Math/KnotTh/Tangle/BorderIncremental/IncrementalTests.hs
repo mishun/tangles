@@ -27,9 +27,9 @@ testNo2ndReidemeisterReduction :: ArbitraryCrossingState -> Dart ArbitraryCrossi
 testNo2ndReidemeisterReduction cr leg gl =
     let legs = take gl $ iterate nextCW leg
         test (i, a, b)
-            | isLeg a' || isLeg b' || incidentCrossing a' /= incidentCrossing b'        = True
-            | (passOver a' == passOver' cr i) && (passOver b' == passOver' cr (i + 1))  = False
-            | otherwise                                                                 = True
+            | isLeg a' || isLeg b' || incidentCrossing a' /= incidentCrossing b'                      = True
+            | (passOver a' == passOverByDartId cr i) && (passOver b' == passOverByDartId cr (i + 1))  = False
+            | otherwise                                                                               = True
             where
                 a' = opposite a
                 b' = opposite b

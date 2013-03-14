@@ -112,6 +112,9 @@ library
         Math.Manifolds.SurfaceGraph.SphereStar,
         Math.Manifolds.SurfaceGraph.Util
     other-modules:
+        Math.KnotTh.Crossings.Arbitrary.Alternating,
+        Math.KnotTh.Crossings.Arbitrary.Arbitrary,
+        Math.KnotTh.Crossings.Arbitrary.Writhe,
         Math.KnotTh.Invariants.Skein,
         Math.KnotTh.Invariants.Skein.Relation,
         Math.KnotTh.Invariants.Skein.SkeinM,
