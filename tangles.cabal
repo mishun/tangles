@@ -52,9 +52,7 @@ library
         src/Math/Manifolds/SurfaceGraph/Embedding/Optimization.cpp
         src/Math/Manifolds/SurfaceGraph/SphereStar/Backtrack.cpp
     extra-libraries:    stdc++ gsl gslcblas
-    include-dirs:
-        ext/gsl-1.15/include/
-        src/
+    include-dirs:       src/
     exposed-modules:
         Math.Algebra.Group.D4,
         Math.Algebra.Group.Dn,
@@ -187,7 +185,6 @@ benchmark GraphDrawingBenchmark
     build-depends:      base, array, mtl, diagrams-lib, tangles
     main-is:            GraphDrawingBenchmark.hs
     hs-source-dirs:     test
-    extra-lib-dirs:     ext/gsl-1.15/lib/
 
 
 flag enable-TangleGeneratorBenchmark
@@ -204,7 +201,6 @@ benchmark TangleGeneratorBenchmark
     build-depends:      base, mtl, containers, diagrams-lib, tangles
     main-is:            TangleGeneratorBenchmark.hs
     hs-source-dirs:     test
-    extra-lib-dirs:     ext/gsl-1.15/lib/
 
 
 flag enable-NonAlternatingBenchmark
@@ -221,7 +217,6 @@ benchmark NonAlternatingBenchmark
     build-depends:      base, array, mtl, containers, diagrams-lib, tangles
     main-is:            NonAlternatingBenchmark.hs
     hs-source-dirs:     test
-    extra-lib-dirs:     ext/gsl-1.15/lib/
 
 
 flag enable-KnotPolynomialsBenchmark
@@ -238,7 +233,6 @@ benchmark KnotPolynomialsBenchmark
     build-depends:      base, array, mtl, containers, criterion, tangles
     main-is:            KnotPolynomialsBenchmark.hs
     hs-source-dirs:     test
-    extra-lib-dirs:     ext/gsl-1.15/lib/
 
 
 test-suite TestTangles
@@ -252,4 +246,3 @@ test-suite TestTangles
     build-depends:      base, test-framework, tangles
     main-is:            TestTangles.hs
     hs-source-dirs:     test
-    extra-lib-dirs:     ext/gsl-1.15/lib/
