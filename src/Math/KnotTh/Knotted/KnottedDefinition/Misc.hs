@@ -1,5 +1,7 @@
 module Math.KnotTh.Knotted.KnottedDefinition.Misc
-    ( isEndpoint
+    ( hasCrossings
+    , hasNoCrossings
+    , isEndpoint
     , numberOfEndpoints
     , isAdjacentToCrossing
     , nextDir
@@ -23,6 +25,16 @@ module Math.KnotTh.Knotted.KnottedDefinition.Misc
 
 import Math.Algebra.RotationDirection
 import Math.KnotTh.Knotted.KnottedDefinition.Knotted
+
+
+{-# INILNE hasCrossings #-}
+hasCrossings :: (Knotted k c d) => k ct -> Bool
+hasCrossings = (/= 0) . numberOfCrossings
+
+
+{-# INLINE hasNoCrossings #-}
+hasNoCrossings :: (Knotted k c d) => k ct -> Bool
+hasNoCrossings = (== 0) . numberOfCrossings
 
 
 {-# INLINE isEndpoint #-}

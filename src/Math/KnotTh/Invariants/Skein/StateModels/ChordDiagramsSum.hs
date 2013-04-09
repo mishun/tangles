@@ -4,84 +4,18 @@ module Math.KnotTh.Invariants.Skein.StateModels.ChordDiagramsSum
 
 import Debug.Trace
 import Data.Function (on)
-import Data.List (foldl', intercalate)
-import qualified Data.Map as M
-import Data.Array.Base ((!), (//), bounds, elems, array, listArray, newArray, newArray_, readArray, writeArray, freeze)
+import Data.Array.Base ((!), (//), bounds, array, listArray, newArray, newArray_, readArray, writeArray, freeze)
 import Data.Array (Array)
 import Data.Array.Unboxed (UArray)
 import Data.Array.ST (STUArray)
 import Data.STRef (newSTRef, readSTRef, writeSTRef)
 import Control.Monad.ST (ST, runST)
 import Control.Monad (forM_, when)
-import Control.DeepSeq
-import Control.Parallel.Strategies
-import Text.Printf
 import Math.KnotTh.Tangle.NonAlternating
 import Math.KnotTh.Tangle.Moves.Move
 import Math.KnotTh.Tangle.Moves.ReidemeisterReduction
 import Math.KnotTh.Invariants.Skein.Relation
-
-
-data ChordDiagram a = ChordDiagram {-# UNPACK #-} !(UArray Int Int) !a deriving (Eq, Ord)
-
-
-instance Functor ChordDiagram where
-    fmap f (ChordDiagram p x) = ChordDiagram p $! f x
-
-
-instance (NFData a) => NFData (ChordDiagram a) where
-    rnf (ChordDiagram p x) = p `seq` rnf x
-
-
-instance (Show a) => Show (ChordDiagram a) where
-    show (ChordDiagram a x) =
-        printf "(%s)%s" (show x) (show $ elems a)
-
-
-data ChordDiagramsSum a = ChordDiagramsSum {-# UNPACK #-} !Int ![ChordDiagram a] deriving (Eq, Ord)
-
-
-instance Functor ChordDiagramsSum where
-    fmap f (ChordDiagramsSum order list) = ChordDiagramsSum order $ map (fmap f) list
-
-
-instance (NFData a) => NFData (ChordDiagramsSum a) where
-    rnf (ChordDiagramsSum _ list) = rnf list
-
-
-instance (Show a) => Show (ChordDiagramsSum a) where
-    show (ChordDiagramsSum _ list) =
-        case list of
-            [] -> "0"
-            _  -> intercalate "+" $ map show list
-
-
-singletonStateSum :: ChordDiagram a -> ChordDiagramsSum a
-singletonStateSum summand @ (ChordDiagram a _) =
-    ChordDiagramsSum (1 + snd (bounds a)) [summand]
-
-
-concatStateSums :: (Eq a, Num a) => [ChordDiagramsSum a] -> ChordDiagramsSum a
-concatStateSums [] = error $ printf "concatStateSum: empty"
-concatStateSums list @ (ChordDiagramsSum order _ : _) =
-    let s = map (\ (!k, !v) -> ChordDiagram k v) $
-            filter ((/= 0) . snd) $! M.toList $
-                foldl' (\ !m (ChordDiagram !k !v) -> M.insertWith' (+) k v m) M.empty $
-                    concatMap (\ (ChordDiagramsSum order' list') ->
-                            if order' == order
-                                then list'
-                                else error $ printf "concatStateSums: order conflict with %i and %i" order order'
-                        ) list
-    in ChordDiagramsSum order (s `using` evalList rseq)
-
-
-mapStateSum :: (Eq a, Num a) => (ChordDiagram a -> ChordDiagramsSum a) -> ChordDiagramsSum a -> ChordDiagramsSum a
-mapStateSum _ (ChordDiagramsSum order []) = ChordDiagramsSum order []
-mapStateSum f (ChordDiagramsSum _ list) = concatStateSums $ map f list
-
-
-forAllSummands :: (Monad m) => ChordDiagramsSum a -> (ChordDiagram a -> m ()) -> m ()
-forAllSummands (ChordDiagramsSum _ list) = forM_ list
+import Math.KnotTh.Invariants.Skein.StateModels.ChordDiagramsSum.ChordDiagramsSum
 
 
 {-# INLINE haveIntersection #-}
@@ -139,42 +73,70 @@ data ThreadTag = BorderThread {-# UNPACK #-} !(Int, Int) {-# UNPACK #-} !Int
                | InternalThread {-# UNPACK #-} !Int {-# UNPACK #-} !Int
 
 
-tagPassOver :: Int -> ThreadTag -> ThreadTag -> Bool
-tagPassOver _ (InternalThread a ai) (InternalThread b bi) = (a, ai) < (b, bi)
-tagPassOver _ (InternalThread _ _) (BorderThread _ _) = False
-tagPassOver _ (BorderThread _ _) (InternalThread _ _) = True
-tagPassOver n (BorderThread a ai) (BorderThread b bi)
-    | a == b                = ai < bi
-    | haveIntersection a b  = canonicalOver n a b
-    | otherwise             = a < b
+irregularCrossings :: NonAlternatingTangle -> [NonAlternatingCrossing]
+irregularCrossings tangle =
+    let ((_, _, threads), ln) = threadsWithLinkingNumbers tangle
+
+        expectedPassOver =
+            let tags :: Array (Dart ArbitraryCrossing) ThreadTag
+                tags = array (dartsRange tangle) $ do
+                    (tid, thread) <- threads
+                    let make = case thread of
+                            []                     -> error "internal error"
+                            (h, _) : _ | isDart h  -> InternalThread $ numberOfLegs tangle + tid
+                                       | otherwise -> let a = legPlace h
+                                                          b = legPlace $ snd $ last thread
+                                                      in BorderThread (min a b, max a b)
+                    (ord, (a, b)) <- [0 ..] `zip` thread
+                    [(a, make $ 2 * ord), (b, make $ 2 * ord + 1)]
+
+                tagPassOver _ (InternalThread a ai) (InternalThread b bi) = (a, ai) < (b, bi)
+                tagPassOver _ (InternalThread _ _) (BorderThread _ _) = False
+                tagPassOver _ (BorderThread _ _) (InternalThread _ _) = True
+                tagPassOver n (BorderThread a ai) (BorderThread b bi)
+                    | a == b                = ai < bi
+                    | haveIntersection a b  = canonicalOver n a b
+                    | otherwise             = a < b
+
+            in \ d -> on (tagPassOver $ numberOfLegs tangle) (tags !) d (nextCCW d)
+
+    in filter (\ c -> let d0 = nthIncidentDart c 0 in passOver d0 /= expectedPassOver d0) $ allCrossings tangle
+
+
+smoothA :: NonAlternatingCrossing -> MoveM s ArbitraryCrossing ()
+smoothA cs = do
+    let dn@[_, d1, d2, d3] = incidentDarts cs
+    [od0, od1, od2, od3] <- mapM oppositeC dn
+    case () of
+        _ | od0 == d1 && od3 == d2 -> emitCircle 2
+          | od0 == d3 && od1 == d2 -> emitCircle 1
+          | od0 == d3              -> connectC [(od1, od2)]
+          | od1 == d2              -> connectC [(od0, od3)]
+          | otherwise              -> substituteC [(od0, d1), (od3, d2)]
+    maskC [cs]
+
+
+smoothB :: NonAlternatingCrossing -> MoveM s ArbitraryCrossing ()
+smoothB cs = do
+    let dn@[_, d1, d2, d3] = incidentDarts cs
+    [od0, od1, od2, od3] <- mapM oppositeC dn
+    case () of
+        _ | od0 == d3 && od1 == d2 -> emitCircle 2
+          | od0 == d1 && od3 == d2 -> emitCircle 1
+          | od0 == d1              -> connectC [(od2, od3)]
+          | od3 == d2              -> connectC [(od0, od1)]
+          | otherwise              -> substituteC [(od0, d3), (od1, d2)]
+    maskC [cs]
 
 
 decomposeTangle :: (SkeinRelation r a) => r -> [(Int, [(Int, Int)], [([(Int, Int)], ArbitraryCrossingState)])] -> a -> NonAlternatingTangle -> ChordDiagramsSum a
-decomposeTangle relation path !factor !tangle
-    | numberOfFreeLoops tangle > 0  =
-        decomposeTangle relation path
-            (factor * (circleFactor relation ^ numberOfFreeLoops tangle))
-            (changeNumberOfFreeLoops tangle 0)
-    | otherwise                     =
-        let (n, _, threads) = allThreadsWithMarks tangle
+decomposeTangle relation path !initialFactor !tangle' =
+    let tangle = move tangle' (greedy [reduce2nd])
+    in case irregularCrossings tangle of
+        []  ->
+                let (n, _, threads) = allThreadsWithMarks tangle
 
-            expectedPassOver =
-                let tags :: Array (Dart ArbitraryCrossing) ThreadTag
-                    tags = array (dartsRange tangle) $ do
-                        (tid, thread) <- threads
-                        let make = case thread of
-                                []                     -> error "internal error"
-                                (h, _) : _ | isDart h  -> InternalThread $ numberOfLegs tangle + tid
-                                           | otherwise -> let a = legPlace h
-                                                              b = legPlace $ snd $ last thread
-                                                          in BorderThread (min a b, max a b)
-                        (ord, (a, b)) <- [0 ..] `zip` thread
-                        [(a, make $ 2 * ord), (b, make $ 2 * ord + 1)]
-
-                in \ d -> on (tagPassOver $ numberOfLegs tangle) (tags !) d (nextCCW d)
-
-            tryCrossing [] =
-                let a = array (0, numberOfLegs tangle - 1) $ do
+                    a = array (0, numberOfLegs tangle - 1) $ do
                         (_, thread) <- threads
                         case thread of
                             (h, _) : _ | isLeg h ->
@@ -184,54 +146,23 @@ decomposeTangle relation path !factor !tangle
                             _                    -> []
 
                     w = selfWrithe tangle
-                in (if length path >= 29 then trace (show $ explode tangle : path) else id) $ singletonStateSum $ ChordDiagram a $ factor *
-                    ((if w >= 0 then twistPFactor else twistNFactor) relation ^ abs w) *
-                        (circleFactor relation ^ (n - numberOfLegs tangle `div` 2))
 
-            tryCrossing (c : rest) =
-                let [d0, d1, d2, d3] = incidentDarts c
-                in if passOver d0 == expectedPassOver d0
-                    then tryCrossing rest
-                    else concatStateSums
-                        [ decomposeTangle relation (explode tangle : path) (factor * smoothLplusFactor relation) $ move tangle $ do
-                            modifyC False invertCrossing [c]
-                            --greedy [reduce2nd]
+                in (if length path >= 29 then trace (show $ explode tangle : path) else id) $
+                    singletonStateSum $ ChordDiagram a $ initialFactor *
+                        ((if w >= 0 then twistPFactor else twistNFactor) relation ^ abs w) *
+                            (circleFactor relation ^ (n - numberOfLegs tangle `div` 2))
 
-                        , decomposeTangle relation (explode tangle : path) (factor * (if isOverCrossing (crossingState c) then smoothLzeroFactor else smoothLinftyFactor) relation) $
-                            move tangle $ do
-                                case () of
-                                    _ | opposite d0 == d1 && opposite d3 == d2 -> emitCircle 2
-                                      | opposite d0 == d3 && opposite d1 == d2 -> emitCircle 1
-                                      | opposite d0 == d3                      -> connectC [(opposite d1, opposite d2)]
-                                      | opposite d1 == d2                      -> connectC [(opposite d0, opposite d3)]
-                                      | otherwise                              -> substituteC [(opposite d0, d1), (opposite d3, d2)]
-                                maskC [c]
-                                greedy [reduce2nd]
-
-                        , decomposeTangle relation (explode tangle : path) (factor * (if isOverCrossing (crossingState c) then smoothLinftyFactor else smoothLzeroFactor) relation) $
-                            move tangle $ do
-                                case () of
-                                    _ | opposite d0 == d3 && opposite d1 == d2 -> emitCircle 2
-                                      | opposite d0 == d1 && opposite d3 == d2 -> emitCircle 1
-                                      | opposite d0 == d1                      -> connectC [(opposite d2, opposite d3)]
-                                      | opposite d3 == d2                      -> connectC [(opposite d0, opposite d1)]
-                                      | otherwise                              -> substituteC [(opposite d0, d3), (opposite d1, d2)]
-                                maskC [c]
-                                greedy [reduce2nd]
-                        ]
-
-        in tryCrossing $ allCrossings tangle
-
-
-bruteForceRotate :: (SkeinRelation r a) => r -> Int -> ChordDiagramsSum a -> ChordDiagramsSum a
-bruteForceRotate relation rot
-    | rot == 0   = id
-    | otherwise  = mapStateSum (\ (ChordDiagram a factor) -> decomposeTangle relation [] factor $ rotateTangle rot $ restoreBasicTangle a)
-
-
-bruteForceMirror :: (SkeinRelation r a) => r -> ChordDiagramsSum a -> ChordDiagramsSum a
-bruteForceMirror relation =
-    mapStateSum (\ (ChordDiagram a factor) -> decomposeTangle relation [] factor $ mirrorTangle $ restoreBasicTangle a)
+        ics ->
+            let splices [] invert factor = (:[]) $ decomposeTangle relation (explode tangle : path) factor (move tangle $ modifyC False invertCrossing invert)
+                splices (h : r) invert factor =
+                    let a = decomposeTangle relation (explode tangle : path)
+                                (factor * (if isOverCrossing (crossingState h) then smoothLzeroFactor else smoothLinftyFactor) relation)
+                                (move tangle $ modifyC False invertCrossing invert >> smoothA h)
+                        b = decomposeTangle relation (explode tangle : path)
+                                (factor * (if isOverCrossing (crossingState h) then smoothLinftyFactor else smoothLzeroFactor) relation)
+                                (move tangle $ modifyC False invertCrossing invert >> smoothB h)
+                    in a : b : splices r (h : invert) (factor * smoothLplusFactor relation)
+            in concatStateSums $ splices ics [] initialFactor
 
 
 instance StateModel ChordDiagramsSum where
@@ -309,7 +240,7 @@ instance StateModel ChordDiagramsSum where
 
             substState factor (v : rest) = do
                 r <- readArray rot v
-                forAllSummands (bruteForceRotate relation (-r) $ internals ! v) $ \ (ChordDiagram x f) -> do
+                forAllSummands (rotate relation (-r) $ internals ! v) $ \ (ChordDiagram x f) -> do
                     let (0, k) = bounds x
                     forM_ [0 .. k] $ \ !i -> do
                         let a = (connections ! v) ! ((i + r) `mod` (k + 1))
@@ -320,6 +251,9 @@ instance StateModel ChordDiagramsSum where
         substState global [1 .. n]
         (concatStateSums . map singletonStateSum) `fmap` readSTRef result
 
-    rotate = bruteForceRotate
+    rotate relation rot
+        | rot == 0   = id
+        | otherwise  = mapStateSum (\ (ChordDiagram a factor) -> decomposeTangle relation [] factor $ rotateTangle rot $ restoreBasicTangle a)
 
-    mirror = bruteForceMirror
+    mirror relation =
+        mapStateSum (\ (ChordDiagram a factor) -> decomposeTangle relation [] factor $ mirrorTangle $ restoreBasicTangle a)
