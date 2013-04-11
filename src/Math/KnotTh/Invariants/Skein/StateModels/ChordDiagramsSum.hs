@@ -14,6 +14,7 @@ import Control.Monad (forM_, when)
 import Math.KnotTh.Tangle.NonAlternating
 import Math.KnotTh.Tangle.Moves.Move
 import Math.KnotTh.Tangle.Moves.ReidemeisterReduction
+import Math.KnotTh.Tangle.Moves.Skein
 import Math.KnotTh.Invariants.Skein.Relation
 import Math.KnotTh.Invariants.Skein.StateModels.ChordDiagramsSum.ChordDiagramsSum
 
@@ -100,33 +101,10 @@ irregularCrossings tangle =
 
             in \ d -> on (tagPassOver $ numberOfLegs tangle) (tags !) d (nextCCW d)
 
-    in filter (\ c -> let d0 = nthIncidentDart c 0 in passOver d0 /= expectedPassOver d0) $ allCrossings tangle
-
-
-smoothA :: NonAlternatingCrossing -> MoveM s ArbitraryCrossing ()
-smoothA cs = do
-    let dn@[_, d1, d2, d3] = incidentDarts cs
-    [od0, od1, od2, od3] <- mapM oppositeC dn
-    case () of
-        _ | od0 == d1 && od3 == d2 -> emitCircle 2
-          | od0 == d3 && od1 == d2 -> emitCircle 1
-          | od0 == d3              -> connectC [(od1, od2)]
-          | od1 == d2              -> connectC [(od0, od3)]
-          | otherwise              -> substituteC [(od0, d1), (od3, d2)]
-    maskC [cs]
-
-
-smoothB :: NonAlternatingCrossing -> MoveM s ArbitraryCrossing ()
-smoothB cs = do
-    let dn@[_, d1, d2, d3] = incidentDarts cs
-    [od0, od1, od2, od3] <- mapM oppositeC dn
-    case () of
-        _ | od0 == d3 && od1 == d2 -> emitCircle 2
-          | od0 == d1 && od3 == d2 -> emitCircle 1
-          | od0 == d1              -> connectC [(od2, od3)]
-          | od3 == d2              -> connectC [(od0, od1)]
-          | otherwise              -> substituteC [(od0, d3), (od1, d2)]
-    maskC [cs]
+    in filter (\ c ->
+               let d0 = nthIncidentDart c 0
+               in passOver d0 /= expectedPassOver d0
+           ) $ allCrossings tangle
 
 
 decomposeTangle :: (SkeinRelation r a) => r -> [(Int, [(Int, Int)], [([(Int, Int)], ArbitraryCrossingState)])] -> a -> NonAlternatingTangle -> ChordDiagramsSum a
