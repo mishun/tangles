@@ -57,8 +57,8 @@ neighbours tangle = mapMaybe (\ d -> tryPass 1 d d [opposite d]) $ allDartsOfCro
             substituteC $ map (\ d -> (d, threadContinuation $ opposite d)) incoming ++ zip (map opposite incoming) outcoming
             connectC $ zip outcoming $ map (threadContinuation . opposite) incoming
             unless (null toRemove) $ do
-                maskC $ map adjacentCrossing toRemove
                 let p = nextCCW $ opposite $ last toRemove
                 let q = opposite $ nextCW $ opposite $ head toRemove
                 substituteC [(q, p)]
+                maskC $ map adjacentCrossing toRemove
             greedy [reduce1st, reduce2nd]

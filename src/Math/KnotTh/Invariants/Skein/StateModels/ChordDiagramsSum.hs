@@ -130,9 +130,8 @@ smoothB cs = do
 
 
 decomposeTangle :: (SkeinRelation r a) => r -> [(Int, [(Int, Int)], [([(Int, Int)], ArbitraryCrossingState)])] -> a -> NonAlternatingTangle -> ChordDiagramsSum a
-decomposeTangle relation path !initialFactor !tangle' =
-    let tangle = move tangle' (greedy [reduce2nd])
-    in case irregularCrossings tangle of
+decomposeTangle relation path !initialFactor !tangle =
+    case irregularCrossings tangle of
         []  ->
                 let (n, _, threads) = allThreadsWithMarks tangle
 
@@ -147,7 +146,7 @@ decomposeTangle relation path !initialFactor !tangle' =
 
                     w = selfWrithe tangle
 
-                in (if length path >= 29 then trace (show $ explode tangle : path) else id) $
+                in (if length path >= 10 then trace (show $ explode tangle : path) else id) $
                     singletonStateSum $ ChordDiagram a $ initialFactor *
                         ((if w >= 0 then twistPFactor else twistNFactor) relation ^ abs w) *
                             (circleFactor relation ^ (n - numberOfLegs tangle `div` 2))
@@ -157,10 +156,12 @@ decomposeTangle relation path !initialFactor !tangle' =
                 splices (h : r) invert factor =
                     let a = decomposeTangle relation (explode tangle : path)
                                 (factor * (if isOverCrossing (crossingState h) then smoothLzeroFactor else smoothLinftyFactor) relation)
-                                (move tangle $ modifyC False invertCrossing invert >> smoothA h)
+                                (move tangle $ modifyC False invertCrossing invert >> smoothA h >> greedy [reduce2nd])
+
                         b = decomposeTangle relation (explode tangle : path)
                                 (factor * (if isOverCrossing (crossingState h) then smoothLinftyFactor else smoothLzeroFactor) relation)
-                                (move tangle $ modifyC False invertCrossing invert >> smoothB h)
+                                (move tangle $ modifyC False invertCrossing invert >> smoothB h >> greedy [reduce2nd])
+
                     in a : b : splices r (h : invert) (factor * smoothLplusFactor relation)
             in concatStateSums $ splices ics [] initialFactor
 

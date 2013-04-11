@@ -4,7 +4,7 @@ module Math.KnotTh.Tangle.Moves.ReidemeisterReduction
     , reduce2nd
     ) where
 
-import Control.Monad (when)
+import Control.Monad (when, liftM2)
 import Control.Applicative
 import Math.KnotTh.Tangle.NonAlternating
 import Math.KnotTh.Tangle.Moves.Move
@@ -46,11 +46,11 @@ reduce2nd abl = do
         let abr = nextCCW abl
             bar = nextCW bal
             b = incidentCrossing bal
-            crossingsOk = passOver abl == passOver bal
 
+        crossingsOk <- liftM2 (==) (passOverC abl) (passOverC bal)
         structureOk <- (== abr) <$> oppositeC bar
 
-        if not $ structureOk && (a /= b) && crossingsOk then return False else do
+        if not (structureOk && (a /= b) && crossingsOk) then return False else do
             let ap = threadContinuation abl
                 aq = nextCW abl
                 br = nextCCW bal
@@ -60,8 +60,6 @@ reduce2nd abl = do
             qa <- oppositeC aq
             rb <- oppositeC br
             sb <- oppositeC bs
-
-            maskC [a, b]
 
             if qa == ap || rb == bs
                 then if qa == ap && rb == bs
@@ -77,4 +75,6 @@ reduce2nd abl = do
                     if pa == bs
                         then emitCircle 1
                         else connectC [(pa, sb)]
+
+            maskC [a, b]
             return True
