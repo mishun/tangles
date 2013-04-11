@@ -108,12 +108,13 @@ irregularCrossings tangle =
 
 
 decomposeTangle :: (SkeinRelation r a) => r -> [(Int, [(Int, Int)], [([(Int, Int)], ArbitraryCrossingState)])] -> a -> NonAlternatingTangle -> ChordDiagramsSum a
-decomposeTangle relation path !initialFactor !tangle =
-    case irregularCrossings tangle of
-        []  ->
-                let (n, _, threads) = allThreadsWithMarks tangle
+decomposeTangle relation path !initialFactor !tangle' =
+    let splices [] toInvert factor inter =
+            let tangle = move tangle' $ modifyC False invertCrossing toInvert
 
-                    a = array (0, numberOfLegs tangle - 1) $ do
+                (n, _, threads) = allThreadsWithMarks tangle
+
+                a = array (0, numberOfLegs tangle - 1) $ do
                         (_, thread) <- threads
                         case thread of
                             (h, _) : _ | isLeg h ->
@@ -122,26 +123,26 @@ decomposeTangle relation path !initialFactor !tangle =
                                 in [(i, j), (j, i)]
                             _                    -> []
 
-                    w = selfWrithe tangle
+                w = selfWrithe tangle
 
-                in (if length path >= 10 then trace (show $ explode tangle : path) else id) $
-                    singletonStateSum $ ChordDiagram a $ initialFactor *
-                        ((if w >= 0 then twistPFactor else twistNFactor) relation ^ abs w) *
-                            (circleFactor relation ^ (n - numberOfLegs tangle `div` 2))
+                in (if length path >= 10 then trace (show $ explode tangle' : path) else id) $
+                    (: map (uncurry $ decomposeTangle relation (explode tangle' : path)) inter) $
+                        singletonStateSum $ ChordDiagram a $ factor *
+                            ((if w >= 0 then twistPFactor else twistNFactor) relation ^ abs w) *
+                                (circleFactor relation ^ (n - numberOfLegs tangle `div` 2))
 
-        ics ->
-            let splices [] invert factor = (:[]) $ decomposeTangle relation (explode tangle : path) factor (move tangle $ modifyC False invertCrossing invert)
-                splices (h : r) invert factor =
-                    let a = decomposeTangle relation (explode tangle : path)
-                                (factor * (if isOverCrossing (crossingState h) then smoothLzeroFactor else smoothLinftyFactor) relation)
-                                (move tangle $ modifyC False invertCrossing invert >> smoothA h >> greedy [reduce2nd])
+        splices (h : r) toInvert factor inter =
+            let a = ( factor * (if isOverCrossing (crossingState h) then smoothLzeroFactor else smoothLinftyFactor) relation
+                    , move tangle' $ modifyC False invertCrossing toInvert >> smoothA h >> greedy [reduce2nd]
+                    )
 
-                        b = decomposeTangle relation (explode tangle : path)
-                                (factor * (if isOverCrossing (crossingState h) then smoothLinftyFactor else smoothLzeroFactor) relation)
-                                (move tangle $ modifyC False invertCrossing invert >> smoothB h >> greedy [reduce2nd])
+                b = ( factor * (if isOverCrossing (crossingState h) then smoothLinftyFactor else smoothLzeroFactor) relation
+                    , move tangle' $ modifyC False invertCrossing toInvert >> smoothB h >> greedy [reduce2nd]
+                    )
 
-                    in a : b : splices r (h : invert) (factor * smoothLplusFactor relation)
-            in concatStateSums $ splices ics [] initialFactor
+            in splices r (h : toInvert) (factor * smoothLplusFactor relation) (a : b : inter)
+
+    in concatStateSums $ splices (irregularCrossings tangle') [] initialFactor []
 
 
 instance StateModel ChordDiagramsSum where
