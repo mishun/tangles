@@ -6,7 +6,7 @@ module Math.KnotTh.Tangle.BorderIncremental.IncrementalTests
 
 import Data.Array.Base (newArray, newArray_, unsafeRead, unsafeWrite)
 import Data.Array.ST (STArray, STUArray)
-import Data.STRef (newSTRef, readSTRef, writeSTRef)
+import Data.STRef (newSTRef, readSTRef, writeSTRef, modifySTRef')
 import Control.Monad.ST (ST, runST)
 import Control.Monad (when, unless, forM_)
 import Math.KnotTh.Tangle
@@ -100,7 +100,7 @@ testFlow4 finish = runST $ do
                                 unsafeRead p (crossingIndex $! incidentCrossing b) >>= update
 
                     unsafeRead p (crossingIndex finish) >>= update
-                    readSTRef total >>= \ !f -> writeSTRef total $! f + 1
+                    modifySTRef' total (+ 1)
                     push
                 else do
                     final <- readSTRef total

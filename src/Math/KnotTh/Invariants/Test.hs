@@ -23,7 +23,7 @@ import Math.KnotTh.Invariants.Util.Poly
 test :: Test
 test = testGroup "Invariants"
     [ testGroup "Linking numbers" $
-        map (\ (name, l, target) -> testCase name $ linkingNumbersSet l @?= target)
+        map (\ (name, l, target) -> testCase name $ linkingNumbersInvariant l @?= target)
             [ ("whitehead link" , whiteheadLink     , [0]      )
             , ("hopf link"      , hopfLink          , [2]      )
             , ("borromean rings", borromeanRingsLink, [0, 0, 0])

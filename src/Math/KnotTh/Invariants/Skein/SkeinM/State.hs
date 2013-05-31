@@ -20,7 +20,7 @@ module Math.KnotTh.Invariants.Skein.SkeinM.State
     , extractStateSumST
     ) where
 
-import Data.STRef (STRef, newSTRef, readSTRef, writeSTRef)
+import Data.STRef (STRef, newSTRef, readSTRef, writeSTRef, modifySTRef')
 import Data.Array.Base ((!), array, listArray, newArray, newArray_, readArray, writeArray, getBounds)
 import Data.Array.Unboxed (UArray)
 import Data.Array.ST (STUArray, STArray)
@@ -127,8 +127,7 @@ dumpStateST s = do
 
 appendMultipleST :: (SkeinRelation r a) => SkeinState s r a -> a -> ST s ()
 appendMultipleST s x =
-    readSTRef (multiple s) >>= \ !m ->
-        writeSTRef (multiple s) $! x * m
+    modifySTRef' (multiple s) (* x)
 
 
 connectST :: (SkeinRelation r a) => SkeinState s r a -> (Int, Int) -> (Int, Int) -> ST s ()
@@ -164,8 +163,7 @@ killVertexST s v = do
     writeArray (active s) v False
     writeArray (state s) v $ error "do not touch!"
     writeArray (adjacent s) v $ error "do not touch!"
-    readSTRef (alive s) >>= \ !x ->
-        writeSTRef (alive s) $! x - 1
+    modifySTRef' (alive s) (+ (-1))
 
 
 enqueueST :: (SkeinRelation r a) => SkeinState s r a -> Int -> ST s ()
@@ -174,7 +172,7 @@ enqueueST s v = do
     e <- readArray (queued s) v
     when (a && not e) $ do
         writeArray (queued s) v True
-        readSTRef (queue s) >>= \ !l -> writeSTRef (queue s) $! v : l
+        modifySTRef' (queue s) (v :)
 
 
 dequeueST :: (SkeinRelation r a) => SkeinState s r a -> ST s (Maybe Int)

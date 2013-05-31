@@ -8,7 +8,7 @@ import Data.Array.Base ((!), (//), bounds, array, listArray, newArray, newArray_
 import Data.Array (Array)
 import Data.Array.Unboxed (UArray)
 import Data.Array.ST (STUArray)
-import Data.STRef (newSTRef, readSTRef, writeSTRef)
+import Data.STRef (newSTRef, readSTRef, modifySTRef')
 import Control.Monad.ST (ST, runST)
 import Control.Monad (forM_, when)
 import Math.KnotTh.Tangle.NonAlternating
@@ -215,8 +215,7 @@ instance StateModel ChordDiagramsSum where
         result <- newSTRef []
         let substState factor [] = do
                 x <- freeze cd
-                readSTRef result >>= \ !list ->
-                    writeSTRef result $! ChordDiagram x factor : list
+                modifySTRef' result (ChordDiagram x factor :)
 
             substState factor (v : rest) = do
                 r <- readArray rot v

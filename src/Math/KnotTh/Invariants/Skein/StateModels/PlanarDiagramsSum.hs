@@ -7,7 +7,7 @@ import qualified Data.Map as M
 import Data.Array.Base ((!), bounds, elems, listArray, newArray, newArray_, writeArray, freeze)
 import Data.Array.Unboxed (UArray)
 import Data.Array.ST (STUArray, runSTUArray)
-import Data.STRef (newSTRef, readSTRef, writeSTRef)
+import Data.STRef (newSTRef, readSTRef, modifySTRef')
 import Control.Monad.ST (ST, runST)
 import Control.Monad (forM_, when, foldM_)
 import Control.DeepSeq
@@ -174,8 +174,7 @@ instance StateModel PlanarDiagramsSum where
         result <- newSTRef []
         let substState factor [] = do
                 x <- freeze cd
-                readSTRef result >>= \ !list ->
-                    writeSTRef result $! PlanarDiagram x factor : list
+                modifySTRef' result (PlanarDiagram x factor :)
 
             substState factor (v : rest) =
                 forAllSummands (internals ! v) $ \ (PlanarDiagram x f) -> do

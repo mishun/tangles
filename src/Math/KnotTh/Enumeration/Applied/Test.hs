@@ -43,7 +43,7 @@ test :: Test
 test = testGroup "Enumeration tests"
     [ testGroup "Invariantness checking for computed classes of tangles"
         [ testCase "Linking numbers" $
-            testInvariantness tangleClasses 6 linkingNumbersSet
+            testInvariantness tangleClasses 6 linkingNumbersInvariant
 
         , testCase "Jones polynomial" $
             testInvariantness tangleClasses 6 minimalJonesPolynomialOfTangle

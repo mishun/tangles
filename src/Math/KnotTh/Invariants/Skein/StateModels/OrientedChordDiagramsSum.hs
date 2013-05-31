@@ -8,7 +8,7 @@ import qualified Data.Map as M
 import Data.Array.Base ((!), (//), bounds, elems, array, listArray, newArray, newArray_, readArray, writeArray, freeze)
 import Data.Array.Unboxed (UArray)
 import Data.Array.ST (STUArray, runSTUArray)
-import Data.STRef (newSTRef, readSTRef, writeSTRef)
+import Data.STRef (newSTRef, readSTRef, modifySTRef')
 import Control.Monad.ST (ST, runST)
 import Control.Monad (forM_, when, foldM_)
 import Control.DeepSeq
@@ -263,8 +263,7 @@ instance StateModel OrientedChordDiagramsSum where
         result <- newSTRef []
         let substState factor [] = do
                 x <- freeze cd
-                readSTRef result >>= \ !list ->
-                    writeSTRef result $! OrientedChordDiagram x factor : list
+                modifySTRef' result (OrientedChordDiagram x factor :)
 
             substState factor (v : rest) = do
                 r <- readArray rot v

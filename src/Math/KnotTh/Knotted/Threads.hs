@@ -1,12 +1,13 @@
 module Math.KnotTh.Knotted.Threads
-    ( ThreadedCrossing(..)
+    ( ThreadList
+    , ThreadedCrossing(..)
     , maybeThreadContinuation
     , allThreads
     , allThreadsWithMarks
     ) where
 
 import Data.Ix (Ix)
-import Data.STRef (newSTRef, readSTRef, writeSTRef)
+import Data.STRef (newSTRef, readSTRef, modifySTRef')
 import Data.Array.Unboxed (UArray)
 import Data.Array.Unsafe (unsafeFreeze)
 import Data.Array.ST (STUArray, newArray, readArray, writeArray)
@@ -14,6 +15,9 @@ import Control.Monad.ST
 import Control.Monad (foldM)
 import Math.KnotTh.Knotted.KnottedDefinition.Knotted
 import Math.KnotTh.Knotted.KnottedDefinition.Misc
+
+
+type ThreadList dart = (Int, UArray dart Int, [(Int, [(dart, dart)])])
 
 
 class (CrossingType ct) => ThreadedCrossing ct where
@@ -37,7 +41,7 @@ allThreads knot =
     in map snd threads
 
 
-allThreadsWithMarks :: (ThreadedCrossing ct, Knotted k c d, Ix (d ct)) => k ct -> (Int, UArray (d ct) Int, [(Int, [(d ct, d ct)])])
+allThreadsWithMarks :: (ThreadedCrossing ct, Knotted k c d, Ix (d ct)) => k ct -> ThreadList (d ct)
 allThreadsWithMarks knot = runST $ do
     visited <- (newArray :: Ix i => (i, i) -> Int -> ST s (STUArray s i Int)) (dartsRange knot) 0
     threads <- newSTRef $ replicate (numberOfFreeLoops knot) (0, [])
@@ -76,7 +80,7 @@ allThreadsWithMarks knot = runST $ do
                         !suffix <- traceFront [] startB
                         return $! prefix ++ suffix
 
-                readSTRef threads >>= \ !list -> writeSTRef threads $! (i, thread) : list
+                modifySTRef' threads ((i, thread) :)
                 return $! i + 1
 
     visited' <- unsafeFreeze visited

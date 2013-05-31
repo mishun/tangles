@@ -16,7 +16,7 @@ module Math.KnotTh.Tangle.Moves.Move
     ) where
 
 import Data.Array.ST (STArray, STUArray, newArray_, newListArray, readArray, writeArray)
-import Data.STRef (STRef, newSTRef, readSTRef, writeSTRef, modifySTRef)
+import Data.STRef (STRef, newSTRef, readSTRef, modifySTRef')
 import Control.Monad.ST (ST, runST)
 import Control.Monad.Reader (ReaderT, runReaderT, ask, lift)
 import Control.Monad ((>=>), when, forM, forM_, foldM_, filterM)
@@ -149,9 +149,8 @@ passOverC d =
 
 emitCircle :: Int -> MoveM s ct ()
 emitCircle dn =
-    ask >>= \ !st -> lift $ do
-        !n <- readSTRef (stateCircles st)
-        writeSTRef (stateCircles st) $! n + dn
+    ask >>= \ !st -> lift $
+        modifySTRef' (stateCircles st) (+ dn)
 
 
 maskC :: [Crossing ct] -> MoveM s ct ()
@@ -209,7 +208,7 @@ substituteC substitutions = do
             writeArray arr (dartIndex b) b
 
         forM_ substitutions $ \ (a, b) -> if a == b
-            then modifySTRef (stateCircles st) (+ 1)
+            then modifySTRef' (stateCircles st) (+ 1)
             else writeArray arr (dartIndex b) a
 
         (reconnectST st =<<) $ forM reconnections $ \ (a, b) -> do

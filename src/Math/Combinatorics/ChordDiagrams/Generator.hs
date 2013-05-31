@@ -9,7 +9,7 @@ import Data.List (find)
 import Data.Maybe (fromJust, isNothing)
 import Data.Array.Base (unsafeRead, unsafeWrite)
 import Data.Array.ST (STUArray, newArray, newListArray)
-import Data.STRef (newSTRef, readSTRef, writeSTRef)
+import Data.STRef (newSTRef, readSTRef, writeSTRef, modifySTRef')
 import Control.Applicative ((<$>))
 import Control.Monad (when)
 import Control.Monad.ST (ST, runST)
@@ -86,10 +86,7 @@ generateWithChecker minimalChordLength checker n yield initial = runST $ do
                             let start = snd $ fromJust $ find ((> base) . fst) $ zip dir (codeLen - 1 : [0 ..])
 
                             tmp <- newSTRef []
-                            let push !x = do
-                                    t <- readSTRef tmp
-                                    writeSTRef tmp $! x : t
-
+                            let push !x = modifySTRef' tmp (x :)
                             let iter !i !cross
                                     | i == codeLen  = when cross (push period)
                                     | otherwise     = do

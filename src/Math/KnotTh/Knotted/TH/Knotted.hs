@@ -109,7 +109,7 @@ produceKnotted knotPattern inst = execWriterT $ do
     do
         let dartKnotN = mkName $ "dart" ++ nameBase knotTN
 
-        declare $ return $ PragmaD $ InlineP dartKnotN $ InlineSpec True False Nothing
+        declare $ return $ PragmaD $ InlineP dartKnotN Inline FunLike AllPhases
 
         declare $ do
             ct <- newName "ct"
@@ -181,7 +181,7 @@ produceKnotted knotPattern inst = execWriterT $ do
     do
         let crosKnotN = mkName $ "crossing" ++ nameBase knotTN
 
-        declare $ return $ PragmaD $ InlineP crosKnotN $ InlineSpec True False Nothing
+        declare $ return $ PragmaD $ InlineP crosKnotN Inline FunLike AllPhases
 
         declare $ do
             ct <- newName "ct"
