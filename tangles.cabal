@@ -152,10 +152,10 @@ library
     if flag(enable-test-modules)
         build-depends:
             HUnit,
-            QuickCheck ==1.*,
+            QuickCheck ==2.*,
             test-framework,
             test-framework-hunit,
-            test-framework-quickcheck,
+            test-framework-quickcheck2,
             diagrams-svg,
             blaze-svg
         exposed-modules:

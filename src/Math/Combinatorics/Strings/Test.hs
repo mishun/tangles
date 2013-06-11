@@ -4,7 +4,7 @@ module Math.Combinatorics.Strings.Test
 
 import Text.Printf
 import Test.Framework (Test, testGroup)
-import Test.Framework.Providers.QuickCheck (testProperty)
+import Test.Framework.Providers.QuickCheck2 (testProperty)
 import Test.Framework.Providers.HUnit (testCase)
 import Test.HUnit hiding (Test, test)
 import Math.Combinatorics.Strings.Lyndon
