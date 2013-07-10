@@ -28,7 +28,7 @@ generateTable isLabelled generator =
     let yield !tangle !symmetry = do
             let w | isLabelled  = rotationPeriod symmetry * (if hasReflectionPart symmetry then 1 else 2)
                   | otherwise   = 1
-            get >>= (\ !m -> put $! M.insertWith (+) (numberOfCrossings tangle, numberOfLegs tangle) w m)
+            get >>= (\ !m -> put $! M.insertWith' (+) (numberOfCrossings tangle, numberOfLegs tangle) w m)
     in execState (generator yield) M.empty
 
 
