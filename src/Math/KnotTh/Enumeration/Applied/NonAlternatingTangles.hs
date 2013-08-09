@@ -24,7 +24,6 @@ import Math.KnotTh.Link (tangleDoubling)
 import Math.KnotTh.Invariants.JonesPolynomial
 import Math.KnotTh.Invariants.KauffmanFPolynomial
 import Math.KnotTh.Invariants.LinkingNumber
-import Math.KnotTh.Invariants.Util.ThreadExpansion
 import qualified Math.KnotTh.Tangle.Moves.Flype as Flype
 import qualified Math.KnotTh.Tangle.Moves.Pass as Pass
 import qualified Math.KnotTh.Tangle.Moves.ReidemeisterIII as ReidemeisterIII
@@ -66,10 +65,9 @@ weakTangleClasses =
 
 siftTangles :: (DiagramInfo info) => [info NonAlternatingTangle] -> SiftResult info NonAlternatingTangle
 siftTangles = siftByInvariant $ \ tangle ->
-    ( linkingNumbersInvariant tangle
-    , threadExpansion minimalJonesPolynomialOfTangle tangle
+    ( minimalJonesPolynomialOfTangle tangle
     , minimalJonesPolynomialOfTangle $ twistedDoubleSatellite tangle
-    , minimalKauffmanFPolynomialOfTangle $ twistedTripleSatellite tangle
+--    , minimalKauffmanFPolynomialOfTangle $ twistedTripleSatellite tangle
     )
 
 

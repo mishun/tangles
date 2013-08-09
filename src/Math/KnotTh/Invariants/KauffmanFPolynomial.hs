@@ -73,7 +73,7 @@ minimalKauffmanFPolynomialOfTangle = bruteForceMinimumOfTangle kauffmanFPolynomi
     | l == 0     =
         let p = kauffmanFPolynomial tangle
         in min p $ fmap invertF p
-    | otherwise  = trace ("started kauffman of " ++ show tangle) $ minimum $ do
+    | otherwise  = minimum $ do
         let wf = writheFactor tangle
             wf' = invertF wf
             p = fmap (* wf') $ kauffmanFPolynomial tangle

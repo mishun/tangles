@@ -2,7 +2,7 @@ module Math.KnotTh.Invariants.Skein.StateModels.ChordDiagramsSum
     ( ChordDiagramsSum
     ) where
 
-import Debug.Trace
+--import Debug.Trace
 import Data.Function (on)
 import Data.Array.Base ((!), (//), bounds, array, listArray, newArray, newArray_, readArray, writeArray, freeze)
 import Data.Array (Array)
@@ -125,7 +125,7 @@ decomposeTangle relation path !initialFactor !tangle' =
 
                 w = selfWrithe tangle
 
-                in (if length path >= 10 then trace (show $ explode tangle' : path) else id) $
+                in {- (if length path >= 10 then trace (show $ explode tangle' : path) else id) $ -}
                     (: map (uncurry $ decomposeTangle relation (explode tangle' : path)) inter) $
                         singletonStateSum $ ChordDiagram a $ factor *
                             ((if w >= 0 then twistPFactor else twistNFactor) relation ^ abs w) *

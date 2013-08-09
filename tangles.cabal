@@ -157,6 +157,7 @@ library
             test-framework-hunit,
             test-framework-quickcheck2,
             diagrams-svg,
+            diagrams-postscript,
             blaze-svg
         exposed-modules:
             Math.Combinatorics.ChordDiagrams.Test,
