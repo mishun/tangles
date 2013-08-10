@@ -2,7 +2,6 @@
 #include <cmath>
 #include <cstddef>
 #include <algorithm>
-#include <iostream>
 #include <gsl/gsl_blas.h>
 #include <gsl/gsl_multimin.h>
 #include <Math/Numeric/Vector2.h>
@@ -53,7 +52,7 @@ namespace Math { namespace Manifolds { namespace Embedding { namespace Optimizat
 				r[i] = b[i] - r[i];
 		}
 
-		double conjugateGradientSolve(const size_t n
+		extern "C" double conjugateGradientSolve(const size_t n
 			, const size_t m
 			, const size_t * id
 			, const double * a
@@ -391,12 +390,12 @@ namespace Math { namespace Manifolds { namespace Embedding { namespace Optimizat
 
 				if(std::isnan(phi) || std::isnan(gnorm) || std::isnan(dxnorm))
 				{
-					if(verbose)
-						std::cerr
-							<< gsl_multimin_fdfminimizer_name(s) << ": "
-							<< "NaN error at iteration = " << iteration
-							<< " phi = " << phi
-							<< " |dx| = " << dxnorm << "\n";
+					//if(verbose)
+					//	std::cerr
+					//		<< gsl_multimin_fdfminimizer_name(s) << ": "
+					//		<< "NaN error at iteration = " << iteration
+					//		<< " phi = " << phi
+					//		<< " |dx| = " << dxnorm << "\n";
 
 					gsl_multimin_fdfminimizer_free(s);
 					return false;
@@ -404,14 +403,14 @@ namespace Math { namespace Manifolds { namespace Embedding { namespace Optimizat
 
 				if(iterationRes != GSL_SUCCESS || iteration >= maxIterations || gnorm <= eps * initialNorm)
 				{
-					if(verbose)
-						std::cerr
-							<< gsl_multimin_fdfminimizer_name(s) << ": "
-							<< (iterationRes == GSL_SUCCESS ? "success" : "GSL_ENOPROG error")
-							<< " at iteration = " << iteration
-							<< " phi = " << phi
-							<< " |g| = " << gnorm << " of " << initialNorm
-							<< " |dx| = " << dxnorm << "\n";
+					//if(verbose)
+					//	std::cerr
+					//		<< gsl_multimin_fdfminimizer_name(s) << ": "
+					//		<< (iterationRes == GSL_SUCCESS ? "success" : "GSL_ENOPROG error")
+					//		<< " at iteration = " << iteration
+					//		<< " phi = " << phi
+					//		<< " |g| = " << gnorm << " of " << initialNorm
+					//		<< " |dx| = " << dxnorm << "\n";
 
 					gsl_vector_memcpy(&vx.vector, s->x);
 					gsl_multimin_fdfminimizer_free(s);
@@ -420,7 +419,7 @@ namespace Math { namespace Manifolds { namespace Embedding { namespace Optimizat
 			}
 		}
 
-		void relaxEmbedding
+		extern "C" void relaxEmbedding
 			( const InteractionConst & interaction, const int _verbose
 			, const size_t numberOfMovableVertices, const size_t numberOfFrozenVertices, Vector2 * x
 			, const size_t numberOfThreads, const size_t * const lengthOfThread, const size_t * const * const threads
@@ -498,7 +497,7 @@ namespace Math { namespace Manifolds { namespace Embedding { namespace Optimizat
 				r[i] = 1.0;
 		}
 
-		void circlePacking
+		extern "C" void circlePacking
 			( const size_t numberOfVertices
 			, const size_t * const vertexDegree
 			, const size_t * const * const adjacencyList

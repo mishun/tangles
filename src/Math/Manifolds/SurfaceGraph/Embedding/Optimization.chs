@@ -49,11 +49,7 @@ instance Storable InteractionConst where
         {# set InteractionConst.cross    #} p $ realToFrac $ interactionCross x
 
 
-foreign import ccall
-#if x86_64_HOST_ARCH
-#else
-    "_ZN4Math9Manifolds9Embedding12Optimization5Relax14relaxEmbeddingERKNS3_16InteractionConstEijjPNS_7Numeric7Vector2EjPKjPKSB_jSB_SD_"
-#endif
+foreign import ccall "relaxEmbedding"
     c_relaxEmbedding :: InteractionConstPtr -> CInt
         -> CSize -> CSize -> Ptr CDouble
         -> CSize -> Ptr CSize -> Ptr (Ptr CSize)
@@ -84,11 +80,7 @@ relaxEmbedding' interaction verbose numberOfMovablePoints numberOfFrozenPoints c
             getElems threadPtrs >>= mapM_ free
 
 
-foreign import ccall
-#if x86_64_HOST_ARCH
-#else
-    "_ZN4Math9Manifolds9Embedding12Optimization14Initialization22conjugateGradientSolveEjjPKjPKdS7_Pd"
-#endif
+foreign import ccall "conjugateGradientSolve"
     c_conjugateGradientSolve :: CSize -> CSize -> Ptr CSize -> Ptr CDouble -> Ptr CDouble -> Ptr CDouble -> IO CDouble
 
 
@@ -118,11 +110,7 @@ conjugateGradientSolve' n defs brd (x, y) = do
                 void $ c_conjugateGradientSolve (fromIntegral n) (fromIntegral m) pc pa pby py
 
 
-foreign import ccall
-#if x86_64_HOST_ARCH
-#else
-    "_ZN4Math9Manifolds9Embedding12Optimization13CirclePacking13circlePackingEjPKjPKS5_Pd"
-#endif
+foreign import ccall "circlePacking"
     c_circlePacking :: CSize -> Ptr CSize -> Ptr (Ptr CSize) -> Ptr CDouble -> IO ()
 
 

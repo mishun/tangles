@@ -2,10 +2,10 @@
 #include <cstddef>
 #include <cstring>
 #include <utility>
-#include <vector>
+//#include <vector>
 
 namespace Math { namespace Manifolds { namespace SphereStar {
-
+#if 0
 	class DisjointSets
 	{
 	private:
@@ -359,5 +359,5 @@ namespace Math { namespace Manifolds { namespace SphereStar {
 		else
 			return false;
 	}
-
+#endif
 }}}
