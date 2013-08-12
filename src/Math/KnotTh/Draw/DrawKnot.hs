@@ -22,6 +22,7 @@ data DrawKnotSettings = DrawKnotSettings
     , threadColour     :: Colour Double
     , borderWidth      :: Double
     , borderColour     :: Colour Double
+    , borderDashing    :: [Double]
     , backgroundColour :: Colour Double
     , endpointsRadius  :: Double
     }
@@ -29,12 +30,13 @@ data DrawKnotSettings = DrawKnotSettings
 
 defaultDraw :: DrawKnotSettings
 defaultDraw = DrawKnotSettings
-    { threadWidth      = 0.02
+    { threadWidth      = 0.03
     , threadColour     = black
-    , borderWidth      = 0.013
+    , borderWidth      = 0.02
     , borderColour     = black
+    , borderDashing    = [0.08, 0.08]
     , backgroundColour = white
-    , endpointsRadius  = 0.03
+    , endpointsRadius  = 0.04
     }
 
 
@@ -100,7 +102,7 @@ instance DrawableKnotted T.Tangle T.Crossing T.Dart where
                     let a = 2 * pi * fromIntegral i / fromIntegral l
                     tell $ translate (r2 (cos a, sin a)) $ fillColor (threadColour s) $ lineWidth 0 $ circle $ endpointsRadius s
             when (borderWidth s > 0.0) $
-                tell $ lineColor (borderColour s) $ dashing [0.03, 0.01] 0 $ lineWidth (borderWidth s) $ circle 1
+                tell $ lineColor (borderColour s) $ dashing (borderDashing s) 0 $ lineWidth (borderWidth s) $ circle 1
             tell $ crossingDependentImage s tangle embeddedThreads
 
 
