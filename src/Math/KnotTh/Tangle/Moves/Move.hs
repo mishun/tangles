@@ -32,19 +32,19 @@ data MoveState s ct = MoveState
     { stateSource      :: !(Tangle ct)
     , stateMask        :: !(STArray s Int (CrossingFlag ct))
     , stateCircles     :: !(STRef s Int)
-    , stateConnections :: !(STArray s Int (Dart ct))
+    , stateConnections :: !(STArray s Int (Dart Tangle ct))
     }
 
 
-readMaskST :: MoveState s ct -> Crossing ct -> ST s (CrossingFlag ct)
+readMaskST :: MoveState s ct -> Crossing Tangle ct -> ST s (CrossingFlag ct)
 readMaskST st c = readArray (stateMask st) (crossingIndex c)
 
 
-writeMaskST :: MoveState s ct -> Crossing ct -> CrossingFlag ct -> ST s ()
+writeMaskST :: MoveState s ct -> Crossing Tangle ct -> CrossingFlag ct -> ST s ()
 writeMaskST st c = writeArray (stateMask st) (crossingIndex c)
 
 
-reconnectST :: MoveState s ct -> [(Dart ct, Dart ct)] -> ST s ()
+reconnectST :: MoveState s ct -> [(Dart Tangle ct, Dart Tangle ct)] -> ST s ()
 reconnectST st connections =
     forM_ connections $ \ (!a, !b) -> do
         when (a == b) $ fail $ printf "reconnect: %s connect to itself" (show a)
@@ -127,7 +127,7 @@ assemble :: (CrossingType ct) => MoveM s ct (Tangle ct)
 assemble = ask >>= \ st -> lift $ assembleST st
 
 
-oppositeC :: Dart ct -> MoveM s ct (Dart ct)
+oppositeC :: Dart Tangle ct -> MoveM s ct (Dart Tangle ct)
 oppositeC d = do
     when (isDart d) $ do
         masked <- isMasked $ incidentCrossing d
@@ -136,7 +136,7 @@ oppositeC d = do
         readArray (stateConnections st) (dartIndex d)
 
 
-passOverC :: Dart ArbitraryCrossing -> MoveM s ArbitraryCrossing Bool
+passOverC :: Dart Tangle ArbitraryCrossing -> MoveM s ArbitraryCrossing Bool
 passOverC d =
     ask >>= \ st -> lift $ do
         when (isLeg d) $ fail $ printf "passOverC: leg %s passed" (show d)
@@ -153,14 +153,14 @@ emitCircle dn =
         modifySTRef' (stateCircles st) (+ dn)
 
 
-maskC :: [Crossing ct] -> MoveM s ct ()
+maskC :: [Crossing Tangle ct] -> MoveM s ct ()
 maskC crossings =
     ask >>= \ !st -> lift $
         forM_ crossings $ \ !c ->
             writeMaskST st c Masked
 
 
-isMasked :: Crossing ct -> MoveM s ct Bool
+isMasked :: Crossing Tangle ct -> MoveM s ct Bool
 isMasked c =
     ask >>= \ !st -> lift $ do
         msk <- readMaskST st c
@@ -169,13 +169,13 @@ isMasked c =
             _      -> False
 
 
-aliveCrossings :: MoveM s ct [Crossing ct]
+aliveCrossings :: MoveM s ct [Crossing Tangle ct]
 aliveCrossings = do
     st <- ask
     filterM (fmap not . isMasked) $ allCrossings $ stateSource st
 
 
-modifyC :: (CrossingType ct) => Bool -> (CrossingState ct -> CrossingState ct) -> [Crossing ct] -> MoveM s ct ()
+modifyC :: (CrossingType ct) => Bool -> (CrossingState ct -> CrossingState ct) -> [Crossing Tangle ct] -> MoveM s ct ()
 modifyC needFlip f crossings =
     ask >>= \ !st -> lift $
         forM_ crossings $ \ !c -> do
@@ -189,20 +189,20 @@ modifyC needFlip f crossings =
                     Masked                -> error $ printf "modifyC: flipping masked crossing %s" (show c)
 
 
-connectC :: [(Dart ct, Dart ct)] -> MoveM s ct ()
+connectC :: [(Dart Tangle ct, Dart Tangle ct)] -> MoveM s ct ()
 connectC connections =
     ask >>= \ st -> lift $
         reconnectST st connections
 
 
-substituteC :: [(Dart ct, Dart ct)] -> MoveM s ct ()
+substituteC :: [(Dart Tangle ct, Dart Tangle ct)] -> MoveM s ct ()
 substituteC substitutions = do
     reconnections <- mapM (\ (a, b) -> (,) a `fmap` oppositeC b) substitutions
     st <- ask
     lift $ do
         let source = stateSource st
 
-        arr <- newArray_ (dartIndexRange source) :: ST s (STArray s Int (Dart ct))
+        arr <- newArray_ (dartIndexRange source) :: ST s (STArray s Int (Dart Tangle ct))
         forM_ (allEdges source) $ \ (!a, !b) -> do
             writeArray arr (dartIndex a) a
             writeArray arr (dartIndex b) b
@@ -216,7 +216,7 @@ substituteC substitutions = do
             return (a, b')
 
 
-greedy :: [Dart ct -> MoveM s ct Bool] -> MoveM s ct ()
+greedy :: [Dart Tangle ct -> MoveM s ct Bool] -> MoveM s ct ()
 greedy reductionsList = iteration
     where
         iteration = do

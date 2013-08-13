@@ -1,4 +1,4 @@
-{-# LANGUAGE UnboxedTuples, KindSignatures #-}
+{-# LANGUAGE UnboxedTuples, TypeFamilies #-}
 module Math.KnotTh.Knotted.KnottedDefinition.Knotted
     ( CrossingType(..)
     , CrossingState
@@ -10,13 +10,18 @@ module Math.KnotTh.Knotted.KnottedDefinition.Knotted
     , makeCrossing
     , mapCrossing
     , Knotted(..)
+    , KnottedWithConnectivity(..)
     , crossingIndexRange
     , crossingsRange
     , dartIndexRange
     , dartsRange
     , crossingCode
+    , forMAdjacentDarts
+    , foldMAdjacentDarts
+    , foldMAdjacentDartsFrom
     ) where
 
+import Data.Bits ((.&.))
 import Data.Ix (Ix)
 import Control.DeepSeq
 import Control.Monad (guard)
@@ -125,36 +130,73 @@ mapCrossing :: (CrossingType a, CrossingType b) => (a -> b) -> CrossingState a -
 mapCrossing f x = makeCrossing (f $ crossingType x) (orientation x)
 
 
-class Knotted (knot :: * -> *) (cross :: * -> *) (dart :: * -> *) | knot -> cross, cross -> dart, dart -> knot where
+class Knotted knot where
     numberOfFreeLoops :: knot ct -> Int
     numberOfCrossings :: knot ct -> Int
     numberOfEdges     :: knot ct -> Int
-    allEdges          :: knot ct -> [(dart ct, dart ct)]
-    nthCrossing       :: knot ct -> Int -> cross ct
-    nthDart           :: knot ct -> Int -> dart ct
     mapCrossings      :: (CrossingType a, CrossingType b) => (CrossingState a -> CrossingState b) -> knot a -> knot b
 
-    crossingOwner     :: cross ct -> knot ct
-    crossingIndex     :: cross ct -> Int
-    crossingState     :: (CrossingType ct) => cross ct -> CrossingState ct
-    nthIncidentDart   :: cross ct -> Int -> dart ct
+    data Crossing knot ct
+    nthCrossing       :: knot ct -> Int -> Crossing knot ct
+    crossingOwner     :: Crossing knot ct -> knot ct
+    crossingIndex     :: Crossing knot ct -> Int
+    crossingState     :: Crossing knot ct -> CrossingState ct
 
-    dartOwner         :: dart ct -> knot ct
-    dartIndex         :: dart ct -> Int
-    isDart            :: dart ct -> Bool
-    nextCW, nextCCW   :: dart ct -> dart ct
-    opposite          :: dart ct -> dart ct
-    incidentCrossing  :: dart ct -> cross ct
-    dartPlace         :: dart ct -> Int
+    data Dart knot ct
+    nthDart           :: knot ct -> Int -> Dart knot ct
+    allEdges          :: knot ct -> [(Dart knot ct, Dart knot ct)]
+    nthIncidentDart   :: Crossing knot ct -> Int -> Dart knot ct
+    dartOwner         :: Dart knot ct -> knot ct
+    dartIndex         :: Dart knot ct -> Int
+    isDart            :: Dart knot ct -> Bool
+    nextCW, nextCCW   :: Dart knot ct -> Dart knot ct
+    opposite          :: Dart knot ct -> Dart knot ct
+    incidentCrossing  :: Dart knot ct -> Crossing knot ct
+    dartPlace         :: Dart knot ct -> Int
+    toPair            :: Dart knot ct -> (Int, Int)
+
+    type ExplodeType knot ct :: *
+    explode :: knot ct -> ExplodeType knot ct
+    implode :: (CrossingType ct) => ExplodeType knot ct -> knot ct
+    
+    forMIncidentDarts      :: (Monad m) => Crossing knot ct -> (Dart knot ct -> m ()) -> m ()
+    foldMIncidentDarts     :: (Monad m) => Crossing knot ct -> (Dart knot ct -> s -> m s) -> s -> m s
+    foldMIncidentDartsFrom :: (Monad m) => Dart knot ct -> RotationDirection -> (Dart knot ct -> s -> m s) -> s -> m s
+
+    forMIncidentDarts c f =
+        f (nthIncidentDart c 0)
+            >> f (nthIncidentDart c 1)
+            >> f (nthIncidentDart c 2)
+            >> f (nthIncidentDart c 3)
+
+    foldMIncidentDarts c f s =
+        f (nthIncidentDart c 0) s
+            >>= f (nthIncidentDart c 1)
+            >>= f (nthIncidentDart c 2)
+            >>= f (nthIncidentDart c 3)
+
+    foldMIncidentDartsFrom dart !dir f s =
+        let c = incidentCrossing dart
+            p = dartPlace dart
+            d = directionSign dir
+        in f dart s
+            >>= f (nthIncidentDart c $! (p + d) .&. 3)
+            >>= f (nthIncidentDart c $! (p + 2 * d) .&. 3)
+            >>= f (nthIncidentDart c $! (p + 3 * d) .&. 3)
+
+
+class (Knotted knot) => KnottedWithConnectivity knot where
+    isConnected :: knot ct -> Bool
+    isPrime     :: knot ct -> Bool
 
 
 {-# INLINE crossingIndexRange #-}
-crossingIndexRange :: (Knotted k c d) => k ct -> (Int, Int)
+crossingIndexRange :: (Knotted k) => k ct -> (Int, Int)
 crossingIndexRange knot = (1, numberOfCrossings knot)
 
 
 {-# INLINE crossingsRange #-}
-crossingsRange :: (Knotted k c d, Ix (c ct)) => k ct -> (c ct, c ct)
+crossingsRange :: (Knotted k, Ix (Crossing k ct)) => k ct -> (Crossing k ct, Crossing k ct)
 crossingsRange knot
     | n > 0      = (nthCrossing knot 1, nthCrossing knot n)
     | otherwise  = error "crossingsRange: no crossings"
@@ -163,12 +205,12 @@ crossingsRange knot
 
 
 {-# INLINE dartIndexRange #-}
-dartIndexRange :: (Knotted k c d) => k ct -> (Int, Int)
+dartIndexRange :: (Knotted k) => k ct -> (Int, Int)
 dartIndexRange k = (0, 2 * numberOfEdges k - 1)
 
 
 {-# INLINE dartsRange #-}
-dartsRange :: (Knotted k c d, Ix (d ct)) => k ct -> (d ct, d ct)
+dartsRange :: (Knotted k, Ix (Dart k ct)) => k ct -> (Dart k ct, Dart k ct)
 dartsRange knot
     | e > 0      = (nthDart knot 0, nthDart knot $ 2 * e - 1)
     | otherwise  = error "dartsRange: no darts"
@@ -177,9 +219,24 @@ dartsRange knot
 
 
 {-# INLINE crossingCode #-}
-crossingCode :: (CrossingType ct, Knotted k c d) => RotationDirection -> d ct -> (# Int, Int #)
+crossingCode :: (CrossingType ct, Knotted k) => RotationDirection -> Dart k ct -> (# Int, Int #)
 crossingCode dir d =
     let p = dartPlace d
         cr = crossingState $! incidentCrossing d
         t = fromReflectionRotation (isClockwise dir) (-p) <*> orientation cr
     in (# code cr, equivalenceClassId (symmetry cr) t #)
+
+
+{-# INLINE forMAdjacentDarts #-}
+forMAdjacentDarts :: (Monad m, Knotted k) => Crossing k ct -> (Dart k ct -> m ()) -> m ()
+forMAdjacentDarts c f = forMIncidentDarts c (f . opposite)
+
+
+{-# INLINE foldMAdjacentDarts #-}
+foldMAdjacentDarts :: (Monad m, Knotted k) => Crossing k ct -> (Dart k ct -> s -> m s) -> s -> m s
+foldMAdjacentDarts c f = foldMIncidentDarts c (f . opposite)
+
+
+{-# INLINE foldMAdjacentDartsFrom #-}
+foldMAdjacentDartsFrom :: (Monad m, Knotted k) => Dart k ct -> RotationDirection -> (Dart k ct -> s -> m s) -> s -> m s
+foldMAdjacentDartsFrom dart direction f = foldMIncidentDartsFrom dart direction (f . opposite)

@@ -12,13 +12,13 @@ import Math.KnotTh.Knotted
 import Math.KnotTh.Crossings.Arbitrary.Arbitrary
 
 
-selfWrithe :: (Knotted k c d, Ix (c ArbitraryCrossing), Ix (d ArbitraryCrossing)) => k ArbitraryCrossing -> Int
+selfWrithe :: (Knotted k, Ix (Crossing k ArbitraryCrossing), Ix (Dart k ArbitraryCrossing)) => k ArbitraryCrossing -> Int
 selfWrithe knot
     | hasNoCrossings knot  = 0
     | otherwise            = sum $ elems $ selfWritheArray knot
 
 
-selfWritheByThread :: (Knotted k c d, Ix (d ArbitraryCrossing)) => k ArbitraryCrossing -> UArray Int Int
+selfWritheByThread :: (Knotted k, Ix (Dart k ArbitraryCrossing)) => k ArbitraryCrossing -> UArray Int Int
 selfWritheByThread knot =
     let (n, tag, _) = allThreadsWithMarks knot
     in accumArray (+) 0 (1, n) $ do
@@ -27,7 +27,7 @@ selfWritheByThread knot =
         [(a, w) | a == b]
 
 
-selfWritheArray :: (Knotted k c d, Ix (c ArbitraryCrossing), Ix (d ArbitraryCrossing)) => k ArbitraryCrossing -> UArray (c ArbitraryCrossing) Int
+selfWritheArray :: (Knotted k, Ix (Crossing k ArbitraryCrossing), Ix (Dart k ArbitraryCrossing)) => k ArbitraryCrossing -> UArray (Crossing k ArbitraryCrossing) Int
 selfWritheArray knot =
     let (_, tag, _) = allThreadsWithMarks knot
     in listArray (crossingsRange knot) $ do
@@ -36,8 +36,8 @@ selfWritheArray knot =
         return $ if a == b then w else 0
 
 
-threadsWithLinkingNumbers :: (Knotted k c d, Ix (d ArbitraryCrossing))
-    => k ArbitraryCrossing -> ((Int, UArray (d ArbitraryCrossing) Int, [(Int, [(d ArbitraryCrossing, d ArbitraryCrossing)])]), UArray (Int, Int) Int)
+threadsWithLinkingNumbers :: (Knotted k, Ix (Dart k ArbitraryCrossing))
+    => k ArbitraryCrossing -> ((Int, UArray (Dart k ArbitraryCrossing) Int, [(Int, [(Dart k ArbitraryCrossing, Dart k ArbitraryCrossing)])]), UArray (Int, Int) Int)
 
 threadsWithLinkingNumbers knot =
     let ts@(n, tag, _) = allThreadsWithMarks knot
@@ -53,7 +53,7 @@ threadsWithLinkingNumbers knot =
 
 
 {-# INLINE crossingWrithe #-}
-crossingWrithe :: (Knotted k c d, Ix (d ArbitraryCrossing)) => UArray (d ArbitraryCrossing) Int -> c ArbitraryCrossing -> ((Int, Int), Int)
+crossingWrithe :: (Knotted k, Ix (Dart k ArbitraryCrossing)) => UArray (Dart k ArbitraryCrossing) Int -> Crossing k ArbitraryCrossing -> ((Int, Int), Int)
 crossingWrithe t cross =
     let d0 = nthIncidentDart cross 0
         t0 = t ! d0

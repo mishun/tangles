@@ -2,8 +2,6 @@
 module Math.KnotTh.Link.LinkDefinition.Link
     ( module Math.KnotTh.Knotted
     , Link
-    , Crossing
-    , Dart
     , crossingLink
     , dartLink
     , emptyLink
@@ -19,6 +17,6 @@ produceKnotted
     [d| data Link ct = Link {} |]
     defaultKnotted
 
-produceShowDart ''Dart (const [])
-produceShowCrossing ''Crossing
+produceShowDart ''Link ''Dart (const [])
+produceShowCrossing ''Link ''Crossing
 produceShowKnot ''Link

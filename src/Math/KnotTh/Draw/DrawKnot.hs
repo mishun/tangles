@@ -13,8 +13,8 @@ import qualified Math.Manifolds.SurfaceGraph.Embedding as GE
 import Math.KnotTh.Crossings.Projection
 import Math.KnotTh.Crossings.Arbitrary
 import Math.KnotTh.Knotted
-import qualified Math.KnotTh.Tangle as T
-import qualified Math.KnotTh.Link as L
+import Math.KnotTh.Tangle
+import Math.KnotTh.Link
 
 
 data DrawKnotSettings = DrawKnotSettings
@@ -41,7 +41,7 @@ defaultDraw = DrawKnotSettings
 
 
 class (ThreadedCrossing ct) => DrawableCrossingType ct where
-    crossingDependentImage :: (Knotted k c d, Renderable (Path R2) b) => DrawKnotSettings -> k ct -> [[((d ct, d ct), [(Double, Double)])]] -> Diagram b R2
+    crossingDependentImage :: (Knotted k, Renderable (Path R2) b) => DrawKnotSettings -> k ct -> [[((Dart k ct, Dart k ct), [(Double, Double)])]] -> Diagram b R2
 
 
 instance DrawableCrossingType ProjectionCrossing where
@@ -77,27 +77,27 @@ instance DrawableCrossingType ArbitraryCrossing where
                     return $! cubicSpline False $ map p2 $ [f] ++ take (n - 2) (tail chain) ++ [l]
 
 
-class (Knotted k c d) => DrawableKnotted k c d | k -> c, c -> d, d -> k where
+class (Knotted k) => DrawableKnotted k where
     drawKnot :: (DrawableCrossingType ct, Renderable (Path R2) b) => DrawKnotSettings -> k ct -> Diagram b R2
 
 
-instance DrawableKnotted T.Tangle T.Crossing T.Dart where
+instance DrawableKnotted Tangle where
     drawKnot s tangle =
         let embeddedThreads =
                 let g = let (0, b, r) = explode tangle
-                            change (0, j) = (0, (-j) `mod` T.numberOfLegs tangle)
+                            change (0, j) = (0, (-j) `mod` numberOfLegs tangle)
                             change p = p
                         in G.constructFromList $ map (map change) ((head b : reverse (tail b)) : map fst r)
 
                     embedding = GE.embeddingWithVertexRooting 2 (G.nthVertex g 0)
 
                     toGraphDart d
-                        | T.isLeg d  = G.nthDartIncidentToVertex (G.nthVertex g 0) $ (-T.legPlace d) `mod` T.numberOfLegs tangle
+                        | isLeg d    = G.nthDartIncidentToVertex (G.nthVertex g 0) $ (-legPlace d) `mod` numberOfLegs tangle
                         | otherwise  = G.nthDartIncidentToVertex (G.nthVertex g $ crossingIndex $ incidentCrossing d) (dartPlace d)
                 in map (map (\ p@(a, _) -> (p, embedding ! toGraphDart a))) $ allThreads tangle
         in execWriter $ do
             when (endpointsRadius s > 0.0) $ do
-                let l = T.numberOfLegs tangle
+                let l = numberOfLegs tangle
                 forM_ [0 .. l - 1] $ \ !i -> do
                     let a = 2 * pi * fromIntegral i / fromIntegral l
                     tell $ translate (r2 (cos a, sin a)) $ fillColor (threadColour s) $ lineWidth 0 $ circle $ endpointsRadius s
@@ -106,7 +106,7 @@ instance DrawableKnotted T.Tangle T.Crossing T.Dart where
             tell $ crossingDependentImage s tangle embeddedThreads
 
 
-instance DrawableKnotted L.Link L.Crossing L.Dart where
+instance DrawableKnotted Link where
     drawKnot s link =
         let embeddedThreads =
                 let g = G.constructFromList $ let (0, r) = explode link in map fst r

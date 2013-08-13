@@ -49,28 +49,28 @@ class (Ord a, Num a, Show a, StateModel (SkeinRelationModel r)) => SkeinRelation
     smoothLzeroFactor  :: r -> a
     smoothLinftyFactor :: r -> a
 
-    finalNormalization :: (SkeinStructure k c d) => r -> k ArbitraryCrossing -> a -> a
+    finalNormalization :: (SkeinStructure k) => r -> k ArbitraryCrossing -> a -> a
     finalNormalization _ _ = id
 
 
-class (Knotted k c d, Ix (d ArbitraryCrossing), Ix (c ArbitraryCrossing)) => SkeinStructure k c d | k -> c, c -> d, d -> k where
+class (Knotted k, Ix (Dart k ArbitraryCrossing), Ix (Crossing k ArbitraryCrossing)) => SkeinStructure k where
     type ResultOnStructure k s a :: *
-    endpointPlace      :: d ArbitraryCrossing -> Int
+    endpointPlace      :: Dart k ArbitraryCrossing -> Int
     resultFromStateSum :: (SkeinRelation r a) => r -> k ArbitraryCrossing -> SkeinRelationModel r a -> ResultOnStructure k (SkeinRelationModel r) a
 
 
-resultOnStructure :: (SkeinStructure k c d, SkeinRelation r a) => r -> k ArbitraryCrossing -> SkeinRelationModel r a -> ResultOnStructure k (SkeinRelationModel r) a
+resultOnStructure :: (SkeinStructure k, SkeinRelation r a) => r -> k ArbitraryCrossing -> SkeinRelationModel r a -> ResultOnStructure k (SkeinRelationModel r) a
 resultOnStructure relation knot =
     resultFromStateSum relation knot . fmap (finalNormalization relation knot)
 
 
-instance SkeinStructure L.Link L.Crossing L.Dart where
+instance SkeinStructure L.Link where
     type ResultOnStructure L.Link s a = a
     endpointPlace = error "endpointPlace: must be no endpoints for link"
     resultFromStateSum relation _ = asConst relation
 
 
-instance SkeinStructure T.Tangle T.Crossing T.Dart where
+instance SkeinStructure T.Tangle where
     type ResultOnStructure T.Tangle s a = s a
     endpointPlace = T.legPlace
     resultFromStateSum _ _ = id

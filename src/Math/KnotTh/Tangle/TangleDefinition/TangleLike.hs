@@ -9,13 +9,13 @@ module Math.KnotTh.Tangle.TangleDefinition.TangleLike
 import Math.KnotTh.Knotted
 
 
-class (Knotted tangle cross dart) => TangleLike tangle cross dart | tangle -> cross, cross -> dart, dart -> tangle where
+class (Knotted tangle) => TangleLike tangle where
     numberOfLegs   :: tangle ct -> Int
-    allLegs        :: tangle ct -> [dart ct]
-    nthLeg         :: tangle ct -> Int -> dart ct
+    allLegs        :: tangle ct -> [Dart tangle ct]
+    nthLeg         :: tangle ct -> Int -> Dart tangle ct
 
-    isLeg          :: dart ct -> Bool
-    legPlace       :: dart ct -> Int
+    isLeg          :: Dart tangle ct -> Bool
+    legPlace       :: Dart tangle ct -> Int
 
     -- | +-------+
     --   |   ^   |
@@ -32,7 +32,7 @@ class (Knotted tangle cross dart) => TangleLike tangle cross dart | tangle -> cr
     --  ..............|     |..............
     --  (legA) -------|-----|--- (legB)
     --  ..............|     |..............
-    glueTangles    :: (CrossingType ct) => Int -> dart ct -> dart ct -> tangle ct
+    glueTangles    :: (CrossingType ct) => Int -> Dart tangle ct -> Dart tangle ct -> tangle ct
 
     -- |     edgesToGlue = 1                 edgesToGlue = 2                 edgesToGlue = 3
     -- ........|                       ........|                       ........|
@@ -44,24 +44,24 @@ class (Knotted tangle cross dart) => TangleLike tangle cross dart | tangle -> cr
     -- ........|  |  1      |          ........|  +=========+                  |  |      2  |
     -- ........|  |   \-----|--0       ........|                       (leg-2)-|--|-----/   |
     -- ........|  +=========+          ........|                       ........|  +=========+
-    glueToBorder   :: (CrossingType ct) => dart ct -> Int -> CrossingState ct -> cross ct
+    glueToBorder   :: (CrossingType ct) => Dart tangle ct -> Int -> CrossingState ct -> Crossing tangle ct
 
 
 {-# INLINE firstLeg #-}
-firstLeg :: (TangleLike t c d) => t ct -> d ct
+firstLeg :: (TangleLike t) => t ct -> Dart t ct
 firstLeg t = nthLeg t 0
 
 
 {-# INLINE lastLeg #-}
-lastLeg :: (TangleLike t c d) => t ct -> d ct
+lastLeg :: (TangleLike t) => t ct -> Dart t ct
 lastLeg t = nthLeg t (-1)
 
 
 {-# INLINE nextLeg #-}
-nextLeg :: (TangleLike t c d) => Int -> d ct -> d ct
+nextLeg :: (TangleLike t) => Int -> Dart t ct -> Dart t ct
 nextLeg n d = nthLeg (dartOwner d) (legPlace d + n)
 
 
 {-# INLINE allLegOpposites #-}
-allLegOpposites :: (TangleLike t c d) => t ct -> [d ct]
+allLegOpposites :: (TangleLike t) => t ct -> [Dart t ct]
 allLegOpposites = map opposite . allLegs

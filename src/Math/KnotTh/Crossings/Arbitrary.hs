@@ -9,5 +9,5 @@ import Math.KnotTh.Crossings.Arbitrary.Writhe as X
 import Math.KnotTh.Crossings.Arbitrary.Alternating as X
 
 
-invertCrossings :: (Knotted k c d) => k ArbitraryCrossing -> k ArbitraryCrossing
+invertCrossings :: (Knotted k) => k ArbitraryCrossing -> k ArbitraryCrossing
 invertCrossings = mapCrossings invertCrossing

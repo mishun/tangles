@@ -22,13 +22,13 @@ isomorphismTest link
     | otherwise                     = minimum [ codeWithDirection dir dart | dart <- allHalfEdges link, dir <- [ccw, cw] ]
 
 
-codeWithDirection :: (CrossingType ct) => RotationDirection -> Dart ct -> UArray Int Int
+codeWithDirection :: (CrossingType ct) => RotationDirection -> Dart SurfaceLink ct -> UArray Int Int
 codeWithDirection !dir !start = runSTUArray $ do
     let link = dartOwner start
     let n = numberOfCrossings link
 
     index <- newArray (0, n) 0 :: ST s (STUArray s Int Int)
-    queue <- newArray_ (0, n - 1) :: ST s (STArray s Int (Dart ct))
+    queue <- newArray_ (0, n - 1) :: ST s (STArray s Int (Dart SurfaceLink ct))
     free <- newSTRef 1
 
     let {-# INLINE look #-}

@@ -38,5 +38,5 @@ instance SkeinRelation HomflyRelation Poly2 where
         in (factor *)
 
 
-homflyPolynomial :: (SkeinStructure k c d) => k ArbitraryCrossing -> ResultOnStructure k ChordDiagramsSum Poly2
+homflyPolynomial :: (SkeinStructure k) => k ArbitraryCrossing -> ResultOnStructure k ChordDiagramsSum Poly2
 homflyPolynomial = evaluateSkeinRelation HomflyRelation

@@ -10,7 +10,7 @@ import Math.KnotTh.Invariants.Skein.StateModels.PlanarDiagramsSum as X
 import Math.KnotTh.Invariants.Skein.StateModels.ChordDiagramsSum as X
 
 
-evaluateSkeinRelation :: (SkeinRelation r a, SkeinStructure k c d) => r -> k ArbitraryCrossing -> ResultOnStructure k (SkeinRelationModel r) a
+evaluateSkeinRelation :: (SkeinRelation r a, SkeinStructure k) => r -> k ArbitraryCrossing -> ResultOnStructure k (SkeinRelationModel r) a
 evaluateSkeinRelation relation =
     runSkeinStrategy relation $
         let try [] = error "evaluateSkeinRelation: impossible happened"

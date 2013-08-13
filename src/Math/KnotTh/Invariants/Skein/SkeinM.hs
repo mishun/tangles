@@ -41,7 +41,7 @@ neighbour (Vertex !v, p) = ask >>= \ !s -> lift $ do
 
 
 runSkeinStrategy ::
-    (SkeinRelation r a, SkeinStructure k c d)
+    (SkeinRelation r a, SkeinStructure k)
         => r
         -> (forall s. [(Vertex, Int)] -> SkeinM s r a StrategyResult)
         -> k ArbitraryCrossing

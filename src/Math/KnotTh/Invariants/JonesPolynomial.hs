@@ -48,7 +48,7 @@ jonesRelation :: BracketLikeRelation Poly
 jonesRelation = BracketLikeRelation (monomial 1 jonesVar (-1 / 4)) (monomial 1 jonesVar (1 / 4))
 
 
-jonesPolynomial :: (SkeinStructure k c d) => k ArbitraryCrossing -> ResultOnStructure k PlanarDiagramsSum Poly
+jonesPolynomial :: (SkeinStructure k) => k ArbitraryCrossing -> ResultOnStructure k PlanarDiagramsSum Poly
 jonesPolynomial = evaluateSkeinRelation jonesRelation
 
 
@@ -87,7 +87,7 @@ kauffmanXRelation :: BracketLikeRelation Poly
 kauffmanXRelation = BracketLikeRelation (monomial 1 kauffmanXVar 1) (monomial 1 kauffmanXVar (-1))
 
 
-kauffmanXPolynomial :: (SkeinStructure k c d) => k ArbitraryCrossing -> ResultOnStructure k PlanarDiagramsSum Poly
+kauffmanXPolynomial :: (SkeinStructure k) => k ArbitraryCrossing -> ResultOnStructure k PlanarDiagramsSum Poly
 kauffmanXPolynomial = evaluateSkeinRelation kauffmanXRelation
 
 

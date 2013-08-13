@@ -10,10 +10,10 @@ import Text.Printf
 import Math.KnotTh.Knotted
 
 
-produceShowDart :: Name -> (ExpQ -> [(ExpQ, ExpQ)]) -> DecsQ
-produceShowDart dartN extraGuards = (:[]) `fmap` do
+produceShowDart :: Name -> Name -> (ExpQ -> [(ExpQ, ExpQ)]) -> DecsQ
+produceShowDart knotN dartN extraGuards = (:[]) `fmap` do
     ct <- varT `fmap` newName "ct"
-    instanceD (cxt []) (conT ''Show `appT` (conT dartN `appT` ct))
+    instanceD (cxt []) (conT ''Show `appT` (conT dartN `appT` conT knotN `appT` ct))
         [ funD 'show $ (:[]) $ do
             d <- newName "d"
             clause [varP d] (guardedB $ map (uncurry normalGE) $ extraGuards (varE d) ++
@@ -26,10 +26,10 @@ produceShowDart dartN extraGuards = (:[]) `fmap` do
         ]
 
 
-produceShowCrossing :: Name -> DecsQ
-produceShowCrossing crosN = (:[]) `fmap` do
+produceShowCrossing :: Name -> Name -> DecsQ
+produceShowCrossing knotN crosN = (:[]) `fmap` do
     ct <- varT `fmap` newName "ct"
-    instanceD (cxt [classP ''Show [ct], classP ''CrossingType [ct]]) (conT ''Show `appT` (conT crosN `appT` ct))
+    instanceD (cxt [classP ''Show [ct], classP ''CrossingType [ct]]) (conT ''Show `appT` (conT crosN `appT` conT knotN `appT` ct))
         [ valD (varP 'show) (normalB
                 [| \ c ->
                     printf "(Crossing %i %s [ %s ])"

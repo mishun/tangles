@@ -119,7 +119,7 @@ decomposeTangle relation !factor !tangle
                     (h, _) : _ | isLeg h   -> (i, on min legPlace (fst $ head thread) (snd $ last thread))
                                | otherwise -> (i, numberOfLegs tangle + i)
 
-            order :: UArray (Dart ArbitraryCrossing) Int
+            order :: UArray (Dart Tangle ArbitraryCrossing) Int
             order = array (dartsRange tangle) $ do
                 (_, thread) <- threads
                 (i, (a, b)) <- zip [0 ..] thread

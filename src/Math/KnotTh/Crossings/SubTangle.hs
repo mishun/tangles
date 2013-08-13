@@ -97,7 +97,7 @@ fromTangle' = makeSubTangle substituteTangle
 
 
 {-# INLINE tangleInside #-}
-tangleInside :: (CrossingType ct, Knotted k c d) => c (SubTangleCrossing ct) -> Tangle ct
+tangleInside :: (CrossingType ct, Knotted k) => Crossing k (SubTangleCrossing ct) -> Tangle ct
 tangleInside = subTangle . crossingTypeInside
 
 
@@ -107,7 +107,7 @@ tangleInCrossing = subTangle . crossingType
 
 
 {-# INLINE numberOfCrossingsInside #-}
-numberOfCrossingsInside :: (CrossingType ct, Knotted k c d) => c (SubTangleCrossing ct) -> Int
+numberOfCrossingsInside :: (CrossingType ct, Knotted k) => Crossing k (SubTangleCrossing ct) -> Int
 numberOfCrossingsInside = numberOfCrossings . tangleInside
 
 
@@ -117,7 +117,7 @@ isLoner = (== 1) . numberOfCrossings . subTangle . crossingType
 
 
 {-# INLINE isLonerInside #-}
-isLonerInside :: (CrossingType ct, Knotted k c d) => c (SubTangleCrossing ct) -> Bool
+isLonerInside :: (CrossingType ct, Knotted k) => Crossing k (SubTangleCrossing ct) -> Bool
 isLonerInside = (== 1) . numberOfCrossingsInside
 
 
@@ -126,11 +126,11 @@ numberOfCrossingsAfterSubstitution = sum . map numberOfCrossingsInside . allCros
 
 
 {-# INLINE subTangleLegFromDart #-}
-subTangleLegFromDart :: (CrossingType ct, Knotted k c d) => d (SubTangleCrossing ct) -> Dart ct
+subTangleLegFromDart :: (CrossingType ct, Knotted k) => Dart k (SubTangleCrossing ct) -> Dart Tangle ct
 subTangleLegFromDart d = nthLeg (tangleInside $ incidentCrossing d) $! crossingLegIdByDart d
 
 
-directSumDecompositionTypeInside :: (CrossingType ct, Knotted k c d) => d (SubTangleCrossing ct) -> DirectSumDecompositionType
+directSumDecompositionTypeInside :: (CrossingType ct, Knotted k) => Dart k (SubTangleCrossing ct) -> DirectSumDecompositionType
 directSumDecompositionTypeInside d
     | f          = changeSumType st
     | otherwise  = st

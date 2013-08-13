@@ -12,6 +12,6 @@ import Math.KnotTh.SurfaceLink
 
 type NonAlternatingSurfaceLink = SurfaceLink ArbitraryCrossing
 
-type NonAlternatingCrossing = Crossing ArbitraryCrossing
+type NonAlternatingCrossing = Crossing SurfaceLink  ArbitraryCrossing
 
-type NonAlternatingDart = Dart ArbitraryCrossing
+type NonAlternatingDart = Dart SurfaceLink ArbitraryCrossing

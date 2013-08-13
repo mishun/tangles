@@ -78,11 +78,11 @@ passUnderByDartId :: ArbitraryCrossingState -> Int -> Bool
 passUnderByDartId cr = odd . crossingLegIdByDartId cr
 
 
-passOver :: (Knotted k c d) => d ArbitraryCrossing -> Bool
+passOver :: (Knotted k) => Dart k ArbitraryCrossing -> Bool
 passOver = even . crossingLegIdByDart
 
 
-passUnder :: (Knotted k c d) => d ArbitraryCrossing -> Bool
+passUnder :: (Knotted k) => Dart k ArbitraryCrossing -> Bool
 passUnder = odd . crossingLegIdByDart
 
 

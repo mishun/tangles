@@ -13,7 +13,7 @@ import Math.KnotTh.Tangle.TangleDefinition.Tangle
 import Math.KnotTh.Tangle.TangleDefinition.Transform
 
 
-(|=|) :: (CrossingType ct, TangleLike tangle c d) => tangle ct -> tangle ct -> tangle ct
+(|=|) :: (CrossingType ct, TangleLike tangle) => tangle ct -> tangle ct -> tangle ct
 (|=|) a b
     | al /= bl   = error $ printf "braidLikeGlue: different numbers of legs (%i and %i)" al bl
     | otherwise  = glueTangles n (nthLeg a n) (nthLeg b (n - 1))

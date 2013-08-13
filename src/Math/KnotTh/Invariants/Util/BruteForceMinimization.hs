@@ -11,5 +11,5 @@ bruteForceMinimumOfTangle :: (Ord x) => (NonAlternatingTangle -> x) -> NonAltern
 bruteForceMinimumOfTangle f = minimum . map (crossingsOrientationMinimum f) . allOrientationsOfTangle
 
 
-crossingsOrientationMinimum :: (Ord x, Knotted k c d) => (k ArbitraryCrossing -> x) -> k ArbitraryCrossing -> x
+crossingsOrientationMinimum :: (Ord x, Knotted k) => (k ArbitraryCrossing -> x) -> k ArbitraryCrossing -> x
 crossingsOrientationMinimum f knot = on min f knot (invertCrossings knot)

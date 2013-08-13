@@ -12,6 +12,6 @@ import Math.KnotTh.Link
 
 type NonAlternatingLink = Link ArbitraryCrossing
 
-type NonAlternatingCrossing = Crossing ArbitraryCrossing
+type NonAlternatingCrossing = Crossing Link ArbitraryCrossing
 
-type NonAlternatingDart = Dart ArbitraryCrossing
+type NonAlternatingDart = Dart Link ArbitraryCrossing

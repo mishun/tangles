@@ -8,7 +8,7 @@ import Math.KnotTh.Knotted
 import Math.KnotTh.Crossings.Arbitrary.Arbitrary
 
 
-alternatingDefect :: (Knotted k c d) => k ArbitraryCrossing -> Int
+alternatingDefect :: (Knotted k) => k ArbitraryCrossing -> Int
 alternatingDefect =
     let defect (!a, !b)
             | isEndpoint a || isEndpoint b  = 0
@@ -17,9 +17,9 @@ alternatingDefect =
     in sum . map defect . allEdges
 
 
-isAlternating :: (Knotted k c d) => k ArbitraryCrossing -> Bool
+isAlternating :: (Knotted k) => k ArbitraryCrossing -> Bool
 isAlternating = (== 0) . alternatingDefect
 
 
-isNonAlternating :: (Knotted k c d) => k ArbitraryCrossing -> Bool
+isNonAlternating :: (Knotted k) => k ArbitraryCrossing -> Bool
 isNonAlternating = not . isAlternating

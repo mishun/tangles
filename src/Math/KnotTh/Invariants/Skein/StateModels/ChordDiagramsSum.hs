@@ -79,7 +79,7 @@ irregularCrossings tangle =
     let ((_, _, threads), ln) = threadsWithLinkingNumbers tangle
 
         expectedPassOver =
-            let tags :: Array (Dart ArbitraryCrossing) ThreadTag
+            let tags :: Array (Dart Tangle ArbitraryCrossing) ThreadTag
                 tags = array (dartsRange tangle) $ do
                     (tid, thread) <- threads
                     let make = case thread of

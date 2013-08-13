@@ -24,7 +24,7 @@ hasCollisions = not . null . collisionClasses
 
 
 siftByInvariant ::
-    (Ord inv, DiagramInfo info, KnottedWithConnectivity k c d)
+    (Ord inv, DiagramInfo info, KnottedWithConnectivity k)
         => (k ct -> inv)
         -> [info (k ct)]
         -> SiftResult info (k ct)

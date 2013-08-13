@@ -20,8 +20,8 @@ import Math.KnotTh.Tangle.BorderIncremental.RootingTest
 
 
 data GluingType ct s t = GluingType
-    { preGlueTest  :: CrossingState ct -> Dart ct -> Int -> Bool
-    , postGlueTest :: Crossing ct -> Int -> Dart ct -> s -> Maybe t
+    { preGlueTest  :: CrossingState ct -> Dart Tangle ct -> Int -> Bool
+    , postGlueTest :: Crossing Tangle ct -> Int -> Dart Tangle ct -> s -> Maybe t
     }
 
 
@@ -62,7 +62,7 @@ diagonalIndex :: Int -> Int -> Int
 diagonalIndex n l = n + l `div` 2 - 2
 
 
-allGluingSites' :: (CrossingType ct) => [ct] -> Int -> Tangle ct -> [(Int, Dart ct, CrossingState ct)]
+allGluingSites' :: (CrossingType ct) => [ct] -> Int -> Tangle ct -> [(Int, Dart Tangle ct, CrossingState ct)]
 allGluingSites' crossingsToGlue !gl !tangle = do
     !cr <- crossingsToGlue
     !leg <- allLegs tangle
@@ -70,14 +70,14 @@ allGluingSites' crossingsToGlue !gl !tangle = do
     return (gl, leg, state)
 
 
-allGluingSites :: (CrossingType ct) => [ct] -> Tangle ct -> [(Int, Dart ct, CrossingState ct)]
+allGluingSites :: (CrossingType ct) => [ct] -> Tangle ct -> [(Int, Dart Tangle ct, CrossingState ct)]
 allGluingSites crossingsToGlue tangle = do
     let l = numberOfLegs tangle
     gl <- [1 .. min 3 $ min (l - 1) (l `div` 2)]
     allGluingSites' crossingsToGlue gl tangle
 
 
-representativeGluingSites' :: (CrossingType ct) => [ct] -> Int -> (Tangle ct, DnSubGroup) -> [(Int, Dart ct, CrossingState ct)]
+representativeGluingSites' :: (CrossingType ct) => [ct] -> Int -> (Tangle ct, DnSubGroup) -> [(Int, Dart Tangle ct, CrossingState ct)]
 representativeGluingSites' crossingsToGlue !gl (!tangle, !symmetry)
     | numberOfLegs tangle /= pointsUnderSubGroup symmetry  = error "gluingSites: different orders"
     | otherwise                                            = do
@@ -112,14 +112,14 @@ representativeGluingSites' crossingsToGlue !gl (!tangle, !symmetry)
         return (gl, leg, state)
 
 
-representativeGluingSites :: (CrossingType ct) => [ct] -> (Tangle ct, DnSubGroup) -> [(Int, Dart ct, CrossingState ct)]
+representativeGluingSites :: (CrossingType ct) => [ct] -> (Tangle ct, DnSubGroup) -> [(Int, Dart Tangle ct, CrossingState ct)]
 representativeGluingSites crossingsToGlue ts@(tangle, _) = do
     let l = numberOfLegs tangle
     gl <- [1 .. min 3 $ min (l - 1) (l `div` 2)]
     representativeGluingSites' crossingsToGlue gl ts
 
 
-canonicalGluing :: (CrossingType ct) => GluingType ct DnSubGroup s -> [(Int, Dart ct, CrossingState ct)] -> [(Tangle ct, s)]
+canonicalGluing :: (CrossingType ct) => GluingType ct DnSubGroup s -> [(Int, Dart Tangle ct, CrossingState ct)] -> [(Tangle ct, s)]
 canonicalGluing gluing sites = do
     (!gl, !leg, !st) <- sites
     guard $ preGlueTest gluing st leg gl

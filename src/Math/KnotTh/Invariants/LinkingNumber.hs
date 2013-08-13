@@ -9,7 +9,7 @@ import Math.KnotTh.Knotted
 import Math.KnotTh.Crossings.Arbitrary
 
 
-linkingNumbersInvariant :: (Knotted k c d, Ix (d ArbitraryCrossing)) => k ArbitraryCrossing -> [Int]
+linkingNumbersInvariant :: (Knotted k, Ix (Dart k ArbitraryCrossing)) => k ArbitraryCrossing -> [Int]
 linkingNumbersInvariant knot = sort $ do
     let ((n, _, _), ln) = threadsWithLinkingNumbers knot
     i <- [1 .. n]

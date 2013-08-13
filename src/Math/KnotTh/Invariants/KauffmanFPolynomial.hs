@@ -26,7 +26,7 @@ invertF :: Poly2 -> Poly
 invertF = invert2 "a"
 
 
-writheFactor :: (SkeinStructure k c d) => k ArbitraryCrossing -> Poly2
+writheFactor :: (SkeinStructure k) => k ArbitraryCrossing -> Poly2
 writheFactor knot =
     let w = selfWrithe knot
     in (if w <= 0 then a else a') ^ abs w
@@ -52,7 +52,7 @@ instance SkeinRelation KauffmanFRelation Poly2 where
     finalNormalization _ knot = (writheFactor knot *)
 
 
-kauffmanFPolynomial :: (SkeinStructure k c d) => k ArbitraryCrossing -> ResultOnStructure k ChordDiagramsSum Poly2
+kauffmanFPolynomial :: (SkeinStructure k) => k ArbitraryCrossing -> ResultOnStructure k ChordDiagramsSum Poly2
 kauffmanFPolynomial = evaluateSkeinRelation KauffmanFRelation
 
 

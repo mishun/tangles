@@ -18,9 +18,9 @@ import Math.KnotTh.Tangle.CascadeCode
 
 type NonAlternatingTangle = Tangle ArbitraryCrossing
 
-type NonAlternatingCrossing = Crossing ArbitraryCrossing
+type NonAlternatingCrossing = Crossing Tangle ArbitraryCrossing
 
-type NonAlternatingDart = Dart ArbitraryCrossing
+type NonAlternatingDart = Dart Tangle ArbitraryCrossing
 
 
 lonerOverCrossingTangle :: NonAlternatingTangle

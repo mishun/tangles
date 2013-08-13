@@ -1,4 +1,4 @@
-{-# LANGUAGE KindSignatures #-}
+{-# LANGUAGE TypeFamilies #-}
 module Math.KnotTh.Knotted.SurfaceKnotted
     ( SurfaceKnotted(..)
     , eulerChar
@@ -8,18 +8,19 @@ module Math.KnotTh.Knotted.SurfaceKnotted
 import Math.KnotTh.Knotted.KnottedDefinition.Knotted
 
 
-class (Knotted knot cross dart) => SurfaceKnotted knot cross (face :: * -> *) dart | knot -> cross, cross -> face, face -> dart, dart -> knot where
+class (Knotted knot) => SurfaceKnotted knot where
+    data Face knot ct
     numberOfFaces   :: knot ct -> Int
-    nthFace         :: knot ct -> Int -> face ct
-    faceOwner       :: face ct -> knot ct
-    faceIndex       :: face ct -> Int
-    faceDegree      :: face ct -> Int
+    nthFace         :: knot ct -> Int -> Face knot ct
+    faceOwner       :: Face knot ct -> knot ct
+    faceIndex       :: Face knot ct -> Int
+    faceDegree      :: Face knot ct -> Int
 
 
-eulerChar :: (SurfaceKnotted k c f d) => k ct -> Int
+eulerChar :: (SurfaceKnotted k) => k ct -> Int
 eulerChar knot = numberOfCrossings knot + numberOfFaces knot - numberOfEdges knot
 
 
 {-# INLINE allFaces #-}
-allFaces :: (SurfaceKnotted k c f d) => k ct -> [f ct]
+allFaces :: (SurfaceKnotted k) => k ct -> [Face k ct]
 allFaces knot = map (nthFace knot) [1 .. numberOfFaces knot]

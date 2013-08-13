@@ -1,8 +1,6 @@
 {-# LANGUAGE TemplateHaskell, TypeFamilies #-}
 module Math.KnotTh.Tangle.TangleDefinition.Tangle
     ( module Math.KnotTh.Knotted
-    , Dart
-    , Crossing
     , Tangle
     , crossingTangle
     , dartTangle
@@ -129,7 +127,7 @@ produceKnotted
         }
 
 
-instance TangleLike Tangle Crossing Dart where
+instance TangleLike Tangle where
     numberOfLegs = legsCount
 
     allLegs t =
@@ -344,8 +342,8 @@ lonerTangle !cr = Tangle
     }
 
 
-produceShowDart ''Dart $ \ d -> [([| isLeg $d |], [| printf "(Leg %i)" $ legPlace $d |])]
-produceShowCrossing ''Crossing
+produceShowDart ''Tangle ''Dart $ \ d -> [([| isLeg $d |], [| printf "(Leg %i)" $ legPlace $d |])]
+produceShowCrossing ''Tangle ''Crossing
 
 instance (CrossingType ct) => Show (Tangle ct) where
     show tangle =
@@ -355,7 +353,7 @@ instance (CrossingType ct) => Show (Tangle ct) where
             (unwords $ border : map show (allCrossings tangle))
 
 
-instance KnottedWithConnectivity Tangle Crossing Dart where
+instance KnottedWithConnectivity Tangle where
     isConnected tangle
         | numberOfEdges tangle == 0 && numberOfFreeLoops tangle <= 1  = True
         | numberOfFreeLoops tangle /= 0                               = False

@@ -19,7 +19,7 @@ import Math.Algebra.Group.Dn (DnSubGroup, fromPeriod, fromPeriodAndMirroredZero)
 import Math.KnotTh.Tangle
 
 
-rootingTest :: (CrossingType ct) => Crossing ct -> Maybe DnSubGroup
+rootingTest :: (CrossingType ct) => Crossing Tangle ct -> Maybe DnSubGroup
 rootingTest lastCrossing = do
     let tangle = crossingTangle lastCrossing
     when (numberOfLegs tangle < 4) Nothing
@@ -27,7 +27,7 @@ rootingTest lastCrossing = do
     analyseSymmetry lastCrossing (unsafeAt cp . crossingIndex)
 
 
-investigateConnectivity :: Crossing ct -> Maybe (UArray Int Bool)
+investigateConnectivity :: Crossing Tangle ct -> Maybe (UArray Int Bool)
 investigateConnectivity lastCrossing = runST $ do
     let tangle = crossingTangle lastCrossing
     let n = numberOfCrossings tangle
@@ -67,7 +67,7 @@ investigateConnectivity lastCrossing = runST $ do
             (Just $!) <$> unsafeFreeze cp
 
 
-analyseSymmetry :: (CrossingType ct) => Crossing ct -> (Crossing ct -> Bool) -> Maybe DnSubGroup
+analyseSymmetry :: (CrossingType ct) => Crossing Tangle ct -> (Crossing Tangle ct -> Bool) -> Maybe DnSubGroup
 analyseSymmetry lastCrossing skipCrossing = findSymmetry
     where
         tangle = crossingTangle lastCrossing
@@ -114,7 +114,7 @@ analyseSymmetry lastCrossing skipCrossing = findSymmetry
                         pv = fst $ begin $ opposite $ nextCW leg
 
 
-rootCodeLeg :: (CrossingType ct) => Dart ct -> RotationDirection -> UArray Int Int
+rootCodeLeg :: (CrossingType ct) => Dart Tangle ct -> RotationDirection -> UArray Int Int
 rootCodeLeg !root !dir = runSTUArray $ do
     when (isDart root) (fail "rootCodeLeg: leg expected")
 
@@ -126,7 +126,7 @@ rootCodeLeg !root !dir = runSTUArray $ do
 
     x <- newArray (0, n) 0 :: ST s (STUArray s Int Int)
     unsafeWrite x (crossingIndex $! adjacentCrossing root) 1
-    q <- newArray_ (0, n - 1) :: ST s (STArray s Int (Dart ct))
+    q <- newArray_ (0, n - 1) :: ST s (STArray s Int (Dart Tangle ct))
     unsafeWrite q 0 (opposite root)
     free <- newSTRef 2
 

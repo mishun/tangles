@@ -31,7 +31,7 @@ codeWithDirection !dir tangle = minimum $ map code $ allLegs tangle
 
         code leg = runSTUArray $ do
             index <- newArray (0, n) 0 :: ST s (STUArray s Int Int)
-            queue <- newArray_ (0, n - 1) :: ST s (STArray s Int (Dart ct))
+            queue <- newArray_ (0, n - 1) :: ST s (STArray s Int (Dart Tangle ct))
             free <- newSTRef 1
 
             let {-# INLINE look #-}

@@ -2,9 +2,6 @@
 module Math.KnotTh.SurfaceLink
     ( module Math.KnotTh.Knotted
     , SurfaceLink
-    , Crossing
-    , Face
-    , Dart
     , crossingSurfaceLink
     , faceSurfaceLink
     , dartSurfaceLink
@@ -39,20 +36,14 @@ produceKnotted
             ]
         }
 
-produceShowDart ''Dart (const [])
-produceShowCrossing ''Crossing
+produceShowDart ''SurfaceLink ''Dart (const [])
+produceShowCrossing ''SurfaceLink ''Crossing
 produceShowKnot ''SurfaceLink
 
 
-data Face ct = Face !(SurfaceLink ct) {-# UNPACK #-} !Int
+instance SurfaceKnotted SurfaceLink where
+    data Face SurfaceLink ct = Face !(SurfaceLink ct) {-# UNPACK #-} !Int
 
-
-{-# INLINE faceSurfaceLink #-}
-faceSurfaceLink :: Face ct -> SurfaceLink ct
-faceSurfaceLink (Face l _) = l
-
-
-instance SurfaceKnotted SurfaceLink Crossing Face Dart where
     numberOfFaces = faceCount
 
     nthFace link i
@@ -64,6 +55,11 @@ instance SurfaceKnotted SurfaceLink Crossing Face Dart where
     faceIndex (Face _ i) = i + 1
 
     faceDegree = undefined
+
+
+{-# INLINE faceSurfaceLink #-}
+faceSurfaceLink :: Face SurfaceLink ct -> SurfaceLink ct
+faceSurfaceLink (Face l _) = l
 
 
 testPrime :: SurfaceLink ct -> Bool

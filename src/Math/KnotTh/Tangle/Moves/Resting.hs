@@ -18,7 +18,7 @@ zeroFlow :: Tangle ct -> UArray Int Int
 zeroFlow tangle = listArray (dartIndexRange tangle) $ repeat 0
 
 
-restingPart :: Tangle ct -> [Dart ct] -> Maybe ([Dart ct], UArray Int Bool)
+restingPart :: Tangle ct -> [Dart Tangle ct] -> Maybe ([Dart Tangle ct], UArray Int Bool)
 restingPart tangle incoming
     | null incoming       = error "restingPart: no darts"
     | any isLeg incoming  = error "restingPart: leg passed"
@@ -96,7 +96,7 @@ restingPart tangle incoming
                     | otherwise           = restoreOutcoming (traverseNext d) out
 
 
-pushResidualFlow :: Tangle ct -> [Crossing ct] -> [Crossing ct] -> UArray Int Int -> Maybe (UArray Int Int)
+pushResidualFlow :: Tangle ct -> [Crossing Tangle ct] -> [Crossing Tangle ct] -> UArray Int Int -> Maybe (UArray Int Int)
 pushResidualFlow tangle starts ends flow = evalState bfs initial >>= push
     where
         initial = (Seq.fromList starts, M.fromList $ zip starts (repeat []))

@@ -13,7 +13,7 @@ import Math.KnotTh.Tangle
 import Math.KnotTh.Tangle.NonAlternating
 
 
-testNoMultiEdges :: Dart ct -> Int -> Bool
+testNoMultiEdges :: Dart Tangle ct -> Int -> Bool
 testNoMultiEdges leg gl =
     let ls = take gl $! iterate nextCW leg
     in and $! zipWith (\ !a !b ->
@@ -23,7 +23,7 @@ testNoMultiEdges leg gl =
         ) ls $! tail ls
 
 
-testNo2ndReidemeisterReduction :: ArbitraryCrossingState -> Dart ArbitraryCrossing -> Int -> Bool
+testNo2ndReidemeisterReduction :: ArbitraryCrossingState -> Dart Tangle ArbitraryCrossing -> Int -> Bool
 testNo2ndReidemeisterReduction cr leg gl =
     let legs = take gl $ iterate nextCW leg
         test (i, a, b)
@@ -36,7 +36,7 @@ testNo2ndReidemeisterReduction cr leg gl =
     in all test $ zip3 [0 ..] legs (tail legs)
 
 
-testFlow4 :: Crossing ct -> Bool
+testFlow4 :: Crossing Tangle ct -> Bool
 testFlow4 finish = runST $ do
     let tangle = crossingTangle finish
     let n = numberOfCrossings tangle
@@ -52,7 +52,7 @@ testFlow4 finish = runST $ do
 
     let push = do
             v <- newArray (0, n) False :: ST s (STUArray s Int Bool)
-            p <- newArray_ (0, n)  :: ST s (STArray s Int (Dart ct))
+            p <- newArray_ (0, n)  :: ST s (STArray s Int (Dart Tangle ct))
             q <- newArray (0, n) 0 :: ST s (STUArray s Int Int)
             tl <- newSTRef 0
 

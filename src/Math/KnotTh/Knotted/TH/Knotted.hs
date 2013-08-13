@@ -17,7 +17,7 @@ import Data.Array.Unboxed (UArray)
 import Data.Array.Unsafe (unsafeFreeze)
 import Data.Array.ST (STArray, STUArray, runSTArray)
 import Control.Monad.ST (ST, runST)
-import Control.Monad.Writer (execWriter, execWriterT, tell)
+import Control.Monad.Writer (Writer, WriterT, execWriter, execWriterT, tell)
 import Control.Monad ((>=>), when, forM_)
 import Control.Monad.Trans (lift)
 import Control.DeepSeq
@@ -76,11 +76,20 @@ defaultImplodeExplode = ImplodeExplodeSettings
     }
 
 
+declare :: Q Dec -> WriterT [Dec] Q ()
+declare = lift >=> tell . (:[])
+
+
+append :: a -> Writer [a] ()
+append = tell . (: [])
+
+
+maybeM :: (Monad m) => Maybe a -> (a -> m ()) -> m ()
+maybeM = flip $ maybe $ return ()
+
+
 produceKnotted :: DecsQ -> KnottedSettings -> DecsQ
 produceKnotted knotPattern inst = execWriterT $ do
-    let declare = lift >=> tell . (:[])
-    let maybeM = flip $ maybe $ return ()
-
     [DataD [] knotTN [PlainTV crossType] [RecC knotCN knotFields] []] <- lift knotPattern
 
     let dartN = mkName "Dart"
@@ -99,13 +108,6 @@ produceKnotted knotPattern inst = execWriterT $ do
         , (,,) stateArray Unpacked `fmap` [t| Array Int (CrossingState $(varT crossType)) |]
         ] ++ map return knotFields] []
 
-    declare $ do
-        ct <- newName "ct"
-        dataD (cxt []) dartN [PlainTV ct] [normalC dartN
-            [ (,) IsStrict `fmap` [t| $(conT knotTN) $(varT ct) |]
-            , (,) Unpacked `fmap` [t| Int |]
-            ]] []
-
     do
         let dartKnotN = mkName $ "dart" ++ nameBase knotTN
 
@@ -113,70 +115,11 @@ produceKnotted knotPattern inst = execWriterT $ do
 
         declare $ do
             ct <- newName "ct"
-            sigD dartKnotN $ forallT [PlainTV ct] (cxt []) [t| $(conT dartN) $(varT ct) -> $(conT knotTN) $(varT ct) |]
+            sigD dartKnotN $ forallT [PlainTV ct] (cxt []) [t| $(conT dartN) $(conT knotTN) $(varT ct) -> $(conT knotTN) $(varT ct) |]
 
         declare $ funD dartKnotN $ (:[]) $ do
             k <- newName "k"
             clause [conP dartN [varP k, wildP]] (normalB $ varE k) []
-
-    declare $ do
-        ct <- newName "ct"
-        instanceD (cxt []) (appT [t| Eq |] $ conT dartN `appT` varT ct)
-            [ funD '(==) $ (:[]) $ do
-                a <- newName "a"
-                b <- newName "b"
-                clause [conP dartN [wildP, varP a], conP dartN [wildP, varP b]] (normalB [| $(varE a) == $(varE b) |]) []
-            ]
-
-    declare $ do
-        ct <- newName "ct"
-        instanceD (cxt []) (appT [t| Ord |] $ conT dartN `appT` varT ct)
-            [ funD 'compare $ (:[]) $ do
-                a <- newName "a"
-                b <- newName "b"
-                clause [conP dartN [wildP, varP a], conP dartN [wildP, varP b]] (normalB [| $(varE a) `compare` $(varE b) |]) []
-            ]
-
-    declare $ do
-        ct <- newName "ct"
-        instanceD (cxt []) (appT [t| Ix |] $ conT dartN `appT` varT ct)
-            [ funD 'range $ (:[]) $ do
-                k <- newName "k"
-                a <- newName "a"
-                b <- newName "b"
-                clause [tupP [conP dartN [wildP, varP a], conP dartN [varP k, varP b]]]
-                    (normalB [| map ($(conE dartN) $(varE k)) [$(varE a) .. $(varE b)] |]) []
-
-            , funD 'rangeSize $ (:[]) $ do
-                a <- newName "a"
-                b <- newName "b"
-                clause [tupP [conP dartN [wildP, varP a], conP dartN [wildP, varP b]]]
-                    (normalB [| max 0 $ 1 + $(varE b) - $(varE a) :: Int |]) []
-
-            , funD 'inRange $ (:[]) $ do
-                a <- newName "a"
-                b <- newName "b"
-                i <- newName "i"
-                clause [tupP [conP dartN [wildP, varP a], conP dartN [wildP, varP b]], conP dartN [wildP, varP i]]
-                    (normalB [| ($(varE i) >= $(varE a)) && ($(varE i) <= $(varE b)) |]) []
-
-            , funD 'index $ (:[]) $ do
-                a <- newName "a"
-                b <- newName "b"
-                i <- newName "i"
-                clause [tupP [conP dartN [wildP, varP a], conP dartN [wildP, varP b]], conP dartN [wildP, varP i]]
-                    (guardedB $ map (uncurry normalGE)
-                        [ ([| ($(varE i) >= $(varE a)) && ($(varE i) <= $(varE b)) |], [| $(varE i) - $(varE a) :: Int |])
-                        , ([| otherwise |], [| error "out of range" |])
-                        ]) []
-            ]
-
-    declare $ do
-        ct <- newName "ct"
-        dataD (cxt []) crosN [PlainTV ct] [normalC crosN
-            [ (,) IsStrict `fmap` [t| $(conT knotTN) $(varT ct) |]
-            , (,) Unpacked `fmap` [t| Int |]
-            ]] []
 
     do
         let crosKnotN = mkName $ "crossing" ++ nameBase knotTN
@@ -185,63 +128,11 @@ produceKnotted knotPattern inst = execWriterT $ do
 
         declare $ do
             ct <- newName "ct"
-            sigD crosKnotN $ forallT [PlainTV ct] (cxt []) [t| $(conT crosN) $(varT ct) -> $(conT knotTN) $(varT ct) |]
+            sigD crosKnotN $ forallT [PlainTV ct] (cxt []) [t| $(conT crosN) $(conT knotTN) $(varT ct) -> $(conT knotTN) $(varT ct) |]
 
         declare $ funD crosKnotN $ (:[]) $ do
             k <- newName "k"
             clause [conP crosN [varP k, wildP]] (normalB $ varE k) []
-
-    declare $ do
-        ct <- newName "ct"
-        instanceD (cxt []) (appT [t| Eq |] $ conT crosN `appT` varT ct)
-            [ funD '(==) $ (:[]) $ do
-                a <- newName "a"
-                b <- newName "b"
-                clause [conP crosN [wildP, varP a], conP crosN [wildP, varP b]] (normalB [| $(varE a) == $(varE b) |]) []
-            ]
-
-    declare $ do
-        ct <- newName "ct"
-        instanceD (cxt []) (appT [t| Ord |] $ conT crosN `appT` varT ct)
-            [ funD 'compare $ (:[]) $ do
-                a <- newName "a"
-                b <- newName "b"
-                clause [conP crosN [wildP, varP a], conP crosN [wildP, varP b]] (normalB [| $(varE a) `compare` $(varE b) |]) []
-            ]
-
-    declare $ do
-        ct <- newName "ct"
-        instanceD (cxt []) (appT [t| Ix |] $ conT crosN `appT` varT ct)
-            [ funD 'range $ (:[]) $ do
-                k <- newName "k"
-                a <- newName "a"
-                b <- newName "b"
-                clause [tupP [conP crosN [wildP, varP a], conP crosN [varP k, varP b]]]
-                    (normalB [| map ($(conE crosN) $(varE k)) [$(varE a) .. $(varE b)] |]) []
-
-            , funD 'rangeSize $ (:[]) $ do
-                a <- newName "a"
-                b <- newName "b"
-                clause [tupP [conP crosN [wildP, varP a], conP crosN [wildP, varP b]]]
-                    (normalB [| max 0 $ 1 + $(varE b) - $(varE a) :: Int |]) []
-
-            , funD 'inRange $ (:[]) $ do
-                a <- newName "a"
-                b <- newName "b"
-                i <- newName "i"
-                clause [tupP [conP crosN [wildP, varP a], conP crosN [wildP, varP b]], conP crosN [wildP, varP i]]
-                    (normalB [| ($(varE i) >= $(varE a)) && ($(varE i) <= $(varE b)) |]) []
-
-            , funD 'index $ (:[]) $ do
-                a <- newName "a"
-                b <- newName "b"
-                i <- newName "i"
-                clause [tupP [conP crosN [wildP, varP a], conP crosN [wildP, varP b]], conP crosN [wildP, varP i]]
-                    (guardedB $ map (uncurry normalGE)
-                        [ ([| ($(varE i) >= $(varE a)) && ($(varE i) <= $(varE b)) |], [| $(varE i) - $(varE a) :: Int |])
-                        , ([| otherwise |], [| error "out of range" |])
-                        ]) []
-            ]
 
     do
         let name = mkName $ "empty" ++ nameBase knotTN
@@ -284,65 +175,20 @@ produceKnotted knotPattern inst = execWriterT $ do
                 ) []
             ]
 
-    declare $ instanceD (cxt []) ([t| Knotted |] `appT` conT knotTN `appT` conT crosN `appT` conT dartN)
-        [ funD 'numberOfFreeLoops $ (:[]) $ clause [] (normalB $ varE loopsCount) []
+    declare $ instanceD (cxt []) ([t| Knotted |] `appT` conT knotTN) $ execWriter $ do
 
-        , funD 'numberOfCrossings $ (:[]) $ clause [] (normalB $ varE crossCount) []
+        tell $ (:[]) $ funD 'numberOfFreeLoops $ (:[]) $ clause [] (normalB $ varE loopsCount) []
 
-        , funD 'numberOfEdges $ (:[]) $ do
+        tell $ (:[]) $ funD 'numberOfCrossings $ (:[]) $ clause [] (normalB $ varE crossCount) []
+        
+        tell $ (:[]) $ funD 'numberOfEdges $ (:[]) $ do
             k <- newName "k"
             clause [varP k] (normalB $
                 maybe id ($ varE k) (modifyNumberOfEdges inst)
                     [| numberOfCrossings $(varE k) * 2 :: Int |]
                 ) []
 
-        , funD 'allEdges $ (:[]) $ do
-            k <- newName "k"
-            clause [varP k] (normalB $ [|
-                foldl' (\ !es !i ->
-                    let j = $(varE crossArray) $(varE k) `unsafeAt` i
-                    in if i < j
-                        then ($(conE dartN) $(varE k) i, $(conE dartN) $(varE k) j) : es
-                        else es
-                    ) [] [0 .. snd $ bounds $ $(varE crossArray) $(varE k)]
-                |]) []
-
-        , funD 'crossingOwner $ (:[]) $ do
-            k <- newName "k"
-            clause [conP crosN [varP k, wildP]] (normalB $ varE k) []
-
-        , funD 'crossingIndex $ (:[]) $ do
-            c <- newName "c"
-            clause [conP crosN [wildP, varP c]] (normalB [| $(varE c) + 1 :: Int |]) []
-
-        , funD 'crossingState $ (:[]) $ do
-            k <- newName "k"
-            c <- newName "c"
-            clause [conP crosN [varP k, varP c]] (normalB
-                    [| $(varE stateArray) $(varE k) `unsafeAt` $(varE c) |]
-                ) []
-
-        , funD 'nthCrossing $ (:[]) $ do
-            k <- newName "k"
-            i <- newName "i"
-            clause [varP k, varP i] (normalB
-                [|  let b = numberOfCrossings $(varE k)
-                    in if $(varE i) < (1 :: Int) || $(varE i) > b
-                        then error $ printf "nthCrossing: index %i is out of bounds (1, %i)" $(varE i) b
-                        else $(conE crosN) $(varE k) ($(varE i) - 1 :: Int)
-                |]) []
-
-        , funD 'nthDart $ (:[]) $ do
-            k <- newName "k"
-            i <- newName "i"
-            clause [varP k, varP i] (normalB
-                [|  let b = 2 * numberOfEdges $(varE k) - 1
-                    in if $(varE i) < (0 :: Int) || $(varE i) > b
-                        then error $ printf "nthDart: index %i is out of bounds (0, %i)" $(varE i) b
-                        else $(conE dartN) $(varE k) $(varE i)
-                |]) []
-
-        , funD 'mapCrossings $ (:[]) $ do
+        tell $ (:[]) $ funD 'mapCrossings $ (:[]) $ do
             f <- newName "f"
             k <- newName "k"
             clause [varP f, varP k] (normalB $ recUpdE (varE k) [(,) stateArray `fmap`
@@ -354,7 +200,71 @@ produceKnotted knotPattern inst = execWriterT $ do
                         return $! st
                 |]]) []
 
-        , funD 'nthIncidentDart $ (:[]) $ do
+
+
+        tell $ (:[]) $ do
+            ct <- newName "ct"
+            dataInstD (cxt []) ''Crossing [conT knotTN, varT ct] [normalC crosN
+                [ (,) IsStrict `fmap` [t| $(conT knotTN) $(varT ct) |]
+                , (,) Unpacked `fmap` [t| Int |]
+                ]] []
+
+        tell $ (:[]) $ funD 'nthCrossing $ (:[]) $ do
+            k <- newName "k"
+            i <- newName "i"
+            clause [varP k, varP i] (normalB
+                [|  let b = numberOfCrossings $(varE k)
+                    in if $(varE i) < (1 :: Int) || $(varE i) > b
+                        then error $ printf "nthCrossing: index %i is out of bounds (1, %i)" $(varE i) b
+                        else $(conE crosN) $(varE k) ($(varE i) - 1 :: Int)
+                |]) []
+
+        tell $ (:[]) $ funD 'crossingOwner $ (:[]) $ do
+            k <- newName "k"
+            clause [conP crosN [varP k, wildP]] (normalB $ varE k) []
+
+        tell $ (:[]) $ funD 'crossingIndex $ (:[]) $ do
+            c <- newName "c"
+            clause [conP crosN [wildP, varP c]] (normalB [| $(varE c) + 1 :: Int |]) []
+
+        tell $ (:[]) $ funD 'crossingState $ (:[]) $ do
+            k <- newName "k"
+            c <- newName "c"
+            clause [conP crosN [varP k, varP c]] (normalB
+                    [| $(varE stateArray) $(varE k) `unsafeAt` $(varE c) |]
+                ) []
+
+
+
+        tell $ (:[]) $ do
+            ct <- newName "ct"
+            dataInstD (cxt []) ''Dart [conT knotTN, varT ct] [normalC dartN
+                [ (,) IsStrict `fmap` [t| $(conT knotTN) $(varT ct) |]
+                , (,) Unpacked `fmap` [t| Int |]
+                ]] []
+
+        tell $ (:[]) $ funD 'nthDart $ (:[]) $ do
+            k <- newName "k"
+            i <- newName "i"
+            clause [varP k, varP i] (normalB
+                [|  let b = 2 * numberOfEdges $(varE k) - 1
+                    in if $(varE i) < (0 :: Int) || $(varE i) > b
+                        then error $ printf "nthDart: index %i is out of bounds (0, %i)" $(varE i) b
+                        else $(conE dartN) $(varE k) $(varE i)
+                |]) []
+
+        tell $ (:[]) $ funD 'allEdges $ (:[]) $ do
+            k <- newName "k"
+            clause [varP k] (normalB $ [|
+                foldl' (\ !es !i ->
+                    let j = $(varE crossArray) $(varE k) `unsafeAt` i
+                    in if i < j
+                        then ($(conE dartN) $(varE k) i, $(conE dartN) $(varE k) j) : es
+                        else es
+                    ) [] [0 .. snd $ bounds $ $(varE crossArray) $(varE k)]
+                |]) []
+
+        tell $ (:[]) $ funD 'nthIncidentDart $ (:[]) $ do
             k <- newName "k"
             c <- newName "c"
             i <- newName "i"
@@ -362,18 +272,53 @@ produceKnotted knotPattern inst = execWriterT $ do
                     [| $(conE dartN) $(varE k) (($(varE c) `shiftL` 2) + ($(varE i) .&. 3) :: Int) |]
                 ) []
 
-        , funD 'isDart $ (:[]) $ do
+        tell $ (:[]) $ funD 'dartOwner $ (:[]) $ do
+            k <- newName "k"
+            clause [conP dartN [varP k, wildP]] (normalB $ varE k) []
+
+        tell $ (:[]) $ funD 'dartIndex $ (:[]) $ do
+            d <- newName "d"
+            clause [conP dartN [wildP, varP d]] (normalB $ varE d) []
+
+        tell $ (:[]) $ funD 'isDart $ (:[]) $ do
             k <- newName "k"
             d <- newName "d"
             clause [ maybe wildP (const $ conP dartN [varP k, varP d]) (modifyIsDart inst) ] (normalB $
                 maybe [| True |] ($ (varE k, varE d)) (modifyIsDart inst)
                 ) []
 
-        , funD 'dartOwner $ (:[]) $ do
+        tell $ (:[]) $ funD 'nextCCW $ (:[]) $ do
             k <- newName "k"
-            clause [conP dartN [varP k, wildP]] (normalB $ varE k) []
+            d <- newName "d"
+            clause [conP dartN [varP k, varP d]] (normalB $
+                    maybe id ($ (varE k, varE d)) (modifyNextCCW inst)
+                        [| $(conE dartN) $(varE k) (($(varE d) .&. complement 3) + (($(varE d) + 1) .&. 3) :: Int) |]
+                ) []
 
-        , funD 'dartPlace $ (:[]) $ do
+        tell $ (:[]) $ funD 'nextCW $ (:[]) $ do
+            k <- newName "k"
+            d <- newName "d"
+            clause [conP dartN [varP k, varP d]] (normalB $
+                    maybe id ($ (varE k, varE d)) (modifyNextCW inst)
+                        [| $(conE dartN) $(varE k) (($(varE d) .&. complement 3) + (($(varE d) - 1) .&. 3) :: Int) |]
+                ) []
+
+        tell $ (:[]) $ funD 'opposite $ (:[]) $ do
+            k <- newName "k"
+            d <- newName "d"
+            clause [conP dartN [varP k, varP d]] (normalB
+                    [| $(conE dartN) $(varE k) ($(varE crossArray) $(varE k) `unsafeAt` $(varE d)) |]
+                ) []
+
+        tell $ (:[]) $ funD 'incidentCrossing $ (:[]) $ do
+            k <- newName "k"
+            d <- newName "d"
+            clause [conP dartN [varP k, varP d]] (normalB $
+                    maybe id ($ (varE k, varE d)) (modifyIncidentCrossing inst)
+                        [| $(conE crosN) $(varE k) ($(varE d) `shiftR` 2) |]
+                ) []
+
+        tell $ (:[]) $ funD 'dartPlace $ (:[]) $ do
             k <- newName "k"
             d <- newName "d"
             let patK = maybe wildP (const $ varP k) (modifyDartPlace inst)
@@ -382,44 +327,7 @@ produceKnotted knotPattern inst = execWriterT $ do
                         [| $(varE d) .&. 3 :: Int |]
                 ) []
 
-        , funD 'incidentCrossing $ (:[]) $ do
-            k <- newName "k"
-            d <- newName "d"
-            clause [conP dartN [varP k, varP d]] (normalB $
-                    maybe id ($ (varE k, varE d)) (modifyIncidentCrossing inst)
-                        [| $(conE crosN) $(varE k) ($(varE d) `shiftR` 2) |]
-                ) []
-
-        , funD 'opposite $ (:[]) $ do
-            k <- newName "k"
-            d <- newName "d"
-            clause [conP dartN [varP k, varP d]] (normalB
-                    [| $(conE dartN) $(varE k) ($(varE crossArray) $(varE k) `unsafeAt` $(varE d)) |]
-                ) []
-
-        , funD 'nextCCW $ (:[]) $ do
-            k <- newName "k"
-            d <- newName "d"
-            clause [conP dartN [varP k, varP d]] (normalB $
-                    maybe id ($ (varE k, varE d)) (modifyNextCCW inst)
-                        [| $(conE dartN) $(varE k) (($(varE d) .&. complement 3) + (($(varE d) + 1) .&. 3) :: Int) |]
-                ) []
-
-        , funD 'nextCW $ (:[]) $ do
-            k <- newName "k"
-            d <- newName "d"
-            clause [conP dartN [varP k, varP d]] (normalB $
-                    maybe id ($ (varE k, varE d)) (modifyNextCW inst)
-                        [| $(conE dartN) $(varE k) (($(varE d) .&. complement 3) + (($(varE d) - 1) .&. 3) :: Int) |]
-                ) []
-
-        , funD 'dartIndex $ (:[]) $ do
-            d <- newName "d"
-            clause [conP dartN [wildP, varP d]] (normalB $ varE d) []
-        ]
-
-    declare $ instanceD (cxt []) ([t| KnottedWithAccel |] `appT` conT knotTN `appT` conT crosN `appT` conT dartN)
-        [ funD 'forMIncidentDarts $ (:[]) $ do
+        tell $ (:[]) $ funD 'forMIncidentDarts $ (:[]) $ do
             k <- newName "k"
             c <- newName "c"
             f <- newName "f"
@@ -429,7 +337,7 @@ produceKnotted knotPattern inst = execWriterT $ do
                         >> $(varE f) ($(conE dartN) $(varE k) $! b + 2) >> $(varE f) ($(conE dartN) $(varE k) $! b + 3)
                 |]) []
 
-        , funD 'foldMIncidentDarts $ (:[]) $ do
+        tell $ (:[]) $ funD 'foldMIncidentDarts $ (:[]) $ do
             k <- newName "k"
             c <- newName "c"
             f <- newName "f"
@@ -442,7 +350,7 @@ produceKnotted knotPattern inst = execWriterT $ do
                                 >>= $(varE f) ($(conE dartN) $(varE k) $! b + 3)
                 |]) []
 
-        , funD 'foldMIncidentDartsFrom $ (:[]) $ do
+        tell $ (:[]) $ funD 'foldMIncidentDartsFrom $ (:[]) $ do
             dart <- newName "dart"
             k <- newName "k"
             i <- newName "i"
@@ -460,26 +368,30 @@ produceKnotted knotPattern inst = execWriterT $ do
                                     >>= $(varE f) ($(conE dartN) $(varE k) $! r + l3)
                     |]
                 ) []
-        ]
 
-    maybeM (implodeExplodeSettings inst) $ \ ies -> do
-        declare $ do
-            ct <- newName "ct"
-            let appliedT = conT knotTN `appT` varT ct
-            instanceD (cxt [classP ''CrossingType [varT ct]]) ([t| Explodable |] `appT` appliedT)
-                [ tySynInstD ''ExplodeType [appliedT] $
+        maybeM (implodeExplodeSettings inst) $ \ ies -> do
+            tell $ (:[]) $ funD 'toPair $ (:[]) $ do
+                d <- newName "d"
+                clause [varP d] (guardedB $ map (uncurry normalGE) $ map ($ varE d) (extraExplodePairCases ies) ++
+                        [ ([| otherwise |], [| ((,) $! crossingIndex $ incidentCrossing $(varE d)) $! dartPlace $(varE d) |])
+                        ]
+                    ) []
+
+            tell $ (:[]) $ do
+                ct <- newName "ct"
+                tySynInstD ''ExplodeType [conT knotTN, varT ct] $ do    
                     let types = [ [t| Int |] ] ++ map (\ (_, x, _) -> x) (extraImplodeExplodeParams ies) ++ [ [t| [([(Int, Int)], CrossingState $(varT ct))] |] ]
-                    in foldl appT (tupleT $ length types) types
+                    foldl appT (tupleT $ length types) types
 
-                , funD 'explode $ (:[]) $ do
-                    knot <- newName "knot"
-                    clause [varP knot] (normalB $ tupE $ execWriter $ do
-                            tell $ (:[]) $ [| numberOfFreeLoops $(varE knot) |]
-                            tell $ map (\ (_, _, f) -> f $ varE knot) $ extraImplodeExplodeParams ies
-                            tell $ (:[]) [| map (\ c -> (map (toPair . opposite) $ incidentDarts c, crossingState c)) $ allCrossings $(varE knot) |]
-                        ) []
+            tell $ (:[]) $ funD 'explode $ (:[]) $ do
+                knot <- newName "knot"
+                clause [varP knot] (normalB $ tupE $ execWriter $ do
+                        tell $ (:[]) $ [| numberOfFreeLoops $(varE knot) |]
+                        tell $ map (\ (_, _, f) -> f $ varE knot) $ extraImplodeExplodeParams ies
+                        tell $ (:[]) [| map (\ c -> (map (toPair . opposite) $ incidentDarts c, crossingState c)) $ allCrossings $(varE knot) |]
+                    ) []
 
-                , funD 'implode $ (:[]) $ do
+            tell $ (:[]) $ funD 'implode $ (:[]) $ do
                     arg <- newName "arg"
                     loops <- newName "loops"
                     list <- newName "list"
@@ -554,13 +466,111 @@ produceKnotted knotPattern inst = execWriterT $ do
                                         ] ++ implodeInitializers ies)
                                 |]
                         ) []
-                ]
 
-        declare $ instanceD (cxt []) ([t| KnottedWithToPair |] `appT` conT knotTN `appT` conT crosN `appT` conT dartN)
-            [ funD 'toPair $ (:[]) $ do
-                d <- newName "d"
-                clause [varP d] (guardedB $ map (uncurry normalGE) $ map ($ varE d) (extraExplodePairCases ies) ++
-                        [ ([| otherwise |], [| ((,) $! crossingIndex $ incidentCrossing $(varE d)) $! dartPlace $(varE d) |])
-                        ]
-                    ) []
+
+    declare $ do
+        ct <- newName "ct"
+        instanceD (cxt []) (appT [t| Eq |] $ conT crosN `appT` conT knotTN `appT` varT ct)
+            [ funD '(==) $ (:[]) $ do
+                a <- newName "a"
+                b <- newName "b"
+                clause [conP crosN [wildP, varP a], conP crosN [wildP, varP b]] (normalB [| $(varE a) == $(varE b) |]) []
+            ]        
+
+    declare $ do
+        ct <- newName "ct"
+        instanceD (cxt []) (appT [t| Ord |] $ conT crosN `appT` conT knotTN `appT` varT ct)
+            [ funD 'compare $ (:[]) $ do
+                a <- newName "a"
+                b <- newName "b"
+                clause [conP crosN [wildP, varP a], conP crosN [wildP, varP b]] (normalB [| $(varE a) `compare` $(varE b) |]) []
+            ]
+
+
+    declare $ do
+        ct <- newName "ct"
+        instanceD (cxt []) (appT [t| Eq |] $ conT dartN `appT` conT knotTN `appT` varT ct)
+            [ funD '(==) $ (:[]) $ do
+                a <- newName "a"
+                b <- newName "b"
+                clause [conP dartN [wildP, varP a], conP dartN [wildP, varP b]] (normalB [| $(varE a) == $(varE b) |]) []
+            ]
+
+    declare $ do
+        ct <- newName "ct"
+        instanceD (cxt []) (appT [t| Ord |] $ conT dartN `appT` conT knotTN `appT` varT ct)
+            [ funD 'compare $ (:[]) $ do
+                a <- newName "a"
+                b <- newName "b"
+                clause [conP dartN [wildP, varP a], conP dartN [wildP, varP b]] (normalB [| $(varE a) `compare` $(varE b) |]) []
+            ]
+
+
+    declare $ do
+        ct <- newName "ct"
+        instanceD (cxt []) (appT [t| Ix |] $ conT crosN `appT` conT knotTN `appT` varT ct)
+            [ funD 'range $ (:[]) $ do
+                k <- newName "k"
+                a <- newName "a"
+                b <- newName "b"
+                clause [tupP [conP crosN [wildP, varP a], conP crosN [varP k, varP b]]]
+                    (normalB [| map ($(conE crosN) $(varE k)) [$(varE a) .. $(varE b)] |]) []
+
+            , funD 'rangeSize $ (:[]) $ do
+                a <- newName "a"
+                b <- newName "b"
+                clause [tupP [conP crosN [wildP, varP a], conP crosN [wildP, varP b]]]
+                    (normalB [| max 0 $ 1 + $(varE b) - $(varE a) :: Int |]) []
+
+            , funD 'inRange $ (:[]) $ do
+                a <- newName "a"
+                b <- newName "b"
+                i <- newName "i"
+                clause [tupP [conP crosN [wildP, varP a], conP crosN [wildP, varP b]], conP crosN [wildP, varP i]]
+                    (normalB [| ($(varE i) >= $(varE a)) && ($(varE i) <= $(varE b)) |]) []
+
+            , funD 'index $ (:[]) $ do
+                a <- newName "a"
+                b <- newName "b"
+                i <- newName "i"
+                clause [tupP [conP crosN [wildP, varP a], conP crosN [wildP, varP b]], conP crosN [wildP, varP i]]
+                    (guardedB $ map (uncurry normalGE)
+                        [ ([| ($(varE i) >= $(varE a)) && ($(varE i) <= $(varE b)) |], [| $(varE i) - $(varE a) :: Int |])
+                        , ([| otherwise |], [| error "out of range" |])
+                        ]) []
+            ]
+
+
+    declare $ do
+        ct <- newName "ct"
+        instanceD (cxt []) (appT [t| Ix |] $ conT dartN `appT` conT knotTN `appT` varT ct)
+            [ funD 'range $ (:[]) $ do
+                k <- newName "k"
+                a <- newName "a"
+                b <- newName "b"
+                clause [tupP [conP dartN [wildP, varP a], conP dartN [varP k, varP b]]]
+                    (normalB [| map ($(conE dartN) $(varE k)) [$(varE a) .. $(varE b)] |]) []
+
+            , funD 'rangeSize $ (:[]) $ do
+                a <- newName "a"
+                b <- newName "b"
+                clause [tupP [conP dartN [wildP, varP a], conP dartN [wildP, varP b]]]
+                    (normalB [| max 0 $ 1 + $(varE b) - $(varE a) :: Int |]) []
+
+            , funD 'inRange $ (:[]) $ do
+                a <- newName "a"
+                b <- newName "b"
+                i <- newName "i"
+                clause [tupP [conP dartN [wildP, varP a], conP dartN [wildP, varP b]], conP dartN [wildP, varP i]]
+                    (normalB [| ($(varE i) >= $(varE a)) && ($(varE i) <= $(varE b)) |]) []
+
+            , funD 'index $ (:[]) $ do
+                a <- newName "a"
+                b <- newName "b"
+                i <- newName "i"
+                clause [tupP [conP dartN [wildP, varP a], conP dartN [wildP, varP b]], conP dartN [wildP, varP i]]
+                    (guardedB $ map (uncurry normalGE)
+                        [ ([| ($(varE i) >= $(varE a)) && ($(varE i) <= $(varE b)) |], [| $(varE i) - $(varE a) :: Int |])
+                        , ([| otherwise |], [| error "out of range" |])
+                        ]) []
             ]
