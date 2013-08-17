@@ -166,7 +166,7 @@ instance StateModel ChordDiagramsSum where
     asConst _ (ChordDiagramsSum _ [ChordDiagram _ x]) = x
     asConst _ _ = error "takeAsConst: constant expected"
 
-    glueHandle relation !p !preSum @ (ChordDiagramsSum !degree _) = {- trace (printf "%i[%i] ) %i" degree (complexityRank preSum) p) $ -}
+    glueHandle relation !p preSum @ (ChordDiagramsSum !degree _) = {- trace (printf "%i[%i] ) %i" degree (complexityRank preSum) p) $ -}
         let !p' = (p + 1) `mod` degree
 
             !subst = listArray (0, degree - 1) $
@@ -181,7 +181,7 @@ instance StateModel ChordDiagramsSum where
                         glueTangles 2 (nthLeg t p) (firstLeg identityTangle)
         in (subst, postSum)
 
-    connect relation (!p, !sumV @ (ChordDiagramsSum !degreeV _)) (!q, !sumU @ (ChordDiagramsSum !degreeU _)) = {- trace (printf "%i[%i] -- %i[%i]" degreeV (complexityRank sumV) degreeU (complexityRank sumU)) $ -}
+    connect relation (!p, sumV @ (ChordDiagramsSum !degreeV _)) (!q, sumU @ (ChordDiagramsSum !degreeU _)) = {- trace (printf "%i[%i] -- %i[%i]" degreeV (complexityRank sumV) degreeU (complexityRank sumU)) $ -}
         let !substV = listArray (0, degreeV - 1) $
                 [0 .. p - 1] ++ [-1] ++ [ i + degreeU - 2 | i <- [p + 1 .. degreeV - 1]]
 

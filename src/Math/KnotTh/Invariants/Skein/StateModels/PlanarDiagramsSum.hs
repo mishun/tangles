@@ -98,7 +98,7 @@ instance StateModel PlanarDiagramsSum where
     asConst _ (PlanarDiagramsSum _ [PlanarDiagram _ x]) = x
     asConst _ _ = error "takeAsConst: constant expected"
 
-    glueHandle relation !p !preSum @ (PlanarDiagramsSum !degree _) =
+    glueHandle relation !p preSum @ (PlanarDiagramsSum !degree _) =
         let !p' = (p + 1) `mod` degree
 
             !subst = runSTUArray $ do
@@ -127,7 +127,7 @@ instance StateModel PlanarDiagramsSum where
                 in singletonStateSum $ PlanarDiagram x' k'
         in (subst, result)
 
-    connect _ (!p, !sumV @ (PlanarDiagramsSum !degreeV _)) (!q, !sumU @ (PlanarDiagramsSum !degreeU _)) =
+    connect _ (!p, sumV @ (PlanarDiagramsSum !degreeV _)) (!q, sumU @ (PlanarDiagramsSum !degreeU _)) =
         let !substV = runSTUArray $ do
                 a <- newArray (0, degreeV - 1) (-1) :: ST s (STUArray s Int Int)
                 forM_ [0 .. p - 1] $ \ !i ->

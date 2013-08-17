@@ -45,8 +45,8 @@ generateFlypeEquivalentDecomposition' triangle maxN yield = do
                     _ | numberOfLegs t /= 4      -> False
                       | gl /= 2                  -> False
                       | testNoMultiEdges leg gl  -> False
-                      | lp == DirectSum01_23     -> False
-                      | numberOfCrossings t == 1 -> rp /= DirectSum12_30
+                      | lp == DirectSum01x23     -> False
+                      | numberOfCrossings t == 1 -> rp /= DirectSum12x30
                       | otherwise                -> True
             , postGlueTest = \ root _ leg s ->
                 let coLeg = nextCCW $ nextCCW leg
@@ -71,8 +71,8 @@ generateFlypeEquivalentDecomposition' triangle maxN yield = do
 
     let buildCrossingType template symmetry =
             let sumType
-                    | (a == b) && (c == d) && (a /= c)  = DirectSum01_23
-                    | (b == c) && (a == d) && (a /= b)  = DirectSum12_30
+                    | (a == b) && (c == d) && (a /= c)  = DirectSum01x23
+                    | (b == c) && (a == d) && (a /= b)  = DirectSum12x30
                     | otherwise                         = NonDirectSumDecomposable
                     where
                         [a, b, c, d] = map adjacentCrossing $ allLegs template

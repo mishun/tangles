@@ -85,7 +85,7 @@ restoreBasicTangle chordDiagram =
 
         restore :: UArray Int Int -> UArray Int Int -> [Int] -> NonAlternatingTangle
         restore a _ [] = implode (0, map ((,) 0) $ elems a, [])
-        restore !a !h (!i : rest)
+        restore !a !h ((!i) : rest)
             | not cross  = restore a h rest
             | otherwise  =
                 let tangle = restore (a // [(i, j'), (j, i'), (i', j), (j', i)]) (h // [(i, h ! j), (j, h ! i)]) [0 .. l]
@@ -204,7 +204,7 @@ instance StateModel OrientedChordDiagramsSum where
     asConst _ (OrientedChordDiagramsSum _ [OrientedChordDiagram _ x]) = x
     asConst _ _ = error "takeAsConst: constant expected"
 
-    glueHandle relation !p !preSum @ (OrientedChordDiagramsSum !degree _) =
+    glueHandle relation !p preSum @ (OrientedChordDiagramsSum !degree _) =
         let !p' = (p + 1) `mod` degree
 
             !subst = runSTUArray $ do
@@ -221,7 +221,7 @@ instance StateModel OrientedChordDiagramsSum where
                 in decomposeTangle relation k $ glueTangles 2 (nthLeg t p) (firstLeg identityTangle)
         in (subst, postSum)
 
-    connect relation (!p, !sumV @ (OrientedChordDiagramsSum !degreeV _)) (!q, !sumU @ (OrientedChordDiagramsSum !degreeU _)) =
+    connect relation (!p, sumV @ (OrientedChordDiagramsSum !degreeV _)) (!q, sumU @ (OrientedChordDiagramsSum !degreeU _)) =
         let !substV = runSTUArray $ do
                 a <- newArray (0, degreeV - 1) (-1) :: ST s (STUArray s Int Int)
                 forM_ [p + 1 .. degreeV - 1] $ \ !i ->

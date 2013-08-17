@@ -26,13 +26,13 @@ import Math.KnotTh.Knotted
 import Math.KnotTh.Tangle
 
 
-data DirectSumDecompositionType = NonDirectSumDecomposable | DirectSum01_23 | DirectSum12_30 deriving (Eq, Show)
+data DirectSumDecompositionType = NonDirectSumDecomposable | DirectSum01x23 | DirectSum12x30 deriving (Eq, Show)
 
 
 changeSumType :: DirectSumDecompositionType -> DirectSumDecompositionType
 changeSumType NonDirectSumDecomposable = NonDirectSumDecomposable
-changeSumType DirectSum01_23 = DirectSum12_30
-changeSumType DirectSum12_30 = DirectSum01_23
+changeSumType DirectSum01x23 = DirectSum12x30
+changeSumType DirectSum12x30 = DirectSum01x23
 
 
 data SubTangleCrossing ct = SubTangle
