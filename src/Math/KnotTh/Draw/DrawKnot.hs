@@ -1,7 +1,8 @@
 module Math.KnotTh.Draw.DrawKnot
     ( DrawKnotSettings(..)
     , defaultDraw
-    , drawKnot
+    , DrawableKnotted(..)
+    , DrawableCrossingType(..)
     ) where
 
 import Data.Array.Base ((!))
