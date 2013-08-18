@@ -47,7 +47,7 @@ class (ThreadedCrossing ct) => DrawableCrossingType ct where
 
 instance DrawableCrossingType ProjectionCrossing where
     crossingDependentImage s _ threads =
-        lineWidth (threadWidth s) $ lineColor (threadColour s) $ execWriter $
+        lw (threadWidth s) $ lc (threadColour s) $ execWriter $
             forM_ threads $ \ thread ->
                 case thread of
                     []                          -> return ()
@@ -57,7 +57,7 @@ instance DrawableCrossingType ProjectionCrossing where
 
 instance DrawableCrossingType ArbitraryCrossing where
     crossingDependentImage s _ threads =
-        lineWidth (threadWidth s) $ lineColor (threadColour s) $ mconcat $ do
+        lw (threadWidth s) $ lc (threadColour s) $ mconcat $ do
             thread <- threads
             ((a, b), chain) <- thread
             let n = length chain
@@ -95,15 +95,20 @@ instance DrawableKnotted Tangle where
                     toGraphDart d
                         | isLeg d    = G.nthDartIncidentToVertex (G.nthVertex g 0) $ (-legPlace d) `mod` numberOfLegs tangle
                         | otherwise  = G.nthDartIncidentToVertex (G.nthVertex g $ crossingIndex $ incidentCrossing d) (dartPlace d)
+
                 in map (map (\ p@(a, _) -> (p, embedding ! toGraphDart a))) $ allThreads tangle
+
         in execWriter $ do
             when (endpointsRadius s > 0.0) $ do
                 let l = numberOfLegs tangle
                 forM_ [0 .. l - 1] $ \ !i -> do
                     let a = 2 * pi * fromIntegral i / fromIntegral l
-                    tell $ translate (r2 (cos a, sin a)) $ fillColor (threadColour s) $ lineWidth 0 $ circle $ endpointsRadius s
+                    tell $ translate (r2 (cos a, sin a)) $ fc (threadColour s) $ lw 0 $
+                        circle (endpointsRadius s)
+
             when (borderWidth s > 0.0) $
-                tell $ lineColor (borderColour s) $ dashing (borderDashing s) 0 $ lineWidth (borderWidth s) $ circle 1
+                tell $ lc (borderColour s) $ dashing (borderDashing s) 0 $ lw (borderWidth s) $ circle 1
+
             tell $ crossingDependentImage s tangle embeddedThreads
 
 
@@ -114,7 +119,8 @@ instance DrawableKnotted Link where
                     embedding = GE.embeddingWithVertexRooting 2 (G.nthVertex g 0)
                     toGraphDart d = G.nthDartIncidentToVertex (G.nthVertex g $ crossingIndex $ incidentCrossing d) (dartPlace d)
                 in map (map (\ p@(a, _) -> (p, embedding ! toGraphDart a))) $ allThreads link
+
         in execWriter $ do
             when (borderWidth s > 0.0) $
-                tell $ lineColor (borderColour s) $ dashing [0.03, 0.01] 0 $ lineWidth (borderWidth s) $ circle 1
+                tell $ lc (borderColour s) $ dashing [0.03, 0.01] 0 $ lw (borderWidth s) $ circle 1
             tell $ crossingDependentImage s link embeddedThreads
