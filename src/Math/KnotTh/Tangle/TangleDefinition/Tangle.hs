@@ -68,7 +68,7 @@ produceKnotted
                         |]
                     ]
 
-                , implodePostExtra = \ n spliceFill ->
+                , implodePostExtra = \ n _ spliceFill ->
                     [ noBindS
                         [|  forM_ (zip $brd [0 :: Int ..]) $ \ ((!c, !p), !i) ->
                                 let a = 4 * $n + i

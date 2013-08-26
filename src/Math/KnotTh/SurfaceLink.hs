@@ -12,11 +12,13 @@ module Math.KnotTh.SurfaceLink
 
 import Language.Haskell.TH
 import Data.Function (fix)
+import Data.Bits ((.&.), complement)
 import Data.Array.Base (listArray, unsafeAt, newArray, newArray_, readArray, writeArray)
 import Data.Array.Unboxed (UArray)
+import Data.Array.Unsafe (unsafeFreeze)
 import Data.Array.ST (STUArray)
 import Control.Monad.ST (ST, runST)
-import Control.Monad (when, forM_)
+import Control.Monad (when, forM_, foldM)
 import Text.Printf
 import Math.KnotTh.Knotted
 import Math.KnotTh.Knotted.TH.Knotted
@@ -33,11 +35,40 @@ produceKnotted
     |]
     defaultKnotted
         { implodeExplodeSettings = Just $ defaultImplodeExplode
-            { implodeInitializers =
-                [ (,) (mkName "faceCount")   `fmap` [| 0 :: Int |]
-                , (,) (mkName "faceOffset")  `fmap` [| listArray (0 :: Int, 1) [0 :: Int, 0] |]
-                , (,) (mkName "faceLList")   `fmap` [| listArray (0 :: Int, -1) [] |]
-                , (,) (mkName "faceLLookup") `fmap` [| listArray (0 :: Int, -1) [] |]
+            { implodePostExtra = \ n cr spliceFill -> (:[]) $
+                bindS [p| (fc, fllook, foff, fll) |] [| do
+                    fll <- newArray (0, 4 * $n - 1) 0 :: ST s (STUArray s Int Int)
+                    fllook <- newArray (0, 4 * $n - 1) (-1) :: ST s (STUArray s Int Int)
+
+                    fc <- foldM (\ !fid !start -> do
+                            mi <- readArray fllook start
+                            if mi >= 0
+                                then return $! fid
+                                else do
+                                    writeArray fllook start fid
+                                    flip fix start $ \ mark !i -> do
+                                        i' <- readArray $cr i
+                                        let j = (i' .&. complement 3) + ((i' - 1) .&. 3)
+                                        mj <- readArray fllook j
+                                        when (mj < 0) $ do
+                                            writeArray fllook j fid
+                                            mark j
+                                    return $! fid + 1
+                        ) 0 [0 .. 4 * $n - 1]
+
+                    foff <- newArray (0, fc) 0 :: ST s (STUArray s Int Int)
+
+                    fll' <- unsafeFreeze fll
+                    fllook' <- unsafeFreeze fllook
+                    foff' <- unsafeFreeze foff
+                    return (fc, fllook', foff', fll')
+                    |]
+
+            , implodeInitializers =
+                [ (,) (mkName "faceCount")   `fmap` varE (mkName "fc")
+                , (,) (mkName "faceOffset")  `fmap` varE (mkName "foff")
+                , (,) (mkName "faceLList")   `fmap` varE (mkName "fll")
+                , (,) (mkName "faceLLookup") `fmap` varE (mkName "fllook")
                 ]
             }
 
@@ -77,13 +108,18 @@ instance SurfaceKnotted SurfaceLink where
             nxt = faceOffset l `unsafeAt` i
         in Dart l $ unsafeAt (faceLList l) $ cur + p `mod` (nxt - cur)
 
-    nthCWBorderDart f p =
-        opposite $ nthCCWBorderDart f p
-
     faceToTheLeft (Dart l i) =
         Face l $ faceLLookup l `unsafeAt` i
 
-    faceToTheRight = faceToTheLeft . opposite
+    placeToTheLeft _ = undefined
+
+
+instance Eq (Face SurfaceLink ct) where
+    (==) (Face _ a) (Face _ b) = a == b
+
+
+instance Ord (Face SurfaceLink ct) where
+    compare (Face _ a) (Face _ b) = compare a b
 
 
 {-# INLINE faceSurfaceLink #-}

@@ -45,7 +45,7 @@ data ImplodeExplodeSettings = ImplodeExplodeSettings
     , extraExplodePairCases     :: [ExpQ -> (ExpQ, ExpQ)]
     , modifyImplodeLimit        :: Maybe (ExpQ -> ExpQ -> ExpQ)
     , implodePreExtra           :: (String -> [ExpQ] -> ExpQ) -> [StmtQ]
-    , implodePostExtra          :: ExpQ -> (ExpQ -> (ExpQ, ExpQ) -> ExpQ) -> [StmtQ]
+    , implodePostExtra          :: ExpQ -> ExpQ -> (ExpQ -> (ExpQ, ExpQ) -> ExpQ) -> [StmtQ]
     , implodeInitializers       :: [Q (Name, Exp)]
     }
 
@@ -71,7 +71,7 @@ defaultImplodeExplode = ImplodeExplodeSettings
     , extraExplodePairCases     = []
     , modifyImplodeLimit        = Nothing
     , implodePreExtra           = const []
-    , implodePostExtra          = const $ const []
+    , implodePostExtra          = const $ const $ const []
     , implodeInitializers       = []
     }
 
@@ -453,7 +453,7 @@ produceKnotted knotPattern inst = execWriterT $ do
                                                 $(spliceError "there must be 4 neighbours for every crossing, but found %i for %i-th" [ [| length ns |], [| i + 1 |] ])
                                 |]
 
-                            tell $ implodePostExtra ies (varE n) spliceFill
+                            tell $ implodePostExtra ies (varE n) (varE cr) spliceFill
 
                             tell $ (:[]) $ bindS (varP cr') [| unsafeFreeze $(varE cr) |]
                             tell $ (:[]) $ bindS (varP st') [| unsafeFreeze $(varE st) |]
