@@ -12,7 +12,9 @@ module Math.KnotTh.SurfaceLink
 
 import Language.Haskell.TH
 import Data.Function (fix)
-import Data.Array.ST (STUArray, newArray, newArray_, readArray, writeArray)
+import Data.Array.Base (listArray, unsafeAt, newArray, newArray_, readArray, writeArray)
+import Data.Array.Unboxed (UArray)
+import Data.Array.ST (STUArray)
 import Control.Monad.ST (ST, runST)
 import Control.Monad (when, forM_)
 import Text.Printf
@@ -23,16 +25,27 @@ import Math.KnotTh.Knotted.TH.Show
 
 produceKnotted
     [d| data SurfaceLink ct = SurfaceLink
-            { faceCount :: Int
+            { faceCount   :: !Int
+            , faceOffset  :: !(UArray Int Int)
+            , faceLList   :: !(UArray Int Int)
+            , faceLLookup :: !(UArray Int Int)
             }
     |]
     defaultKnotted
         { implodeExplodeSettings = Just $ defaultImplodeExplode
-            { implodeInitializers = [(,) (mkName "faceCount") `fmap` [| 0 :: Int |]]
+            { implodeInitializers =
+                [ (,) (mkName "faceCount")   `fmap` [| 0 :: Int |]
+                , (,) (mkName "faceOffset")  `fmap` [| listArray (0 :: Int, 1) [0 :: Int, 0] |]
+                , (,) (mkName "faceLList")   `fmap` [| listArray (0 :: Int, -1) [] |]
+                , (,) (mkName "faceLLookup") `fmap` [| listArray (0 :: Int, -1) [] |]
+                ]
             }
 
         , emptyExtraInitializers =
-            [ (,) (mkName "faceCount") `fmap` [| 0 :: Int |]
+            [ (,) (mkName "faceCount")   `fmap` [| 1 :: Int |]
+            , (,) (mkName "faceOffset")  `fmap` [| listArray (0 :: Int, 1) [0 :: Int, 0] |]
+            , (,) (mkName "faceLList")   `fmap` [| listArray (0 :: Int, -1) [] |]
+            , (,) (mkName "faceLLookup") `fmap` [| listArray (0 :: Int, -1) [] |]
             ]
         }
 
@@ -52,9 +65,25 @@ instance SurfaceKnotted SurfaceLink where
 
     faceOwner = faceSurfaceLink
 
-    faceIndex (Face _ i) = i + 1
+    faceIndex (Face _ i) = i - 1
 
-    faceDegree = undefined
+    faceDegree (Face l i) =
+        let cur = faceOffset l `unsafeAt` (i - 1)
+            nxt = faceOffset l `unsafeAt` i
+        in nxt - cur
+
+    nthCCWBorderDart (Face l i) p =
+        let cur = faceOffset l `unsafeAt` (i - 1)
+            nxt = faceOffset l `unsafeAt` i
+        in Dart l $ unsafeAt (faceLList l) $ cur + p `mod` (nxt - cur)
+
+    nthCWBorderDart f p =
+        opposite $ nthCCWBorderDart f p
+
+    faceToTheLeft (Dart l i) =
+        Face l $ faceLLookup l `unsafeAt` i
+
+    faceToTheRight = faceToTheLeft . opposite
 
 
 {-# INLINE faceSurfaceLink #-}

@@ -164,6 +164,7 @@ library
             Math.Combinatorics.Strings.Test,
             Math.KnotTh.Enumeration.Applied.Test,
             Math.KnotTh.Invariants.Test,
+            Math.KnotTh.SurfaceLink.Test,
             Math.KnotTh.Tangle.BorderIncremental.Test,
             Math.KnotTh.Tangle.Moves.Test,
             Math.KnotTh.Tangle.Test
