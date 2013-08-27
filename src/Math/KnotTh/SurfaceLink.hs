@@ -7,18 +7,18 @@ module Math.KnotTh.SurfaceLink
     , dartSurfaceLink
     , emptySurfaceLink
     , changeNumberOfFreeLoops
-    , testPrime
     ) where
 
 import Language.Haskell.TH
 import Data.Function (fix)
+import Data.Ix (Ix(..))
 import Data.Bits ((.&.), complement)
 import Data.Array.Base (listArray, unsafeAt, newArray, newArray_, readArray, writeArray)
 import Data.Array.Unboxed (UArray)
 import Data.Array.Unsafe (unsafeFreeze)
 import Data.Array.ST (STUArray)
-import Control.Monad.ST (ST, runST)
-import Control.Monad (when, forM_, foldM)
+import Control.Monad.ST (ST)
+import Control.Monad (forM_, foldM, foldM_)
 import Text.Printf
 import Math.KnotTh.Knotted
 import Math.KnotTh.Knotted.TH.Knotted
@@ -27,56 +27,73 @@ import Math.KnotTh.Knotted.TH.Show
 
 produceKnotted
     [d| data SurfaceLink ct = SurfaceLink
-            { faceCount   :: !Int
-            , faceOffset  :: !(UArray Int Int)
-            , faceLList   :: !(UArray Int Int)
-            , faceLLookup :: !(UArray Int Int)
+            { faceCount      :: !Int
+            , faceDataOffset :: !(UArray Int Int)
+            , faceCCWBrdDart :: !(UArray Int Int)
+            , faceLLookup    :: !(UArray Int Int)
             }
-    |]
-    defaultKnotted
+    |] $
+    let fcN = mkName "fc"
+        fllookN = mkName "fllook"
+        foffN = mkName "foff"
+        fccwdN = mkName "fccwd"
+    in defaultKnotted
         { implodeExplodeSettings = Just $ defaultImplodeExplode
             { implodePostExtra = \ n cr spliceFill -> (:[]) $
-                bindS [p| (fc, fllook, foff, fll) |] [| do
-                    fll <- newArray (0, 4 * $n - 1) 0 :: ST s (STUArray s Int Int)
-                    fllook <- newArray (0, 4 * $n - 1) (-1) :: ST s (STUArray s Int Int)
+                bindS (tupP [varP fcN, varP fllookN, varP foffN, varP fccwdN]) [| do
+                    fccwd <- newArray_ (0, 4 * $n - 1) :: ST s (STUArray s Int Int)
+                    fllook <- newArray (0, 8 * $n - 1) (-1) :: ST s (STUArray s Int Int)
 
-                    fc <- foldM (\ !fid !start -> do
-                            mi <- readArray fllook start
-                            if mi >= 0
-                                then return $! fid
-                                else do
-                                    writeArray fllook start fid
-                                    flip fix start $ \ mark !i -> do
-                                        i' <- readArray $cr i
-                                        let j = (i' .&. complement 3) + ((i' - 1) .&. 3)
-                                        mj <- readArray fllook j
-                                        when (mj < 0) $ do
-                                            writeArray fllook j fid
-                                            mark j
-                                    return $! fid + 1
-                        ) 0 [0 .. 4 * $n - 1]
+                    (fc, _) <- foldM (\ (!fid, !base) !start -> do
+                        mi <- readArray fllook start
+                        if mi >= 0
+                            then return (fid, base)
+                            else do
+                                sz <- fix (\ mark !offset !i -> do
+                                    writeArray fllook (2 * i) fid
+                                    writeArray fllook (2 * i + 1) offset
+                                    writeArray fccwd (base + offset) i
+
+                                    i' <- readArray $cr i
+                                    let j = (i' .&. complement 3) + ((i' - 1) .&. 3)
+                                    mj <- readArray fllook (2 * j)
+                                    if mj >= 0
+                                        then return $! offset + 1
+                                        else mark (offset + 1) j
+                                    ) 0 start
+                                return (fid + 1, base + sz)
+                        ) (0, 0) [0 .. 4 * $n - 1]
 
                     foff <- newArray (0, fc) 0 :: ST s (STUArray s Int Int)
+                    forM_ [0 .. 4 * $n - 1] $ \ !i -> do
+                        fid <- readArray fllook (2 * i)
+                        cur <- readArray foff fid
+                        writeArray foff fid $! cur + 1
+                    foldM_ (\ !offset !i -> do
+                        cur <- readArray foff i
+                        writeArray foff i offset
+                        return $! offset + cur
+                        ) 0 [0 .. fc]
 
-                    fll' <- unsafeFreeze fll
+                    fccwd' <- unsafeFreeze fccwd
                     fllook' <- unsafeFreeze fllook
                     foff' <- unsafeFreeze foff
-                    return (fc, fllook', foff', fll')
+                    return (fc, fllook', foff', fccwd')
                     |]
 
             , implodeInitializers =
-                [ (,) (mkName "faceCount")   `fmap` varE (mkName "fc")
-                , (,) (mkName "faceOffset")  `fmap` varE (mkName "foff")
-                , (,) (mkName "faceLList")   `fmap` varE (mkName "fll")
-                , (,) (mkName "faceLLookup") `fmap` varE (mkName "fllook")
+                [ (,) (mkName "faceCount")      `fmap` varE fcN
+                , (,) (mkName "faceDataOffset") `fmap` varE foffN
+                , (,) (mkName "faceCCWBrdDart") `fmap` varE fccwdN
+                , (,) (mkName "faceLLookup")    `fmap` varE fllookN
                 ]
             }
 
         , emptyExtraInitializers =
-            [ (,) (mkName "faceCount")   `fmap` [| 1 :: Int |]
-            , (,) (mkName "faceOffset")  `fmap` [| listArray (0 :: Int, 1) [0 :: Int, 0] |]
-            , (,) (mkName "faceLList")   `fmap` [| listArray (0 :: Int, -1) [] |]
-            , (,) (mkName "faceLLookup") `fmap` [| listArray (0 :: Int, -1) [] |]
+            [ (,) (mkName "faceCount")      `fmap` [| 1 :: Int |]
+            , (,) (mkName "faceDataOffset") `fmap` [| listArray (0 :: Int, 1) [0, 0] |]
+            , (,) (mkName "faceCCWBrdDart") `fmap` [| listArray (0 :: Int, -1) [] |]
+            , (,) (mkName "faceLLookup")    `fmap` [| listArray (0 :: Int, -1) [] |]
             ]
         }
 
@@ -96,22 +113,23 @@ instance SurfaceKnotted SurfaceLink where
 
     faceOwner = faceSurfaceLink
 
-    faceIndex (Face _ i) = i - 1
+    faceIndex (Face _ i) = i + 1
 
     faceDegree (Face l i) =
-        let cur = faceOffset l `unsafeAt` (i - 1)
-            nxt = faceOffset l `unsafeAt` i
+        let cur = faceDataOffset l `unsafeAt` i
+            nxt = faceDataOffset l `unsafeAt` (i + 1)
         in nxt - cur
 
     nthCCWBorderDart (Face l i) p =
-        let cur = faceOffset l `unsafeAt` (i - 1)
-            nxt = faceOffset l `unsafeAt` i
-        in Dart l $ unsafeAt (faceLList l) $ cur + p `mod` (nxt - cur)
+        let cur = faceDataOffset l `unsafeAt` i
+            nxt = faceDataOffset l `unsafeAt` (i + 1)
+        in Dart l $ faceCCWBrdDart l `unsafeAt` (cur + p `mod` (nxt - cur))
 
     faceToTheLeft (Dart l i) =
-        Face l $ faceLLookup l `unsafeAt` i
+        Face l $ faceLLookup l `unsafeAt` (2 * i)
 
-    placeToTheLeft _ = undefined
+    placeToTheLeft (Dart l i) =
+        faceLLookup l `unsafeAt` (2 * i + 1)
 
 
 instance Eq (Face SurfaceLink ct) where
@@ -122,44 +140,18 @@ instance Ord (Face SurfaceLink ct) where
     compare (Face _ a) (Face _ b) = compare a b
 
 
+instance Ix (Face SurfaceLink ct) where
+    range (Face _ a, Face l b) = map (Face l) [a .. b]
+
+    rangeSize (Face _ a, Face _ b) = max 0 $ 1 + b - a
+
+    inRange (Face _ a, Face _ b) (Face _ i) = (i >= a) && (i <= b)
+
+    index (Face _ a, Face _ b) (Face _ i)
+        | (i >= a) && (i <= b)  = i - a
+        | otherwise             = error "out of range"
+
+
 {-# INLINE faceSurfaceLink #-}
 faceSurfaceLink :: Face SurfaceLink ct -> SurfaceLink ct
 faceSurfaceLink (Face l _) = l
-
-
-testPrime :: SurfaceLink ct -> Bool
-testPrime link = runST $ do
-    let sz = numberOfCrossings link
-    g <- newArray ((1, 1), (sz, sz)) 0 :: ST s (STUArray s (Int, Int) Int)
-
-    forM_ (allCrossings link) $ \ u ->
-        forM_ (adjacentCrossings u) $ \ v -> do
-            let i = (crossingIndex u, crossingIndex v)
-            w <- readArray g i
-            writeArray g i $! w + 1
-
-    v <- newArray_ (1, sz) :: ST s (STUArray s Int Int)
-    forM_ [1 .. sz] $ \ i ->
-        writeArray v i i
-
-    a <- newArray_ (1, sz) :: ST s (STUArray s Int Bool)
-    w <- newArray_ (1, sz) :: ST s (STUArray s Int Int)
-    na <- newArray_ (1, sz) :: ST s (STUArray s Int Int)
-
-    let setA i x = do
-            j <- readArray v i
-            writeArray a j x
-
-    flip fix sz $ \ loop !n -> do
-        setA 1 True
-        forM_ [2 .. n] $ \ i -> do
-            setA i False
-            writeArray na (i - 1) i
-            writeArray w i =<< do
-                p <- readArray v 1
-                q <- readArray v i
-                readArray g (p, q)
-
-        when (n > 1) $ loop (n - 1)
-
-    return True
