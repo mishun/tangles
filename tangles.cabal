@@ -45,6 +45,7 @@ library
         bytestring,
         template-haskell,
         disjoint-set,
+        IfElse,
         HaskellForMaths,
         diagrams-lib
     hs-source-dirs:     src

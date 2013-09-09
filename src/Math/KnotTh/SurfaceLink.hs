@@ -38,14 +38,14 @@ produceKnotted
         foffN = mkName "foff"
         fccwdN = mkName "fccwd"
     in defaultKnotted
-        { implodeExplodeSettings = Just $ defaultImplodeExplode
+        { implodeExplodeSettings = defaultImplodeExplode
             { implodePostExtra = \ n cr spliceFill -> (:[]) $
                 bindS (tupP [varP fcN, varP fllookN, varP foffN, varP fccwdN]) [| do
                     fccwd <- newArray_ (0, 4 * $n - 1) :: ST s (STUArray s Int Int)
                     fllook <- newArray (0, 8 * $n - 1) (-1) :: ST s (STUArray s Int Int)
 
                     (fc, _) <- foldM (\ (!fid, !base) !start -> do
-                        mi <- readArray fllook start
+                        mi <- readArray fllook (2 * start)
                         if mi >= 0
                             then return (fid, base)
                             else do

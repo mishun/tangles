@@ -11,11 +11,13 @@ import Language.Haskell.TH
 import Data.Ix (Ix(..))
 import Data.List (foldl')
 import Data.Bits ((.&.), shiftL, shiftR, complement)
-import Data.Array.Base (listArray, bounds, unsafeAt, unsafeWrite, unsafeRead, newArray_)
+import Data.Array.IArray (listArray, bounds, amap)
+import Data.Array.MArray (newArray_)
+import Data.Array.Base (unsafeAt, unsafeWrite, unsafeRead)
 import Data.Array (Array)
 import Data.Array.Unboxed (UArray)
 import Data.Array.Unsafe (unsafeFreeze)
-import Data.Array.ST (STArray, STUArray, runSTArray)
+import Data.Array.ST (STArray, STUArray)
 import Control.Monad.ST (ST, runST)
 import Control.Monad.Writer (Writer, WriterT, execWriter, execWriterT, tell)
 import Control.Monad ((>=>), when, forM_)
@@ -34,7 +36,7 @@ data KnottedSettings = KnottedSettings
     , modifyDartPlace              :: Maybe ((ExpQ, ExpQ) -> ExpQ -> ExpQ)
     , modifyIncidentCrossing       :: Maybe ((ExpQ, ExpQ) -> ExpQ -> ExpQ)
     , modifyFoldMIncidentDartsFrom :: Maybe ((ExpQ, (ExpQ, ExpQ)) -> ExpQ -> ExpQ)
-    , implodeExplodeSettings       :: Maybe ImplodeExplodeSettings
+    , implodeExplodeSettings       :: ImplodeExplodeSettings
     , emptyExtraInitializers       :: [Q (Name, Exp)]
     }
 
@@ -59,7 +61,7 @@ defaultKnotted = KnottedSettings
     , modifyDartPlace              = Nothing
     , modifyIncidentCrossing       = Nothing
     , modifyFoldMIncidentDartsFrom = Nothing
-    , implodeExplodeSettings       = Just defaultImplodeExplode
+    , implodeExplodeSettings       = defaultImplodeExplode
     , emptyExtraInitializers       = []
     }
 
@@ -82,10 +84,6 @@ declare = lift >=> tell . (:[])
 
 append :: a -> Writer [a] ()
 append = tell . (: [])
-
-
-maybeM :: (Monad m) => Maybe a -> (a -> m ()) -> m ()
-maybeM = flip $ maybe $ return ()
 
 
 produceKnotted :: DecsQ -> KnottedSettings -> DecsQ
@@ -177,9 +175,11 @@ produceKnotted knotPattern inst = execWriterT $ do
 
     declare $ instanceD (cxt []) ([t| Knotted |] `appT` conT knotTN) $ execWriter $ do
 
-        tell $ (:[]) $ funD 'numberOfFreeLoops $ (:[]) $ clause [] (normalB $ varE loopsCount) []
+        tell $ (:[]) $ funD 'numberOfFreeLoops $ (:[]) $
+            clause [] (normalB $ varE loopsCount) []
 
-        tell $ (:[]) $ funD 'numberOfCrossings $ (:[]) $ clause [] (normalB $ varE crossCount) []
+        tell $ (:[]) $ funD 'numberOfCrossings $ (:[]) $
+            clause [] (normalB $ varE crossCount) []
         
         tell $ (:[]) $ funD 'numberOfEdges $ (:[]) $ do
             k <- newName "k"
@@ -192,14 +192,7 @@ produceKnotted knotPattern inst = execWriterT $ do
             f <- newName "f"
             k <- newName "k"
             clause [varP f, varP k] (normalB $ recUpdE (varE k) [(,) stateArray `fmap`
-                [|  runSTArray $ do
-                        let n = numberOfCrossings $(varE k)
-                        st <- newArray_ (0, n - 1)
-                        forM_ [0 .. n - 1] $ \ !i ->
-                            unsafeWrite st i $! $(varE f) $! $(varE stateArray) $(varE k) `unsafeAt` i
-                        return $! st
-                |]]) []
-
+                [| amap $(varE f) ($(varE stateArray) $(varE k)) |]]) []
 
 
         tell $ (:[]) $ do
@@ -230,10 +223,8 @@ produceKnotted knotPattern inst = execWriterT $ do
         tell $ (:[]) $ funD 'crossingState $ (:[]) $ do
             k <- newName "k"
             c <- newName "c"
-            clause [conP crosN [varP k, varP c]] (normalB
-                    [| $(varE stateArray) $(varE k) `unsafeAt` $(varE c) |]
-                ) []
-
+            clause [conP crosN [varP k, varP c]]
+                (normalB [| $(varE stateArray) $(varE k) `unsafeAt` $(varE c) |]) []
 
 
         tell $ (:[]) $ do
@@ -369,7 +360,9 @@ produceKnotted knotPattern inst = execWriterT $ do
                     |]
                 ) []
 
-        maybeM (implodeExplodeSettings inst) $ \ ies -> do
+        do
+            let ies = implodeExplodeSettings inst
+
             tell $ (:[]) $ funD 'toPair $ (:[]) $ do
                 d <- newName "d"
                 clause [varP d] (guardedB $ map (uncurry normalGE) $ map ($ varE d) (extraExplodePairCases ies) ++
@@ -428,8 +421,7 @@ produceKnotted knotPattern inst = execWriterT $ do
                                             , ([| $p < (0 :: Int) || $p > (3 :: Int) |], spliceError "place index %i is out of bounds [0 .. 3]" [p])
                                             , ([| otherwise                          |], [| 4 * ($c - 1) + $p :: Int |])
                                             ]
-                                    in [|
-                                        do
+                                    in [| do
                                             let b = $(caseE [| () |] [match wildP (guardedB $ map (uncurry normalGE) guards) []])
                                             when ($a == b) $
                                                 $(spliceError "(%i, %i) connected to itself" [c, p])
@@ -474,7 +466,8 @@ produceKnotted knotPattern inst = execWriterT $ do
             [ funD '(==) $ (:[]) $ do
                 a <- newName "a"
                 b <- newName "b"
-                clause [conP crosN [wildP, varP a], conP crosN [wildP, varP b]] (normalB [| $(varE a) == $(varE b) |]) []
+                clause [conP crosN [wildP, varP a], conP crosN [wildP, varP b]]
+                    (normalB [| $(varE a) == $(varE b) |]) []
             ]        
 
     declare $ do
@@ -483,8 +476,13 @@ produceKnotted knotPattern inst = execWriterT $ do
             [ funD 'compare $ (:[]) $ do
                 a <- newName "a"
                 b <- newName "b"
-                clause [conP crosN [wildP, varP a], conP crosN [wildP, varP b]] (normalB [| $(varE a) `compare` $(varE b) |]) []
+                clause [conP crosN [wildP, varP a], conP crosN [wildP, varP b]]
+                    (normalB [| $(varE a) `compare` $(varE b) |]) []
             ]
+
+    declare $ do
+        ct <- newName "ct"
+        instanceD (cxt [classP ''NFData [varT ct]]) (appT [t| NFData |] $ conT crosN `appT` conT knotTN `appT` varT ct) []
 
 
     declare $ do
@@ -493,7 +491,8 @@ produceKnotted knotPattern inst = execWriterT $ do
             [ funD '(==) $ (:[]) $ do
                 a <- newName "a"
                 b <- newName "b"
-                clause [conP dartN [wildP, varP a], conP dartN [wildP, varP b]] (normalB [| $(varE a) == $(varE b) |]) []
+                clause [conP dartN [wildP, varP a], conP dartN [wildP, varP b]]
+                    (normalB [| $(varE a) == $(varE b) |]) []
             ]
 
     declare $ do
@@ -502,8 +501,13 @@ produceKnotted knotPattern inst = execWriterT $ do
             [ funD 'compare $ (:[]) $ do
                 a <- newName "a"
                 b <- newName "b"
-                clause [conP dartN [wildP, varP a], conP dartN [wildP, varP b]] (normalB [| $(varE a) `compare` $(varE b) |]) []
+                clause [conP dartN [wildP, varP a], conP dartN [wildP, varP b]]
+                    (normalB [| $(varE a) `compare` $(varE b) |]) []
             ]
+
+    declare $ do
+        ct <- newName "ct"
+        instanceD (cxt [classP ''NFData [varT ct]]) (appT [t| NFData |] $ conT dartN `appT` conT knotTN `appT` varT ct) []
 
 
     declare $ do

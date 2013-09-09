@@ -35,7 +35,7 @@ produceKnotted
     let legsCount = varE $ mkName "legsCount"
         dart = conE $ mkName "Dart"
     in defaultKnotted
-        { implodeExplodeSettings = Just $
+        { implodeExplodeSettings =
             let lN = mkName "l"
                 l = varE lN
                 brdN = mkName "brd"

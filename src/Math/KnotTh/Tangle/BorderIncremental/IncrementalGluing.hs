@@ -96,15 +96,15 @@ representativeGluingSites' crossingsToGlue !gl (!tangle, !symmetry)
                                     | even doubleIndex  = Just $! {- fixup <*> -} case gl of { 3 -> ec2 ; 2 -> ec3 ; _ -> e }
                                     | otherwise         = Nothing
 
-                    let left = getEndpoint (mz - period)
-                    let right = getEndpoint mz
+                    let leftB = getEndpoint (mz - period)
+                    let rightB = getEndpoint mz
 
                     let fill !c
-                            | c == fst right  = [right] -- sic!
-                            | c == fst left   = left : fill (c + 1)
-                            | otherwise       = (c, Nothing) : fill (c + 1)
+                            | c == fst rightB  = [rightB] -- sic!
+                            | c == fst leftB   = leftB : fill (c + 1)
+                            | otherwise        = (c, Nothing) : fill (c + 1)
 
-                    fill $! fst left
+                    fill $! fst leftB
 
         let !leg = nthLeg tangle legIndex
         !cr <- crossingsToGlue
