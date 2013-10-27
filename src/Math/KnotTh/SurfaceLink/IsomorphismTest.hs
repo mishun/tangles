@@ -49,7 +49,7 @@ codeWithDirection !dir !start = runSTUArray $ do
             !c <- look d
             return $! c + s `shiftL` 7
 
-    rc <- newArray_ (0, 2 * n) :: ST s (STUArray s Int Int)
+    rc <- newArray (0, 2 * n) 0 :: ST s (STUArray s Int Int)
     unsafeWrite rc 0 $! numberOfFreeLoops link
 
     void $ look start

@@ -121,7 +121,7 @@ isLonerInside :: (CrossingType ct, Knotted k) => Crossing k (SubTangleCrossing c
 isLonerInside = (== 1) . numberOfCrossingsInside
 
 
-numberOfCrossingsAfterSubstitution :: (CrossingType ct) => SubTangleTangle ct -> Int
+numberOfCrossingsAfterSubstitution :: (CrossingType ct, Knotted k) => k (SubTangleCrossing ct) -> Int
 numberOfCrossingsAfterSubstitution = sum . map numberOfCrossingsInside . allCrossings
 
 

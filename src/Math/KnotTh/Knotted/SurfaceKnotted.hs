@@ -5,8 +5,11 @@ module Math.KnotTh.Knotted.SurfaceKnotted
     , left
     , right
     , allFaces
+    , faceIndexRange
+    , facesRange
     ) where
 
+import Data.Ix (Ix(..))
 import Math.KnotTh.Knotted.KnottedDefinition.Knotted
 
 
@@ -39,3 +42,17 @@ right d = (faceToTheRight d, placeToTheRight d)
 {-# INLINE allFaces #-}
 allFaces :: (SurfaceKnotted k) => k ct -> [Face k ct]
 allFaces knot = map (nthFace knot) [1 .. numberOfFaces knot]
+
+
+{-# INLINE faceIndexRange #-}
+faceIndexRange :: (SurfaceKnotted k) => k ct -> (Int, Int)
+faceIndexRange knot = (1, numberOfFaces knot)
+
+
+{-# INLINE facesRange #-}
+facesRange :: (SurfaceKnotted k, Ix (Face k ct)) => k ct -> (Face k ct, Face k ct)
+facesRange knot
+    | f > 0      = (nthFace knot 1, nthFace knot f)
+    | otherwise  = error "facesRange: no faces"
+    where
+        f = numberOfFaces knot

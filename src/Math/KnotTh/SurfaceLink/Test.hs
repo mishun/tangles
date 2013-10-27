@@ -68,4 +68,15 @@ test =
                 , ([(4, 1), (6, 0), (6, 3), (4, 2)], projectionCrossing)
                 , ([(5, 1), (3, 2), (4, 3), (5, 2)], projectionCrossing)
                 ]))
+
+        , testCase "Test 4 legs planar part" $ do
+            False @=? has4LegPlanarPart (implode (0,
+                [ ([(1, 2), (1, 3), (1, 0), (1, 1)], projectionCrossing)
+                ]))
+
+            True @=? has4LegPlanarPart (implode (0,
+                [ ([(2, 1), (2, 0), (3, 2), (3, 3)], projectionCrossing)
+                , ([(1, 1), (1, 0), (3, 1), (3, 0)], projectionCrossing)
+                , ([(2, 3), (2, 2), (1, 2), (1, 3)], projectionCrossing)
+                ]))
         ]

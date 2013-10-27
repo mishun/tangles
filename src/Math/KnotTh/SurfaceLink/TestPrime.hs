@@ -4,11 +4,12 @@ module Math.KnotTh.SurfaceLink.TestPrime
     , has4LegPlanarPart
     ) where
 
+import Data.Ix (Ix)
 import Data.Array.MArray (newListArray, newArray, newArray_, readArray, writeArray)
-import Data.Array.ST (STUArray)
+import Data.Array.ST (STUArray, STArray)
 import Data.STRef (newSTRef, readSTRef, writeSTRef, modifySTRef')
 import Control.Monad.ST (ST, runST)
-import Control.Monad (when, forM_, liftM2)
+import Control.Monad (when, unless, forM_, liftM2)
 import Control.Applicative ((<$>))
 import Control.Monad.IfElse (whenM, whileM)
 import Math.KnotTh.SurfaceLink
@@ -118,4 +119,74 @@ stoerWagner link = runST $ do
 
 
 has4LegPlanarPart :: SurfaceLink ct -> Bool
-has4LegPlanarPart _ = False
+has4LegPlanarPart =
+    let planar link start darts = runST $ do
+            vertex <- (newArray :: (Ix i) => (i, i) -> Bool -> ST s (STUArray s i Bool)) (crossingsRange link) False
+            edge <- (newArray :: (Ix i) => (i, i) -> Bool -> ST s (STUArray s i Bool)) (dartsRange link) False
+
+            face <- (newArray :: (Ix i) => (i, i) -> Bool -> ST s (STUArray s i Bool)) (facesRange link) False
+            mapM_ (\ !e -> writeArray face (faceToTheLeft e) True) darts
+
+            queue <- (newArray_ :: (Ix i) => (i, i) -> ST s (STArray s i a)) (0, numberOfCrossings link)
+            qtail <- newSTRef 1
+
+            writeArray vertex start True
+            writeArray queue 0 start
+
+            nv <- newSTRef 1
+            ne <- newSTRef 4
+            nf <- newSTRef 4
+
+            let testFace f = do
+                    fi <- readArray face f
+                    unless fi $ do
+                        writeArray face f True
+                        modifySTRef' nf (+ 1)
+
+            let testEdge e = do
+                    ei <- readArray edge e
+                    unless ei $ do
+                        writeArray edge e True
+                        writeArray edge (opposite e) True
+                        modifySTRef' ne (+ 1)
+
+            let testVertex v = do
+                    vi <- readArray vertex v
+                    unless vi $ do
+                        writeArray vertex v True
+                        modifySTRef' nv (+ 1)
+                        t <- readSTRef qtail
+                        writeArray queue t v
+                        writeSTRef qtail $! t + 1
+
+            let loop !qhead = do
+                    ok <- (qhead <) `fmap` readSTRef qtail
+                    when ok $ do
+                        v <- readArray queue qhead
+                        forM_ [0 .. 3] $ \ !i -> do
+                            let e = nthIncidentDart v i
+                            when (e `notElem` darts) $ do
+                                testEdge e
+                                testFace (faceToTheLeft e)
+                                testFace (faceToTheRight e)
+                                testVertex (adjacentCrossing e)
+
+                        loop $! qhead + 1
+
+            loop 0
+
+            nv' <- readSTRef nv
+            nf' <- readSTRef nf
+            ne' <- readSTRef ne
+            let euler = nv' + nf' - ne'
+            return $! (nv' > 1) && (nv' < numberOfCrossings link) && (euler == 1)
+
+    in \ link ->
+        let select [] _ = False
+            select (h : t) f = f h t || select t f
+        in select (allEdges link) $ \ e1 r1 ->
+            select r1 $ \ e2 r2 ->
+                select r2 $ \ e3 r3 ->
+                    select r3 $ \ e4 _ ->
+                        let darts = [fst e1, snd e1, fst e2, snd e2, fst e3, snd e3, fst e4, snd e4]
+                        in planar link (incidentCrossing $ fst e1) darts || planar link (incidentCrossing $ snd e1) darts
