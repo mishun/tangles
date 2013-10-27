@@ -7,7 +7,7 @@ module Math.Combinatorics.ChordDiagrams.Generator
     ) where
 
 import Data.List (find)
-import Data.Maybe (fromJust, isNothing)
+import Data.Maybe (fromJust, isJust, isNothing)
 import Data.Array.Base (unsafeRead, unsafeWrite)
 import Data.Array.ST (STUArray, newArray, newListArray)
 import Data.STRef (newSTRef, readSTRef, writeSTRef, modifySTRef')
@@ -17,7 +17,10 @@ import Control.Monad.ST (ST, runST)
 import Math.Combinatorics.Strings.Lyndon
 
 
-generateWithChecker :: Int -> (forall s. STUArray s Int Int -> Int -> Int -> ST s Bool) -> Int -> (forall s. st -> STUArray s Int Int -> ST s st) -> st -> st
+generateWithChecker
+    :: Int -> (forall s. STUArray s Int Int -> Int -> Int -> ST s Bool) ->
+        Int -> (forall s. st -> STUArray s Int Int -> (Bool, Int) -> ST s st) -> st -> st
+
 generateWithChecker minimalChordLength checker n yield initial = runST $ do
     let p = 2 * n
 
@@ -57,12 +60,12 @@ generateWithChecker minimalChordLength checker n yield initial = runST $ do
 
     result <- newSTRef initial
 
-    let yieldAction = do
+    let yieldAction !symm = do
             currentState <- readSTRef result
-            nextState <- yield currentState a
+            nextState <- yield currentState a symm
             writeSTRef result $! nextState
 
-    let matchRest !minLength = do
+    let matchRest !symm !minLength = do
             u <- readSTRef begin
             if u < p
                 then do
@@ -70,10 +73,10 @@ generateWithChecker minimalChordLength checker n yield initial = runST $ do
                             v <- unsafeRead next pv
                             when (v < min p (p + u - minLength + 1)) $ do
                                 when (v - u >= minLength) $
-                                    try u v $ matchRest minLength
+                                    try u v $ matchRest symm minLength
                                 match v
                     match u
-                else yieldAction
+                else yieldAction symm
 
     let backtrack !chordLength !period !mirror = do
             code <- newArray (0, 3 * p) 0 :: ST s (STUArray s Int Int)
@@ -141,22 +144,22 @@ generateWithChecker minimalChordLength checker n yield initial = runST $ do
 
             full <- (>= p) <$> readSTRef begin
             if full
-                then yieldAction
+                then yieldAction (isJust mirror, period)
                 else if ((period == p) && isNothing mirror) || (chordLength >= n)
-                    then matchRest chordLength
+                    then matchRest (isJust mirror, period) chordLength
                     else placeChords 0 1 0 0
 
     backtrack (max 1 minimalChordLength) 1 (Just 0)
     readSTRef result
 
 
-generate :: Int -> Int -> (forall s. st -> STUArray s Int Int -> ST s st) -> st -> st
+generate :: Int -> Int -> (forall s. st -> STUArray s Int Int -> (Bool, Int) -> ST s st) -> st -> st
 generate minimalChordLength = generateWithChecker minimalChordLength (\ _ _ _ -> return True)
 
 
-generateNonPlanar :: Int -> (forall s. st -> STUArray s Int Int -> ST s st) -> st -> st
+generateNonPlanar :: Int -> (forall s. st -> STUArray s Int Int -> (Bool, Int) -> ST s st) -> st -> st
 generateNonPlanar = generate 2
 
 
-generateBicolourableNonPlanar :: Int -> (forall s. st -> STUArray s Int Int -> ST s st) -> st -> st
+generateBicolourableNonPlanar :: Int -> (forall s. st -> STUArray s Int Int -> (Bool, Int) -> ST s st) -> st -> st
 generateBicolourableNonPlanar = generateWithChecker 2 (\ _ u v -> return $! odd (u + v))
