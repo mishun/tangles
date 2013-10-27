@@ -3,6 +3,7 @@ module Math.Combinatorics.ChordDiagrams.Generator
     ( generateWithChecker
     , generate
     , generateNonPlanar
+    , generateBicolourableNonPlanar
     ) where
 
 import Data.List (find)
@@ -155,3 +156,7 @@ generate minimalChordLength = generateWithChecker minimalChordLength (\ _ _ _ ->
 
 generateNonPlanar :: Int -> (forall s. st -> STUArray s Int Int -> ST s st) -> st -> st
 generateNonPlanar = generate 2
+
+
+generateBicolourableNonPlanar :: Int -> (forall s. st -> STUArray s Int Int -> ST s st) -> st -> st
+generateBicolourableNonPlanar = generateWithChecker 2 (\ _ u v -> return $! odd (u + v))
