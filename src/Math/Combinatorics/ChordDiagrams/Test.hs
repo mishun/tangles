@@ -22,9 +22,9 @@ test = testGroup "Chord Diagrams"
             assertEqual (printf "for n = %i" n) t (generateNonPlanar n (\ c _ _ -> return $! c + 1) (0 :: Int))
 
     , testCase "Symmetry group information" $
-        forM_ [1 .. 6] $ \ !n ->
+        forM_ [1 .. 9] $ \ !n ->
             let list :: [(UArray Int Int, (Bool, Int))]
-                list = generateNonPlanar 5
+                list = generateNonPlanar n
                     (\ lst diagST symm -> do
                             diag <- freeze diagST
                             return $! (diag, symm) : lst
@@ -34,13 +34,13 @@ test = testGroup "Chord Diagrams"
                     let (h, t) = splitAt k l
                     in t ++ h
 
-                getPeriod l = 1 + fromJust (elemIndex l (map (shift l) [1 .. length l])) 
-
             in forM_ list $ \ (diagArr, (mirror, period)) -> do
                 let diag = elems diagArr
-                    rev = map (\ i -> 2 * n - i) $ reverse diag
+                    p = length diag
+                    rev = map (\ i -> p - i) $ reverse diag
+                    expectedPeriod = 1 + fromJust (elemIndex diag (map (shift diag) [1 .. p]))
+                    expectedMirror = isJust (elemIndex diag $ map (shift rev) [0 .. p - 1])
 
-                assertEqual (printf "%s period" (show diag)) (getPeriod diag) period
-                assertEqual (printf "%s mirror" (show diag)) mirror
-                    (isJust (elemIndex diag $ map (shift rev) [0 .. 2 * n - 1]))
+                assertEqual (printf "%s period" (show diag)) expectedPeriod period
+                assertEqual (printf "%s mirror" (show diag)) expectedMirror mirror
     ]
