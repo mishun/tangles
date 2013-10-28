@@ -82,7 +82,7 @@ library
         Math.KnotTh.Link.NonAlternating,
         Math.KnotTh.Link.Projection,
         Math.KnotTh.SurfaceLink,
-        Math.KnotTh.SurfaceLink.FromTangle,
+        Math.KnotTh.SurfaceLink.Construction,
         Math.KnotTh.SurfaceLink.IsomorphismTest,
         Math.KnotTh.SurfaceLink.NonAlternating,
         Math.KnotTh.SurfaceLink.Projection,

@@ -3,6 +3,7 @@ module Math.KnotTh.Knotted.Threads
     , ThreadedCrossing(..)
     , maybeThreadContinuation
     , allThreads
+    , numberOfThreads
     , allThreadsWithMarks
     ) where
 
@@ -23,22 +24,26 @@ type ThreadList dart = (Int, UArray dart Int, [(Int, [(dart, dart)])])
 class (CrossingType ct) => ThreadedCrossing ct where
     threadContinuation :: (Knotted k) => Dart k ct -> Dart k ct
 
-    threadContinuation d
-        | isDart d   = nextCCW $ nextCCW d
-        | otherwise  = error "continuation: from endpoint"
+    threadContinuation d | isDart d   = nextCCW $ nextCCW d
+                         | otherwise  = error "continuation: from endpoint"
 
 
 {-# INLINE maybeThreadContinuation #-}
 maybeThreadContinuation :: (ThreadedCrossing ct, Knotted k) => Dart k ct -> Maybe (Dart k ct)
-maybeThreadContinuation d
-    | isDart d   = Just $! threadContinuation d
-    | otherwise  = Nothing
+maybeThreadContinuation d | isDart d   = Just $! threadContinuation d
+                          | otherwise  = Nothing
 
 
 allThreads :: (ThreadedCrossing ct, Knotted k, Ix (Dart k ct)) => k ct -> [[(Dart k ct, Dart k ct)]]
 allThreads knot =
     let (_, _, threads) = allThreadsWithMarks knot
     in map snd threads
+
+
+numberOfThreads :: (ThreadedCrossing ct, Knotted k, Ix (Dart k ct)) => k ct -> Int
+numberOfThreads knot =
+    let (n, _, _) = allThreadsWithMarks knot
+    in n
 
 
 allThreadsWithMarks :: (ThreadedCrossing ct, Knotted k, Ix (Dart k ct)) => k ct -> ThreadList (Dart k ct)

@@ -8,7 +8,7 @@ import Data.Array.Unboxed (UArray)
 import Control.Monad.ST (ST)
 import Control.Monad (forM_, when)
 import Text.Printf
-import Math.Algebra.Group.Dn (rotationPeriod, hasReflectionPart)
+import Math.Algebra.Group.Dn (fromReflectionRotation, rotationPeriod, hasReflectionPart)
 import Math.KnotTh.Crossings.SubTangle
 import Math.Combinatorics.ChordDiagrams.Generator
 import Math.KnotTh.Tangle.Projection
@@ -16,7 +16,7 @@ import Math.KnotTh.Tangle.BorderIncremental.IncrementalGluing
 import Math.KnotTh.Tangle.BorderIncremental.SimpleTypes
 import Math.KnotTh.Tangle.BorderIncremental.FlypeGenerator (generateFlypeEquivalentDecomposition)
 import Math.KnotTh.SurfaceLink
-import Math.KnotTh.SurfaceLink.FromTangle (fromTangleAndStarByOffset)
+import Math.KnotTh.SurfaceLink.Construction (fromTangleAndStarByOffset)
 import Math.KnotTh.SurfaceLink.IsomorphismTest
 import Math.KnotTh.SurfaceLink.TestPrime
 
@@ -30,7 +30,6 @@ main = do
                     diagram <- freeze diagramST
                     return $! (diagram, symmetry) : list
                 ) []
-
 
     table <- newIORef M.empty
     let yield link = do
@@ -47,7 +46,7 @@ main = do
                     modifyIORef' lookupSet (S.insert arr)
                     return True
 
-    let maxN = 7
+    let maxN = 6
 
     --generateFlypeEquivalentDecomposition maxN $ \ !tangle !tangleSymmetry -> do
     simpleIncrementalGenerator templateProjectionType [ProjectionCrossing] maxN $ \ !tangle !tangleSymmetry -> do
@@ -56,9 +55,8 @@ main = do
             let period = gcd bucketPeriod (rotationPeriod tangleSymmetry)
                 mirror = not bucketMirror && not (hasReflectionPart tangleSymmetry)
 
-            forM_ [(r, m) | r <- [0 .. period - 1], m <- if mirror then [False, True] else [False]] $ \ (r, m) -> do
-                let link = fromTangleAndStarByOffset
-                        ((if m then mirrorTangle else id) $ rotateTangle r tangle) bucket
+            forM_ [(m, r) | r <- [0 .. period - 1], m <- if mirror then [False, True] else [False]] $ \ g -> do
+                let link = fromTangleAndStarByOffset bucket $ transformTangle (fromReflectionRotation l g) tangle
                 new <- lookup (isomorphismTest link)
                 when (new && not (isReducable link) && testPrime link && not (has4LegPlanarPart link)) $ do
                     yield link
