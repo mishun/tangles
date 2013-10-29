@@ -5,8 +5,6 @@ import Control.Monad.Writer
 import Control.Monad (forM_)
 import Diagrams.Prelude
 import Math.Manifolds.SurfaceGraph
-import Math.Manifolds.SurfaceGraph.Util
-import Math.Manifolds.SurfaceGraph.Embedding
 import TestUtil.Drawing
 
 

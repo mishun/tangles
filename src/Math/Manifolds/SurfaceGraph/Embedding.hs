@@ -14,8 +14,9 @@ import Data.Array.IO (IOArray, IOUArray)
 import Data.Array.Unsafe (unsafeFreeze)
 import Data.IORef (newIORef, readIORef, writeIORef, modifyIORef)
 import Control.Monad (forM, forM_, when, unless, liftM)
-import Math.Manifolds.SurfaceGraph
+import Math.Manifolds.SurfaceGraph.Definition
 import Math.Manifolds.SurfaceGraph.Util
+import Math.Manifolds.SurfaceGraph.Barycentric
 import Math.Manifolds.SurfaceGraph.Embedding.Optimization
 
 

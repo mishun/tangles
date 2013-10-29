@@ -1,64 +1,109 @@
 module Math.Manifolds.SurfaceGraph.Util
-    ( barycentricSubdivision
-    , barycentricSubdivision'
-    , nthBarycentricSubdivision
+    ( graphVertices
+    , verticesRange
+    , dartsIncidentToVertex
+    , graphFaces
+    , facesRange
+    , faceTraverseCCW
+    , faceTraverseCW
+    , numberOfEdges
+    , graphDarts
+    , dartsRange
+    , graphEdges
+    , nextCCW
+    , nextCW
+    , end
+    , right
+    , beginVertex
+    , endVertex
+    , leftFace
+    , rightFace
+    , adjacentVertices
+    , eulerChar
+    , isTriangulation
     ) where
 
-import qualified Data.List as List
-import Data.Array
-import Math.Manifolds.SurfaceGraph
+import Math.Manifolds.SurfaceGraph.Definition
 
 
---      v1 (2)          e2 (4)                                 \ v2 (4)
---        *               |     f1 (3)                          *
---        |               |                                    /
--- f1 (3) | f0 (1)      --*---- e1 (2)                        / e1 (3)
---        |               |                     \            /
---        *               |     f0 (1)           \  e0 (1)  /
---      v0 (0)          e0 (0)             v0 (0) *--------* v1 (2)
-barycentricSubdivision :: SurfaceGraph -> SurfaceGraph
-barycentricSubdivision g = constructFromList $! List.concat [vertexPart, facePart, edgePart]
+graphVertices :: SurfaceGraph -> [Vertex]
+graphVertices g = map (nthVertex g) [0 .. numberOfVertices g - 1]
+
+
+verticesRange :: SurfaceGraph -> (Vertex, Vertex)
+verticesRange g = (nthVertex g 0, nthVertex g $ numberOfVertices g - 1)
+
+
+dartsIncidentToVertex :: Vertex -> [Dart]
+dartsIncidentToVertex v = map (nthDartIncidentToVertex v) [0 .. vertexDegree v - 1]
+
+
+graphFaces :: SurfaceGraph -> [Face]
+graphFaces g = map (nthFace g) [0 .. numberOfFaces g - 1]
+
+
+facesRange :: SurfaceGraph -> (Face, Face)
+facesRange g = (nthFace g 0, nthFace g $ numberOfFaces g - 1)
+
+
+faceTraverseCCW :: Face -> [Dart]
+faceTraverseCCW f = map (nthDartInFaceTraverseCCW f) [0 .. faceDegree f - 1]
+
+
+faceTraverseCW :: Face -> [Dart]
+faceTraverseCW = reverse . map opposite . faceTraverseCCW
+
+
+numberOfEdges :: SurfaceGraph -> Int
+numberOfEdges = (`div` 2) . numberOfDarts
+
+
+graphDarts :: SurfaceGraph -> [Dart]
+graphDarts g = map (nthDart g) [0 .. numberOfDarts g - 1]
+
+
+dartsRange :: SurfaceGraph -> (Dart, Dart)
+dartsRange g = (nthDart g 0, nthDart g $ numberOfDarts g - 1)
+
+
+graphEdges :: SurfaceGraph -> [(Dart, Dart)]
+graphEdges = filter (\ (a, b) -> dartIndex a < dartIndex b) . map (\ d -> (d, opposite d)) . graphDarts
+
+
+nextCCW, nextCW :: Dart -> Dart
+nextCCW = nextBy 1
+nextCW = nextBy (-1)
+
+
+end :: Dart -> (Vertex, Int)
+end = begin . opposite
+
+
+right :: Dart -> (Face, Int)
+right = left . opposite
+
+
+beginVertex, endVertex :: Dart -> Vertex
+beginVertex = fst . begin
+endVertex = fst . end
+
+
+leftFace, rightFace :: Dart -> Face
+leftFace = fst . left
+rightFace = fst . right
+
+
+adjacentVertices :: Vertex -> [Vertex]
+adjacentVertices = map (fst . begin . opposite) . dartsIncidentToVertex
+
+
+eulerChar :: SurfaceGraph -> Int
+eulerChar g = v + f - e
     where
         v = numberOfVertices g
         f = numberOfFaces g
-
-        edges = graphEdges g
-
-        newFaceIndex fc = v + faceIndex fc
-
-        edgeIndexLookup = array (0, numberOfDarts g - 1) $
-            concatMap (\ ((a, b), eId) -> [(dartIndex a, eId), (dartIndex b, eId)]) $
-                zip edges [(v + f) ..]
-
-        vertexPart = map make $ graphVertices g
-            where
-                vertexToEdge d = (edgeIndexLookup ! dartIndex d, if d < opposite d then 0 else 2)
-                vertexToFace d = let (fc, place) = left d in (newFaceIndex fc, 2 * place)
-                make = List.concatMap (\ d -> [vertexToEdge d, vertexToFace d]) . dartsIncidentToVertex
-
-        facePart = map make $ graphFaces g
-            where
-                faceToEdge d = (edgeIndexLookup ! dartIndex d, if d < opposite d then 3 else 1)
-                faceToVertex d = let (ver, place) = begin d in (vertexIndex ver, 2 * place + 1)
-                make = List.concatMap (\ d -> [faceToVertex d, faceToEdge d]) . faceTraverseCCW
-
-        edgePart = map make edges
-            where
-                edgeToVertex d = let (ver, place) = begin d in (vertexIndex ver, 2 * place)
-                edgeToFace d = let (fc, place) = left d in (newFaceIndex fc, 2 * place + 1)
-                make (b, e) = [edgeToVertex b, edgeToFace e, edgeToVertex e, edgeToFace b]
+        e = numberOfEdges g
 
 
-barycentricSubdivision' :: SurfaceGraph -> (SurfaceGraph, [(Vertex, Vertex)], [(Vertex, Face)], [(Vertex, (Dart, Dart))])
-barycentricSubdivision' g = (bs, zip (x [0 ..]) (graphVertices g), zip (x [v ..]) (graphFaces g), zip (x [v + f ..]) (graphEdges g))
-    where
-        v = numberOfVertices g
-        f = numberOfFaces g
-        bs = barycentricSubdivision g
-        x = map (nthVertex bs)
-
-
-nthBarycentricSubdivision :: Int -> SurfaceGraph -> SurfaceGraph
-nthBarycentricSubdivision n g
-    | n > 0      = nthBarycentricSubdivision (n - 1) $ barycentricSubdivision g
-    | otherwise  = g
+isTriangulation :: SurfaceGraph -> Bool
+isTriangulation = all ((== 3) . faceDegree) . graphFaces

@@ -10,12 +10,12 @@ import Control.Monad.Writer (tell, execWriter)
 import Control.Monad (forM_, when)
 import Diagrams.Prelude
 import qualified Math.Manifolds.SurfaceGraph as G
-import qualified Math.Manifolds.SurfaceGraph.Embedding as GE
 import Math.KnotTh.Crossings.Projection
 import Math.KnotTh.Crossings.Arbitrary
 import Math.KnotTh.Knotted
 import Math.KnotTh.Tangle
 import Math.KnotTh.Link
+import Math.KnotTh.SurfaceLink
 
 
 data DrawKnotSettings = DrawKnotSettings
@@ -90,7 +90,7 @@ instance DrawableKnotted Tangle where
                             change p = p
                         in G.constructFromList $ map (map change) ((head b : reverse (tail b)) : map fst r)
 
-                    embedding = GE.embeddingWithVertexRooting 2 (G.nthVertex g 0)
+                    embedding = G.embeddingWithVertexRooting 2 (G.nthVertex g 0)
 
                     toGraphDart d
                         | isLeg d    = G.nthDartIncidentToVertex (G.nthVertex g 0) $ (-legPlace d) `mod` numberOfLegs tangle
@@ -115,12 +115,44 @@ instance DrawableKnotted Tangle where
 instance DrawableKnotted Link where
     drawKnot s link =
         let embeddedThreads =
-                let g = G.constructFromList $ let (0, r) = explode link in map fst r
-                    embedding = GE.embeddingWithVertexRooting 2 (G.nthVertex g 0)
+                let g = G.constructFromList $
+                        let (0, r) = explode link
+                        in map fst r
+                    embedding = G.embeddingWithVertexRooting 2 (G.nthVertex g 0)
                     toGraphDart d = G.nthDartIncidentToVertex (G.nthVertex g $ crossingIndex $ incidentCrossing d) (dartPlace d)
+                    
                 in map (map (\ p@(a, _) -> (p, embedding ! toGraphDart a))) $ allThreads link
 
         in execWriter $ do
             when (borderWidth s > 0.0) $
                 tell $ lc (borderColour s) $ dashing [0.03, 0.01] 0 $ lw (borderWidth s) $ circle 1
             tell $ crossingDependentImage s link embeddedThreads
+
+
+instance DrawableKnotted SurfaceLink where
+    drawKnot s link =
+        let (sphere, star) =
+                let g = G.constructFromList $
+                        let (0, r) = explode link
+                        in flip map r $ \ (adj, _) ->
+                            flip map adj $ \ (v, p) ->
+                                (v - 1, p)
+                in G.sphereStarDecomposition g
+
+            sphereRoot = G.nthVertex sphere 0
+
+            embedding = G.embeddingWithVertexRooting 2 (G.nthVertex sphere 0)
+
+        in execWriter $ do
+            when (endpointsRadius s > 0.0) $ do
+                let l = G.vertexDegree sphereRoot
+                forM_ [0 .. l - 1] $ \ !i -> do
+                    let a = 2 * pi * fromIntegral i / fromIntegral l
+                    tell $ translate (r2 (cos a, sin a)) $ fc (threadColour s) $ lw 0 $
+                        circle (endpointsRadius s)
+
+            when (borderWidth s > 0.0) $
+                tell $ lc (borderColour s) $ dashing (borderDashing s) 0 $ lw (borderWidth s) $ circle 1
+
+            forM_ (G.graphEdges sphere) $ \ (a, _) ->
+                tell $ lineWidth 0.006 $ fromVertices $ map p2 $ embedding ! a

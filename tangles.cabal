@@ -109,10 +109,7 @@ library
         Math.KnotTh.Tangle.Moves.Weak,
         Math.KnotTh.Tangle.Projection,
         Math.KnotTh.Tangle.TensorSubst,
-        Math.Manifolds.SurfaceGraph,
-        Math.Manifolds.SurfaceGraph.Embedding,
-        Math.Manifolds.SurfaceGraph.SphereStar,
-        Math.Manifolds.SurfaceGraph.Util
+        Math.Manifolds.SurfaceGraph
     other-modules:
         Math.KnotTh.Crossings.Arbitrary.Alternating,
         Math.KnotTh.Crossings.Arbitrary.Arbitrary,
@@ -148,7 +145,13 @@ library
         Math.KnotTh.Tangle.TangleDefinition.Tangle,
         Math.KnotTh.Tangle.TangleDefinition.TangleLike,
         Math.KnotTh.Tangle.TangleDefinition.Transform,
-        Math.Manifolds.SurfaceGraph.Embedding.Optimization
+        Math.Manifolds.SurfaceGraph.Barycentric,
+        Math.Manifolds.SurfaceGraph.Definition,
+        Math.Manifolds.SurfaceGraph.Embedding,
+        Math.Manifolds.SurfaceGraph.Embedding.Optimization,
+        Math.Manifolds.SurfaceGraph.SphereStar,
+        Math.Manifolds.SurfaceGraph.SphereStar.Backtrack,
+        Math.Manifolds.SurfaceGraph.Util
     if flag(enable-test-modules)
         build-depends:
             HUnit,
@@ -250,7 +253,7 @@ benchmark VirtualBenchmark
     default-extensions: BangPatterns
     ghc-options:        -threaded
     ghc-prof-options:   -rtsopts -prof -auto-all -caf-all
-    build-depends:      base, array, mtl, containers, criterion, tangles
+    build-depends:      base, array, mtl, containers, criterion, diagrams-lib, tangles
     main-is:            VirtualBenchmark.hs
     hs-source-dirs:     test
 

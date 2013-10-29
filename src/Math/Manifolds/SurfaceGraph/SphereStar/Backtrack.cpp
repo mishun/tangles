@@ -2,10 +2,11 @@
 #include <cstddef>
 #include <cstring>
 #include <utility>
-//#include <vector>
+#include <vector>
+#include <iostream>
 
 namespace Math { namespace Manifolds { namespace SphereStar {
-#if 0
+
 	class DisjointSets
 	{
 	private:
@@ -92,64 +93,129 @@ namespace Math { namespace Manifolds { namespace SphereStar {
 	};
 
 
-	struct SphereStarContext
+	struct Context
 	{
 		const size_t numberOfVertices;
 		const size_t numberOfFaces;
 		const size_t numberOfEdges;
 		const size_t * const vertexDegree;
+		const size_t (* const edges)[2];
+		const size_t (* const coedges)[2];
+		size_t * const faceMarks;
+		size_t * const edgeMarks;
 	};
 
-
-	class SphereStarDecompCalculator
+	static bool testFaceSet(Context & context, std::vector<bool> & mark, const size_t markedFaces)
 	{
-	protected:
-		typedef std::vector< std::vector< std::pair<size_t, size_t> > > Representation;
+			std::vector<bool> internal(context.numberOfEdges, false);
+			DisjointSets comps(context.numberOfVertices);
 
-	protected:
-		const SphereStarContext & context;
-		//const EmbeddedGraph & graph;
-		//std::pair< EmbeddedGraph *, EmbeddedGraph * > result;
+			size_t starEdges = 0;
+			for(size_t i = 0; i < context.numberOfEdges; i++)
+			{
+				const size_t l = context.coedges[i][0];
+				const size_t r = context.coedges[i][1];
 
-	public:
-		SphereStarDecompCalculator(const SphereStarContext &);
-		void decomposition();
+				if(mark[l] && mark[r])
+					starEdges++;
+				else
+				{
+					const size_t u = context.edges[i][0];
+					const size_t v = context.edges[i][1];
 
-	protected:
-		size_t simplifyTree(Representation &, std::vector<bool> &) const;
-		void edgeToSphere(Representation &, size_t) const;
-		void edgeToBorder(Representation &, size_t, size_t) const;
-		void generateStar(Representation &, const Representation &, const std::vector<bool> &) const;
-		bool searchFacesSubset(bool[], size_t, size_t, size_t);
-		bool testFaceSet(bool[], size_t);
-	};
+					if(comps.findSet(u) != comps.findSet(v))
+					{
+						internal[i] = true;
+						comps.unionSet(u, v);
+					}
+				}
+			}
 
-	SphereStarDecompCalculator::SphereStarDecompCalculator(const SphereStarContext & c)
-		: context(c)
-	{
+			const size_t eulerChar = context.numberOfVertices + context.numberOfFaces - context.numberOfEdges;
+			if(comps.numberOfSets() + markedFaces - eulerChar != starEdges)
+				return false;
+
+			for(size_t i = 0; i < context.numberOfEdges; i++)
+			{
+				const size_t u = context.edges[i][0];
+				const size_t v = context.edges[i][1];
+
+				if(comps.findSet(u) != comps.findSet(v))
+				{
+					internal[i] = true;
+					comps.unionSet(u, v);
+				}
+			}
+
+			if(comps.numberOfSets() != 1)
+				return false;
+
+			for(size_t i = 0; i < context.numberOfFaces; i++)
+				context.faceMarks[i] = (mark[i] ? 1 : 0);
+
+			for(size_t i = 0; i < context.numberOfEdges; i++)
+				context.edgeMarks[i] = (internal[i] ? 1 : 0);
+
+			std::cerr << "Faces marked: " << markedFaces << "/" << context.numberOfFaces << " " << comps.numberOfSets() << "\n";
+			return true;
 	}
 
+	static bool searchFacesSubset(Context & context, std::vector<bool> & mark, const size_t facesToMark, const size_t fromIndex, const size_t marksLeft)
+	{
+			if(marksLeft == 0)
+				return testFaceSet(context, mark, facesToMark);
 
-	void sphereStarDecomposition
+			for(size_t i = fromIndex; i < context.numberOfFaces; i++)
+			{
+				mark[i] = true;
+				if(searchFacesSubset(context, mark, facesToMark, i + 1, marksLeft - 1))
+					return true;
+				mark[i] = false;
+			}
+
+			return false;
+	}
+
+	static bool backtrack(Context & context)
+	{
+		for(size_t splitSize = 0; splitSize <= context.numberOfFaces; splitSize++)
+		{
+			std::vector<bool> mark(context.numberOfFaces, false);
+			if(searchFacesSubset(context, mark, splitSize, 0, splitSize))
+				return true;
+		}
+
+		return false;
+	}
+
+	extern "C" void sphereStarDecomposition
 		( const size_t numberOfVertices
 		, const size_t numberOfFaces
 		, const size_t numberOfEdges
 		, const size_t * const vertexDegree
+		, const size_t (* const edges)[2]
+		, const size_t (* const coedges)[2]
+		, size_t * const faceMarks
+		, size_t * const edgeMarks
 		)
 	{
-		SphereStarContext context
+		Context context
 			{ .numberOfVertices = numberOfVertices
 			, .numberOfFaces    = numberOfFaces
 			, .numberOfEdges    = numberOfEdges
 			, .vertexDegree     = vertexDegree
+			, .edges            = edges
+			, .coedges          = coedges
+			, .faceMarks        = faceMarks
+			, .edgeMarks        = edgeMarks
 			};
 
-		SphereStarDecompCalculator calc(context);
-		calc.decomposition();
+		const bool ok = backtrack(context);
+		assert(ok && "Can not find solution");
 	}
 
 
-
+#if 0
 	void SphereStarDecompCalculator::decomposition()
 	{
 		bool * const mark = new bool[context.numberOfFaces];
