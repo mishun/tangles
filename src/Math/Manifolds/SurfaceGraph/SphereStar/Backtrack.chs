@@ -21,7 +21,7 @@ foreign import ccall "sphereStarDecomposition"
                 -> Ptr CSize -> Ptr CSize -> IO ()
 
 
-backtrack :: SurfaceGraph -> (UArray Int Bool, UArray Int Bool)
+backtrack :: SurfaceGraph -> (UArray Face Bool, UArray Dart Bool)
 backtrack graph = unsafePerformIO $ do
     let v = numberOfVertices graph
         f = numberOfFaces graph
@@ -51,14 +51,15 @@ backtrack graph = unsafePerformIO $ do
                             vertexDegreesPtr edgesPtr coedgesPtr
                             resultFacesPtr resultEdgesPtr
 
-    faceMarks <- newArray (0, f - 1) False :: IO (IOUArray Int Bool)
-    forM_ [0 .. f - 1] $ \ !i -> do
-        x <- readArray resultFaces i
-        writeArray faceMarks i (x /= 0)
+    faceMarks <- newArray (facesRange graph) False :: IO (IOUArray Face Bool)
+    forM_ ([0 ..] `zip` graphFaces graph) $ \ (i, face) -> do
+        mark <- (/= 0) `fmap` readArray resultFaces i
+        writeArray faceMarks face mark
 
-    edgeMarks <- newArray (0, e - 1) False :: IO (IOUArray Int Bool)
-    forM_ [0 .. e - 1] $ \ !i -> do
-        x <- readArray resultEdges i
-        writeArray edgeMarks i (x /= 0)
+    edgeMarks <- newArray (dartsRange graph) False :: IO (IOUArray Dart Bool)
+    forM_ ([0 ..] `zip` graphEdges graph) $ \ (i, (a, b)) -> do
+        mark <- (/= 0) `fmap` readArray resultEdges i
+        writeArray edgeMarks a mark
+        writeArray edgeMarks b mark
 
     liftM2 (,) (freeze faceMarks) (freeze edgeMarks)

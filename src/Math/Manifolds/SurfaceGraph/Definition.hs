@@ -207,7 +207,7 @@ constructFromList g
 
         opp = listArray (0, (offset ! n) - 1) $! map indexD $! concat g
 
-        idempotent = all (\ (i, j) -> i == opp ! j) $! assocs opp
+        idempotent = all (\ (i, j) -> (i /= j) && (i == opp ! j)) $! assocs opp
 
         vert = listArray (0, n - 1) $! map (\ i ->
                 let m = s ! i
