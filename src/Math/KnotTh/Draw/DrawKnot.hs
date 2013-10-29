@@ -90,7 +90,7 @@ instance DrawableKnotted Tangle where
                             change p = p
                         in G.constructFromList $ map (map change) ((head b : reverse (tail b)) : map fst r)
 
-                    embedding = G.embeddingWithVertexRooting 2 (G.nthVertex g 0)
+                    embedding = G.embeddingInCircleWithVertexRooting 2 (G.nthVertex g 0)
 
                     toGraphDart d
                         | isLeg d    = G.nthDartIncidentToVertex (G.nthVertex g 0) $ (-legPlace d) `mod` numberOfLegs tangle
@@ -118,7 +118,7 @@ instance DrawableKnotted Link where
                 let g = G.constructFromList $
                         let (0, r) = explode link
                         in map fst r
-                    embedding = G.embeddingWithVertexRooting 2 (G.nthVertex g 0)
+                    embedding = G.embeddingInCircleWithVertexRooting 2 (G.nthVertex g 0)
                     toGraphDart d = G.nthDartIncidentToVertex (G.nthVertex g $ crossingIndex $ incidentCrossing d) (dartPlace d)
                     
                 in map (map (\ p@(a, _) -> (p, embedding ! toGraphDart a))) $ allThreads link
@@ -131,7 +131,7 @@ instance DrawableKnotted Link where
 
 instance DrawableKnotted SurfaceLink where
     drawKnot s link =
-        let (sphere, star) =
+        let (spherePart, starPart) =
                 let g = G.constructFromList $
                         let (0, r) = explode link
                         in flip map r $ \ (adj, _) ->
@@ -139,20 +139,20 @@ instance DrawableKnotted SurfaceLink where
                                 (v - 1, p)
                 in G.sphereStarDecomposition g
 
-            sphereRoot = G.nthVertex sphere 0
+            sphereRoot = G.nthVertex spherePart 0
 
-            embedding = G.embeddingWithVertexRooting 2 (G.nthVertex sphere 0)
+            (numberOfGroups, embedding) = G.embeddingInPolygonWithGrouping
+                (\ sa sb ->
+                    let v = G.nthVertex starPart 0
+                        a = G.nthDartIncidentToVertex v (G.dartIndex sa)
+                        b = G.nthDartIncidentToVertex v (G.dartIndex sb)
+                    in G.opposite b == G.nextCW (G.opposite a)
+                ) 1 sphereRoot 
 
         in execWriter $ do
-            when (endpointsRadius s > 0.0) $ do
-                let l = G.vertexDegree sphereRoot
-                forM_ [0 .. l - 1] $ \ !i -> do
-                    let a = 2 * pi * fromIntegral i / fromIntegral l
-                    tell $ translate (r2 (cos a, sin a)) $ fc (threadColour s) $ lw 0 $
-                        circle (endpointsRadius s)
-
             when (borderWidth s > 0.0) $
-                tell $ lc (borderColour s) $ dashing (borderDashing s) 0 $ lw (borderWidth s) $ circle 1
+                tell $ lc (borderColour s) $ dashing (borderDashing s) 0 $ lw (borderWidth s) $ 
+                    polygon with { polyType = PolyRegular numberOfGroups 1, polyOrient = OrientV }
 
-            forM_ (G.graphEdges sphere) $ \ (a, _) ->
+            forM_ (G.graphEdges spherePart) $ \ (a, _) ->
                 tell $ lineWidth 0.006 $ fromVertices $ map p2 $ embedding ! a

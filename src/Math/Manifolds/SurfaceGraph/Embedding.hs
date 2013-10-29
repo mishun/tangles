@@ -1,12 +1,14 @@
 module Math.Manifolds.SurfaceGraph.Embedding
-    ( embeddingWithVertexRooting
-    , embeddingWithFaceRooting
+    ( embeddingInCircleWithVertexRooting
+    , embeddingInCircleWithFaceRooting
+    , embeddingInPolygonWithGrouping
     ) where
 
 import qualified Data.Sequence as Seq
 import System.IO.Unsafe (unsafePerformIO)
+import Data.Ord (comparing)
 import Data.Maybe (fromJust)
-import Data.List (find)
+import Data.List (find, groupBy, sortBy)
 import Data.Array.Base ((!), array, listArray, newArray, newArray_, freeze, readArray, writeArray)
 import Data.Array (Array)
 import Data.Array.Unboxed (UArray)
@@ -20,38 +22,71 @@ import Math.Manifolds.SurfaceGraph.Barycentric
 import Math.Manifolds.SurfaceGraph.Embedding.Optimization
 
 
-embeddingWithVertexRooting :: Int -> Vertex -> Array Dart [(Double, Double)]
-embeddingWithVertexRooting n v = smoothEmbedding n (Left v)
+embeddingInCircleWithVertexRooting :: Int -> Vertex -> Array Dart [(Double, Double)]
+embeddingInCircleWithVertexRooting smoothing vertex =
+    circleEmbedding (max 1 smoothing) (Left vertex)
 
 
-embeddingWithFaceRooting :: Int -> Face -> Array Dart [(Double, Double)]
-embeddingWithFaceRooting n f = smoothEmbedding n (Right f)
+embeddingInCircleWithFaceRooting :: Int -> Face -> Array Dart [(Double, Double)]
+embeddingInCircleWithFaceRooting smoothing face =
+    circleEmbedding (max 1 smoothing) (Right face)
 
 
-smoothEmbedding :: Int -> Either Vertex Face -> Array Dart [(Double, Double)]
-smoothEmbedding subdivisionOrder root =
-    relaxEmbedding root $!
-        barycentricImproving
-            (\ (Left v) -> quadraticEmbedding v)
-            (max 1 subdivisionOrder)
-            root
+embeddingInPolygonWithGrouping :: (Dart -> Dart -> Bool) -> Int -> Vertex -> (Int, Array Dart [(Double, Double)])
+embeddingInPolygonWithGrouping sameGroup smoothing root
+    | numberOfGroups < 3  = error "embeddingInPolygonWithGrouping: there are less than 3 groups"
+    | otherwise           = (numberOfGroups, relaxEmbedding (Left root) embedding)
+    where
+        graph = vertexOwnerGraph root
+
+        groups = let ds = [0 :: Int ..] `zip` dartsIncidentToVertex root
+                 in groupBy (\ (_, a) (_, b) -> sameGroup a b) $
+                     take (length ds) $
+                         dropWhile (\ (_, d) -> sameGroup (nextCW d) d) $
+                             ds ++ ds
+
+        numberOfGroups = length groups
+
+        borderInit = map snd $ sortBy (comparing fst) $ do
+            let halfAngle = pi / fromIntegral numberOfGroups
+                x0 = cos halfAngle
+                h = sin halfAngle
+
+            (groupId, group) <- [0 :: Int .. ] `zip` groups
+            let groupSize = length group
+                a = 2 * halfAngle * fromIntegral groupId
+
+            (inGroupId, (index, _)) <- [0 :: Int ..] `zip` group
+            let y0 = 2 * h * (-0.5 + fromIntegral (inGroupId + 1) / fromIntegral (groupSize + 1))
+                x = cos a * x0 - sin a * y0
+                y = sin a * x0 + cos a * y0
+            return (index, (x, y))
+
+        initial = quadraticInitialization 0.99 root borderInit
+
+        embedding = listArray (dartsRange graph) $ map (\ d -> [initial ! d, initial ! opposite d]) $ graphDarts graph
+
+
+circleEmbedding :: Int -> Either Vertex Face -> Array Dart [(Double, Double)]
+circleEmbedding subdivisionOrder root =
+    relaxEmbedding root $ barycentricImproving (\ (Left v) -> quadraticEmbedding v) subdivisionOrder root
 
 
 barycentricImproving :: (Either Vertex Face -> Array Dart [(Double, Double)]) -> Int -> Either Vertex Face -> Array Dart [(Double, Double)]
-barycentricImproving f n root
-    | n <= 0     = f root
-    | otherwise  =
+barycentricImproving f order root
+    | order <= 0  = f root
+    | otherwise   =
         let g = case root of { Left vertex -> vertexOwnerGraph vertex ; Right face -> faceOwnerGraph face }
             (_, vv, vf, vd) = barycentricSubdivision' g
-            be = barycentricImproving f (n - 1) $! Left $!
+            be = barycentricImproving f (order - 1) $ Left $
                 case root of
-                    Left vertex -> fst $! fromJust $! find ((== vertex) . snd) vv
-                    Right face  -> fst $! fromJust $! find ((== face) . snd) vf
+                    Left vertex -> fst $ fromJust $ find ((== vertex) . snd) vv
+                    Right face  -> fst $ fromJust $ find ((== face) . snd) vf
 
-        in array (dartsRange g) $! concatMap (\ (v, (a, b)) ->
-                let l = reverse (be ! nthDartIncidentToVertex v 0) ++ tail (be ! nthDartIncidentToVertex v 2)
-                in [(a, l), (b, reverse l)]
-            ) vd
+        in array (dartsRange g) $ do
+            (v, (a, b)) <- vd
+            let l = reverse (be ! nthDartIncidentToVertex v 0) ++ tail (be ! nthDartIncidentToVertex v 2)
+            [(a, l), (b, reverse l)]
 
 
 quadraticEmbedding :: Vertex -> Array Dart [(Double, Double)]
