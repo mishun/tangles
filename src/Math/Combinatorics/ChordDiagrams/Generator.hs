@@ -1,15 +1,19 @@
-{-# LANGUAGE Rank2Types #-}
+{-# LANGUAGE RankNTypes #-}
 module Math.Combinatorics.ChordDiagrams.Generator
-    ( generateWithChecker
-    , generate
-    , generateNonPlanar
-    , generateBicolourableNonPlanar
+    ( generateWithCheckerRaw
+    , generateAllRaw
+    , generateNonPlanarRaw
+    , generateBicolourableNonPlanarRaw
+    , countChordDiagrams
+    , listChordDiagrams
     ) where
 
 import Data.List (find)
 import Data.Maybe (fromJust, isJust, isNothing)
+import Data.Array.MArray (newArray, newListArray, freeze)
 import Data.Array.Base (unsafeRead, unsafeWrite)
-import Data.Array.ST (STUArray, newArray, newListArray)
+import Data.Array.Unboxed (UArray)
+import Data.Array.ST (STUArray)
 import Data.STRef (newSTRef, readSTRef, writeSTRef, modifySTRef')
 import Control.Applicative ((<$>))
 import Control.Monad (when)
@@ -17,11 +21,11 @@ import Control.Monad.ST (ST, runST)
 import Math.Combinatorics.Strings.Lyndon
 
 
-generateWithChecker
+generateWithCheckerRaw
     :: Int -> (forall s. STUArray s Int Int -> Int -> Int -> ST s Bool) ->
         Int -> (forall s. st -> STUArray s Int Int -> (Bool, Int) -> ST s st) -> st -> st
 
-generateWithChecker minimalChordLength checker n yield initial = runST $ do
+generateWithCheckerRaw minimalChordLength checker n yield initial = runST $ do
     let p = 2 * n
 
     a <- newArray (0, p - 1) 0 :: ST s (STUArray s Int Int)
@@ -153,13 +157,32 @@ generateWithChecker minimalChordLength checker n yield initial = runST $ do
     readSTRef result
 
 
-generate :: Int -> Int -> (forall s. st -> STUArray s Int Int -> (Bool, Int) -> ST s st) -> st -> st
-generate minimalChordLength = generateWithChecker minimalChordLength (\ _ _ _ -> return True)
+generateAllRaw :: Int -> (forall s. st -> STUArray s Int Int -> (Bool, Int) -> ST s st) -> st -> st
+generateAllRaw =
+    generateWithCheckerRaw 1 (\ _ _ _ -> return True)
 
 
-generateNonPlanar :: Int -> (forall s. st -> STUArray s Int Int -> (Bool, Int) -> ST s st) -> st -> st
-generateNonPlanar = generate 2
+generateNonPlanarRaw :: Int -> (forall s. st -> STUArray s Int Int -> (Bool, Int) -> ST s st) -> st -> st
+generateNonPlanarRaw =
+    generateWithCheckerRaw 2 (\ _ _ _ -> return True)
 
 
-generateBicolourableNonPlanar :: Int -> (forall s. st -> STUArray s Int Int -> (Bool, Int) -> ST s st) -> st -> st
-generateBicolourableNonPlanar = generateWithChecker 2 (\ _ u v -> return $! odd (u + v))
+generateBicolourableNonPlanarRaw :: Int -> (forall s. st -> STUArray s Int Int -> (Bool, Int) -> ST s st) -> st -> st
+generateBicolourableNonPlanarRaw =
+    generateWithCheckerRaw 2 (\ _ u v -> return $! odd (u + v))
+
+
+countChordDiagrams :: ((forall s. Int -> STUArray s Int Int -> (Bool, Int) -> ST s Int) -> Int -> Int) -> Int
+countChordDiagrams generator =
+    generator (\ c _ _ -> return $! c + 1) 0
+
+
+type CD = (UArray Int Int, (Bool, Int))
+
+
+listChordDiagrams :: ((forall s. [CD] -> STUArray s Int Int -> (Bool, Int) -> ST s [CD]) -> [CD] -> [CD]) -> [CD]
+listChordDiagrams generator =
+    generator  (\ lst diagramST !symmetry -> do
+            diagram <- freeze diagramST
+            return $! (diagram, symmetry) : lst
+        ) []

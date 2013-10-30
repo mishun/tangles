@@ -5,12 +5,10 @@ module Math.KnotTh.SurfaceLink.TangleStarGlue
     ) where
 
 import qualified Data.Set as S
-import Data.Array.MArray (freeze)
-import Data.Array.Unboxed (UArray)
 import Control.Monad.State.Strict (lift, evalStateT, gets, modify)
 import Control.Monad (when, forM_)
 import Math.Algebra.Group.Dn (DnSubGroup, fromReflectionRotation, rotationPeriod, hasReflectionPart)
-import Math.Combinatorics.ChordDiagrams.Generator (generateNonPlanar, generateBicolourableNonPlanar)
+import Math.Combinatorics.ChordDiagrams.Generator (generateNonPlanarRaw, generateBicolourableNonPlanarRaw, listChordDiagrams)
 import Math.KnotTh.Tangle
 import Math.KnotTh.SurfaceLink
 import Math.KnotTh.SurfaceLink.Construction (fromTangleAndStarByOffset)
@@ -27,21 +25,15 @@ tangleStarGlue :: (Monad m, CrossingType ct)
                    -> m ()
 
 tangleStarGlue starType tangleGenerator yield =
-    let generateCD :: Int -> [(UArray Int Int, (Bool, Int))]
-        generateCD n =
-            (case starType of
-                BicolourableStar -> generateBicolourableNonPlanar
-                AnyStar          -> generateNonPlanar
-            ) n
-                (\ !list !diagramST !symmetry -> do
-                    diagram <- freeze diagramST
-                    return $! (diagram, symmetry) : list
-                ) []
+    let generator =
+            case starType of
+                BicolourableStar -> generateBicolourableNonPlanarRaw
+                AnyStar          -> generateNonPlanarRaw
 
     in flip evalStateT S.empty $
         tangleGenerator $ \ !tangle !tangleSymmetry ->
             let l = numberOfLegs tangle
-            in forM_ (generateCD $ l `div` 2) $ \ (!star, (!starMirror, !starPeriod)) ->
+            in forM_ (listChordDiagrams $ generator (l `div` 2)) $ \ (!star, (!starMirror, !starPeriod)) ->
                 let variants = do
                         rot <- [0 .. gcd starPeriod (rotationPeriod tangleSymmetry) - 1]
                         mir <- if not starMirror && not (hasReflectionPart tangleSymmetry)
