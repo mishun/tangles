@@ -19,7 +19,7 @@ sphereStarDecomposition graph
         let (_, edgeTreeMarks) = backtrack graph
 
         edgeMarks <- thaw edgeTreeMarks :: ST s (STUArray s Dart Bool)
-        let reductionSteps = 2 * numberOfEdges graph
+        let reductionSteps = 6 * numberOfEdges graph
         flip fix (nthDart graph 0, [], reductionSteps) $ \ loop (d, stack, depth) ->
             when (depth > 0) $ do
                 mark <- readArray edgeMarks d

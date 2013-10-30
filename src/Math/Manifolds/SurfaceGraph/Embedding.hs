@@ -4,22 +4,15 @@ module Math.Manifolds.SurfaceGraph.Embedding
     , embeddingInPolygonWithGrouping
     ) where
 
-import qualified Data.Sequence as Seq
-import System.IO.Unsafe (unsafePerformIO)
-import Data.Ord (comparing)
 import Data.Maybe (fromJust)
-import Data.List (find, groupBy, sortBy)
-import Data.Array.Base ((!), array, listArray, newArray, newArray_, freeze, readArray, writeArray)
+import Data.List (find, groupBy)
+import Data.Array.IArray ((!), array, listArray)
 import Data.Array (Array)
-import Data.Array.Unboxed (UArray)
-import Data.Array.IO (IOArray, IOUArray)
-import Data.Array.Unsafe (unsafeFreeze)
-import Data.IORef (newIORef, readIORef, writeIORef, modifyIORef)
-import Control.Monad (forM, forM_, when, unless, liftM)
 import Math.Manifolds.SurfaceGraph.Definition
 import Math.Manifolds.SurfaceGraph.Util
 import Math.Manifolds.SurfaceGraph.Barycentric
-import Math.Manifolds.SurfaceGraph.Embedding.Optimization
+import Math.Manifolds.SurfaceGraph.Embedding.QuadraticInitialization
+import Math.Manifolds.SurfaceGraph.Embedding.RelaxEmbedding
 
 
 embeddingInCircleWithVertexRooting :: Int -> Vertex -> Array Dart [(Double, Double)]
@@ -32,244 +25,94 @@ embeddingInCircleWithFaceRooting smoothing face =
     circleEmbedding (max 1 smoothing) (Right face)
 
 
-embeddingInPolygonWithGrouping :: (Dart -> Dart -> Bool) -> Int -> Vertex -> (Int, Array Dart [(Double, Double)])
-embeddingInPolygonWithGrouping sameGroup smoothing root
+embeddingInPolygonWithGrouping :: (Dart -> Bool) -> Int -> Vertex -> (Int, Array Dart [(Double, Double)])
+embeddingInPolygonWithGrouping sameGroupAsCW subdivisionOrder root
     | numberOfGroups < 3  = error "embeddingInPolygonWithGrouping: there are less than 3 groups"
     | otherwise           = (numberOfGroups, relaxEmbedding (Left root) embedding)
     where
-        graph = vertexOwnerGraph root
+        subdivision level v border
+            | level <= 1  =
+                let initial = quadraticInitialization 0.99 v border
+                    g = vertexOwnerGraph v
+                in listArray (dartsRange g) $ map (\ d -> [initial ! d, initial ! opposite d]) $ graphDarts g
+            | otherwise   =
+                let g = vertexOwnerGraph v
+                    (_, vv, _, vd) = barycentricSubdivision' g
+                in barycentricProjection g vd $
+                    subdivision (level - 1) (fst $ fromJust $ find ((== v) . snd) vv) $ do
+                        ((x, y), (x', y')) <- border `zip` (tail border ++ [ head border ])
+                        [(x, y), (0.5 * (x + x'), 0.5 * (y + y'))]
 
-        groups = let ds = [0 :: Int ..] `zip` dartsIncidentToVertex root
-                 in groupBy (\ (_, a) (_, b) -> sameGroup a b) $
+        l = vertexDegree root
+
+        groups = let ds = dartsIncidentToVertex root
+                 in groupBy (const sameGroupAsCW) $
                      take (length ds) $
-                         dropWhile (\ (_, d) -> sameGroup (nextCW d) d) $
+                         dropWhile sameGroupAsCW $
                              ds ++ ds
+
+        groupLookup :: Array Int (Int, Int)
+        groupLookup = array (0, l - 1) $ do
+            (groupId, group) <- [0 ..] `zip` groups
+            (inGroupId, d) <- [0 ..] `zip` group
+            return (beginPlace d, (groupId, inGroupId))
 
         numberOfGroups = length groups
 
-        borderInit = map snd $ sortBy (comparing fst) $ do
-            let halfAngle = pi / fromIntegral numberOfGroups
-                x0 = cos halfAngle
-                h = sin halfAngle
+        groupSize :: Array Int Int
+        groupSize = listArray (0, numberOfGroups - 1) $ map length groups
 
-            (groupId, group) <- [0 :: Int .. ] `zip` groups
-            let groupSize = length group
-                a = 2 * halfAngle * fromIntegral groupId
+        embedding =
+            let g = vertexOwnerGraph root
+                (_, vv, _, vd) = barycentricSubdivision' g
+            in barycentricProjection g vd $
+                subdivision subdivisionOrder (fst $ fromJust $ find ((== root) . snd) vv) $ do
+                    let put gi q p =
+                            let halfAngle = -pi / fromIntegral numberOfGroups
+                                a = 2 * halfAngle * fromIntegral gi
+                                x0 = cos halfAngle
+                                x = fromIntegral p / fromIntegral q
+                                y0 = sin halfAngle * 2 * (x - 0.5);
+                            in (cos a * x0 - sin a * y0, sin a * x0 + cos a * y0)
 
-            (inGroupId, (index, _)) <- [0 :: Int ..] `zip` group
-            let y0 = 2 * h * (-0.5 + fromIntegral (inGroupId + 1) / fromIntegral (groupSize + 1))
-                x = cos a * x0 - sin a * y0
-                y = sin a * x0 + cos a * y0
-            return (index, (x, y))
+                    i <- [0 .. l - 1]
+                    let (gi, p) = groupLookup ! i
+                        sz = groupSize ! gi
 
-        initial = quadraticInitialization 0.99 root borderInit
-
-        embedding = listArray (dartsRange graph) $ map (\ d -> [initial ! d, initial ! opposite d]) $ graphDarts graph
+                    [put gi (2 * sz) (2 * p + 1), put gi (2 * sz) (2 * p + 2)]
 
 
 circleEmbedding :: Int -> Either Vertex Face -> Array Dart [(Double, Double)]
-circleEmbedding subdivisionOrder root =
-    relaxEmbedding root $ barycentricImproving (\ (Left v) -> quadraticEmbedding v) subdivisionOrder root
+circleEmbedding subdivisionOrder root
+    | subdivisionOrder <= 0  =
+        case root of
+            Left v ->
+                let g = vertexOwnerGraph v
+                    c = quadraticInitialization 0.99 v $
+                        let k = vertexDegree v
+                        in map (\ !i -> let a = 2 * pi * fromIntegral i / fromIntegral k in (cos a, -sin a)) [0 .. k - 1]
+                in listArray (dartsRange g) $! map (\ d -> [c ! d, c ! opposite d]) $! graphDarts g
+            _      -> error "internal error"
 
-
-barycentricImproving :: (Either Vertex Face -> Array Dart [(Double, Double)]) -> Int -> Either Vertex Face -> Array Dart [(Double, Double)]
-barycentricImproving f order root
-    | order <= 0  = f root
     | otherwise   =
-        let g = case root of { Left vertex -> vertexOwnerGraph vertex ; Right face -> faceOwnerGraph face }
+        let g = case root of
+                Left vertex -> vertexOwnerGraph vertex
+                Right face  -> faceOwnerGraph face
+
             (_, vv, vf, vd) = barycentricSubdivision' g
-            be = barycentricImproving f (order - 1) $ Left $
+
+            be = circleEmbedding (subdivisionOrder - 1) $ Left $
                 case root of
                     Left vertex -> fst $ fromJust $ find ((== vertex) . snd) vv
                     Right face  -> fst $ fromJust $ find ((== face) . snd) vf
 
-        in array (dartsRange g) $ do
-            (v, (a, b)) <- vd
-            let l = reverse (be ! nthDartIncidentToVertex v 0) ++ tail (be ! nthDartIncidentToVertex v 2)
-            [(a, l), (b, reverse l)]
+        in barycentricProjection g vd be
 
 
-quadraticEmbedding :: Vertex -> Array Dart [(Double, Double)]
-quadraticEmbedding root =
-    let g = vertexOwnerGraph root
-        c = quadraticInitialization 0.99 root $!
-            let k = vertexDegree root
-            in map (\ !i -> let a = 2 * pi * fromIntegral i / fromIntegral k in (cos a, -sin a)) [0 .. k - 1]
-    in listArray (dartsRange g) $! map (\ d -> [c ! d, c ! opposite d]) $! graphDarts g
-
-
-quadraticInitialization :: Double -> Vertex -> [(Double, Double)] -> Array Dart (Double, Double)
-quadraticInitialization seed s brd
-    | vertexDegree s /= length brd  = error "quadraticInitialization: wrong number of elements in border"
-    | otherwise                     = unsafePerformIO $ do
-        let g = vertexOwnerGraph s
-        let vi :: UArray Vertex Int
-            vi = listArray (verticesRange g) $! scanl (\ !x !v -> if v == s then x else x + 1) 0 $! graphVertices g
-
-        let n = numberOfVertices g - 1
-        x <- newArray (0, n - 1) 0
-        y <- newArray (0, n - 1) 0
-        do
-            dist <- do
-                d <- newArray (verticesRange g) (-1) :: IO (IOUArray Vertex Int)
-                writeArray d s 0
-                q <- newIORef $ Seq.singleton s
-
-                let isEmpty = liftM Seq.null $ readIORef q
-                let enqueue u = modifyIORef q (Seq.|> u)
-                let dequeue = do
-                        qc <- readIORef q
-                        let (u Seq.:< rest) = Seq.viewl qc
-                        writeIORef q rest
-                        return $! u
-
-                let loop = do
-                        empty <- isEmpty
-                        unless empty $ do
-                            u <- dequeue
-                            du <- readArray d u
-                            forM_ (adjacentVertices u) $ \ v -> do
-                                dv <- readArray d v
-                                when (dv < 0) $ do
-                                    writeArray d v (du + 1)
-                                    enqueue v
-                            loop
-
-                loop
-                unsafeFreeze d :: IO (UArray Vertex Int)
-
-            let dartWeight d =
-                    let l = dist ! beginVertex d
-                        r = dist ! endVertex d
-                    in realToFrac seed ** realToFrac (min l r)
-
-            let defs =
-                    let a = flip map (filter (/= s) $ graphVertices g) $ \ !v ->
-                                let !i = vi ! v
-                                    !w = sum $ map dartWeight $ dartsIncidentToVertex v
-                                in (i, i, w)
-                        b = flip map (filter (\ !d -> beginVertex d /= s && endVertex d /= s) $ graphDarts g) $ \ !d ->
-                                let !i = vi ! beginVertex d
-                                    !j = vi ! endVertex d
-                                    !w = -(dartWeight d)
-                                in (i, j, w)
-                    in a ++ b
-
-            let rp = flip map (filter ((/= s) . endVertex . snd) $ zip brd $ dartsIncidentToVertex s) $ \ ((!cx, !cy), !d) ->
-                        let !i = vi ! endVertex d
-                            !w = dartWeight d
-                        in (i, cx * w, cy * w)
-
-            conjugateGradientSolve' n defs rp (x, y)
-
-        let border :: Array Int (Double, Double)
-            border = listArray (0, length brd - 1) brd
-        result <- forM (graphDarts g) $ \ !d -> do
-                let (v, p) = begin d
-                if v == s
-                    then return $! border ! p
-                    else do
-                        cx <- readArray x (vi ! v)
-                        cy <- readArray y (vi ! v)
-                        return (realToFrac cx, realToFrac cy)
-
-        return $! listArray (dartsRange g) result
-
-
-relaxEmbedding :: Either Vertex Face -> Array Dart [(Double, Double)] -> Array Dart [(Double, Double)]
-relaxEmbedding root initial
-    | not $ all (even . vertexDegree) $ graphVertices g        = error "relaxEmbedding: all vertices must have even degree"
-    | not $ all ((> 1) . length . (initial !)) $ graphDarts g  = error "relaxEmbedding: there must be at least 2 point at every dart"
-    | otherwise                                                = unsafePerformIO $ do
-        let numberOfFrozenPoints = case root of { Left v -> vertexDegree v ; Right _ -> 0 }
-        let totalNumberOfPoints =
-                sum (map ((\ x -> x - 2) . length . (initial !) . fst) $ graphEdges g)
-                    + numberOfVertices g + max 0 (numberOfFrozenPoints - 1)
-        let numberOfMovablePoints = totalNumberOfPoints - numberOfFrozenPoints
-
-        dartBeginIndex <- do
-            dartBeginIndex <- newArray_ (dartsRange g) :: IO (IOUArray Dart Int)
-            forM_ (graphDarts g) $ \ !d ->
-                writeArray dartBeginIndex d $
-                    let v = beginVertex d
-                    in case root of
-                        Left start ->
-                            case compare v start of
-                                EQ -> totalNumberOfPoints - vertexDegree start + snd (begin d)
-                                LT -> vertexIndex v
-                                GT -> vertexIndex v - 1
-                        Right _    -> vertexIndex v
-
-            freeze dartBeginIndex :: IO (Array Dart Int)
-
-        (dartIndices, threads) <- do
-            dartIndices <- newArray_ (dartsRange g) :: IO (IOArray Dart [Int])
-            freeIndex <- newIORef (case root of { Left _ -> numberOfVertices g - 1 ; Right _ -> numberOfVertices g })
-
-            let allocate a = do
-                    let b = opposite a
-                    let len = length (initial ! a) - 2
-                    gotIndex <- readIORef freeIndex
-                    writeIORef freeIndex (gotIndex + len)
-                    let list = [dartBeginIndex ! a] ++ [gotIndex .. gotIndex + len - 1] ++ [dartBeginIndex ! b]
-                    writeArray dartIndices a list
-                    writeArray dartIndices b $! reverse list
-                    return $! list
-
-            visited <- newArray (dartsRange g) False :: IO (IOUArray Dart Bool)
-
-            let walk thread first a = do
-                    let b = opposite a
-                    writeArray visited a True
-                    writeArray visited b True
-                    nextThread <- ((++ thread) . reverse . tail) `fmap` allocate a
-                    let v = beginVertex b
-                    let cont = nthDartIncidentToVertex v $ snd (begin b) + (vertexDegree v `div` 2)
-                    if Left v == root || cont == first
-                        then return $! nextThread
-                        else walk nextThread first cont
-
-            threads <- newIORef []
-            let tryWalk d = do
-                    v <- readArray visited d
-                    unless v $ do
-                        thread <- walk [dartBeginIndex ! d] d d
-                        modifyIORef threads (thread :)
-
-            case root of
-                Left v -> forM_ (dartsIncidentToVertex v) tryWalk
-                _      -> return ()
-            forM_ (graphDarts g) tryWalk
-
-            dartIndices' <- freeze dartIndices :: IO (Array Dart [Int])
-            threads' <- readIORef threads
-            return (dartIndices', threads')
-
-        let interaction = InteractionConst
-                { interactionBorder   = 2
-                , interactionElectric = 0.5
-                , interactionBend     = 15
-                , interactionElastic  = 10
-                , interactionCross    = 1.5
-                }
-
-        coords <- newArray (0, 2 * totalNumberOfPoints - 1) 0.0
-
-        forM_ (graphEdges g) $ \ (d, _) ->
-            forM_ (zip (initial ! d) (dartIndices ! d)) $ \ ((x, y), i) -> do
-                writeArray coords (2 * i) (realToFrac x)
-                writeArray coords (2 * i + 1) (realToFrac y)
-
-        relaxEmbedding' interaction False numberOfMovablePoints numberOfFrozenPoints coords threads $
-            let aliveVertices = filter ((/= root) . Left) $! graphVertices g
-            in map (map ((!! 1) . (dartIndices !)) . dartsIncidentToVertex) aliveVertices
-
-        fmap (listArray (dartsRange g)) $ forM (graphDarts g) $ \ d -> forM (dartIndices ! d) $ \ i -> do
-            x <- readArray coords (2 * i)
-            y <- readArray coords (2 * i + 1)
-            return (realToFrac x, realToFrac y)
-
-    where
-        g = case root of
-            Left v  -> vertexOwnerGraph v
-            Right f -> faceOwnerGraph f
+barycentricProjection :: SurfaceGraph -> [(Vertex, (Dart, Dart))] -> Array Dart [(Double, Double)] -> Array Dart [(Double, Double)]
+barycentricProjection g vd be =
+    array (dartsRange g) $ do
+        (v, (a, b)) <- vd
+        let l = reverse (be ! nthDartIncidentToVertex v 0)
+                ++ tail (be ! nthDartIncidentToVertex v 2)
+        [(a, l), (b, reverse l)]

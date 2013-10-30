@@ -5,7 +5,7 @@ module Math.KnotTh.Draw.DrawKnot
     , DrawableCrossingType(..)
     ) where
 
-import Data.Array.Base ((!))
+import Data.Array.IArray ((!))
 import Control.Monad.Writer (tell, execWriter)
 import Control.Monad (forM_, when)
 import Diagrams.Prelude
@@ -16,6 +16,9 @@ import Math.KnotTh.Knotted
 import Math.KnotTh.Tangle
 import Math.KnotTh.Link
 import Math.KnotTh.SurfaceLink
+
+import Text.Printf
+import qualified Debug.Trace
 
 
 data DrawKnotSettings = DrawKnotSettings
@@ -142,17 +145,18 @@ instance DrawableKnotted SurfaceLink where
             sphereRoot = G.nthVertex spherePart 0
 
             (numberOfGroups, embedding) = G.embeddingInPolygonWithGrouping
-                (\ sa sb ->
-                    let v = G.nthVertex starPart 0
-                        a = G.nthDartIncidentToVertex v (G.dartIndex sa)
-                        b = G.nthDartIncidentToVertex v (G.dartIndex sb)
-                    in G.opposite b == G.nextCW (G.opposite a)
-                ) 1 sphereRoot 
+                (\ sd ->
+                    let d = G.nthDartIncidentToVertex (G.nthVertex starPart 0) (G.dartIndex sd)
+                    in (G.opposite d /= G.nextCW d) && (G.opposite (G.nextCW d) == G.nextCCW (G.opposite d))
+                ) 2 sphereRoot 
 
         in execWriter $ do
+            when (odd numberOfGroups) $
+                Debug.Trace.trace (printf "%i %s %s" numberOfGroups (show spherePart) (show starPart)) (return ())
+            
             when (borderWidth s > 0.0) $
                 tell $ lc (borderColour s) $ dashing (borderDashing s) 0 $ lw (borderWidth s) $ 
                     polygon with { polyType = PolyRegular numberOfGroups 1, polyOrient = OrientV }
 
             forM_ (G.graphEdges spherePart) $ \ (a, _) ->
-                tell $ lineWidth 0.006 $ fromVertices $ map p2 $ embedding ! a
+                tell $ lineWidth (threadWidth s) $ fromVertices $ map p2 $ embedding ! a

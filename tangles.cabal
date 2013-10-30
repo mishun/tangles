@@ -149,6 +149,8 @@ library
         Math.Manifolds.SurfaceGraph.Definition,
         Math.Manifolds.SurfaceGraph.Embedding,
         Math.Manifolds.SurfaceGraph.Embedding.Optimization,
+        Math.Manifolds.SurfaceGraph.Embedding.QuadraticInitialization,
+        Math.Manifolds.SurfaceGraph.Embedding.RelaxEmbedding,
         Math.Manifolds.SurfaceGraph.SphereStar,
         Math.Manifolds.SurfaceGraph.SphereStar.Backtrack,
         Math.Manifolds.SurfaceGraph.Util

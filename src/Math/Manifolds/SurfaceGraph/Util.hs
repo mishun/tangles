@@ -16,6 +16,8 @@ module Math.Manifolds.SurfaceGraph.Util
     , right
     , beginVertex
     , endVertex
+    , beginPlace
+    , endPlace
     , leftFace
     , rightFace
     , adjacentVertices
@@ -86,6 +88,11 @@ right = left . opposite
 beginVertex, endVertex :: Dart -> Vertex
 beginVertex = fst . begin
 endVertex = fst . end
+
+
+beginPlace, endPlace :: Dart -> Int
+beginPlace = snd . begin
+endPlace = snd . end
 
 
 leftFace, rightFace :: Dart -> Face
