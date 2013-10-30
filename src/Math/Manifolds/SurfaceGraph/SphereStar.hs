@@ -19,7 +19,8 @@ sphereStarDecomposition graph
         let (_, edgeTreeMarks) = backtrack graph
 
         edgeMarks <- thaw edgeTreeMarks :: ST s (STUArray s Dart Bool)
-        flip fix (nthDart graph 0, [], 2 * numberOfEdges graph) $ \ loop (d, stack, depth) ->
+        let reductionSteps = 2 * numberOfEdges graph
+        flip fix (nthDart graph 0, [], reductionSteps) $ \ loop (d, stack, depth) ->
             when (depth > 0) $ do
                 mark <- readArray edgeMarks d
                 if mark
@@ -28,7 +29,7 @@ sphereStarDecomposition graph
                         h : rest | h == opposite d -> do
                             writeArray edgeMarks d True
                             writeArray edgeMarks h True
-                            loop (nextCCW d, rest, depth - 1)
+                            loop (nextCCW d, rest, reductionSteps)
                         _                          -> loop (nextCCW d, d : stack, depth - 1)
 
         externalEdges <- filterM (fmap not . readArray edgeMarks) $ graphDarts graph
