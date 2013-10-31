@@ -4,6 +4,7 @@ module Math.Combinatorics.ChordDiagrams.Generator
     , generateAllRaw
     , generateNonPlanarRaw
     , generateBicolourableNonPlanarRaw
+    , generatePrimeNonPlanarRaw
     , countChordDiagrams
     , listChordDiagrams
     ) where
@@ -22,7 +23,7 @@ import Math.Combinatorics.Strings.Lyndon
 
 
 generateWithCheckerRaw
-    :: Int -> (forall s. STUArray s Int Int -> Int -> Int -> ST s Bool) ->
+    :: Int -> (forall s. Int -> STUArray s Int Int -> Int -> Int -> ST s Bool) ->
         Int -> (forall s. st -> STUArray s Int Int -> (Bool, Int) -> ST s st) -> st -> st
 
 generateWithCheckerRaw minimalChordLength checker n yield initial = runST $ do
@@ -50,7 +51,7 @@ generateWithCheckerRaw minimalChordLength checker n yield initial = runST $ do
                 else writeSTRef begin i
 
     let try !u !v action = do
-            ok <- checker a u v
+            ok <- checker p a u v
             when ok $ do
                 unsafeWrite a u (v - u)
                 unsafeWrite a v (p + u - v)
@@ -159,17 +160,28 @@ generateWithCheckerRaw minimalChordLength checker n yield initial = runST $ do
 
 generateAllRaw :: Int -> (forall s. st -> STUArray s Int Int -> (Bool, Int) -> ST s st) -> st -> st
 generateAllRaw =
-    generateWithCheckerRaw 1 (\ _ _ _ -> return True)
+    generateWithCheckerRaw 1 (\ _ _ _ _ -> return True)
 
 
 generateNonPlanarRaw :: Int -> (forall s. st -> STUArray s Int Int -> (Bool, Int) -> ST s st) -> st -> st
 generateNonPlanarRaw =
-    generateWithCheckerRaw 2 (\ _ _ _ -> return True)
+    generateWithCheckerRaw 2 (\ _ _ _ _ -> return True)
 
 
 generateBicolourableNonPlanarRaw :: Int -> (forall s. st -> STUArray s Int Int -> (Bool, Int) -> ST s st) -> st -> st
 generateBicolourableNonPlanarRaw =
-    generateWithCheckerRaw 2 (\ _ u v -> return $! odd (u + v))
+    generateWithCheckerRaw 2 (\ _ _ u v -> return $! odd (u + v))
+
+
+generatePrimeNonPlanarRaw :: Int -> (forall s. st -> STUArray s Int Int -> (Bool, Int) -> ST s st) -> st -> st
+generatePrimeNonPlanarRaw =
+    generateWithCheckerRaw 2
+        (\ p a u v -> do
+            let len = v - u
+            pu <- unsafeRead a $ (u - 1) `mod` p
+            nu <- unsafeRead a $ (u + 1)
+            return $! (pu /= len + 2) && ((nu == 0) || (nu /= len - 2))  
+        )
 
 
 countChordDiagrams :: ((forall s. Int -> STUArray s Int Int -> (Bool, Int) -> ST s Int) -> Int -> Int) -> Int

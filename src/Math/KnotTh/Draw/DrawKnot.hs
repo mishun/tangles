@@ -17,9 +17,6 @@ import Math.KnotTh.Tangle
 import Math.KnotTh.Link
 import Math.KnotTh.SurfaceLink
 
-import Text.Printf
-import qualified Debug.Trace
-
 
 data DrawKnotSettings = DrawKnotSettings
     { threadWidth      :: Double
@@ -151,9 +148,6 @@ instance DrawableKnotted SurfaceLink where
                 ) 2 sphereRoot 
 
         in execWriter $ do
-            when (odd numberOfGroups) $
-                Debug.Trace.trace (printf "%i %s %s" numberOfGroups (show spherePart) (show starPart)) (return ())
-            
             when (borderWidth s > 0.0) $
                 tell $ lc (borderColour s) $ dashing (borderDashing s) 0 $ lw (borderWidth s) $ 
                     polygon with { polyType = PolyRegular numberOfGroups 1, polyOrient = OrientV }
