@@ -5,7 +5,7 @@ import Control.Monad
 import Diagrams.Prelude
 import Math.KnotTh.Tangle.Projection
 import Math.KnotTh.Tangle.NonAlternating
-import Math.KnotTh.Draw.DrawKnot
+import Math.KnotTh.Draw
 import Math.KnotTh.Tangle.BorderIncremental.SimpleTypes
 import Math.KnotTh.Tangle.BorderIncremental.FlypeGenerator
 import TestUtil.Table

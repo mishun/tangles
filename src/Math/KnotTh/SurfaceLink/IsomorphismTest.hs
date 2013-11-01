@@ -17,9 +17,7 @@ import Math.KnotTh.SurfaceLink
 
 
 isomorphismTest :: (CrossingType ct) => SurfaceLink ct -> UArray Int Int
-isomorphismTest link
-    | numberOfCrossings link > 127  = error "isomorphismTest: too many crossings"
-    | otherwise                     = minimum [ codeWithDirection dir dart | dart <- allHalfEdges link, dir <- [ccw, cw] ]
+isomorphismTest link = minimum [ codeWithDirection dir dart | dart <- allHalfEdges link, dir <- [ccw, cw] ]
 
 
 codeWithDirection :: (CrossingType ct) => RotationDirection -> Dart SurfaceLink ct -> UArray Int Int

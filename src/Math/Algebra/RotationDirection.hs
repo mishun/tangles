@@ -12,6 +12,11 @@ module Math.Algebra.RotationDirection
 newtype RotationDirection = RD Int deriving (Eq, Ord)
 
 
+instance Show RotationDirection where
+    show (RD dir) | dir > 0    = "CCW"
+                  | otherwise  = "CW"
+
+
 {-# INLINE cw #-}
 cw :: RotationDirection
 cw = RD (-1)

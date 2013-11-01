@@ -179,7 +179,7 @@ generatePrimeNonPlanarRaw =
         (\ p a u v -> do
             let len = v - u
             pu <- unsafeRead a $ (u - 1) `mod` p
-            nu <- unsafeRead a $ (u + 1)
+            nu <- unsafeRead a (u + 1)
             return $! (pu /= len + 2) && ((nu == 0) || (nu /= len - 2))  
         )
 
