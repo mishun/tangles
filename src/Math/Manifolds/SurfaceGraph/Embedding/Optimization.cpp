@@ -113,6 +113,7 @@ namespace Math { namespace Manifolds { namespace Embedding { namespace Optimizat
 		{
 			const InteractionConst & interaction;
 
+			const size_t numberOfBorderSegments;
 			const size_t totalNumberOfVertices;
 			const size_t numberOfMovableVertices;
 			const size_t numberOfFrozenVertices;
@@ -133,13 +134,44 @@ namespace Math { namespace Manifolds { namespace Embedding { namespace Optimizat
 				grad[i].y = grad[i].x = 0.0;
 
 			// Border interaction energy
-			if(context.interaction.border != 0.0)
-				for(size_t i = 0; i < context.numberOfMovableVertices; i++)
+			if(context.interaction.border > 0.0)
+			{
+				if(context.numberOfBorderSegments < 3)
+					for(size_t i = 0; i < context.numberOfMovableVertices; i++)
+					{
+						const double r = x[i].length();
+						phi -= context.interaction.border * r * r * log(1.0 - r);
+						grad[i] -= x[i] * (context.interaction.border * (2.0 * log(1.0 - r) - r / (1.0 - r)));
+					}
+				else
 				{
-					const double r = x[i].length();
-					phi -= context.interaction.border * r * r * log(1.0 - r);
-					grad[i] -= x[i] * (context.interaction.border * (2.0 * log(1.0 - r) - r / (1.0 - r)));
+					const double halfAngle = M_PI / context.numberOfBorderSegments;
+					for(size_t j = 0; j < context.numberOfBorderSegments; j++)
+					{
+						const Vector2 a = Vector2::polar(2.0 * halfAngle * j - halfAngle);
+						const Vector2 b = Vector2::polar(2.0 * halfAngle * j + halfAngle);
+						const auto ab = b - a;
+						const double s = ab.length();
+
+						for(size_t i = 0; i < context.numberOfMovableVertices; i++)
+						{
+							const auto aj = x[i] - a;
+							const auto bj = x[i] - b;
+							const double r1 = aj.length();
+							const double r2 = bj.length();
+							const double d = r1 + r2;
+
+							phi += context.interaction.border * log((d + s) / (d - s));
+
+							const double f = 2.0 * context.interaction.border / (d * d - s * s);
+							const auto gaj = aj * (-f * s / r1);
+							const auto gbj = bj * (-f * s / r2);
+
+							grad[i] += gaj + gbj;
+						}
+					}
 				}
+			}
 
 			for(size_t ti = 0; ti < context.numberOfThreads; ti++)
 			{
@@ -164,7 +196,7 @@ namespace Math { namespace Manifolds { namespace Embedding { namespace Optimizat
 
 					// Electric energy (a -- b  >  j)
 					// E = k * \ln\frac{r1 + r2 + s}{r1 + r2 - s}
-					if(context.interaction.electric != 0.0)
+					if(context.interaction.electric > 0.0)
 						for(size_t j = 0; j < context.numberOfMovableVertices; j++)
 						{
 							if(j == a || j == b)
@@ -236,7 +268,7 @@ namespace Math { namespace Manifolds { namespace Embedding { namespace Optimizat
 			}
 
 			// Crossing energy
-			if(context.interaction.cross != 0.0)
+			if(context.interaction.cross > 0.0)
 				for(size_t c = 0; c < context.numberOfCrossings; c++)
 				{
 					const size_t degree = context.crossingDegree[c];
@@ -277,6 +309,30 @@ namespace Math { namespace Manifolds { namespace Embedding { namespace Optimizat
 
 			for(size_t i = 0; i < context.numberOfMovableVertices; i++)
 				dist[i] = 1.0 - x[i].length();
+
+			if(context.numberOfBorderSegments >= 3)
+			{
+				const double halfAngle = M_PI / context.numberOfBorderSegments;
+				for(size_t j = 0; j < context.numberOfBorderSegments; j++)
+				{
+					const Vector2 a = Vector2::polar(halfAngle * j - halfAngle);
+					const Vector2 b = Vector2::polar(halfAngle * j + halfAngle);
+					const auto ab = b - a;
+					const double abl = ab.length();
+
+					for(size_t i = 0; i < context.numberOfMovableVertices; i++)
+					{
+						const auto aj = x[i] - a;
+						const auto bj = x[i] - b;
+						const double r1 = aj.length();
+						const double r2 = bj.length();
+
+						const double dp = ab * aj;
+						const double d = (dp <= 0.0) ? r1 : ((dp >= abl * abl) ? r2 : fabs(ab ^ aj) / abl);
+						dist[i] = std::min(dist[i], d);
+					}
+				}
+			}
 
 			for(size_t ti = 0; ti < context.numberOfThreads; ti++)
 			{
@@ -325,8 +381,7 @@ namespace Math { namespace Manifolds { namespace Embedding { namespace Optimizat
 		}
 
 		static bool gslMinimization
-			( const bool verbose
-			, const double eps
+			( const double eps
 			, const size_t maxIterations
 			, const gsl_multimin_fdfminimizer_type * const method
 			, InteractionContext & context
@@ -390,7 +445,6 @@ namespace Math { namespace Manifolds { namespace Embedding { namespace Optimizat
 
 				if(std::isnan(phi) || std::isnan(gnorm) || std::isnan(dxnorm))
 				{
-					//if(verbose)
 					//	std::cerr
 					//		<< gsl_multimin_fdfminimizer_name(s) << ": "
 					//		<< "NaN error at iteration = " << iteration
@@ -403,7 +457,6 @@ namespace Math { namespace Manifolds { namespace Embedding { namespace Optimizat
 
 				if(iterationRes != GSL_SUCCESS || iteration >= maxIterations || gnorm <= eps * initialNorm)
 				{
-					//if(verbose)
 					//	std::cerr
 					//		<< gsl_multimin_fdfminimizer_name(s) << ": "
 					//		<< (iterationRes == GSL_SUCCESS ? "success" : "GSL_ENOPROG error")
@@ -420,7 +473,7 @@ namespace Math { namespace Manifolds { namespace Embedding { namespace Optimizat
 		}
 
 		extern "C" void relaxEmbedding
-			( const InteractionConst & interaction, const int _verbose
+			( const InteractionConst & interaction, const size_t numberOfBorderSegments
 			, const size_t numberOfMovableVertices, const size_t numberOfFrozenVertices, Vector2 * x
 			, const size_t numberOfThreads, const size_t * const lengthOfThread, const size_t * const * const threads
 			, const size_t numberOfCrossings, const size_t * const crossingDegree, const size_t * const * const crossingAdjacencyList
@@ -428,6 +481,7 @@ namespace Math { namespace Manifolds { namespace Embedding { namespace Optimizat
 		{
 			InteractionContext context
 				{ .interaction             = interaction
+				, .numberOfBorderSegments  = numberOfBorderSegments
 				, .totalNumberOfVertices   = numberOfMovableVertices + numberOfFrozenVertices
 				, .numberOfMovableVertices = numberOfMovableVertices
 				, .numberOfFrozenVertices  = numberOfFrozenVertices
@@ -439,12 +493,11 @@ namespace Math { namespace Manifolds { namespace Embedding { namespace Optimizat
 				, .crossingAdjacencyList   = crossingAdjacencyList
 				};
 
-			const bool verbose = _verbose != 0;
 			const double eps = 1e-3;
 			const size_t maxIterations = 2048;
 
-			if(!gslMinimization(verbose, eps, maxIterations, gsl_multimin_fdfminimizer_conjugate_fr, context, x))
-				gslMinimization(verbose, eps, maxIterations, gsl_multimin_fdfminimizer_steepest_descent, context, x);
+			if(!gslMinimization(eps, maxIterations, gsl_multimin_fdfminimizer_conjugate_fr, context, x))
+				gslMinimization(eps, maxIterations, gsl_multimin_fdfminimizer_steepest_descent, context, x);
 		}
 
 	}

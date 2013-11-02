@@ -17,24 +17,23 @@ import Math.Manifolds.SurfaceGraph.Embedding.RelaxEmbedding
 
 embeddingInCircleWithVertexRooting :: Int -> Vertex -> Array Dart [(Double, Double)]
 embeddingInCircleWithVertexRooting smoothing vertex =
-    circleEmbedding (max 1 smoothing) (Left vertex)
+    relaxEmbedding 0 (Left vertex) $
+        circleEmbeddingInitialization (max 1 smoothing) (Left vertex)
 
 
 embeddingInCircleWithFaceRooting :: Int -> Face -> Array Dart [(Double, Double)]
 embeddingInCircleWithFaceRooting smoothing face =
-    circleEmbedding (max 1 smoothing) (Right face)
+    relaxEmbedding 0 (Right face) $
+        circleEmbeddingInitialization (max 1 smoothing) (Right face)
 
 
 embeddingInPolygonWithGrouping :: (Dart -> Bool) -> Int -> Vertex -> (Int, Array Dart [(Double, Double)])
 embeddingInPolygonWithGrouping sameGroupAsCW subdivisionOrder root
     | numberOfGroups < 3  = error "embeddingInPolygonWithGrouping: there are less than 3 groups"
-    | otherwise           = (numberOfGroups, relaxEmbedding (Left root) embedding)
+    | otherwise           = (numberOfGroups, relaxEmbedding numberOfGroups (Left root) embedding)
     where
         subdivision level v border
-            | level <= 1  =
-                let initial = quadraticInitialization 0.99 v border
-                    g = vertexOwnerGraph v
-                in listArray (dartsRange g) $ map (\ d -> [initial ! d, initial ! opposite d]) $ graphDarts g
+            | level <= 1  = quadraticEmbedding v border
             | otherwise   =
                 let g = vertexOwnerGraph v
                     (_, vv, _, vd) = barycentricSubdivision' g
@@ -78,20 +77,19 @@ embeddingInPolygonWithGrouping sameGroupAsCW subdivisionOrder root
                     i <- [0 .. l - 1]
                     let (gi, p) = groupLookup ! i
                         sz = groupSize ! gi
-
                     [put gi (2 * sz) (2 * p + 1), put gi (2 * sz) (2 * p + 2)]
 
 
-circleEmbedding :: Int -> Either Vertex Face -> Array Dart [(Double, Double)]
-circleEmbedding subdivisionOrder root
+circleEmbeddingInitialization :: Int -> Either Vertex Face -> Array Dart [(Double, Double)]
+circleEmbeddingInitialization subdivisionOrder root
     | subdivisionOrder <= 0  =
         case root of
             Left v ->
-                let g = vertexOwnerGraph v
-                    c = quadraticInitialization 0.99 v $
-                        let k = vertexDegree v
-                        in map (\ !i -> let a = 2 * pi * fromIntegral i / fromIntegral k in (cos a, -sin a)) [0 .. k - 1]
-                in listArray (dartsRange g) $! map (\ d -> [c ! d, c ! opposite d]) $! graphDarts g
+                quadraticEmbedding v $ do
+                    let k = vertexDegree v
+                    i <- [0 .. k - 1]
+                    let a = 2 * pi * fromIntegral i / fromIntegral k
+                    return (cos a, -sin a)
             _      -> error "internal error"
 
     | otherwise   =
@@ -101,12 +99,11 @@ circleEmbedding subdivisionOrder root
 
             (_, vv, vf, vd) = barycentricSubdivision' g
 
-            be = circleEmbedding (subdivisionOrder - 1) $ Left $
+        in barycentricProjection g vd $
+            circleEmbeddingInitialization (subdivisionOrder - 1) $ Left $
                 case root of
                     Left vertex -> fst $ fromJust $ find ((== vertex) . snd) vv
                     Right face  -> fst $ fromJust $ find ((== face) . snd) vf
-
-        in barycentricProjection g vd be
 
 
 barycentricProjection :: SurfaceGraph -> [(Vertex, (Dart, Dart))] -> Array Dart [(Double, Double)] -> Array Dart [(Double, Double)]
@@ -116,3 +113,10 @@ barycentricProjection g vd be =
         let l = reverse (be ! nthDartIncidentToVertex v 0)
                 ++ tail (be ! nthDartIncidentToVertex v 2)
         [(a, l), (b, reverse l)]
+
+
+quadraticEmbedding :: Vertex -> [(Double, Double)] -> Array Dart [(Double, Double)]
+quadraticEmbedding v border =
+    let g = vertexOwnerGraph v
+        c = quadraticInitialization 0.99 v border
+    in listArray (dartsRange g) $ map (\ d -> [c ! d, c ! opposite d]) $ graphDarts g

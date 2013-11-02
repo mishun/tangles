@@ -14,16 +14,21 @@ import Math.Manifolds.SurfaceGraph.Util
 import Math.Manifolds.SurfaceGraph.Embedding.Optimization
 
 
-relaxEmbedding :: Either Vertex Face -> Array Dart [(Double, Double)] -> Array Dart [(Double, Double)]
-relaxEmbedding root initial
+relaxEmbedding :: Int -> Either Vertex Face -> Array Dart [(Double, Double)] -> Array Dart [(Double, Double)]
+relaxEmbedding borderSegments root initial
     | not $ all (even . vertexDegree) $ graphVertices g        = error "relaxEmbedding: all vertices must have even degree"
     | not $ all ((> 1) . length . (initial !)) $ graphDarts g  = error "relaxEmbedding: there must be at least 2 point at every dart"
     | otherwise                                                = unsafePerformIO $ do
-        let numberOfFrozenPoints = case root of { Left v -> vertexDegree v ; Right _ -> 0 }
+        let numberOfFrozenPoints =
+                case root of
+                    Left v  -> vertexDegree v
+                    Right _ -> 0
+
         let totalNumberOfPoints =
                 sum (map ((\ x -> x - 2) . length . (initial !) . fst) $ graphEdges g)
                     + numberOfVertices g + max 0 (numberOfFrozenPoints - 1)
-        let numberOfMovablePoints = totalNumberOfPoints - numberOfFrozenPoints
+
+            numberOfMovablePoints = totalNumberOfPoints - numberOfFrozenPoints
 
         dartBeginIndex <- do
             dartBeginIndex <- newArray_ (dartsRange g) :: IO (IOUArray Dart Int)
@@ -98,7 +103,7 @@ relaxEmbedding root initial
                 writeArray coords (2 * i) (realToFrac x)
                 writeArray coords (2 * i + 1) (realToFrac y)
 
-        relaxEmbedding' interaction False numberOfMovablePoints numberOfFrozenPoints coords threads $
+        relaxEmbedding' interaction borderSegments numberOfMovablePoints numberOfFrozenPoints coords threads $
             let aliveVertices = filter ((/= root) . Left) $! graphVertices g
             in map (map ((!! 1) . (dartIndices !)) . dartsIncidentToVertex) aliveVertices
 

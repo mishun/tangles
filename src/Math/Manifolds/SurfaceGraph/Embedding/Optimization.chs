@@ -50,15 +50,15 @@ instance Storable InteractionConst where
 
 
 foreign import ccall "relaxEmbedding"
-    c_relaxEmbedding :: InteractionConstPtr -> CInt
+    c_relaxEmbedding :: InteractionConstPtr -> CSize
         -> CSize -> CSize -> Ptr CDouble
         -> CSize -> Ptr CSize -> Ptr (Ptr CSize)
         -> CSize -> Ptr CSize -> Ptr (Ptr CSize)
         -> IO ()
 
 
-relaxEmbedding' :: InteractionConst -> Bool -> Int -> Int -> StorableArray Int CDouble -> [[Int]] -> [[Int]] -> IO ()
-relaxEmbedding' interaction verbose numberOfMovablePoints numberOfFrozenPoints coords threads aliveVertices =
+relaxEmbedding' :: InteractionConst -> Int -> Int -> Int -> StorableArray Int CDouble -> [[Int]] -> [[Int]] -> IO ()
+relaxEmbedding' interaction borderSegments numberOfMovablePoints numberOfFrozenPoints coords threads aliveVertices =
     with interaction $ \ interactionPtr ->
         withStorableArray coords $ \ xPtr -> do
             let numberOfThreads = length threads
@@ -71,7 +71,7 @@ relaxEmbedding' interaction verbose numberOfMovablePoints numberOfFrozenPoints c
                 A.withArray (map (fromIntegral . length) threads) $ \ lensPtr ->
                     A.withArray (map (fromIntegral . length) aliveVertices) $ \ vertexDegreePtr ->
                         withStorableArray adjPtrs $ \ adjPtrsPtr ->
-                            c_relaxEmbedding interactionPtr (if verbose then 1 else 0)
+                            c_relaxEmbedding interactionPtr (fromIntegral borderSegments)
                                 (fromIntegral numberOfMovablePoints) (fromIntegral numberOfFrozenPoints) xPtr
                                 (fromIntegral numberOfThreads) lensPtr threadsPtrsPtr
                                 (fromIntegral numberOfAliveVertices) vertexDegreePtr adjPtrsPtr
