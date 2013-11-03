@@ -23,9 +23,9 @@ test = testGroup "Chord Diagrams"
         forM_ [ (0, 1), (1, 0), (2, 0), (3, 1), (4, 1), (5, 4), (6, 9), (7, 43), (8, 198), (9, 1435) ] $ \ (n, t) ->
             assertEqual (printf "for n = %i" n) t (countChordDiagrams $ generateBicolourableNonPlanarRaw n)
 
-    , testCase "Numbers of prime non-planar chord diagrams" $
+    , testCase "Numbers of quasi-tree chord diagrams" $
         forM_ [ (0, 1), (1, 0), (2, 1), (3, 1), (4, 4), (5, 18), (6, 116), (7, 1060), (8, 13019) ] $ \ (n, t) ->
-            assertEqual (printf "for n = %i" n) t (countChordDiagrams $ generatePrimeNonPlanarRaw n)
+            assertEqual (printf "for n = %i" n) t (countChordDiagrams $ generateQuasiTreesRaw n)
 
     , testCase "Symmetry group information" $
         forM_ [1 .. 9] $ \ !n ->

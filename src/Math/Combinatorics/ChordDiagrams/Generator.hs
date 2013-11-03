@@ -4,7 +4,7 @@ module Math.Combinatorics.ChordDiagrams.Generator
     , generateAllRaw
     , generateNonPlanarRaw
     , generateBicolourableNonPlanarRaw
-    , generatePrimeNonPlanarRaw
+    , generateQuasiTreesRaw
     , countChordDiagrams
     , listChordDiagrams
     ) where
@@ -173,8 +173,8 @@ generateBicolourableNonPlanarRaw =
     generateWithCheckerRaw 2 (\ _ _ u v -> return $! odd (u + v))
 
 
-generatePrimeNonPlanarRaw :: Int -> (forall s. st -> STUArray s Int Int -> (Bool, Int) -> ST s st) -> st -> st
-generatePrimeNonPlanarRaw =
+generateQuasiTreesRaw :: Int -> (forall s. st -> STUArray s Int Int -> (Bool, Int) -> ST s st) -> st -> st
+generateQuasiTreesRaw =
     generateWithCheckerRaw 2
         (\ p a u v -> do
             let len = v - u
