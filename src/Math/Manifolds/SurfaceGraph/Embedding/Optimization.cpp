@@ -7,6 +7,7 @@
 #include <Math/Numeric/Vector2.h>
 #include <Math/Manifolds/SurfaceGraph/Embedding/Optimization.h>
 
+
 namespace Math { namespace Manifolds { namespace Embedding { namespace Optimization {
 
 	using Math::Numeric::Vector2;
@@ -52,12 +53,14 @@ namespace Math { namespace Manifolds { namespace Embedding { namespace Optimizat
 				r[i] = b[i] - r[i];
 		}
 
-		extern "C" double conjugateGradientSolve(const size_t n
+		extern "C" double conjugateGradientSolve
+			( const size_t n
 			, const size_t m
 			, const size_t * id
 			, const double * a
 			, const double * b
-			, double * x)
+			, double * x
+			)
 		{
 			double * r = new double[n];
 			diff(n, m, id, a, b, x, r);
@@ -137,14 +140,18 @@ namespace Math { namespace Manifolds { namespace Embedding { namespace Optimizat
 			if(context.interaction.border > 0.0)
 			{
 				if(context.numberOfBorderSegments < 3)
+				{
+					const double k = context.interaction.border;
 					for(size_t i = 0; i < context.numberOfMovableVertices; i++)
 					{
 						const double r = x[i].length();
-						phi -= context.interaction.border * r * r * log(1.0 - r);
-						grad[i] -= x[i] * (context.interaction.border * (2.0 * log(1.0 - r) - r / (1.0 - r)));
+						phi -= k * r * r * log(1.0 - r);
+						grad[i] -= x[i] * (k * (2.0 * log(1.0 - r) - r / (1.0 - r)));
 					}
+				}
 				else
 				{
+					const double k = context.interaction.border;
 					const double halfAngle = M_PI / context.numberOfBorderSegments;
 					for(size_t j = 0; j < context.numberOfBorderSegments; j++)
 					{
@@ -161,9 +168,9 @@ namespace Math { namespace Manifolds { namespace Embedding { namespace Optimizat
 							const double r2 = bj.length();
 							const double d = r1 + r2;
 
-							phi += context.interaction.border * log((d + s) / (d - s));
+							phi += k * log((d + s) / (d - s));
 
-							const double f = 2.0 * context.interaction.border / (d * d - s * s);
+							const double f = 2.0 * k / (d * d - s * s);
 							const auto gaj = aj * (-f * s / r1);
 							const auto gbj = bj * (-f * s / r2);
 
@@ -189,14 +196,17 @@ namespace Math { namespace Manifolds { namespace Embedding { namespace Optimizat
 					// Elastic energy (a -- b)
 					// E = \frac{k ab^2}{2}
 					{
-						phi += 0.5 * context.interaction.elastic * s * s;
-						grad[a] -= ab * context.interaction.elastic;
-						grad[b] += ab * context.interaction.elastic;
+						const double k = context.interaction.elastic;
+						phi += 0.5 * k * s * s;
+						grad[a] -= ab * k;
+						grad[b] += ab * k;
 					}
 
 					// Electric energy (a -- b  >  j)
 					// E = k * \ln\frac{r1 + r2 + s}{r1 + r2 - s}
 					if(context.interaction.electric > 0.0)
+					{
+						const double k = context.interaction.electric;
 						for(size_t j = 0; j < context.numberOfMovableVertices; j++)
 						{
 							if(j == a || j == b)
@@ -208,9 +218,9 @@ namespace Math { namespace Manifolds { namespace Embedding { namespace Optimizat
 							const double r2 = bj.length();
 							const double d = r1 + r2;
 
-							phi += context.interaction.electric * log((d + s) / (d - s));
+							phi += k * log((d + s) / (d - s));
 
-							const double f = 2.0 * context.interaction.electric / (d * d - s * s);
+							const double f = 2.0 * k / (d * d - s * s);
 							const auto gaj = aj * (-f * s / r1);
 							const auto gbj = bj * (-f * s / r2);
 							const auto gab = ab * (f * d / s);
@@ -219,23 +229,30 @@ namespace Math { namespace Manifolds { namespace Embedding { namespace Optimizat
 							grad[a] -= gaj + gab;
 							grad[b] -= gbj - gab;
 						}
-
-					{
-						const size_t c = (i > 0) ? thread[i - 1] : (closed ? thread[len - 2] : b);
-						const auto df = x[b] + x[c] - x[a] * 2.0;
-						phi += 0.25 * context.interaction.bend * (df * df);
-						grad[b] += (x[b] * 3.0 - x[a] * 4.0 + x[c]) * context.interaction.bend;
 					}
 
-					{
-						const size_t c = (i + 2 < len) ? thread[i + 2] : (closed ? thread[1] : a);
-						const auto df = x[a] + x[c] - x[b] * 2.0;
-						phi += 0.25 * context.interaction.bend * (df * df);
-						grad[a] += (x[a] * 3.0 - x[b] * 4.0 + x[c]) * context.interaction.bend;
-					}
+					// Bend energy
+					/*{
+						const double k = context.interaction.bend;
 
-					/*if(closed || i + 2 < len)
+						{
+							const size_t c = (i > 0) ? thread[i - 1] : (closed ? thread[len - 2] : b);
+							const auto df = x[b] + x[c] - x[a] * 2.0;
+							phi += 0.25 * k * (df * df);
+							grad[b] += (x[b] * 3.0 - x[a] * 4.0 + x[c]) * k;
+						}
+
+						{
+							const size_t c = (i + 2 < len) ? thread[i + 2] : (closed ? thread[1] : a);
+							const auto df = x[a] + x[c] - x[b] * 2.0;
+							phi += 0.25 * k * (df * df);
+							grad[a] += (x[a] * 3.0 - x[b] * 4.0 + x[c]) * k;
+						}
+					}*/
+
+					if(closed || i + 2 < len)
 					{
+						const double k = 0.05 * context.interaction.bend;
 						const size_t c = ((i + 2 < len) ? thread[i + 2] : thread[1]);
 
 						// Bend energy (a -- b -- c)
@@ -244,11 +261,11 @@ namespace Math { namespace Manifolds { namespace Embedding { namespace Optimizat
 							const auto r = x[c] - x[b];
 							const auto d = r - l;
 
-							const double cross = l ^ r;
+							const double cross = (l ^ r);
 							const double ll = l.length();
 							const double rl = r.length();
 							const double sl = ll + rl;
-							const double A = (context.interaction.bend * sl * cross) / (l.length2() * r.length2() * d.length2());
+							const double A = (k * sl * cross) / (l.length2() * r.length2() * d.length2());
 
 							const double dedlx = A * ((l.x / (ll * sl) - 2.0 * (l.x - r.x) / d.length2() - 2.0 * l.x / l.length2()) * cross + 2.0 * r.y);
 							const double dedly = A * ((l.y / (ll * sl) - 2.0 * (l.y - r.y) / d.length2() - 2.0 * l.y / l.length2()) * cross - 2.0 * r.x);
@@ -263,12 +280,14 @@ namespace Math { namespace Manifolds { namespace Embedding { namespace Optimizat
 							grad[b].x -= dedlx + dedrx;
 							grad[b].y -= dedly + dedry;
 						}
-					}*/
+					}
 				}
 			}
 
 			// Crossing energy
 			if(context.interaction.cross > 0.0)
+			{
+				const double k = 2 * context.interaction.cross;
 				for(size_t c = 0; c < context.numberOfCrossings; c++)
 				{
 					const size_t degree = context.crossingDegree[c];
@@ -286,16 +305,17 @@ namespace Math { namespace Manifolds { namespace Embedding { namespace Optimizat
 						const double cosD = (l * r) / (l.length() * r.length());
 						const double delta = acos(std::min(1.0, std::max(-1.0, cosD))) - targetAngle;
 
-						phi += context.interaction.cross * 0.5 * delta * delta;
+						phi += k * 0.5 * delta * delta;
 
-						const auto gl = l.ort() * (-context.interaction.cross * delta / l.length2());
-						const auto gr = r.ort() * ( context.interaction.cross * delta / r.length2());
+						const auto gl = l.ort() * (-k * delta / l.length2());
+						const auto gr = r.ort() * ( k * delta / r.length2());
 
 						grad[a] += gl;
 						grad[b] += gr;
 						grad[c] -= gl + gr;
 					}
 				}
+			}
 
 			for(size_t i = context.numberOfMovableVertices; i < context.totalNumberOfVertices; i++)
 				grad[i] = 0.0;
