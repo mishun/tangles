@@ -7,17 +7,20 @@ module Math.Combinatorics.ChordDiagrams.Generator
     , generateQuasiTreesRaw
     , countChordDiagrams
     , listChordDiagrams
+    , genus
     ) where
 
+import Data.Function (fix)
 import Data.List (find)
 import Data.Maybe (fromJust, isJust, isNothing)
-import Data.Array.MArray (newArray, newListArray, freeze)
+import Data.Array.IArray (bounds, (!))
+import Data.Array.MArray (newArray, newListArray, freeze, readArray, writeArray)
 import Data.Array.Base (unsafeRead, unsafeWrite)
 import Data.Array.Unboxed (UArray)
 import Data.Array.ST (STUArray)
 import Data.STRef (newSTRef, readSTRef, writeSTRef, modifySTRef')
 import Control.Applicative ((<$>))
-import Control.Monad (when)
+import Control.Monad (when, unless, foldM)
 import Control.Monad.ST (ST, runST)
 import Math.Combinatorics.Strings.Lyndon
 
@@ -198,3 +201,24 @@ listChordDiagrams generator =
             diagram <- freeze diagramST
             return $! (diagram, symmetry) : lst
         ) []
+
+
+genus :: UArray Int Int -> Int
+genus cd = runST $ do
+    let (0, n) = bounds cd
+    ok <- newArray (0, n) False :: ST s (STUArray s Int Bool)
+    v <- foldM
+        (\ !v !i -> do
+            oki <- readArray ok i
+            if oki
+                then return $! v
+                else do
+                    fix (\ loop !j -> do
+                            okj <- readArray ok j
+                            unless okj $ do
+                                writeArray ok j True
+                                loop $ (1 + j + (cd ! j)) `mod` (n + 1)
+                        ) i 
+                    return $! v + 1
+        ) 0 [0 .. n]
+    return $! (((n + 1) `div` 2) + 1 - v) `div` 2
