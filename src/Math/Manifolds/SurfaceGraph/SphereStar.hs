@@ -12,7 +12,7 @@ import Math.Manifolds.SurfaceGraph.Util
 import Math.Manifolds.SurfaceGraph.SphereStar.Backtrack
 
 
-sphereStarDecomposition :: SurfaceGraph -> (SurfaceGraph, SurfaceGraph)
+sphereStarDecomposition :: SurfaceGraph -> (Vertex, Vertex, Dart -> Maybe Dart, Dart -> Dart)
 sphereStarDecomposition graph
     | eulerChar graph == 2  = error "sphereStarDecomposition: undefined for planar graphs"
     | otherwise             = runST $ do
@@ -71,4 +71,15 @@ sphereStarDecomposition graph
                 return (0, bp)
             return $! constructFromList [starHead]
 
-        return (sphere, star)
+        let sphereRoot = nthVertex sphere 0
+            starRoot = nthVertex star 0
+            
+            sphereToStarProjection d
+                | beginVertex d == sphereRoot  = Just $! nthDartIncidentToVertex starRoot (beginPlace d)
+                | otherwise                    = Nothing
+
+            starToSphereProjection d
+                | beginVertex d == starRoot  = nthDartIncidentToVertex sphereRoot (beginPlace d)
+                | otherwise                  = error "starToSphereProjection: taken from dart that does not belong to star"
+
+        return (sphereRoot, starRoot, sphereToStarProjection, starToSphereProjection)

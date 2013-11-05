@@ -22,4 +22,4 @@ main = do
     writeSVGImage "tangles.svg" (Width 250) $ pad 1.05 $ flip execState mempty $
         simpleIncrementalGenerator primeProjectionType [ProjectionCrossing] 5 $ \ tangle _ ->
             when (numberOfLegs tangle == 4) $
-                modify (=== pad 1.1 (drawKnot defaultDraw tangle))
+                modify (=== pad 1.1 (drawKnotDef tangle))

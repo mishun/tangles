@@ -3,7 +3,8 @@ module Math.KnotTh.Draw.Tangle
     , tangleImage
     ) where
 
-import Data.Array.IArray ((!))
+import Data.Array.IArray (array, (!))
+import Data.Array (Array)
 import Control.Monad.Writer (tell, execWriter)
 import Control.Monad (when, forM_)
 import Diagrams.Prelude
@@ -12,9 +13,9 @@ import Math.KnotTh.Tangle
 import Math.KnotTh.Draw.Settings
 
 
-tangleEmbedding :: (ThreadedCrossing ct) => Tangle ct -> [[((Dart Tangle ct, Dart Tangle ct), [(Double, Double)])]]
+tangleEmbedding :: (ThreadedCrossing ct) => Tangle ct -> Array (Dart Tangle ct) (Either [(Double, Double)] ([(Double, Double)], [(Double, Double)]))
 tangleEmbedding tangle =
-    let g = let (0, b, r) = explode tangle
+    let g = let (_, b, r) = explode tangle
                 change (0, j) = (0, (-j) `mod` numberOfLegs tangle)
                 change p = p
             in G.constructFromList $ map (map change) ((head b : reverse (tail b)) : map fst r)
@@ -24,20 +25,22 @@ tangleEmbedding tangle =
         toGraphDart d | isLeg d    = G.nthDartIncidentToVertex (G.nthVertex g 0) $ (-legPlace d) `mod` numberOfLegs tangle
                       | otherwise  = G.nthDartIncidentToVertex (G.nthVertex g $ crossingIndex $ incidentCrossing d) (dartPlace d)
 
-    in map (map (\ p@(a, _) -> (p, embedding ! toGraphDart a))) $ allThreads tangle
+    in array (dartsRange tangle) $ do
+        d <- allHalfEdges tangle
+        return (d, Left $ embedding ! toGraphDart d)
 
 
 tangleImage :: (Renderable (Path R2) b) => DrawKnotSettings -> Tangle ct -> Diagram b R2 -> Diagram b R2
 tangleImage s tangle img =
     execWriter $ do
-        when (endpointsRadius s > 0.0) $ do
+        when (endpointsRadius s > 0.0) $
+            tell $ fillColor (threadColour s) $ lineWidth 0 $ execWriter $
                 let l = numberOfLegs tangle
-                forM_ [0 .. l - 1] $ \ !i -> do
+                in forM_ [0 .. l - 1] $ \ !i ->
                     let a = 2 * pi * fromIntegral i / fromIntegral l
-                    tell $ translate (r2 (cos a, sin a)) $ fc (threadColour s) $ lw 0 $
-                        circle (endpointsRadius s)
+                    in tell $ translate (r2 (cos a, sin a)) $ circle (endpointsRadius s)
 
         when (borderWidth s > 0.0) $
-            tell $ lc (borderColour s) $ dashing (borderDashing s) 0 $ lw (borderWidth s) $ circle 1
+            tell $ styleBorder s $ circle 1
 
         tell img
