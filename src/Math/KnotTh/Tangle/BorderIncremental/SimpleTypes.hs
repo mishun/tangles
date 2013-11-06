@@ -9,8 +9,7 @@ module Math.KnotTh.Tangle.BorderIncremental.SimpleTypes
     ) where
 
 import Math.Algebra.Group.Dn (DnSubGroup)
-import Math.KnotTh.Tangle.Projection
-import Math.KnotTh.Tangle.NonAlternating
+import Math.KnotTh.Tangle
 import Math.KnotTh.Tangle.BorderIncremental.IncrementalGluing
 import Math.KnotTh.Tangle.BorderIncremental.IncrementalTests
 

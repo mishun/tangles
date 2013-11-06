@@ -7,9 +7,7 @@ import Test.Framework (Test, testGroup)
 import Test.Framework.Providers.HUnit (testCase)
 import Test.HUnit hiding (Test, test)
 import Math.Algebra.RotationDirection
-import Math.KnotTh.Tangle.Projection
-import Math.KnotTh.Tangle.NonAlternating
-import Math.KnotTh.Tangle.CascadeCode
+import Math.KnotTh.Tangle
 
 
 test :: Test

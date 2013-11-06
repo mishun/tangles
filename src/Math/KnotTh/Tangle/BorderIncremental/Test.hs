@@ -6,8 +6,7 @@ module Math.KnotTh.Tangle.BorderIncremental.Test
 import Control.Monad (when)
 import Test.Framework (Test, testGroup)
 import Test.Framework.Providers.HUnit (testCase)
-import Math.KnotTh.Tangle.Projection
-import Math.KnotTh.Tangle.NonAlternating
+import Math.KnotTh.Tangle
 import Math.KnotTh.Tangle.BorderIncremental.SimpleTypes
 import Math.KnotTh.Tangle.BorderIncremental.FlypeGenerator
 import TestUtil.Table

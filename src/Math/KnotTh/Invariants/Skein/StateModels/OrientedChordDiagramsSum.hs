@@ -13,7 +13,7 @@ import Control.Monad.ST (ST, runST)
 import Control.Monad (forM_, when, foldM_)
 import Control.DeepSeq
 import Text.Printf
-import Math.KnotTh.Tangle.NonAlternating
+import Math.KnotTh.Tangle
 import Math.KnotTh.Tangle.Moves.Move
 import Math.KnotTh.Invariants.Skein.Relation
 

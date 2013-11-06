@@ -5,7 +5,7 @@ module Math.KnotTh.Tangle.Moves.Pass
 import Data.Maybe (mapMaybe)
 import Data.List (sort, nub)
 import Control.Monad (unless, guard, msum)
-import Math.KnotTh.Tangle.NonAlternating
+import Math.KnotTh.Tangle
 import Math.KnotTh.Tangle.Moves.Resting
 import Math.KnotTh.Tangle.Moves.Move
 import Math.KnotTh.Tangle.Moves.ReidemeisterReduction

@@ -1,4 +1,4 @@
-module Math.KnotTh.Link.GaussCode
+module Math.KnotTh.Link.Definition.GaussCode
     ( toDTCode
     , fromDTCode
     , toGaussCode
@@ -14,14 +14,16 @@ import Data.STRef (newSTRef, readSTRef, writeSTRef)
 import Control.Monad.ST (ST, runST)
 import Control.Monad (forM, forM_, when, unless, foldM_, liftM2)
 import Text.Printf
-import Math.KnotTh.Link.NonAlternating
+import Math.KnotTh.Crossings.Arbitrary
+import Math.KnotTh.Knotted
+import Math.KnotTh.Link.Definition.Link
 
 
-toDTCode :: NonAlternatingLink -> [[Int]]
-toDTCode _ = undefined
+toDTCode :: Link ArbitraryCrossing -> [[Int]]
+toDTCode _ = error "not implemented"
 
 
-fromDTCode :: [[Int]] -> NonAlternatingLink
+fromDTCode :: [[Int]] -> Link ArbitraryCrossing
 fromDTCode code =
     let common = concat code
         sz = length common
@@ -42,13 +44,13 @@ fromDTCode code =
         ) 1 code
 
 
-toGaussCode :: NonAlternatingLink -> [[Int]]
+toGaussCode :: Link ArbitraryCrossing -> [[Int]]
 toGaussCode link =
     flip map (allThreads link) $ map $ \ (_, d) ->
         (crossingIndex $ incidentCrossing d) * (if passOver d then 1 else -1)
 
 
-fromGaussCode :: [[Int]] -> NonAlternatingLink
+fromGaussCode :: [[Int]] -> Link ArbitraryCrossing
 fromGaussCode = decode . simplifyGaussCode
 
 
@@ -77,7 +79,7 @@ splice i = go
                 (pref, suf) -> (tail suf ++ pref ++ [head suf], threads)
 
 
-decode :: (Int, [[Int]]) -> NonAlternatingLink
+decode :: (Int, [[Int]]) -> Link ArbitraryCrossing
 decode (n, threads) = implode (length $ filter null threads, incidence)
     where
         chords = foldl (\ l i -> splice i l) (filter (not . null) threads) [1 .. n]

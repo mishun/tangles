@@ -20,8 +20,7 @@ module Math.KnotTh.Link.Table.Special
     ) where
 
 import Text.Printf
-import Math.KnotTh.Link.GaussCode
-import Math.KnotTh.Link.NonAlternating
+import Math.KnotTh.Link
 import Math.KnotTh.Link.Table.Access
 
 

@@ -2,8 +2,7 @@ module Math.KnotTh.Tangle.Moves.Test
     ( passTests
     ) where
 
-import Math.KnotTh.Tangle.NonAlternating
-import Math.KnotTh.Tangle.CascadeCode
+import Math.KnotTh.Tangle
 import qualified Math.KnotTh.Tangle.Moves.Pass as Pass
 
 

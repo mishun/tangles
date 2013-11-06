@@ -1,4 +1,4 @@
-module Math.KnotTh.Tangle.TangleDefinition.Transform
+module Math.KnotTh.Tangle.Definition.Transform
     ( transformTangle
     , rotateTangle
     , mirrorTangle
@@ -7,8 +7,9 @@ module Math.KnotTh.Tangle.TangleDefinition.Transform
 
 import Text.Printf
 import Math.Algebra.Group.Dn (Dn, pointsUnderGroup, reflection, rotation, permute, fromRotation, fromReflectionRotation)
-import Math.KnotTh.Tangle.TangleDefinition.TangleLike
-import Math.KnotTh.Tangle.TangleDefinition.Tangle
+import Math.KnotTh.Knotted
+import Math.KnotTh.Tangle.Definition.TangleLike
+import Math.KnotTh.Tangle.Definition.Tangle
 
 
 transformTangle :: (CrossingType ct) => Dn -> Tangle ct -> Tangle ct

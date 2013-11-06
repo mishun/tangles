@@ -4,7 +4,7 @@ module Math.KnotTh.Tangle.Moves.Weak
 
 import Data.Maybe
 import Control.Monad (guard)
-import Math.KnotTh.Tangle.NonAlternating
+import Math.KnotTh.Tangle
 import Math.KnotTh.Tangle.Moves.Move
 
 

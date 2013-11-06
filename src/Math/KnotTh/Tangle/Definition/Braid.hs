@@ -1,4 +1,4 @@
-module Math.KnotTh.Tangle.TangleDefinition.Braid
+module Math.KnotTh.Tangle.Definition.Braid
     ( (|=|)
     , (|~|)
     , identityBraidTangle
@@ -8,9 +8,10 @@ module Math.KnotTh.Tangle.TangleDefinition.Braid
     ) where
 
 import Text.Printf
-import Math.KnotTh.Tangle.TangleDefinition.TangleLike
-import Math.KnotTh.Tangle.TangleDefinition.Tangle
-import Math.KnotTh.Tangle.TangleDefinition.Transform
+import Math.KnotTh.Knotted
+import Math.KnotTh.Tangle.Definition.TangleLike
+import Math.KnotTh.Tangle.Definition.Tangle
+import Math.KnotTh.Tangle.Definition.Transform
 
 
 (|=|) :: (CrossingType ct, TangleLike tangle) => tangle ct -> tangle ct -> tangle ct

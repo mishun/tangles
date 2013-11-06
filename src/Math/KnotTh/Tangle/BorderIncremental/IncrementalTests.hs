@@ -10,7 +10,6 @@ import Data.STRef (newSTRef, readSTRef, writeSTRef, modifySTRef')
 import Control.Monad.ST (ST, runST)
 import Control.Monad (when, unless, forM_)
 import Math.KnotTh.Tangle
-import Math.KnotTh.Tangle.NonAlternating
 
 
 testNoMultiEdges :: Dart Tangle ct -> Int -> Bool

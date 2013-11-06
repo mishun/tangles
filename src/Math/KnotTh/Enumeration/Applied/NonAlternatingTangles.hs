@@ -16,14 +16,12 @@ import Math.KnotTh.Enumeration.EquivalenceClasses
 import Math.KnotTh.Enumeration.SiftByInvariant as X
 import Math.KnotTh.Enumeration.DiagramInfo as X
 import Math.KnotTh.Enumeration.DiagramInfo.MinimalDiagramInfo
-import Math.KnotTh.Tangle.NonAlternating as X
+import Math.KnotTh.Tangle as X
 import Math.KnotTh.Tangle.NonAlternating.Satellites
 import Math.KnotTh.Tangle.IsomorphismTest
 import Math.KnotTh.Tangle.BorderIncremental.SimpleTypes
 import Math.KnotTh.Link (tangleDoubling)
-import Math.KnotTh.Invariants.JonesPolynomial
-import Math.KnotTh.Invariants.KauffmanFPolynomial
-import Math.KnotTh.Invariants.LinkingNumber
+import Math.KnotTh.Invariants
 import qualified Math.KnotTh.Tangle.Moves.Flype as Flype
 import qualified Math.KnotTh.Tangle.Moves.Pass as Pass
 import qualified Math.KnotTh.Tangle.Moves.ReidemeisterIII as ReidemeisterIII

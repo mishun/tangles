@@ -7,8 +7,7 @@ import Criterion.Config
 import Math.KnotTh.Tangle.NonAlternating
 import Math.KnotTh.Tangle.NonAlternating.Satellites
 import Math.KnotTh.Link.GaussCode
-import Math.KnotTh.Invariants.JonesPolynomial
-import Math.KnotTh.Invariants.KauffmanFPolynomial
+import Math.KnotTh.Invariants
 
 
 polynomialsBenchmark knot =

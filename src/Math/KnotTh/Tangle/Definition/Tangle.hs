@@ -1,7 +1,6 @@
 {-# LANGUAGE TemplateHaskell, TypeFamilies #-}
-module Math.KnotTh.Tangle.TangleDefinition.Tangle
-    ( module Math.KnotTh.Knotted
-    , Tangle
+module Math.KnotTh.Tangle.Definition.Tangle
+    ( Tangle
     , crossingTangle
     , dartTangle
     , emptyTangle
@@ -27,7 +26,7 @@ import Text.Printf
 import Math.KnotTh.Knotted.TH.Knotted
 import Math.KnotTh.Knotted.TH.Show
 import Math.KnotTh.Knotted
-import Math.KnotTh.Tangle.TangleDefinition.TangleLike
+import Math.KnotTh.Tangle.Definition.TangleLike
 
 
 produceKnotted

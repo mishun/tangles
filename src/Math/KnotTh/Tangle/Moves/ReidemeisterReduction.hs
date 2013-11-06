@@ -6,7 +6,7 @@ module Math.KnotTh.Tangle.Moves.ReidemeisterReduction
 
 import Control.Monad (when, liftM2)
 import Control.Applicative
-import Math.KnotTh.Tangle.NonAlternating
+import Math.KnotTh.Tangle
 import Math.KnotTh.Tangle.Moves.Move
 
 

@@ -8,8 +8,7 @@ module Math.KnotTh.Link.Table.Access
 import Data.Maybe (fromMaybe)
 import qualified Data.Map as M
 import Text.Printf
-import Math.KnotTh.Link.NonAlternating
-import Math.KnotTh.Link.GaussCode
+import Math.KnotTh.Link
 import Math.KnotTh.Link.Table.List
 
 

@@ -1,4 +1,4 @@
-module Math.KnotTh.Knotted.KnottedDefinition.Misc
+module Math.KnotTh.Knotted.Definition.Misc
     ( hasCrossings
     , hasNoCrossings
     , isEndpoint
@@ -24,7 +24,7 @@ module Math.KnotTh.Knotted.KnottedDefinition.Misc
     ) where
 
 import Math.Algebra.RotationDirection
-import Math.KnotTh.Knotted.KnottedDefinition.Knotted
+import Math.KnotTh.Knotted.Definition.Knotted
 
 
 {-# INLINE hasCrossings #-}

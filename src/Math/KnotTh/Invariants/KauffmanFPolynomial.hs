@@ -8,8 +8,8 @@ module Math.KnotTh.Invariants.KauffmanFPolynomial
 
 import Math.KnotTh.Crossings.Arbitrary
 import Math.KnotTh.Knotted
-import qualified Math.KnotTh.Link.NonAlternating as L
-import qualified Math.KnotTh.Tangle.NonAlternating as T
+import qualified Math.KnotTh.Link as L
+import qualified Math.KnotTh.Tangle as T
 import Math.KnotTh.Invariants.Skein
 import Math.KnotTh.Invariants.Util.Poly
 import Math.KnotTh.Invariants.Util.BruteForceMinimization

@@ -1,4 +1,4 @@
-module Math.KnotTh.Tangle.CascadeCode
+module Math.KnotTh.Tangle.Definition.CascadeCode
     ( CascadeCodePattern(..)
     , decodeCascadeCode
     , ProjPattern(..)
@@ -10,7 +10,10 @@ import Data.Char (isSpace)
 import Text.Printf
 import Math.KnotTh.Crossings.Projection
 import Math.KnotTh.Crossings.Arbitrary
-import Math.KnotTh.Tangle
+import Math.KnotTh.Knotted
+import Math.KnotTh.Tangle.Definition.TangleLike
+import Math.KnotTh.Tangle.Definition.Tangle
+import Math.KnotTh.Tangle.Definition.Transform
 
 
 data ProjPattern = W | X | M deriving (Eq, Enum, Show, Read)

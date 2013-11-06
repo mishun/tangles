@@ -3,8 +3,7 @@ module Main (main) where
 import Control.Monad.State
 import Control.Monad
 import Diagrams.Prelude
-import Math.KnotTh.Tangle.Projection
-import Math.KnotTh.Tangle.NonAlternating
+import Math.KnotTh.Tangle
 import Math.KnotTh.Draw
 import Math.KnotTh.Tangle.BorderIncremental.SimpleTypes
 import Math.KnotTh.Tangle.BorderIncremental.FlypeGenerator

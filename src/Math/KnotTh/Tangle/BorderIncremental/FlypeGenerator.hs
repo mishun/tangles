@@ -13,7 +13,7 @@ import Control.Monad (forM_, when)
 import Math.Algebra.RotationDirection
 import Math.Algebra.Group.Dn (DnSubGroup, maximumSubGroup, addSymmetryToSubGroup)
 import Math.KnotTh.Crossings.SubTangle
-import Math.KnotTh.Tangle.Projection
+import Math.KnotTh.Tangle
 import Math.KnotTh.Tangle.Flypes
 import Math.KnotTh.Tangle.BorderIncremental.IncrementalGluing
 import Math.KnotTh.Tangle.BorderIncremental.RootingTest (rootCodeLeg, minimumRootCode)

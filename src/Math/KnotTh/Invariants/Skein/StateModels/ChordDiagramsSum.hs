@@ -11,7 +11,7 @@ import Data.Array.ST (STUArray)
 import Data.STRef (newSTRef, readSTRef, modifySTRef')
 import Control.Monad.ST (ST, runST)
 import Control.Monad (forM_, when)
-import Math.KnotTh.Tangle.NonAlternating
+import Math.KnotTh.Tangle
 import Math.KnotTh.Tangle.Moves.Move
 import Math.KnotTh.Tangle.Moves.ReidemeisterReduction
 import Math.KnotTh.Tangle.Moves.Skein

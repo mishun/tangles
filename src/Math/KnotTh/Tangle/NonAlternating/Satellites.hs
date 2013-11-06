@@ -4,7 +4,7 @@ module Math.KnotTh.Tangle.NonAlternating.Satellites
     ) where
 
 import Data.Array.Base ((!))
-import Math.KnotTh.Tangle.NonAlternating
+import Math.KnotTh.Tangle
 import Math.KnotTh.Tangle.TensorSubst
 
 

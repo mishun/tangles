@@ -5,7 +5,7 @@ module Math.KnotTh.Tangle.Moves.Flype
 import Data.Maybe (mapMaybe)
 import Data.Array.Unboxed ((!))
 import Control.Monad (guard)
-import Math.KnotTh.Tangle.NonAlternating
+import Math.KnotTh.Tangle
 import Math.KnotTh.Tangle.Moves.Move
 import Math.KnotTh.Tangle.Moves.Resting
 

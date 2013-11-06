@@ -9,15 +9,13 @@ import Control.Parallel.Strategies
 import Test.Framework (Test, testGroup)
 import Test.Framework.Providers.HUnit (testCase)
 import Test.HUnit hiding (Test, test)
-import Math.KnotTh.Tangle.NonAlternating
+import Math.KnotTh.Tangle
 import Math.KnotTh.Tangle.NonAlternating.Satellites
 import Math.KnotTh.Link (tangleDoubling)
 import Math.KnotTh.Enumeration.DiagramInfo.MinimalDiagramInfo
 import Math.KnotTh.Enumeration.DiagramInfo.AllDiagramsInfo
 import Math.KnotTh.Enumeration.Applied.NonAlternatingTangles
-import Math.KnotTh.Invariants.LinkingNumber
-import Math.KnotTh.Invariants.JonesPolynomial
-import Math.KnotTh.Invariants.KauffmanFPolynomial
+import Math.KnotTh.Invariants
 import TestUtil.Table
 
 

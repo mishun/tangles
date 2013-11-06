@@ -4,7 +4,7 @@ module Math.KnotTh.Invariants.Util.BruteForceMinimization
     ) where
 
 import Data.Function (on)
-import Math.KnotTh.Tangle.NonAlternating
+import Math.KnotTh.Tangle
 
 
 bruteForceMinimumOfTangle :: (Ord x) => (NonAlternatingTangle -> x) -> NonAlternatingTangle -> x

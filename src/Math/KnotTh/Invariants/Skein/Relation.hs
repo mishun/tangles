@@ -12,8 +12,8 @@ import Data.Array (Array)
 import Data.Array.Unboxed (UArray)
 import Math.KnotTh.Knotted
 import Math.KnotTh.Crossings.Arbitrary
-import qualified Math.KnotTh.Link.NonAlternating as L
-import qualified Math.KnotTh.Tangle.NonAlternating as T
+import qualified Math.KnotTh.Link as L
+import qualified Math.KnotTh.Tangle as T
 
 
 --    L+       L-        L0        L∞

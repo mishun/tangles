@@ -10,7 +10,7 @@ module Math.KnotTh.Knotted.SurfaceKnotted
     ) where
 
 import Data.Ix (Ix(..))
-import Math.KnotTh.Knotted.KnottedDefinition.Knotted
+import Math.KnotTh.Knotted.Definition.Knotted
 
 
 class (Knotted knot) => SurfaceKnotted knot where

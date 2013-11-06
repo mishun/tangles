@@ -9,14 +9,10 @@ import Test.Framework.Providers.HUnit (testCase)
 import Test.HUnit hiding (Test, test)
 import qualified Math.Algebra.Field.Base as B
 import qualified Math.Projects.KnotTheory.LaurentMPoly as LMP
-import Math.KnotTh.Crossings.Arbitrary
+import Math.KnotTh.Link
 import Math.KnotTh.Link.Table
-import Math.KnotTh.Link.GaussCode (fromDTCode)
-import Math.KnotTh.Tangle.NonAlternating
-import Math.KnotTh.Tangle.CascadeCode
-import Math.KnotTh.Invariants.LinkingNumber
-import Math.KnotTh.Invariants.JonesPolynomial
-import Math.KnotTh.Invariants.KauffmanFPolynomial
+import Math.KnotTh.Tangle
+import Math.KnotTh.Invariants
 import Math.KnotTh.Invariants.Util.Poly
 
 

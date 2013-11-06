@@ -1,10 +1,11 @@
-module Math.KnotTh.Tangle.TangleDefinition.Misc
+module Math.KnotTh.Tangle.Definition.Misc
     ( gridTangle
     , chainTangle
     ) where
 
 import Text.Printf
-import Math.KnotTh.Tangle.TangleDefinition.Tangle
+import Math.KnotTh.Knotted
+import Math.KnotTh.Tangle.Definition.Tangle
 
 
 gridTangle :: (CrossingType ct) => (Int, Int) -> ((Int, Int) -> CrossingState ct) -> Tangle ct

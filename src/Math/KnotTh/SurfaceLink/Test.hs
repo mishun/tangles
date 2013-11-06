@@ -3,7 +3,7 @@ module Math.KnotTh.SurfaceLink.Test
     ) where
 
 import Control.Monad (forM_)
-import Math.KnotTh.SurfaceLink.Projection
+import Math.KnotTh.SurfaceLink
 import Math.KnotTh.SurfaceLink.TestPrime
 import Test.Framework (Test, testGroup)
 import Test.Framework.Providers.HUnit (testCase)

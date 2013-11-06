@@ -1,7 +1,6 @@
 {-# LANGUAGE TemplateHaskell, TypeFamilies #-}
-module Math.KnotTh.Link.LinkDefinition.Link
-    ( module Math.KnotTh.Knotted
-    , Link
+module Math.KnotTh.Link.Definition.Link
+    ( Link
     , crossingLink
     , dartLink
     , emptyLink

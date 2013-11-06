@@ -1,4 +1,4 @@
-module Math.KnotTh.Link.LinkDefinition.Misc
+module Math.KnotTh.Link.Definition.Misc
     ( toTangle
     , fromTangle
     , tangleDoubling
@@ -6,7 +6,7 @@ module Math.KnotTh.Link.LinkDefinition.Misc
 
 import Text.Printf
 import Math.KnotTh.Knotted
-import Math.KnotTh.Link.LinkDefinition.Link
+import Math.KnotTh.Link.Definition.Link
 import Math.KnotTh.Tangle (Tangle, numberOfLegs, firstLeg, glueTangles, mirrorTangle)
 
 

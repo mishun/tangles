@@ -1,4 +1,4 @@
-module Math.KnotTh.Tangle.TangleDefinition.TangleLike
+module Math.KnotTh.Tangle.Definition.TangleLike
     ( TangleLike(..)
     , firstLeg
     , lastLeg

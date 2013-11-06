@@ -2,7 +2,7 @@ module Math.KnotTh.Tangle.TensorSubst
     ( tensorSubst
     ) where
 
-import Data.Array.Base (listArray, (!))
+import Data.Array.IArray (listArray, (!))
 import Data.Array (Array)
 import Data.Array.Unboxed (UArray)
 import Control.Monad (when)
