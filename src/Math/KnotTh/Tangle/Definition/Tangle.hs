@@ -302,13 +302,15 @@ instance TangleLike Tangle where
             unsafeWrite st (newC - 1) crossingToGlue
             unsafeFreeze st
 
-        return $! flip nthCrossing newC Tangle
-            { loopsCount = numberOfFreeLoops tangle
-            , crossCount = newC
-            , crossArray = cr
-            , stateArray = st
-            , legsCount  = newL
-            }
+        let result = Tangle
+                { loopsCount = numberOfFreeLoops tangle
+                , crossCount = newC
+                , crossArray = cr
+                , stateArray = st
+                , legsCount  = newL
+                }
+
+        return $! nthCrossing result newC 
 
 
 zeroTangle :: (CrossingType ct) => Tangle ct

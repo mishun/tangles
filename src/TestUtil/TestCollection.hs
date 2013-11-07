@@ -3,7 +3,7 @@ module TestUtil.TestCollection
     ) where
 
 import Test.Framework (Test)
-import qualified Math.Combinatorics.ChordDiagrams.Test as TestChordDiagrams
+import qualified Math.Combinatorics.ChordDiagram.Test as TestChordDiagrams
 import qualified Math.KnotTh.Invariants.Test as TestInvariants
 import qualified Math.KnotTh.Tangle.BorderIncremental.Test as TestTangleGenerators
 import qualified Math.KnotTh.Enumeration.Applied.Test as TestTangleEnumeration

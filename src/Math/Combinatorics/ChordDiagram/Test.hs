@@ -1,16 +1,15 @@
-module Math.Combinatorics.ChordDiagrams.Test
+module Math.Combinatorics.ChordDiagram.Test
     ( test
     ) where
 
 import Data.Maybe (fromJust, isJust)
 import Data.List (elemIndex)
-import Data.Array.IArray (elems)
 import Control.Monad (forM_)
 import Text.Printf
 import Test.Framework (Test, testGroup)
 import Test.Framework.Providers.HUnit (testCase)
 import Test.HUnit hiding (Test, test)
-import Math.Combinatorics.ChordDiagrams.Generator
+import Math.Combinatorics.ChordDiagram
 
 
 test :: Test
@@ -34,17 +33,11 @@ test =
 
         , testCase "Symmetry group information" $
             forM_ [1 .. 9] $ \ !n ->
-                let shift l k =
-                        let (h, t) = splitAt k l
-                        in t ++ h
+                forM_ (listChordDiagrams $ generateNonPlanarRaw n) $ \ (cd, (mirror, period)) -> do
+                    let p = numberOfPoints cd
+                        expectedPeriod = 1 + fromJust (elemIndex cd $ map (`rotateChordDiagram` cd) [1 .. p])
+                        expectedMirror = isJust (elemIndex (mirrorChordDiagram cd) $ map (`rotateChordDiagram` cd) [0 .. p - 1])
 
-                in forM_ (listChordDiagrams $ generateNonPlanarRaw n) $ \ (diagArr, (mirror, period)) -> do
-                    let diag = elems diagArr
-                        p = length diag
-                        rev = map (\ i -> p - i) $ reverse diag
-                        expectedPeriod = 1 + fromJust (elemIndex diag (map (shift diag) [1 .. p]))
-                        expectedMirror = isJust (elemIndex diag $ map (shift rev) [0 .. p - 1])
-
-                    assertEqual (printf "%s period" (show diag)) expectedPeriod period
-                    assertEqual (printf "%s mirror" (show diag)) expectedMirror mirror
+                    assertEqual (printf "%s period" (show cd)) expectedPeriod period
+                    assertEqual (printf "%s mirror" (show cd)) expectedMirror mirror
         ]

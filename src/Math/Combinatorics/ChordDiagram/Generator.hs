@@ -1,5 +1,5 @@
 {-# LANGUAGE RankNTypes #-}
-module Math.Combinatorics.ChordDiagrams.Generator
+module Math.Combinatorics.ChordDiagram.Generator
     ( generateWithCheckerRaw
     , generateAllRaw
     , generateNonPlanarRaw
@@ -7,27 +7,25 @@ module Math.Combinatorics.ChordDiagrams.Generator
     , generateQuasiTreesRaw
     , countChordDiagrams
     , listChordDiagrams
-    , genus
     ) where
 
-import Data.Function (fix)
 import Data.List (find)
 import Data.Maybe (fromJust, isJust, isNothing)
-import Data.Array.IArray (bounds, (!))
-import Data.Array.MArray (newArray, newListArray, freeze, readArray, writeArray)
+import Data.Array.MArray (newArray, newListArray, freeze)
 import Data.Array.Base (unsafeRead, unsafeWrite)
-import Data.Array.Unboxed (UArray)
 import Data.Array.ST (STUArray)
 import Data.STRef (newSTRef, readSTRef, writeSTRef, modifySTRef')
 import Control.Applicative ((<$>))
-import Control.Monad (when, unless, foldM)
+import Control.Monad (when)
 import Control.Monad.ST (ST, runST)
 import Math.Combinatorics.Strings.Lyndon
+import Math.Combinatorics.ChordDiagram.Definition
 
 
 generateWithCheckerRaw
     :: Int -> (forall s. Int -> STUArray s Int Int -> Int -> Int -> ST s Bool) ->
-        Int -> (forall s. st -> STUArray s Int Int -> (Bool, Int) -> ST s st) -> st -> st
+        Int -> (forall s. st -> STUArray s Int Int -> (Bool, Int) -> ST s st)
+            -> st -> st
 
 generateWithCheckerRaw minimalChordLength checker n yield initial = runST $ do
     let p = 2 * n
@@ -129,7 +127,10 @@ generateWithCheckerRaw minimalChordLength checker n yield initial = runST $ do
             let placeChords !pos !lyn !chunk !lower
                     | chunk == div p period  = when (mod pos lyn == 0) $ checkMirror pos (div (p * lyn) pos)
                     | otherwise              = do
-                        lyndonPrev <- if pos == 0 then return 0 else unsafeRead code (pos - lyn)
+                        lyndonPrev <- if pos == 0
+                            then return 0
+                            else unsafeRead code (pos - lyn)
+
                         let iteration j = do
                                 unsafeWrite code pos j
                                 let nextLyn | j == lyndonPrev  = lyn
@@ -192,33 +193,12 @@ countChordDiagrams generator =
     generator (\ c _ _ -> return $! c + 1) 0
 
 
-type CD = (UArray Int Int, (Bool, Int))
+type CD = (ChordDiagram, (Bool, Int))
 
 
 listChordDiagrams :: ((forall s. [CD] -> STUArray s Int Int -> (Bool, Int) -> ST s [CD]) -> [CD] -> [CD]) -> [CD]
 listChordDiagrams generator =
     generator  (\ lst diagramST !symmetry -> do
             diagram <- freeze diagramST
-            return $! (diagram, symmetry) : lst
+            return $! (ChordDiagram diagram, symmetry) : lst
         ) []
-
-
-genus :: UArray Int Int -> Int
-genus cd = runST $ do
-    let (0, n) = bounds cd
-    ok <- newArray (0, n) False :: ST s (STUArray s Int Bool)
-    v <- foldM
-        (\ !v !i -> do
-            oki <- readArray ok i
-            if oki
-                then return $! v
-                else do
-                    fix (\ loop !j -> do
-                            okj <- readArray ok j
-                            unless okj $ do
-                                writeArray ok j True
-                                loop $ (1 + j + (cd ! j)) `mod` (n + 1)
-                        ) i 
-                    return $! v + 1
-        ) 0 [0 .. n]
-    return $! (((n + 1) `div` 2) + 1 - v) `div` 2

@@ -6,7 +6,7 @@ import Criterion.Main
 import Criterion.Config
 import Math.KnotTh.Tangle.NonAlternating
 import Math.KnotTh.Tangle.NonAlternating.Satellites
-import Math.KnotTh.Link.GaussCode
+import Math.KnotTh.Link
 import Math.KnotTh.Invariants
 
 

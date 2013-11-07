@@ -58,7 +58,7 @@ library
         Math.Algebra.Group.D4,
         Math.Algebra.Group.Dn,
         Math.Algebra.RotationDirection,
-        Math.Combinatorics.ChordDiagrams.Generator,
+        Math.Combinatorics.ChordDiagram,
         Math.Combinatorics.Strings.Lyndon,
         Math.KnotTh.Crossings.Arbitrary,
         Math.KnotTh.Crossings.Projection,
@@ -99,6 +99,8 @@ library
         Math.KnotTh.Tangle.TensorSubst,
         Math.Manifolds.SurfaceGraph
     other-modules:
+        Math.Combinatorics.ChordDiagram.Definition,
+        Math.Combinatorics.ChordDiagram.Generator,
         Math.KnotTh.Crossings.Arbitrary.Alternating,
         Math.KnotTh.Crossings.Arbitrary.Arbitrary,
         Math.KnotTh.Crossings.Arbitrary.Writhe,
@@ -166,7 +168,7 @@ library
             diagrams-postscript,
             blaze-svg
         exposed-modules:
-            Math.Combinatorics.ChordDiagrams.Test,
+            Math.Combinatorics.ChordDiagram.Test,
             Math.Combinatorics.Strings.Test,
             Math.KnotTh.Enumeration.Applied.Test,
             Math.KnotTh.Invariants.Test,

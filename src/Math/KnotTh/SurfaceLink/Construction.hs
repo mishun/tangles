@@ -1,11 +1,11 @@
 module Math.KnotTh.SurfaceLink.Construction
     ( fromLink
     , toLink
-    , fromTangleAndStarByPlace
-    , fromTangleAndStarByOffset
+    , fromTangleAndStar
     ) where
 
-import Data.Array.Base
+import Data.Array.IArray ((!))
+import Math.Combinatorics.ChordDiagram
 import Math.KnotTh.Knotted
 import Math.KnotTh.SurfaceLink
 import Math.KnotTh.Tangle
@@ -21,24 +21,19 @@ toLink sl | eulerChar sl == 2  = implode (explode sl)
           | otherwise          = error "toLink: euler char must be 2"
 
 
-fromTangleAndStarByPlace :: (CrossingType ct, IArray a Int) => a Int Int -> Tangle ct -> SurfaceLink ct
-fromTangleAndStarByPlace star tangle
-    | bounds star /= (0, numberOfLegs tangle - 1)  = error "fromTangleAndStarByPlace: size conflict"
-    | otherwise                                    =
-        let changeLeg d = nthLeg tangle (star ! legPlace d)
-        in fromTangleAndStar' changeLeg tangle
+fromTangleAndStar :: (CrossingType ct) => ChordDiagram -> Tangle ct -> SurfaceLink ct
+fromTangleAndStar cd tangle
+    | p /= l     = error "fromTangleAndStar: size conflict"
+    | otherwise  = fromTangleAndStar' changeLeg tangle
+    where
+        p = numberOfPoints cd
+        l = numberOfLegs tangle
+        a = chordOffsetArray cd
 
-
-fromTangleAndStarByOffset :: (CrossingType ct, IArray a Int) => a Int Int -> Tangle ct -> SurfaceLink ct
-fromTangleAndStarByOffset star tangle
-    | bounds star /= (0, numberOfLegs tangle - 1)  = error "fromTangleAndStarByOffset: size conflict"
-    | otherwise                                    =
-        let l = numberOfLegs tangle
-            changeLeg d =
-                let i = legPlace d
-                    j = (i + star ! i) `mod` l
-                in nthLeg tangle j
-        in fromTangleAndStar' changeLeg tangle
+        changeLeg d =
+            let i = legPlace d
+                j = (i + a ! i) `mod` l
+            in nthLeg tangle j
 
 
 {-# INLINE fromTangleAndStar' #-}
