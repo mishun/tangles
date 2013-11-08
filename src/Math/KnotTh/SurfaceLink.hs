@@ -8,6 +8,7 @@ module Math.KnotTh.SurfaceLink
 
 import Math.KnotTh.Knotted as X
 import Math.KnotTh.SurfaceLink.Definition.SurfaceLink as X
+import Math.KnotTh.SurfaceLink.Definition.EdgeIndicesEncoding as X
 import Math.KnotTh.Crossings.Projection as X
 import Math.KnotTh.Crossings.Arbitrary as X
 

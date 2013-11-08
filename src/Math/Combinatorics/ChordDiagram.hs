@@ -3,6 +3,9 @@ module Math.Combinatorics.ChordDiagram
     , numberOfPoints
     , numberOfChords
     , chordOffsetArray
+    , chordSpan
+    , chordEnd
+    , isDiameterChord
     , rotateChordDiagram
     , mirrorChordDiagram
     , numberOfCopoints

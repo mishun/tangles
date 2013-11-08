@@ -188,7 +188,7 @@ generateQuasiTreesRaw =
         )
 
 
-countChordDiagrams :: ((forall s. Int -> STUArray s Int Int -> (Bool, Int) -> ST s Int) -> Int -> Int) -> Int
+countChordDiagrams :: (Integral i) => ((forall s. i -> STUArray s Int Int -> (Bool, Int) -> ST s i) -> i -> i) -> i
 countChordDiagrams generator =
     generator (\ c _ _ -> return $! c + 1) 0
 

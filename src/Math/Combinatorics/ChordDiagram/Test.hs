@@ -15,8 +15,10 @@ import Math.Combinatorics.ChordDiagram
 test :: Test
 test =
     let testGenerator gen list =
-            forM_ list $ \ (n, t) ->
-                assertEqual (printf "for n = %i" n) t (countChordDiagrams $ gen n)
+            forM_ list $ \ (n, expected) ->
+                let total :: Int
+                    total = countChordDiagrams $ gen n
+                in assertEqual (printf "for n = %i" n) expected total
 
     in testGroup "Chord Diagrams"
         [ testCase "Numbers of non-planar chord diagrams" $

@@ -8,7 +8,6 @@ module TestUtil.Table
     , printTable
     ) where
 
-import Test.HUnit
 import Data.Maybe (isJust, fromJust)
 import Data.List (intercalate, foldl')
 import qualified Data.Map as M
@@ -16,6 +15,7 @@ import Control.Monad.State.Strict (execState, get, put)
 import Control.Monad (forM_, guard)
 import Text.Printf
 import System.CPUTime (getCPUTime)
+import Test.HUnit
 import Math.Algebra.Group.Dn (DnSubGroup, hasReflectionPart, rotationPeriod)
 import Math.KnotTh.Tangle
 

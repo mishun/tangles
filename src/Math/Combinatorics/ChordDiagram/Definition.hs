@@ -3,6 +3,9 @@ module Math.Combinatorics.ChordDiagram.Definition
     , numberOfPoints
     , numberOfChords
     , chordOffsetArray
+    , chordSpan
+    , chordEnd
+    , isDiameterChord
     , rotateChordDiagram
     , mirrorChordDiagram
     , numberOfCopoints
@@ -36,6 +39,22 @@ numberOfChords (ChordDiagram a) =
 
 chordOffsetArray :: ChordDiagram -> UArray Int Int
 chordOffsetArray (ChordDiagram a) = a
+
+
+chordSpan :: ChordDiagram -> Int -> Int
+chordSpan cd@(ChordDiagram a) x =
+    let p = numberOfPoints cd
+    in a ! (x `mod` p)
+
+
+chordEnd :: ChordDiagram -> Int -> Int
+chordEnd cd x =
+    (x + chordSpan cd x) `mod` numberOfPoints cd
+
+
+isDiameterChord :: ChordDiagram -> Int -> Bool
+isDiameterChord cd x =
+    chordSpan cd x == numberOfChords cd
 
 
 rotateChordDiagram :: Int -> ChordDiagram -> ChordDiagram

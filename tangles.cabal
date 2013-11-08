@@ -59,6 +59,7 @@ library
         Math.Algebra.Group.Dn,
         Math.Algebra.RotationDirection,
         Math.Combinatorics.ChordDiagram,
+        Math.Combinatorics.ChordDiagram.Draw,
         Math.Combinatorics.Strings.Lyndon,
         Math.KnotTh.Crossings.Arbitrary,
         Math.KnotTh.Crossings.Projection,
@@ -140,6 +141,7 @@ library
         Math.KnotTh.Link.Table.Access,
         Math.KnotTh.Link.Table.List,
         Math.KnotTh.Link.Table.Special,
+        Math.KnotTh.SurfaceLink.Definition.EdgeIndicesEncoding,
         Math.KnotTh.SurfaceLink.Definition.SurfaceLink,
         Math.KnotTh.Tangle.Definition.Braid,
         Math.KnotTh.Tangle.Definition.CascadeCode,
@@ -260,6 +262,22 @@ benchmark VirtualBenchmark
     ghc-prof-options:   -rtsopts -prof -auto-all -caf-all
     build-depends:      base, array, mtl, containers, criterion, diagrams-lib, tangles
     main-is:            VirtualBenchmark.hs
+    hs-source-dirs:     test
+
+
+flag enable-ChordDiagramsBenchmark
+    default: False
+
+benchmark ChordDiagramsBenchmark
+    if !(flag(enable-test-modules) && flag(enable-ChordDiagramsBenchmark))
+        buildable: False
+    type:               exitcode-stdio-1.0
+    default-language:   Haskell2010
+    default-extensions: BangPatterns
+    ghc-options:        -threaded
+    ghc-prof-options:   -rtsopts -prof -auto-all -caf-all
+    build-depends:      base, array, mtl, containers, criterion, diagrams-lib, tangles
+    main-is:            ChordDiagramsBenchmark.hs
     hs-source-dirs:     test
 
 
