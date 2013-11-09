@@ -41,7 +41,7 @@ tangleDiagrams triangle legsLimit n yield =
 tangleClasses :: (DiagramInfo info) => (forall m. (Monad m) => (NonAlternatingTangle -> m ()) -> m ()) -> [info NonAlternatingTangle]
 tangleClasses =
     equivalenceClasses
-        (\ t -> min (isomorphismTest t) (isomorphismTest $ invertCrossings t))
+        isomorphismTest
         (map (map ReidemeisterReduction.greedy1st2ndReduction .)
             [ ReidemeisterIII.neighbours
             , Flype.neighbours
@@ -52,7 +52,7 @@ tangleClasses =
 weakTangleClasses :: (DiagramInfo info) => (forall m. (Monad m) => (NonAlternatingTangle -> m ()) -> m ()) -> [info NonAlternatingTangle]
 weakTangleClasses =
     equivalenceClasses
-        (\ t -> min (isomorphismTest t) (isomorphismTest $ invertCrossings t))
+        isomorphismTest
         (map (map ReidemeisterReduction.greedy1st2ndReduction .)
             [ Weak.neighbours
             , ReidemeisterIII.neighbours

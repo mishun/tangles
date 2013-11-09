@@ -16,7 +16,7 @@ module Math.KnotTh.Crossings.Arbitrary.Arbitrary
 
 import Data.Char (isSpace)
 import Control.DeepSeq
-import Math.Algebra.Group.D4 (i, c, subGroupDS, equivalenceClassId)
+import Math.Algebra.Group.D4 (i, c, ec, subGroupDS, equivalenceClassId)
 import Math.KnotTh.Knotted
 
 
@@ -28,6 +28,8 @@ instance NFData ArbitraryCrossing
 
 instance CrossingType ArbitraryCrossing where
     localCrossingSymmetry _ = subGroupDS
+
+    globalTransformations _ = Just [i, ec]
 
     possibleOrientations _ bound =
         case bound of

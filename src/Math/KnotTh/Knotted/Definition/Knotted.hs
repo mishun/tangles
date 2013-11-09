@@ -16,6 +16,7 @@ module Math.KnotTh.Knotted.Definition.Knotted
     , dartIndexRange
     , dartsRange
     , crossingCode
+    , crossingCodeWithGlobal
     , forMAdjacentDarts
     , foldMAdjacentDarts
     , foldMAdjacentDartsFrom
@@ -44,10 +45,13 @@ import Math.Algebra.Group.D4
 class (Eq ct, Show ct) => CrossingType ct where
     crossingTypeCode          :: ct -> Int
     localCrossingSymmetry     :: ct -> D4SubGroup
+    globalTransformations     :: (Knotted k) => k ct -> Maybe [D4]
     possibleOrientations      :: ct -> Maybe D4 -> [CrossingState ct]
     mirrorReversingDartsOrder :: CrossingState ct -> CrossingState ct
 
     crossingTypeCode _ = 1
+
+    globalTransformations _ = Nothing
 
     possibleOrientations ct extra =
         let s = localCrossingSymmetry ct
@@ -224,6 +228,15 @@ crossingCode dir d =
     let p = dartPlace d
         cr = crossingState $! incidentCrossing d
         t = fromReflectionRotation (isClockwise dir) (-p) <*> orientation cr
+    in (# code cr, equivalenceClassId (symmetry cr) t #)
+
+
+{-# INLINE crossingCodeWithGlobal #-}
+crossingCodeWithGlobal :: (CrossingType ct, Knotted k) => D4 -> RotationDirection -> Dart k ct -> (# Int, Int #)
+crossingCodeWithGlobal global dir d =
+    let p = dartPlace d
+        cr = crossingState $! incidentCrossing d
+        t = fromReflectionRotation (isClockwise dir) (-p) <*> (orientation cr <*> global)
     in (# code cr, equivalenceClassId (symmetry cr) t #)
 
 

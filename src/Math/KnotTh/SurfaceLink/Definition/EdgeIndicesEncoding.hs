@@ -19,7 +19,7 @@ instance EdgeIndicesCrossing ProjectionCrossing where
 
 instance EdgeIndicesCrossing ArbitraryCrossing where
     indexPlace d | passOver (nthIncidentDart c 0)  = p
-                 | otherwise                       = ((p - 1) `mod` 4)
+                 | otherwise                       = (p - 1) `mod` 4
         where
             c = incidentCrossing d
             p = dartPlace d
