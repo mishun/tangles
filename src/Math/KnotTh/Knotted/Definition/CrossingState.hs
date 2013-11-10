@@ -6,7 +6,7 @@ module Math.KnotTh.Knotted.Definition.CrossingState
     , makeCrossing'
     ) where
 
-import Math.Algebra.Group.D4 (i)
+import qualified Math.Algebra.Group.D4 as D4
 import Math.KnotTh.Knotted.Definition.Knotted
 
 
@@ -31,4 +31,4 @@ dartByCrossingLegId c = nthIncidentDart c . dartIdByCrossingLegId (crossingState
 
 
 makeCrossing' :: (CrossingType ct) => ct -> CrossingState ct
-makeCrossing' = flip makeCrossing i
+makeCrossing' = flip makeCrossing D4.i

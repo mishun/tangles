@@ -20,8 +20,8 @@ module Math.KnotTh.Crossings.SubTangle
 import Data.Array.Unboxed (UArray, (!), listArray)
 import Control.DeepSeq
 import Text.Printf
-import Math.Algebra.Group.Dn (DnSubGroup, pointsUnderSubGroup)
-import Math.Algebra.Group.D4 ((<*>), ec, D4SubGroup, fromDnSubGroup)
+import qualified Math.Algebra.Group.Dn as Dn
+import qualified Math.Algebra.Group.D4 as D4
 import Math.KnotTh.Knotted
 import Math.KnotTh.Tangle
 
@@ -37,7 +37,7 @@ changeSumType DirectSum12x30 = DirectSum01x23
 
 data SubTangleCrossing ct = SubTangle
     { _code     :: {-# UNPACK #-} !Int
-    , _symmetry :: !D4SubGroup
+    , _symmetry :: !D4.D4SubGroup
     , _sumType  :: !DirectSumDecompositionType
     , subTangle :: Tangle ct
     }
@@ -71,28 +71,28 @@ type SubTangleTangle ct = Tangle (SubTangleCrossing ct)
 makeSubTangle :: (CrossingType a, CrossingType b)
     => (Tangle a -> Tangle b)
     -> Tangle a
-    -> DnSubGroup
+    -> Dn.DnSubGroup
     -> DirectSumDecompositionType
     -> Int
     -> SubTangleCrossing b
 
 makeSubTangle f tangle symmetry sumType code
-    | numberOfLegs tangle /= 4           = error $ printf "makeSubTangle: tangle must have 4 legs, %i found" $ numberOfLegs tangle
-    | pointsUnderSubGroup symmetry /= 4  = error $ printf "makeSubTangle: symmetry group must have 4 points, %i found" $ pointsUnderSubGroup symmetry
-    | numberOfFreeLoops tangle /= 0      = error $ printf "makeSubTangle: tangle contains %i free loops" $ numberOfFreeLoops tangle
-    | otherwise                          = SubTangle
+    | numberOfLegs tangle /= 4              = error $ printf "makeSubTangle: tangle must have 4 legs, %i found" $ numberOfLegs tangle
+    | Dn.pointsUnderSubGroup symmetry /= 4  = error $ printf "makeSubTangle: symmetry group must have 4 points, %i found" $ Dn.pointsUnderSubGroup symmetry
+    | numberOfFreeLoops tangle /= 0         = error $ printf "makeSubTangle: tangle contains %i free loops" $ numberOfFreeLoops tangle
+    | otherwise                             = SubTangle
         { _code     = code
-        , _symmetry = fromDnSubGroup symmetry
+        , _symmetry = D4.fromDnSubGroup symmetry
         , _sumType  = sumType
         , subTangle = f tangle
         }
 
 
-fromTangle :: (CrossingType ct) => Tangle ct -> DnSubGroup -> DirectSumDecompositionType -> Int -> SubTangleCrossing ct
+fromTangle :: (CrossingType ct) => Tangle ct -> Dn.DnSubGroup -> DirectSumDecompositionType -> Int -> SubTangleCrossing ct
 fromTangle = makeSubTangle id
 
 
-fromTangle' :: (CrossingType ct) => Tangle (SubTangleCrossing ct) -> DnSubGroup -> DirectSumDecompositionType -> Int -> SubTangleCrossing ct
+fromTangle' :: (CrossingType ct) => Tangle (SubTangleCrossing ct) -> Dn.DnSubGroup -> DirectSumDecompositionType -> Int -> SubTangleCrossing ct
 fromTangle' = makeSubTangle substituteTangle
 
 
@@ -127,7 +127,7 @@ numberOfCrossingsAfterSubstitution = sum . map numberOfCrossingsInside . allCros
 
 {-# INLINE subTangleLegFromDart #-}
 subTangleLegFromDart :: (CrossingType ct, Knotted k) => Dart k (SubTangleCrossing ct) -> Dart Tangle ct
-subTangleLegFromDart d = nthLeg (tangleInside $ incidentCrossing d) $! crossingLegIdByDart d
+subTangleLegFromDart d = nthLeg (tangleInside $ incidentCrossing d) $ crossingLegIdByDart d
 
 
 directSumDecompositionTypeInside :: (CrossingType ct, Knotted k) => Dart k (SubTangleCrossing ct) -> DirectSumDecompositionType
@@ -153,19 +153,19 @@ substituteTangle tangle =
     implode (numberOfFreeLoops tangle, map oppositeExt $ allLegs tangle,
         let connections b = do
                 let rev = isCrossingOrientationInvertedInside b
-                !c <- allCrossings $! tangleInside b
-                let nb = map (oppositeInt b) $! incidentDarts c
-                let st | rev        = mapOrientation (ec <*>) $! crossingState c
+                !c <- allCrossings $ tangleInside b
+                let nb = map (oppositeInt b) $ incidentDarts c
+                let st | rev        = mapOrientation (D4.ec D4.<*>) $ crossingState c
                        | otherwise  = crossingState c
                 return (if rev then reverse nb else nb, st)
-        in concatMap connections $! allCrossings tangle
+        in concatMap connections $ allCrossings tangle
         )
     where
         offset :: UArray Int Int
-        offset = listArray (crossingIndexRange tangle) $! scanl (\ !i !c -> i + numberOfCrossingsInside c) 0 $! allCrossings tangle
+        offset = listArray (crossingIndexRange tangle) $ scanl (\ !i !c -> i + numberOfCrossingsInside c) 0 $ allCrossings tangle
 
         oppositeInt b u
-            | isLeg v                                = oppositeExt $! dartByCrossingLegId b (legPlace v)
+            | isLeg v                                = oppositeExt $ dartByCrossingLegId b (legPlace v)
             | isCrossingOrientationInvertedInside b  = (w, 3 - dartPlace v)
             | otherwise                              = (w, dartPlace v)
             where
@@ -175,7 +175,7 @@ substituteTangle tangle =
 
         oppositeExt u
             | isLeg v    = (0, legPlace v)
-            | otherwise  = oppositeInt c $! subTangleLegFromDart v
+            | otherwise  = oppositeInt c $ subTangleLegFromDart v
             where
                 v = opposite u
                 c = incidentCrossing v

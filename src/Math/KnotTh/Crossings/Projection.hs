@@ -8,7 +8,7 @@ module Math.KnotTh.Crossings.Projection
 
 import Data.Char (isSpace)
 import Control.DeepSeq
-import Math.Algebra.Group.D4 (subGroupD4)
+import qualified Math.Algebra.Group.D4 as D4
 import Math.KnotTh.Knotted
 
 
@@ -19,7 +19,7 @@ instance NFData ProjectionCrossing
 
 
 instance CrossingType ProjectionCrossing where
-    localCrossingSymmetry _ = subGroupD4
+    localCrossingSymmetry _ = D4.subGroupD4
     possibleOrientations _ _ = projectionCrossings
     mirrorReversingDartsOrder = id
 

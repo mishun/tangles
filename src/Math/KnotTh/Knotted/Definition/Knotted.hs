@@ -27,26 +27,15 @@ import Data.Ix (Ix)
 import Control.DeepSeq
 import Control.Monad (guard)
 import Text.Printf
-import Math.Algebra.RotationDirection
-import Math.Algebra.Group.D4
-    ( D4
-    , D4SubGroup
-    , inverse
-    , (<*>)
-    , ec
-    , hasReflection
-    , permute
-    , fromReflectionRotation
-    , equivalenceClassId
-    , equvalenceClassRepresentatives
-    )
+import qualified Math.Algebra.RotationDirection as R
+import qualified Math.Algebra.Group.D4 as D4
 
 
 class (Eq ct, Show ct) => CrossingType ct where
     crossingTypeCode          :: ct -> Int
-    localCrossingSymmetry     :: ct -> D4SubGroup
-    globalTransformations     :: (Knotted k) => k ct -> Maybe [D4]
-    possibleOrientations      :: ct -> Maybe D4 -> [CrossingState ct]
+    localCrossingSymmetry     :: ct -> D4.D4SubGroup
+    globalTransformations     :: (Knotted k) => k ct -> Maybe [D4.D4]
+    possibleOrientations      :: ct -> Maybe D4.D4 -> [CrossingState ct]
     mirrorReversingDartsOrder :: CrossingState ct -> CrossingState ct
 
     crossingTypeCode _ = 1
@@ -55,26 +44,26 @@ class (Eq ct, Show ct) => CrossingType ct where
 
     possibleOrientations ct extra =
         let s = localCrossingSymmetry ct
-            orient = equvalenceClassRepresentatives s
-        in map (makeCrossing ct) $!
+            orient = D4.equvalenceClassRepresentatives s
+        in map (makeCrossing ct) $
             case extra of
                 Nothing -> orient
-                Just h  -> filter (\ !g -> equivalenceClassId s g <= equivalenceClassId s (h <*> g)) orient
+                Just h  -> filter (\ !g -> D4.equivalenceClassId s g <= D4.equivalenceClassId s (h D4.<*> g)) orient
 
-    mirrorReversingDartsOrder = mapOrientation (ec <*>)
+    mirrorReversingDartsOrder = mapOrientation (D4.ec D4.<*>)
 
 
 data CrossingState ct = Crossing
     { code         :: {-# UNPACK #-} !Int
-    , orientation  :: {-# UNPACK #-} !D4
-    , symmetry     :: !D4SubGroup
+    , orientation  :: {-# UNPACK #-} !D4.D4
+    , symmetry     :: !D4.D4SubGroup
     , crossingType :: !ct
     }
 
 
 instance (Eq ct) => Eq (CrossingState ct) where
     (==) a b = symmetry a == symmetry b
-        && equivalenceClassId (symmetry a) (orientation a) == equivalenceClassId (symmetry b) (orientation b)
+        && D4.equivalenceClassId (symmetry a) (orientation a) == D4.equivalenceClassId (symmetry b) (orientation b)
         && crossingType a == crossingType b
 
 
@@ -104,24 +93,24 @@ instance (CrossingType ct, Read ct) => Read (CrossingState ct) where
 
 {-# INLINE isCrossingOrientationInverted #-}
 isCrossingOrientationInverted :: CrossingState ct -> Bool
-isCrossingOrientationInverted = hasReflection . orientation
+isCrossingOrientationInverted = D4.hasReflection . orientation
 
 
 {-# INLINE crossingLegIdByDartId #-}
 crossingLegIdByDartId :: CrossingState ct -> Int -> Int
-crossingLegIdByDartId cr = permute (inverse $! orientation cr)
+crossingLegIdByDartId cr = D4.permute (D4.inverse $ orientation cr)
 
 
 {-# INLINE dartIdByCrossingLegId #-}
 dartIdByCrossingLegId :: CrossingState ct -> Int -> Int
-dartIdByCrossingLegId cr = permute (orientation cr)
+dartIdByCrossingLegId cr = D4.permute (orientation cr)
 
 
-mapOrientation :: (D4 -> D4) -> CrossingState ct -> CrossingState ct
+mapOrientation :: (D4.D4 -> D4.D4) -> CrossingState ct -> CrossingState ct
 mapOrientation f crossing = crossing { orientation = f $ orientation crossing }
 
 
-makeCrossing :: (CrossingType ct) => ct -> D4 -> CrossingState ct
+makeCrossing :: (CrossingType ct) => ct -> D4.D4 -> CrossingState ct
 makeCrossing !ct !g = Crossing
     { code         = crossingTypeCode ct
     , orientation  = g
@@ -162,10 +151,10 @@ class Knotted knot where
     type ExplodeType knot ct :: *
     explode :: knot ct -> ExplodeType knot ct
     implode :: (CrossingType ct) => ExplodeType knot ct -> knot ct
-    
+
     forMIncidentDarts      :: (Monad m) => Crossing knot ct -> (Dart knot ct -> m ()) -> m ()
     foldMIncidentDarts     :: (Monad m) => Crossing knot ct -> (Dart knot ct -> s -> m s) -> s -> m s
-    foldMIncidentDartsFrom :: (Monad m) => Dart knot ct -> RotationDirection -> (Dart knot ct -> s -> m s) -> s -> m s
+    foldMIncidentDartsFrom :: (Monad m) => Dart knot ct -> R.RotationDirection -> (Dart knot ct -> s -> m s) -> s -> m s
 
     forMIncidentDarts c f =
         f (nthIncidentDart c 0)
@@ -182,11 +171,11 @@ class Knotted knot where
     foldMIncidentDartsFrom dart !dir f s =
         let c = incidentCrossing dart
             p = dartPlace dart
-            d = directionSign dir
+            d = R.directionSign dir
         in f dart s
-            >>= f (nthIncidentDart c $! (p + d) .&. 3)
-            >>= f (nthIncidentDart c $! (p + 2 * d) .&. 3)
-            >>= f (nthIncidentDart c $! (p + 3 * d) .&. 3)
+            >>= f (nthIncidentDart c $ (p + d) .&. 3)
+            >>= f (nthIncidentDart c $ (p + 2 * d) .&. 3)
+            >>= f (nthIncidentDart c $ (p + 3 * d) .&. 3)
 
 
 class (Knotted knot) => KnottedWithConnectivity knot where
@@ -223,21 +212,21 @@ dartsRange knot
 
 
 {-# INLINE crossingCode #-}
-crossingCode :: (CrossingType ct, Knotted k) => RotationDirection -> Dart k ct -> (# Int, Int #)
+crossingCode :: (CrossingType ct, Knotted k) => R.RotationDirection -> Dart k ct -> (# Int, Int #)
 crossingCode dir d =
     let p = dartPlace d
-        cr = crossingState $! incidentCrossing d
-        t = fromReflectionRotation (isClockwise dir) (-p) <*> orientation cr
-    in (# code cr, equivalenceClassId (symmetry cr) t #)
+        cr = crossingState $ incidentCrossing d
+        t = D4.fromReflectionRotation (R.isClockwise dir) (-p) D4.<*> orientation cr
+    in (# code cr, D4.equivalenceClassId (symmetry cr) t #)
 
 
 {-# INLINE crossingCodeWithGlobal #-}
-crossingCodeWithGlobal :: (CrossingType ct, Knotted k) => D4 -> RotationDirection -> Dart k ct -> (# Int, Int #)
+crossingCodeWithGlobal :: (CrossingType ct, Knotted k) => D4.D4 -> R.RotationDirection -> Dart k ct -> (# Int, Int #)
 crossingCodeWithGlobal global dir d =
     let p = dartPlace d
-        cr = crossingState $! incidentCrossing d
-        t = fromReflectionRotation (isClockwise dir) (-p) <*> (orientation cr <*> global)
-    in (# code cr, equivalenceClassId (symmetry cr) t #)
+        cr = crossingState $ incidentCrossing d
+        t = D4.fromReflectionRotation (R.isClockwise dir) (-p) D4.<*> (orientation cr D4.<*> global)
+    in (# code cr, D4.equivalenceClassId (symmetry cr) t #)
 
 
 {-# INLINE forMAdjacentDarts #-}
@@ -251,5 +240,5 @@ foldMAdjacentDarts c f = foldMIncidentDarts c (f . opposite)
 
 
 {-# INLINE foldMAdjacentDartsFrom #-}
-foldMAdjacentDartsFrom :: (Monad m, Knotted k) => Dart k ct -> RotationDirection -> (Dart k ct -> s -> m s) -> s -> m s
+foldMAdjacentDartsFrom :: (Monad m, Knotted k) => Dart k ct -> R.RotationDirection -> (Dart k ct -> s -> m s) -> s -> m s
 foldMAdjacentDartsFrom dart direction f = foldMIncidentDartsFrom dart direction (f . opposite)

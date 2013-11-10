@@ -16,7 +16,7 @@ module Math.KnotTh.Crossings.Arbitrary.Arbitrary
 
 import Data.Char (isSpace)
 import Control.DeepSeq
-import Math.Algebra.Group.D4 (i, c, ec, subGroupDS, equivalenceClassId)
+import qualified Math.Algebra.Group.D4 as D4
 import Math.KnotTh.Knotted
 
 
@@ -27,15 +27,15 @@ instance NFData ArbitraryCrossing
 
 
 instance CrossingType ArbitraryCrossing where
-    localCrossingSymmetry _ = subGroupDS
+    localCrossingSymmetry _ = D4.subGroupDS
 
-    globalTransformations _ = Just [i, ec]
+    globalTransformations _ = Just [D4.i, D4.ec]
 
     possibleOrientations _ bound =
         case bound of
-            Nothing                                       -> arbitraryCrossings
-            Just g | equivalenceClassId subGroupDS g == 0 -> arbitraryCrossings
-                   | otherwise                            -> overCrossingOnly
+            Nothing                                             -> arbitraryCrossings
+            Just g | D4.equivalenceClassId D4.subGroupDS g == 0 -> arbitraryCrossings
+                   | otherwise                                  -> overCrossingOnly
 
     mirrorReversingDartsOrder = invertCrossing
 
@@ -57,11 +57,11 @@ type ArbitraryCrossingState = CrossingState ArbitraryCrossing
 
 
 overCrossing :: ArbitraryCrossingState
-overCrossing = makeCrossing ArbitraryCrossing i
+overCrossing = makeCrossing ArbitraryCrossing D4.i
 
 
 underCrossing :: ArbitraryCrossingState
-underCrossing = makeCrossing ArbitraryCrossing c
+underCrossing = makeCrossing ArbitraryCrossing D4.c
 
 
 arbitraryCrossings :: [ArbitraryCrossingState]
