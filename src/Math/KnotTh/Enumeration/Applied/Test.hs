@@ -64,7 +64,10 @@ test = testGroup "Enumeration tests"
             (\ n -> do
                 let sifted = lookingForwardTanglesEnumeration True (-1) 0 n
                 assertEqual "There must be no collisions" 0 $ length $ collisionClasses sifted
-                return $! generateTable' $ forM_ (mapMaybe maybePrimeDiagram $ singleRepresentativeClasses sifted)
+                return $! generateTable'
+                    (\ tangle -> (numberOfCrossings tangle, numberOfLegs tangle))
+                    (const 1)
+                    (forM_ $ mapMaybe maybePrimeDiagram $ singleRepresentativeClasses sifted)
             )
             [ [1]
             , [1, 2]

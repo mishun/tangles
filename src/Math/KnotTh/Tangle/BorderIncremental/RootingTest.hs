@@ -44,16 +44,16 @@ investigateConnectivity lastCrossing = runST $ do
 
             let {-# INLINE walk #-}
                 walk !d (!fup, !border)
-                    | isLeg d    = return $! (fup, border + 1)
-                    | u == from  = return $! (fup, border)
+                    | isLeg d    = return (fup, border + 1)
+                    | u == from  = return (fup, border)
                     | otherwise  = do
                         utin <- unsafeRead tins (crossingIndex u)
                         if utin > 0
-                            then return $! (min fup utin, border)
+                            then return (min fup utin, border)
                             else do
                                 (!thatFup, !thatBorder) <- dfs u v
                                 when (thatFup >= tin) (unsafeWrite cp (crossingIndex v) True)
-                                return $! (min fup thatFup, border + if thatFup <= tin then thatBorder else 1)
+                                return (min fup thatFup, border + if thatFup <= tin then thatBorder else 1)
                     where
                         u = incidentCrossing d
 
@@ -61,7 +61,7 @@ investigateConnectivity lastCrossing = runST $ do
 
     (!_, !borderCut) <- dfs lastCrossing lastCrossing
     if borderCut <= 2
-        then return $! Nothing
+        then return Nothing
         else do
             unsafeWrite cp (crossingIndex lastCrossing) False
             (Just $!) <$> unsafeFreeze cp
@@ -83,9 +83,9 @@ analyseSymmetry lastCrossing skipCrossing = findSymmetry
             finalState >>= \ (symmetryDir, symmetryRev, positionDir, positionRev) ->
                 let l = numberOfLegs tangle
                     period = div l (max symmetryDir symmetryRev)
-                in if symmetryDir == symmetryRev
-                    then Just $! fromPeriodAndMirroredZero l period (positionRev + positionDir)
-                    else Just $! fromPeriod l period
+                in Just $! if symmetryDir == symmetryRev
+                    then fromPeriodAndMirroredZero l period (positionRev + positionDir)
+                    else fromPeriod l period
             where
                 finalState = foldM analyseLeg (0, 0, 0, 0) $! allLegs tangle
 
@@ -115,50 +115,91 @@ analyseSymmetry lastCrossing skipCrossing = findSymmetry
 
 
 rootCodeLeg :: (CrossingType ct) => Dart Tangle ct -> RotationDirection -> UArray Int Int
-rootCodeLeg !root !dir = runSTUArray $ do
-    when (isDart root) (fail "rootCodeLeg: leg expected")
+rootCodeLeg !root !dir
+    | isDart root                     = error "rootCodeLeg: leg expected"
+    | numberOfFreeLoops tangle /= 0   = error "rootCodeLeg: free loops present"
+    | numberOfCrossings tangle > 127  = error "rootCodeLeg: too many crossings"
+    | otherwise                       =
+        case globalTransformations tangle of
+            Nothing      -> code
+            Just globals -> minimum $ map codeWithGlobal globals
+    where 
+        tangle = dartTangle root
+        n = numberOfCrossings tangle
 
-    let tangle = dartTangle root
-    let n = numberOfCrossings tangle
+        codeWithGlobal global = runSTUArray $ do
+            x <- newArray (0, n) 0 :: ST s (STUArray s Int Int)
+            unsafeWrite x (crossingIndex $! adjacentCrossing root) 1
+            q <- newArray_ (0, n - 1) :: ST s (STArray s Int (Dart Tangle ct))
+            unsafeWrite q 0 (opposite root)
+            free <- newSTRef 2
 
-    when (numberOfFreeLoops tangle /= 0) (fail "rootCodeLeg: free loops present")
-    when (numberOfCrossings tangle > 127) (fail "rootCodeLeg: too many crossings")
+            let {-# INLINE look #-}
+                look !d !s
+                    | isLeg d    = return $! s `shiftL` 7
+                    | otherwise  = do
+                        let u = incidentCrossing d
+                        ux <- unsafeRead x (crossingIndex u)
+                        if ux > 0
+                            then return $! ux + (s `shiftL` 7)
+                            else do
+                                nf <- readSTRef free
+                                writeSTRef free $! nf + 1
+                                unsafeWrite x (crossingIndex u) nf
+                                unsafeWrite q (nf - 1) d
+                                return $! nf + (s `shiftL` 7)
 
-    x <- newArray (0, n) 0 :: ST s (STUArray s Int Int)
-    unsafeWrite x (crossingIndex $! adjacentCrossing root) 1
-    q <- newArray_ (0, n - 1) :: ST s (STArray s Int (Dart Tangle ct))
-    unsafeWrite q 0 (opposite root)
-    free <- newSTRef 2
+            rc <- newArray (0, 2 * n - 1) 0 :: ST s (STUArray s Int Int)
 
-    let {-# INLINE look #-}
-        look !d !s
-            | isLeg d    = return $! s `shiftL` 7
-            | otherwise  = do
-                let u = incidentCrossing d
-                ux <- unsafeRead x (crossingIndex u)
-                if ux > 0
-                    then return $! ux + (s `shiftL` 7)
-                    else do
-                        nf <- readSTRef free
-                        writeSTRef free $! nf + 1
-                        unsafeWrite x (crossingIndex u) nf
-                        unsafeWrite q (nf - 1) d
-                        return $! nf + (s `shiftL` 7)
+            let {-# INLINE bfs #-}
+                bfs !h = when (h < n) $ do
+                    d <- unsafeRead q h
+                    nb <- foldMAdjacentDartsFrom d dir look 0
+                    case crossingCodeWithGlobal global dir d of
+                        (# be, le #) -> do
+                            unsafeWrite rc (2 * h) be
+                            unsafeWrite rc (2 * h + 1) $! le + nb `shiftL` 3
+                    bfs $! h + 1
 
-    rc <- newArray (0, 2 * n - 1) 0 :: ST s (STUArray s Int Int)
+            bfs 0
+            return rc
 
-    let {-# INLINE bfs #-}
-        bfs !h = when (h < n) $ do
-            d <- unsafeRead q h
-            nb <- foldMAdjacentDartsFrom d dir look 0
-            case crossingCode dir d of
-                (# be, le #) -> do
-                    unsafeWrite rc (2 * h) be
-                    unsafeWrite rc (2 * h + 1) $! le + nb `shiftL` 3
-            bfs $! h + 1
+        code = runSTUArray $ do
+            x <- newArray (0, n) 0 :: ST s (STUArray s Int Int)
+            unsafeWrite x (crossingIndex $! adjacentCrossing root) 1
+            q <- newArray_ (0, n - 1) :: ST s (STArray s Int (Dart Tangle ct))
+            unsafeWrite q 0 (opposite root)
+            free <- newSTRef 2
 
-    bfs 0
-    return $! rc
+            let {-# INLINE look #-}
+                look !d !s
+                    | isLeg d    = return $! s `shiftL` 7
+                    | otherwise  = do
+                        let u = incidentCrossing d
+                        ux <- unsafeRead x (crossingIndex u)
+                        if ux > 0
+                            then return $! ux + (s `shiftL` 7)
+                            else do
+                                nf <- readSTRef free
+                                writeSTRef free $! nf + 1
+                                unsafeWrite x (crossingIndex u) nf
+                                unsafeWrite q (nf - 1) d
+                                return $! nf + (s `shiftL` 7)
+
+            rc <- newArray (0, 2 * n - 1) 0 :: ST s (STUArray s Int Int)
+
+            let {-# INLINE bfs #-}
+                bfs !h = when (h < n) $ do
+                    d <- unsafeRead q h
+                    nb <- foldMAdjacentDartsFrom d dir look 0
+                    case crossingCode dir d of
+                        (# be, le #) -> do
+                            unsafeWrite rc (2 * h) be
+                            unsafeWrite rc (2 * h + 1) $! le + nb `shiftL` 3
+                    bfs $! h + 1
+
+            bfs 0
+            return rc
 
 
 minimumRootCode :: (CrossingType ct) => Tangle ct -> UArray Int Int

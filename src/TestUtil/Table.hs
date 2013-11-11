@@ -16,27 +16,26 @@ import Control.Monad (forM_, guard)
 import Text.Printf
 import System.CPUTime (getCPUTime)
 import Test.HUnit
-import Math.Algebra.Group.Dn (DnSubGroup, hasReflectionPart, rotationPeriod)
 import Math.KnotTh.Tangle
 
 
+
+generateTable :: (forall m. (Monad m) => ((Tangle ct, a) -> m ()) -> m ()) -> Table
+generateTable =
+    generateTable'
+        (\ (tangle, _) -> (numberOfCrossings tangle, numberOfLegs tangle))
+        (const 1)
+
+
+generateTable' :: (Ord k) => (a -> k) -> (a -> Int) -> (forall m. (Monad m) => (a -> m ()) -> m ()) -> M.Map k Int
+generateTable' key weight generator =
+    let yield x = do
+            !m <- get
+            put $! M.insertWith' (+) (key x) (weight x) m
+    in execState (generator yield) M.empty
+
+
 type Table = M.Map (Int, Int) Int
-
-
-generateTable :: Bool -> (forall m. (Monad m) => (Tangle ct -> DnSubGroup -> m ()) -> m ()) -> Table
-generateTable isLabelled generator =
-    let yield !tangle !symmetry = do
-            let w | isLabelled  = rotationPeriod symmetry * (if hasReflectionPart symmetry then 1 else 2)
-                  | otherwise   = 1
-            get >>= (\ !m -> put $! M.insertWith' (+) (numberOfCrossings tangle, numberOfLegs tangle) w m)
-    in execState (generator yield) M.empty
-
-
-generateTable' :: (forall m. (Monad m) => (Tangle ct -> m ()) -> m ()) -> Table
-generateTable' generator =
-    let yield !tangle =
-            get >>= (\ !m -> put $! M.insertWith (+) (numberOfCrossings tangle, numberOfLegs tangle) 1 m)
-    in execState (generator yield) M.empty
 
 
 testTable :: (Int -> Table) -> [[Int]] -> Assertion

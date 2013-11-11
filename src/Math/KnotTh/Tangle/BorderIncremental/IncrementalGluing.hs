@@ -13,8 +13,8 @@ module Math.KnotTh.Tangle.BorderIncremental.IncrementalGluing
 import qualified Control.Category as Cat
 import Data.Monoid (Monoid(..))
 import Control.Monad (when, guard)
-import Math.Algebra.Group.Dn (DnSubGroup, pointsUnderSubGroup, rotationPeriod, hasReflectionPart, mirroredZero)
-import Math.Algebra.Group.D4 (e, ec2, ec3, toDnSubGroup)
+import qualified Math.Algebra.Group.Dn as Dn
+import qualified Math.Algebra.Group.D4 as D4
 import Math.KnotTh.Tangle
 import Math.KnotTh.Tangle.BorderIncremental.RootingTest
 
@@ -77,49 +77,46 @@ allGluingSites crossingsToGlue tangle = do
     allGluingSites' crossingsToGlue gl tangle
 
 
-representativeGluingSites' :: (CrossingType ct) => [ct] -> Int -> (Tangle ct, DnSubGroup) -> [(Int, Dart Tangle ct, CrossingState ct)]
+representativeGluingSites' :: (CrossingType ct) => [ct] -> Int -> (Tangle ct, Dn.DnSubGroup) -> [(Int, Dart Tangle ct, CrossingState ct)]
 representativeGluingSites' crossingsToGlue !gl (!tangle, !symmetry)
-    | numberOfLegs tangle /= pointsUnderSubGroup symmetry  = error "gluingSites: different orders"
-    | otherwise                                            = do
-        let period = rotationPeriod symmetry
+    | numberOfLegs tangle /= Dn.pointsUnderSubGroup symmetry  = error "gluingSites: different orders"
+    | otherwise                                               = do
+        let period = Dn.rotationPeriod symmetry
 
         (!legIndex, !inducedSymmetry) <-
-            if not $ hasReflectionPart symmetry
+            if not $ Dn.hasReflectionPart symmetry
                 then [(x, Nothing) | x <- [0 .. period - 1]]
-                else do
-                    let mz = (mirroredZero symmetry + gl - 1) `mod` period
+                else let mz = (Dn.mirroredZero symmetry + gl - 1) `mod` period
 
-                    let getEndpoint doubleIndex = (legIndex, induced)
-                            where
-                                legIndex = doubleIndex `quot` 2
-                                induced
-                                    | even doubleIndex  = Just $! {- fixup <*> -} case gl of { 3 -> ec2 ; 2 -> ec3 ; _ -> e }
-                                    | otherwise         = Nothing
+                         getEndpoint doubleIndex =
+                             let legIndex = doubleIndex `quot` 2
+                                 induced | even doubleIndex  = Just $! {- fixup <*> -} case gl of { 3 -> D4.ec2 ; 2 -> D4.ec3 ; _ -> D4.e }
+                                         | otherwise         = Nothing
+                             in (legIndex, induced)
 
-                    let leftB = getEndpoint (mz - period)
-                    let rightB = getEndpoint mz
+                         leftB = getEndpoint (mz - period)
+                         rightB = getEndpoint mz
 
-                    let fill !c
-                            | c == fst rightB  = [rightB] -- sic!
-                            | c == fst leftB   = leftB : fill (c + 1)
-                            | otherwise        = (c, Nothing) : fill (c + 1)
+                         fill !c | c == fst rightB  = [rightB] -- sic!
+                                 | c == fst leftB   = leftB : fill (c + 1)
+                                 | otherwise        = (c, Nothing) : fill (c + 1)
 
-                    fill $! fst leftB
+                     in fill $ fst leftB
 
-        let !leg = nthLeg tangle legIndex
-        !cr <- crossingsToGlue
-        !state <- possibleOrientations cr inducedSymmetry
+        let leg = nthLeg tangle legIndex
+        cr <- crossingsToGlue
+        state <- possibleOrientations cr inducedSymmetry
         return (gl, leg, state)
 
 
-representativeGluingSites :: (CrossingType ct) => [ct] -> (Tangle ct, DnSubGroup) -> [(Int, Dart Tangle ct, CrossingState ct)]
+representativeGluingSites :: (CrossingType ct) => [ct] -> (Tangle ct, Dn.DnSubGroup) -> [(Int, Dart Tangle ct, CrossingState ct)]
 representativeGluingSites crossingsToGlue ts@(tangle, _) = do
     let l = numberOfLegs tangle
     gl <- [1 .. min 3 $ min (l - 1) (l `div` 2)]
     representativeGluingSites' crossingsToGlue gl ts
 
 
-canonicalGluing :: (CrossingType ct) => GluingType ct DnSubGroup s -> [(Int, Dart Tangle ct, CrossingState ct)] -> [(Tangle ct, s)]
+canonicalGluing :: (CrossingType ct) => GluingType ct Dn.DnSubGroup s -> [(Int, Dart Tangle ct, CrossingState ct)] -> [(Tangle ct, s)]
 canonicalGluing gluing sites = do
     (!gl, !leg, !st) <- sites
     guard $ preGlueTest gluing st leg gl
@@ -129,13 +126,17 @@ canonicalGluing gluing sites = do
         Just r  -> return (crossingTangle root, r)
 
 
-simpleIncrementalGenerator :: (Monad m, CrossingType ct) => GluingType ct DnSubGroup DnSubGroup -> [ct] -> Int -> (Tangle ct -> DnSubGroup -> m ()) -> m ()
+simpleIncrementalGenerator
+    :: (Monad m, CrossingType ct)
+        => GluingType ct Dn.DnSubGroup Dn.DnSubGroup -> [ct] -> Int
+            -> ((Tangle ct, Dn.DnSubGroup) -> m ()) -> m ()
+
 simpleIncrementalGenerator gluing crossingsToGlue maxN yield =
     let dfs node@(!tangle, !symmetry) = do
-            yield tangle symmetry
+            yield (tangle, symmetry)
             when (numberOfCrossings tangle < maxN) $
                 mapM_ dfs $ canonicalGluing gluing $ representativeGluingSites crossingsToGlue node
     in mapM_ (dfs . makeRoot . makeCrossing') crossingsToGlue
     where
-        makeRoot :: (CrossingType ct) => CrossingState ct -> (Tangle ct, DnSubGroup)
-        makeRoot st = (lonerTangle st, toDnSubGroup $ localCrossingSymmetry $ crossingType st)
+        makeRoot :: (CrossingType ct) => CrossingState ct -> (Tangle ct, Dn.DnSubGroup)
+        makeRoot st = (lonerTangle st, D4.toDnSubGroup $ localCrossingSymmetry $ crossingType st)

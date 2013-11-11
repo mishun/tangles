@@ -33,7 +33,7 @@ tangleDiagrams :: (Monad m) => Bool -> Int -> Int -> (NATangle -> m ()) -> m ()
 tangleDiagrams triangle legsLimit n yield =
     let t | triangle   = triangleBoundedType n primeIrreducibleDiagramType
           | otherwise  = primeIrreducibleDiagramType
-    in simpleIncrementalGenerator t [ArbitraryCrossing] n $ \ tangle _ ->
+    in simpleIncrementalGenerator t [ArbitraryCrossing] n $ \ (tangle, _) ->
         when (legsLimit < 0 || numberOfLegs tangle <= legsLimit) $
             yield tangle
 
