@@ -8,7 +8,7 @@ import Text.Printf
 import Diagrams.Prelude
 import Math.Topology.KnotTh.Draw
 import Math.Topology.KnotTh.Tangle
-import Math.Topology.KnotTh.Tangle.BorderIncremental
+import Math.Topology.KnotTh.Tangle.Generation.BorderIncremental
 import Math.Topology.KnotTh.SurfaceLink
 import Math.Topology.KnotTh.SurfaceLink.IsomorphismTest
 import Math.Topology.KnotTh.SurfaceLink.TestPrime
@@ -39,7 +39,7 @@ generateVirtualKnots maxN = do
     let table = flip execState M.empty $
             tangleStarGlue
                 AnyStar
-                (simpleIncrementalGenerator primeDiagramType [ArbitraryCrossing] maxN)
+                (\ yield -> forCCP_ (primeIrreducibleDiagrams maxN) $ \ (t, (s, _)) -> yield (t, s))
                 (\ !link ->
                     when (eulerChar link == 0 && not (is1stOr2ndReidemeisterReducible link) && numberOfThreads link == 1 && testPrime link && heuristic link) $
                         modify $ M.insertWith (++) (numberOfCrossings link) [link]
@@ -63,7 +63,7 @@ generateVirtualKnotProjections maxN = do
     let table = flip execState M.empty $
             tangleStarGlue
                 AnyStar
-                (simpleIncrementalGenerator primeProjectionType [ProjectionCrossing] maxN)
+                (forCCP_ $ primeProjections maxN)
                 (\ !link ->
                     when (eulerChar link == 0 && numberOfThreads link == 1 && testPrime link) $
                         modify (M.insertWith (++) (numberOfCrossings link) [link])
@@ -87,7 +87,7 @@ generateAlternatingSkeletons maxN = do
     let table = flip execState M.empty $
             tangleStarGlue
                 BicolourableStar
-                (simpleIncrementalGenerator templateProjectionType [ProjectionCrossing] maxN)
+                (forCCP_ $ templateProjections maxN)
                 (\ !link ->
                     when (not (isReducable link) && testPrime link && not (has4LegPlanarPart link)) $
                         let g = (2 - eulerChar link) `div` 2
@@ -113,6 +113,6 @@ generateAlternatingSkeletons maxN = do
 main :: IO ()
 main = do
     let maxN = 4
-    --generateAlternatingSkeletons maxN
+    generateAlternatingSkeletons maxN
     generateVirtualKnots maxN
     generateVirtualKnotProjections maxN

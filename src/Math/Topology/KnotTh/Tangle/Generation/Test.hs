@@ -1,15 +1,16 @@
 {-# LANGUAGE Rank2Types #-}
-module Math.Topology.KnotTh.Tangle.BorderIncremental.Test
+module Math.Topology.KnotTh.Tangle.Generation.Test
     ( test
     ) where
 
+import Control.Arrow ((&&&))
 import Control.Monad (when)
 import Test.Framework (Test, testGroup)
 import Test.Framework.Providers.HUnit (testCase)
 import qualified Math.Algebra.Group.Dn as Dn
 import Math.Topology.KnotTh.Tangle
-import Math.Topology.KnotTh.Tangle.BorderIncremental
-import Math.Topology.KnotTh.Tangle.BorderIncremental.FlypeGenerator
+import Math.Topology.KnotTh.Tangle.Generation.BorderIncremental
+import Math.Topology.KnotTh.Tangle.Generation.FlypeClasses
 import TestUtil.Table
 
 
@@ -76,7 +77,7 @@ test = testGroup "Tangle generators"
     , testCase "Numbers of 4-leg alternating tangles without symmetry" $
         testTable
             (\ n -> generateTable'
-                (\ (tangle, _) -> (numberOfCrossings tangle, numberOfLegs tangle))
+                ((numberOfCrossings &&& numberOfLegs) . fst)
                 (\ (_, symmetry) -> Dn.rotationPeriod symmetry * (if Dn.hasReflectionPart symmetry then 1 else 2))
                 (\ yield -> generateFlypeEquivalentInTriangle n
                     (\ (t, s) -> when (numberOfLegs t == 4) $

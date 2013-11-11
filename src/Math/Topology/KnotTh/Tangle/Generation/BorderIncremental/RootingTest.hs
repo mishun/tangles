@@ -1,5 +1,5 @@
 {-# LANGUAGE UnboxedTuples #-}
-module Math.Topology.KnotTh.Tangle.BorderIncremental.RootingTest
+module Math.Topology.KnotTh.Tangle.Generation.BorderIncremental.RootingTest
     ( rootingTest
     , rootCodeLeg
     , minimumRootCode

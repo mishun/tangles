@@ -1,4 +1,4 @@
-module Math.Topology.KnotTh.Tangle.BorderIncremental.IncrementalGluing
+module Math.Topology.KnotTh.Tangle.Generation.BorderIncremental.IncrementalGluing
     ( GluingType(..)
     , nextNumberOfLegs
     , diagonalIndex
@@ -16,7 +16,7 @@ import Control.Monad (when, guard)
 import qualified Math.Algebra.Group.Dn as Dn
 import qualified Math.Algebra.Group.D4 as D4
 import Math.Topology.KnotTh.Tangle
-import Math.Topology.KnotTh.Tangle.BorderIncremental.RootingTest
+import Math.Topology.KnotTh.Tangle.Generation.BorderIncremental.RootingTest
 
 
 data GluingType ct s t = GluingType

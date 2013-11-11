@@ -1,5 +1,5 @@
 {-# LANGUAGE UnboxedTuples #-}
-module Math.Topology.KnotTh.Tangle.Flypes
+module Math.Topology.KnotTh.Tangle.Generation.FlypeClasses.Flypes
     ( minimumFlypeCode
     , additionalFlypeSymmetry
     ) where
@@ -35,7 +35,7 @@ flypeCodeLeg leg initialDirection
                     go (i + 1) (opposite $ nextDir dir d) dir
 
         go 0 (opposite leg) initialDirection
-        return $! code
+        return code
 
 
 minimumFlypeCode :: Tangle (SubTangleCrossing ProjectionCrossing) -> UArray Int Int
@@ -59,8 +59,7 @@ additionalFlypeSymmetry tangle
     where
         x = flypeCodeLeg (firstLeg tangle) dir
 
-        dir
-            | (a == b) && (c == d) && (a /= c)  = R.cw
+        dir | (a == b) && (c == d) && (a /= c)  = R.cw
             | (b == c) && (a == d) && (a /= b)  = R.ccw
             | otherwise                         = error $ printf "additionalFlypeSymmetry: direct sum expected, but got %s" (show tangle)
             where

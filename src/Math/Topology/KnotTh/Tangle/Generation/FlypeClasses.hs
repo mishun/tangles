@@ -1,4 +1,4 @@
-module Math.Topology.KnotTh.Tangle.BorderIncremental.FlypeGenerator
+module Math.Topology.KnotTh.Tangle.Generation.FlypeClasses
     ( generateFlypeEquivalentDecomposition
     , generateFlypeEquivalentDecompositionInTriangle
     , generateFlypeEquivalent
@@ -14,10 +14,10 @@ import qualified Math.Algebra.RotationDirection as R
 import qualified Math.Algebra.Group.Dn as Dn
 import Math.Topology.KnotTh.Crossings.SubTangle
 import Math.Topology.KnotTh.Tangle
-import Math.Topology.KnotTh.Tangle.Flypes
-import Math.Topology.KnotTh.Tangle.BorderIncremental.IncrementalGluing
-import Math.Topology.KnotTh.Tangle.BorderIncremental.RootingTest (rootCodeLeg, minimumRootCode)
-import Math.Topology.KnotTh.Tangle.BorderIncremental.IncrementalTests
+import Math.Topology.KnotTh.Tangle.Generation.BorderIncremental.IncrementalGluing
+import Math.Topology.KnotTh.Tangle.Generation.BorderIncremental.RootingTest (rootCodeLeg, minimumRootCode)
+import Math.Topology.KnotTh.Tangle.Generation.BorderIncremental.IncrementalTests
+import Math.Topology.KnotTh.Tangle.Generation.FlypeClasses.Flypes
 
 
 generateFlypeEquivalentDecomposition' :: (Monad m) => Bool -> Int -> ((SubTangleTangle ProjectionCrossing, Dn.DnSubGroup) -> m ()) -> m ()

@@ -1,5 +1,5 @@
 {-# LANGUAGE UnboxedTuples, TypeFamilies #-}
-module Math.Topology.KnotTh.Tangle.BorderIncremental
+module Math.Topology.KnotTh.Tangle.Generation.BorderIncremental
     ( module X
     , primeProjections
     , reducedProjections
@@ -24,7 +24,7 @@ import qualified Math.Algebra.Group.Dn as Dn
 import qualified Math.Algebra.Group.D4 as D4
 import Math.Combinatorics.Generation.CanonicalConstructionPath as X
 import Math.Topology.KnotTh.Tangle
-import Math.Topology.KnotTh.Tangle.BorderIncremental.IncrementalTests
+import Math.Topology.KnotTh.Tangle.Generation.BorderIncremental.IncrementalTests
 
 
 rootingTest :: (CrossingType ct) => Crossing Tangle ct -> Maybe (Dn.DnSubGroup, (D4.D4, D4.D4))

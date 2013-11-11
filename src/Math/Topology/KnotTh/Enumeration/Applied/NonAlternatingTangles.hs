@@ -19,7 +19,7 @@ import Math.Topology.KnotTh.Enumeration.DiagramInfo.MinimalDiagramInfo
 import Math.Topology.KnotTh.Tangle as X
 import Math.Topology.KnotTh.Tangle.NonAlternating.Satellites
 import Math.Topology.KnotTh.Tangle.IsomorphismTest
-import Math.Topology.KnotTh.Tangle.BorderIncremental
+import Math.Topology.KnotTh.Tangle.Generation.BorderIncremental
 import Math.Topology.KnotTh.Link (tangleDoubling)
 import Math.Topology.KnotTh.Invariants
 import qualified Math.Topology.KnotTh.Tangle.Moves.Flype as Flype

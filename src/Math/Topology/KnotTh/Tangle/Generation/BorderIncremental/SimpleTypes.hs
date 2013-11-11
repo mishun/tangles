@@ -1,5 +1,5 @@
-module Math.Topology.KnotTh.Tangle.BorderIncremental.SimpleTypes
-    ( module Math.Topology.KnotTh.Tangle.BorderIncremental.IncrementalGluing
+module Math.Topology.KnotTh.Tangle.Generation.BorderIncremental.SimpleTypes
+    ( module X
     , primeProjectionType
     , reducedProjectionType
     , templateProjectionType
@@ -10,8 +10,8 @@ module Math.Topology.KnotTh.Tangle.BorderIncremental.SimpleTypes
 
 import qualified Math.Algebra.Group.Dn as Dn
 import Math.Topology.KnotTh.Tangle
-import Math.Topology.KnotTh.Tangle.BorderIncremental.IncrementalGluing
-import Math.Topology.KnotTh.Tangle.BorderIncremental.IncrementalTests
+import Math.Topology.KnotTh.Tangle.Generation.BorderIncremental.IncrementalGluing as X
+import Math.Topology.KnotTh.Tangle.Generation.BorderIncremental.IncrementalTests
 
 
 primeProjectionType :: GluingType ProjectionCrossing Dn.DnSubGroup Dn.DnSubGroup
