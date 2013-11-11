@@ -56,19 +56,19 @@ kauffmanFPolynomial :: (SkeinStructure k) => k ArbitraryCrossing -> ResultOnStru
 kauffmanFPolynomial = evaluateSkeinRelation KauffmanFRelation
 
 
-normalizedKauffmanFPolynomialOfLink :: L.NonAlternatingLink -> Poly2
+normalizedKauffmanFPolynomialOfLink :: L.NALink -> Poly2
 normalizedKauffmanFPolynomialOfLink link
     | (numberOfFreeLoops link == 0) && (numberOfCrossings link == 0)  = error "kauffmanFPolynomialOfLink: emptry link provided"
     | otherwise                                                       = normalizeBy2 (a * a + 1 - a * z) (a * z * kauffmanFPolynomial link)
 
 
-minimalKauffmanFPolynomialOfLink :: L.NonAlternatingLink -> Poly2
+minimalKauffmanFPolynomialOfLink :: L.NALink -> Poly2
 minimalKauffmanFPolynomialOfLink link =
     let p = kauffmanFPolynomial link
     in min p (invertF p)
 
 
-minimalKauffmanFPolynomialOfTangle :: T.NonAlternatingTangle -> ChordDiagramsSum Poly2
+minimalKauffmanFPolynomialOfTangle :: T.NATangle -> ChordDiagramsSum Poly2
 minimalKauffmanFPolynomialOfTangle = bruteForceMinimumOfTangle kauffmanFPolynomial {-tangle
     | l == 0     =
         let p = kauffmanFPolynomial tangle

@@ -10,11 +10,11 @@ import Math.KnotTh.Tangle
 import Math.KnotTh.Tangle.Moves.Move
 
 
-greedy1st2ndReduction :: NonAlternatingTangle -> NonAlternatingTangle
+greedy1st2ndReduction :: NATangle -> NATangle
 greedy1st2ndReduction tangleC = move tangleC $ greedy [reduce1st, reduce2nd]
 
 
-reduce1st :: Dart Tangle ArbitraryCrossing -> MoveM s ArbitraryCrossing Bool
+reduce1st :: NATangleDart -> MoveM s ArbitraryCrossing Bool
 reduce1st aad = do
     aar <- oppositeC aad
     if aar /= nextCCW aad
@@ -37,7 +37,7 @@ reduce1st aad = do
 --     \a/
 --      \
 --     / \
-reduce2nd :: Dart Tangle ArbitraryCrossing -> MoveM s ArbitraryCrossing Bool
+reduce2nd :: NATangleDart -> MoveM s ArbitraryCrossing Bool
 reduce2nd abl = do
     let a = incidentCrossing abl
     bal <- oppositeC abl

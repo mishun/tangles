@@ -7,7 +7,7 @@ import Data.Function (on)
 import Math.KnotTh.Tangle
 
 
-bruteForceMinimumOfTangle :: (Ord x) => (NonAlternatingTangle -> x) -> NonAlternatingTangle -> x
+bruteForceMinimumOfTangle :: (Ord x) => (NATangle -> x) -> NATangle -> x
 bruteForceMinimumOfTangle f = minimum . map (crossingsOrientationMinimum f) . allOrientationsOfTangle
 
 

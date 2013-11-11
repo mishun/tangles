@@ -8,15 +8,15 @@ import Math.KnotTh.Tangle
 import Math.KnotTh.Tangle.TensorSubst
 
 
-twistedDoubleSatellite :: NonAlternatingTangle -> NonAlternatingTangle
+twistedDoubleSatellite :: NATangle -> NATangle
 twistedDoubleSatellite = twistedNSatellite 2
 
 
-twistedTripleSatellite :: NonAlternatingTangle -> NonAlternatingTangle
+twistedTripleSatellite :: NATangle -> NATangle
 twistedTripleSatellite = twistedNSatellite 3
 
 
-twistedNSatellite :: Int -> NonAlternatingTangle -> NonAlternatingTangle
+twistedNSatellite :: Int -> NATangle -> NATangle
 twistedNSatellite n tangle
     | n < 0      = error "twistedNSattelite: negative order"
     | n == 0     = emptyTangle

@@ -16,7 +16,7 @@ maxC :: Int
 maxC = maximum $ map (fst . fst) $ map (\ (n, l) -> ((n, 1), l)) listOfKnotCodes ++ listOfLinkCodes
 
 
-table :: M.Map (Int, Int, Int) NonAlternatingLink
+table :: M.Map (Int, Int, Int) NALink
 table = M.fromList $ do
     ((cross, comps), list) <- map (\ (n, l) -> ((n, 1), l)) listOfKnotCodes ++ listOfLinkCodes
     (code, number) <- zip list [1 ..]
@@ -37,7 +37,7 @@ numberOfLinks comps cross
     | otherwise     = fromMaybe 0 $ M.lookup (cross, comps) sizes
 
 
-link :: Int -> Int -> Int -> NonAlternatingLink
+link :: Int -> Int -> Int -> NALink
 link comps cross number
     | number <= 0    = error $ printf "link: link number %i is non-positive" number
     | number > maxN  = error $ printf "link: link number %i is out of bound %i" number maxN
@@ -50,5 +50,5 @@ numberOfKnots :: Int -> Int
 numberOfKnots = numberOfLinks 1
 
 
-knot :: Int -> Int -> NonAlternatingLink
+knot :: Int -> Int -> NALink
 knot = link 1

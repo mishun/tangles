@@ -8,7 +8,7 @@ import Math.KnotTh.Tangle
 import Math.KnotTh.Tangle.Moves.Move
 
 
-neighbours :: NonAlternatingTangle -> [NonAlternatingTangle]
+neighbours :: NATangle -> [NATangle]
 neighbours tangle =
     flip mapMaybe (allDartsOfCrossings tangle) $ \ ab -> do
         -- \sc           /rb             \sc   /rb

@@ -29,7 +29,7 @@ import qualified Math.KnotTh.Tangle.Moves.ReidemeisterReduction as ReidemeisterR
 import qualified Math.KnotTh.Tangle.Moves.Weak as Weak
 
 
-tangleDiagrams :: (Monad m) => Bool -> Int -> Int -> (NonAlternatingTangle -> m ()) -> m ()
+tangleDiagrams :: (Monad m) => Bool -> Int -> Int -> (NATangle -> m ()) -> m ()
 tangleDiagrams triangle legsLimit n yield =
     let t | triangle   = triangleBoundedType n primeIrreducibleDiagramType
           | otherwise  = primeIrreducibleDiagramType
@@ -38,7 +38,7 @@ tangleDiagrams triangle legsLimit n yield =
             yield tangle
 
 
-tangleClasses :: (DiagramInfo info) => (forall m. (Monad m) => (NonAlternatingTangle -> m ()) -> m ()) -> [info NonAlternatingTangle]
+tangleClasses :: (DiagramInfo info) => (forall m. (Monad m) => (NATangle -> m ()) -> m ()) -> [info NATangle]
 tangleClasses =
     equivalenceClasses
         isomorphismTest
@@ -49,7 +49,7 @@ tangleClasses =
             ])
 
 
-weakTangleClasses :: (DiagramInfo info) => (forall m. (Monad m) => (NonAlternatingTangle -> m ()) -> m ()) -> [info NonAlternatingTangle]
+weakTangleClasses :: (DiagramInfo info) => (forall m. (Monad m) => (NATangle -> m ()) -> m ()) -> [info NATangle]
 weakTangleClasses =
     equivalenceClasses
         isomorphismTest
@@ -61,7 +61,7 @@ weakTangleClasses =
             ])
 
 
-siftTangles :: (DiagramInfo info) => [info NonAlternatingTangle] -> SiftResult info NonAlternatingTangle
+siftTangles :: (DiagramInfo info) => [info NATangle] -> SiftResult info NATangle
 siftTangles = siftByInvariant $ \ tangle ->
     ( minimalJonesPolynomialOfTangle tangle
     , minimalJonesPolynomialOfTangle $ twistedDoubleSatellite tangle
@@ -69,7 +69,7 @@ siftTangles = siftByInvariant $ \ tangle ->
     )
 
 
-siftWeakTangles :: (DiagramInfo info) => [info NonAlternatingTangle] -> SiftResult info NonAlternatingTangle
+siftWeakTangles :: (DiagramInfo info) => [info NATangle] -> SiftResult info NATangle
 siftWeakTangles = siftByInvariant $ \ tangle ->
     ( jonesPolynomial $ tangleDoubling id tangle
     , jonesPolynomial $ tangleDoubling id $ twistedDoubleSatellite tangle
@@ -77,7 +77,7 @@ siftWeakTangles = siftByInvariant $ \ tangle ->
     )
 
 
-lookingForwardTanglesEnumeration :: Bool -> Int -> Int -> Int -> SiftResult MinimalDiagramInfo NonAlternatingTangle
+lookingForwardTanglesEnumeration :: Bool -> Int -> Int -> Int -> SiftResult MinimalDiagramInfo NATangle
 lookingForwardTanglesEnumeration triangle legsLimit forward n
     | forward < 0  = error $ printf "lookingForwardTanglesEnumeration: number of forward steps must be non-negative, but %i received" forward
     | otherwise    =
@@ -85,7 +85,7 @@ lookingForwardTanglesEnumeration triangle legsLimit forward n
             tangleClasses $ tangleDiagrams triangle legsLimit (n + forward)
 
 
-lookingForwardWeakTanglesEnumeration :: Bool -> Int -> Int -> Int -> SiftResult MinimalDiagramInfo NonAlternatingTangle
+lookingForwardWeakTanglesEnumeration :: Bool -> Int -> Int -> Int -> SiftResult MinimalDiagramInfo NATangle
 lookingForwardWeakTanglesEnumeration triangle legsLimit forward n
     | forward < 0  = error $ printf "lookingForwardWeakTanglesEnumeration: number of forward steps must be non-negative, but %i received" forward
     | otherwise    =

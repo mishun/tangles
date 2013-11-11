@@ -1,9 +1,11 @@
 module Math.KnotTh.SurfaceLink
     ( module X
-    , SurfaceLinkProjection
-    , NonAlternatingSurfaceLink
-    , NonAlternatingCrossing
-    , NonAlternatingDart
+    , SurfaceLinkProj
+    , SurfaceLinkProjCrossing
+    , SurfaceLinkProjDart
+    , NASurfaceLink
+    , NASurfaceLinkCrossing
+    , NASurfaceLinkDart
     ) where
 
 import Math.KnotTh.Knotted as X
@@ -13,11 +15,11 @@ import Math.KnotTh.Crossings.Projection as X
 import Math.KnotTh.Crossings.Arbitrary as X
 
 
-type SurfaceLinkProjection = SurfaceLink ProjectionCrossing
+type SurfaceLinkProj = SurfaceLink ProjectionCrossing
+type SurfaceLinkProjCrossing = Crossing SurfaceLink ProjectionCrossing
+type SurfaceLinkProjDart = Dart SurfaceLink ProjectionCrossing
 
 
-type NonAlternatingSurfaceLink = SurfaceLink ArbitraryCrossing
-
-type NonAlternatingCrossing = Crossing SurfaceLink  ArbitraryCrossing
-
-type NonAlternatingDart = Dart SurfaceLink ArbitraryCrossing
+type NASurfaceLink = SurfaceLink ArbitraryCrossing
+type NASurfaceLinkCrossing = Crossing SurfaceLink ArbitraryCrossing
+type NASurfaceLinkDart = Dart SurfaceLink ArbitraryCrossing

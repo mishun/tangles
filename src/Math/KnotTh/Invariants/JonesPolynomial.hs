@@ -52,7 +52,7 @@ jonesPolynomial :: (SkeinStructure k) => k ArbitraryCrossing -> ResultOnStructur
 jonesPolynomial = evaluateSkeinRelation jonesRelation
 
 
-normalizedJonesPolynomialOfLink :: L.NonAlternatingLink -> Poly
+normalizedJonesPolynomialOfLink :: L.NALink -> Poly
 normalizedJonesPolynomialOfLink link
     | (numberOfFreeLoops link == 0) && (numberOfCrossings link == 0)  =
         error "jonesPolynomialOfLink: empty link provided"
@@ -60,13 +60,13 @@ normalizedJonesPolynomialOfLink link
         normalizeBy (1 + monomial 1 jonesVar 1) (monomial (-1) jonesVar (1 / 2) * jonesPolynomial link)
 
 
-minimalJonesPolynomialOfLink :: L.NonAlternatingLink -> Poly
+minimalJonesPolynomialOfLink :: L.NALink -> Poly
 minimalJonesPolynomialOfLink link =
     let p = jonesPolynomial link
     in min p (invert jonesVar p)
 
 
-minimalJonesPolynomialOfTangle :: T.NonAlternatingTangle -> PlanarDiagramsSum Poly
+minimalJonesPolynomialOfTangle :: T.NATangle -> PlanarDiagramsSum Poly
 minimalJonesPolynomialOfTangle tangle
     | l == 0     = min p $ fmap (invert jonesVar) p
     | otherwise  = minimum $ do
@@ -91,7 +91,7 @@ kauffmanXPolynomial :: (SkeinStructure k) => k ArbitraryCrossing -> ResultOnStru
 kauffmanXPolynomial = evaluateSkeinRelation kauffmanXRelation
 
 
-minimalKauffmanXPolynomialOfLink :: L.NonAlternatingLink -> Poly
+minimalKauffmanXPolynomialOfLink :: L.NALink -> Poly
 minimalKauffmanXPolynomialOfLink link =
     let p = kauffmanXPolynomial link
     in min p (invert kauffmanXVar p)

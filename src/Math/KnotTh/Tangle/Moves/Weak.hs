@@ -8,11 +8,11 @@ import Math.KnotTh.Tangle
 import Math.KnotTh.Tangle.Moves.Move
 
 
-neighbours :: NonAlternatingTangle -> [NonAlternatingTangle]
-neighbours tangle = concatMap (\ f -> f tangle) [neighboursBorderCrossing, neighboursBorderLoop]
+neighbours :: NATangle -> [NATangle]
+neighbours tangle = concatMap ($ tangle) [neighboursBorderCrossing, neighboursBorderLoop]
 
 
-neighboursBorderCrossing :: NonAlternatingTangle -> [NonAlternatingTangle]
+neighboursBorderCrossing :: NATangle -> [NATangle]
 neighboursBorderCrossing tangle =
     flip mapMaybe (allLegs tangle) $ \ xa -> do
         let ax = opposite xa
@@ -36,7 +36,7 @@ neighboursBorderCrossing tangle =
                 else connectC [(pa, ya), (qa, xa)]
 
 
-neighboursBorderLoop :: NonAlternatingTangle -> [NonAlternatingTangle]
+neighboursBorderLoop :: NATangle -> [NATangle]
 neighboursBorderLoop tangle =
     flip mapMaybe (allLegs tangle) $ \ xa -> do
         let ax = opposite xa

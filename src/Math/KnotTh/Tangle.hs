@@ -1,10 +1,12 @@
 module Math.KnotTh.Tangle
     ( module X
-    , TangleProjection
+    , TangleProj
+    , TangleProjCrossing
+    , TangleProjDart
     , lonerProjection
-    , NonAlternatingTangle
-    , NonAlternatingCrossing
-    , NonAlternatingDart
+    , NATangle
+    , NATangleCrossing
+    , NATangleDart
     , lonerOverCrossingTangle
     , lonerUnderCrossingTangle
     , rationalTangle
@@ -21,29 +23,29 @@ import Math.KnotTh.Crossings.Projection as X
 import Math.KnotTh.Crossings.Arbitrary as X
 
 
-type TangleProjection = Tangle ProjectionCrossing
+type TangleProj = Tangle ProjectionCrossing
+type TangleProjCrossing = Crossing Tangle ProjectionCrossing
+type TangleProjDart = Dart Tangle ProjectionCrossing
 
 
-lonerProjection :: TangleProjection
+lonerProjection :: TangleProj
 lonerProjection = lonerTangle projectionCrossing
 
 
-type NonAlternatingTangle = Tangle ArbitraryCrossing
-
-type NonAlternatingCrossing = Crossing Tangle ArbitraryCrossing
-
-type NonAlternatingDart = Dart Tangle ArbitraryCrossing
+type NATangle = Tangle ArbitraryCrossing
+type NATangleCrossing = Crossing Tangle ArbitraryCrossing
+type NATangleDart = Dart Tangle ArbitraryCrossing
 
 
-lonerOverCrossingTangle :: NonAlternatingTangle
+lonerOverCrossingTangle :: NATangle
 lonerOverCrossingTangle = lonerTangle overCrossing
 
 
-lonerUnderCrossingTangle :: NonAlternatingTangle
+lonerUnderCrossingTangle :: NATangle
 lonerUnderCrossingTangle = lonerTangle underCrossing
 
 
-rationalTangle :: [Int] -> NonAlternatingTangle
+rationalTangle :: [Int] -> NATangle
 rationalTangle = flip foldl infinityTangle $ \ tangle x ->
     let g = chainTangle $ replicate (abs x) (if x >= 0 then overCrossing else underCrossing)
     in glueTangles 2 (nthLeg g 2) (nthLeg tangle 2)

@@ -21,10 +21,10 @@ import TestUtil.Table
 
 testInvariantness ::
     (Eq a, Show a)
-        => ((forall m. (Monad m) => (NonAlternatingTangle -> m ()) -> m ())
-        -> [AllDiagramsInfo NonAlternatingTangle])
+        => ((forall m. (Monad m) => (NATangle -> m ()) -> m ())
+        -> [AllDiagramsInfo NATangle])
         -> Int
-        -> (NonAlternatingTangle -> a)
+        -> (NATangle -> a)
         -> Assertion
 
 testInvariantness sortClasses n f = do

@@ -11,7 +11,7 @@ import Math.KnotTh.Tangle.Moves.Move
 import Math.KnotTh.Tangle.Moves.ReidemeisterReduction
 
 
-neighbours :: NonAlternatingTangle -> [NonAlternatingTangle]
+neighbours :: NATangle -> [NATangle]
 neighbours tangle = mapMaybe (\ d -> tryPass 1 d d [opposite d]) $ allDartsOfCrossings tangle
     where
         tryPass n ha tb incoming = do

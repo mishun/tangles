@@ -79,11 +79,11 @@ forAllSummands :: (Monad m) => OrientedChordDiagramsSum a -> (OrientedChordDiagr
 forAllSummands (OrientedChordDiagramsSum _ list) = forM_ list
 
 
-restoreBasicTangle :: UArray Int Int -> NonAlternatingTangle
+restoreBasicTangle :: UArray Int Int -> NATangle
 restoreBasicTangle chordDiagram =
     let (0, l) = bounds chordDiagram
 
-        restore :: UArray Int Int -> UArray Int Int -> [Int] -> NonAlternatingTangle
+        restore :: UArray Int Int -> UArray Int Int -> [Int] -> NATangle
         restore a _ [] = implode (0, map ((,) 0) $ elems a, [])
         restore !a !h ((!i) : rest)
             | not cross  = restore a h rest
@@ -103,7 +103,7 @@ restoreBasicTangle chordDiagram =
     in restore chordDiagram (listArray (0, l) $ map (\ i -> min i $ chordDiagram ! i) [0 .. l]) [0 .. l]
 
 
-decomposeTangle :: (SkeinRelation r a) => r -> a -> NonAlternatingTangle -> OrientedChordDiagramsSum a
+decomposeTangle :: (SkeinRelation r a) => r -> a -> NATangle -> OrientedChordDiagramsSum a
 decomposeTangle relation !factor !tangle
     | numberOfFreeLoops tangle > 0  =
         decomposeTangle relation
@@ -119,7 +119,7 @@ decomposeTangle relation !factor !tangle
                     (h, _) : _ | isLeg h   -> (i, on min legPlace (fst $ head thread) (snd $ last thread))
                                | otherwise -> (i, numberOfLegs tangle + i)
 
-            order :: UArray (Dart Tangle ArbitraryCrossing) Int
+            order :: UArray NATangleDart Int
             order = array (dartsRange tangle) $ do
                 (_, thread) <- threads
                 (i, (a, b)) <- zip [0 ..] thread

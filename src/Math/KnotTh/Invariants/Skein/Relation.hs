@@ -25,7 +25,7 @@ data Skein = Lplus | Lzero | Linfty
 
 class (Functor s) => StateModel s where
     complexityRank :: s a -> Int
-    projection     :: s a -> [(T.NonAlternatingTangle, a)]
+    projection     :: s a -> [(T.NATangle, a)]
     initialize     :: (SkeinRelation r a) => r -> [(Skein, a)] -> s a
     asConst        :: (SkeinRelation r a) => r -> s a -> a
     glueHandle     :: (SkeinRelation r a) => r -> Int -> s a -> (UArray Int Int, s a)

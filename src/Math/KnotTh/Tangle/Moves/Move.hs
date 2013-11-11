@@ -136,7 +136,7 @@ oppositeC d = do
         readArray (stateConnections st) (dartIndex d)
 
 
-passOverC :: Dart Tangle ArbitraryCrossing -> MoveM s ArbitraryCrossing Bool
+passOverC :: NATangleDart -> MoveM s ArbitraryCrossing Bool
 passOverC d =
     ask >>= \ st -> lift $ do
         when (isLeg d) $ fail $ printf "passOverC: leg %s passed" (show d)

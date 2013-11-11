@@ -24,71 +24,70 @@ import Math.KnotTh.Link
 import Math.KnotTh.Link.Table.Access
 
 
-unlink :: Int -> NonAlternatingLink
-unlink k
-    | k < 0      = error $ printf "unlink: number of components %i is negative" k
-    | otherwise  = implode (k, [])
+unlink :: Int -> NALink
+unlink k | k < 0      = error $ printf "unlink: number of components %i is negative" k
+         | otherwise  = implode (k, [])
 
 
-unknot :: NonAlternatingLink
+unknot :: NALink
 unknot = unlink 1
 
 
-singleCrossingUnknot :: NonAlternatingLink
+singleCrossingUnknot :: NALink
 singleCrossingUnknot = fromGaussCode [[1, -1]]
 
 
-hopfLink :: NonAlternatingLink
+hopfLink :: NALink
 hopfLink = link 2 2 1
 
 
-leftTrefoilKnot :: NonAlternatingLink
+leftTrefoilKnot :: NALink
 leftTrefoilKnot = knot 3 1
 
 
-rightTrefoilKnot :: NonAlternatingLink
+rightTrefoilKnot :: NALink
 rightTrefoilKnot = invertCrossings leftTrefoilKnot
 
 
-figureEightKnot :: NonAlternatingLink
+figureEightKnot :: NALink
 figureEightKnot = knot 4 1
 
 
-leftCinquefoilKnot :: NonAlternatingLink
+leftCinquefoilKnot :: NALink
 leftCinquefoilKnot = knot 5 1
 
 
-rightCinquefoilKnot :: NonAlternatingLink
+rightCinquefoilKnot :: NALink
 rightCinquefoilKnot = invertCrossings leftCinquefoilKnot
 
 
-threeTwistKnot :: NonAlternatingLink
+threeTwistKnot :: NALink
 threeTwistKnot = knot 5 2
 
 
-whiteheadLink :: NonAlternatingLink
+whiteheadLink :: NALink
 whiteheadLink = link 2 5 1
 
 
-grannyKnot :: NonAlternatingLink
+grannyKnot :: NALink
 grannyKnot = fromGaussCode [[1, -2, 3, -1, 2, -3, 4, -5, 6, -4, 5, -6]]
 
 
-squareKnot :: NonAlternatingLink
+squareKnot :: NALink
 squareKnot = fromGaussCode [[1, -2, 3, -1, 2, -3, -4, 5, -6, 4, -5, 6]]
 
 
-stevedoreKnot :: NonAlternatingLink
+stevedoreKnot :: NALink
 stevedoreKnot = knot 6 1
 
 
-borromeanRingsLink :: NonAlternatingLink
+borromeanRingsLink :: NALink
 borromeanRingsLink = link 3 6 1
 
 
-conwayKnot :: NonAlternatingLink
+conwayKnot :: NALink
 conwayKnot = fromDTCode [[4, 8, 12, 2, -16, -18, 6, -20, -22, -14, -10]]
 
 
-kinoshitaTerasakaKnot :: NonAlternatingLink
+kinoshitaTerasakaKnot :: NALink
 kinoshitaTerasakaKnot = fromDTCode [[4, 8, 12, 2, -18, -20, 6, -10, -22, -14, -16]]

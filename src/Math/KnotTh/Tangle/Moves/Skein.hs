@@ -7,7 +7,7 @@ import Math.KnotTh.Tangle
 import Math.KnotTh.Tangle.Moves.Move
 
 
-smoothA :: NonAlternatingCrossing -> MoveM s ArbitraryCrossing ()
+smoothA :: NATangleCrossing -> MoveM s ArbitraryCrossing ()
 smoothA cs = do
     let dn@[_, d1, d2, d3] = incidentDarts cs
     [od0, od1, od2, od3] <- mapM oppositeC dn
@@ -20,7 +20,7 @@ smoothA cs = do
     maskC [cs]
 
 
-smoothB :: NonAlternatingCrossing -> MoveM s ArbitraryCrossing ()
+smoothB :: NATangleCrossing -> MoveM s ArbitraryCrossing ()
 smoothB cs = do
     let dn@[_, d1, d2, d3] = incidentDarts cs
     [od0, od1, od2, od3] <- mapM oppositeC dn

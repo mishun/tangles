@@ -1,9 +1,11 @@
 module Math.KnotTh.Link
     ( module X
-    , LinkProjection
-    , NonAlternatingLink
-    , NonAlternatingCrossing
-    , NonAlternatingDart
+    , LinkProj
+    , LinkProjCrossing
+    , LinkProjDart
+    , NALink
+    , NALinkCrossing
+    , NALinkDart
     ) where
 
 import Math.KnotTh.Knotted as X
@@ -14,11 +16,11 @@ import Math.KnotTh.Crossings.Projection as X
 import Math.KnotTh.Crossings.Arbitrary as X
 
 
-type LinkProjection = Link ProjectionCrossing
+type LinkProj = Link ProjectionCrossing
+type LinkProjCrossing = Crossing Link ProjectionCrossing
+type LinkProjDart = Dart Link ProjectionCrossing
 
 
-type NonAlternatingLink = Link ArbitraryCrossing
-
-type NonAlternatingCrossing = Crossing Link ArbitraryCrossing
-
-type NonAlternatingDart = Dart Link ArbitraryCrossing
+type NALink = Link ArbitraryCrossing
+type NALinkCrossing = Crossing Link ArbitraryCrossing
+type NALinkDart = Dart Link ArbitraryCrossing

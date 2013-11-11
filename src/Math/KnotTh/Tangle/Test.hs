@@ -30,19 +30,19 @@ test = testGroup "Basic tangle tests"
 
     , testCase "Show tangle" $ do
         assertEqual "empty tangle" "(Tangle (0 O) (Border [  ]))" $
-            show (emptyTangle :: TangleProjection)
+            show (emptyTangle :: TangleProj)
 
         assertEqual "zero tangle" "(Tangle (0 O) (Border [ (Leg 3) (Leg 2) (Leg 1) (Leg 0) ]))" $
-            show (zeroTangle :: TangleProjection)
+            show (zeroTangle :: TangleProj)
 
         assertEqual "infinity tangle" "(Tangle (0 O) (Border [ (Leg 1) (Leg 0) (Leg 3) (Leg 2) ]))" $
-            show (infinityTangle :: TangleProjection)
+            show (infinityTangle :: TangleProj)
 
         assertEqual "loner tangle" "(Tangle (0 O) (Border [ (Dart 1 0) (Dart 1 1) (Dart 1 2) (Dart 1 3) ]) (Crossing 1 (I / D4 | +) [ (Leg 0) (Leg 1) (Leg 2) (Leg 3) ]))" $
             show lonerProjection
 
         assertEqual "implode" "(Tangle (0 O) (Border [ (Dart 1 0) (Dart 1 1) (Dart 1 2) (Dart 1 3) ]) (Crossing 1 (I / D4 | +) [ (Leg 0) (Leg 1) (Leg 2) (Leg 3) ]))" $
-            show (implode (0, [(1, 0), (1, 1), (1, 2), (1, 3)], [([(0, 0), (0, 1), (0, 2), (0, 3)], projectionCrossing)]) :: TangleProjection)
+            show (implode (0, [(1, 0), (1, 1), (1, 2), (1, 3)], [([(0, 0), (0, 1), (0, 2), (0, 3)], projectionCrossing)]) :: TangleProj)
 
     , testCase "Cascade code" $
         explode (decodeCascadeCodeFromPairs [(1, 0), (0, 5), (0, 3), (0, 3), (0, 5)]) @?=
@@ -116,12 +116,12 @@ test = testGroup "Basic tangle tests"
                 )
 
         , testCase "Glue zero and infinity tangles to infinity" $
-            let z = zeroTangle :: TangleProjection
-                i = infinityTangle :: TangleProjection
+            let z = zeroTangle :: TangleProj
+                i = infinityTangle :: TangleProj
             in explode (glueTangles 2 (nthLeg z 0) (nthLeg z 0)) @?= explode i
 
         , testCase "Glue two infinity tangles to get circle inside" $
-            let i = infinityTangle :: TangleProjection
+            let i = infinityTangle :: TangleProj
             in explode (glueTangles 2 (nthLeg i 0) (nthLeg i 3)) @?= (1, [(0, 1), (0, 0), (0, 3), (0, 2)], [])
 
         , testCase "Glue loner and thread" $
@@ -135,7 +135,7 @@ test = testGroup "Basic tangle tests"
 
     , testGroup "Braid tangles"
         [ testCase "Identity braid tangle" $
-            explode (identityBraidTangle 4 :: TangleProjection) @?=
+            explode (identityBraidTangle 4 :: TangleProj) @?=
                 (0, [(0, 7), (0, 6), (0, 5), (0, 4), (0, 3), (0, 2), (0, 1), (0, 0)], [])
 
         , testCase "Braid generator" $

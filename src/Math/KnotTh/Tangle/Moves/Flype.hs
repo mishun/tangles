@@ -10,7 +10,7 @@ import Math.KnotTh.Tangle.Moves.Move
 import Math.KnotTh.Tangle.Moves.Resting
 
 
-neighbours :: NonAlternatingTangle -> [NonAlternatingTangle]
+neighbours :: NATangle -> [NATangle]
 neighbours tangle =
     flip mapMaybe (allDartsOfCrossings tangle) $ \ ab -> do
         let ba = opposite ab

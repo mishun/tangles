@@ -25,7 +25,7 @@ test =
 
     in testGroup "SurfaceLink tests"
         [ testCase "Simplest torus link" $ do
-            let l :: SurfaceLinkProjection
+            let l :: SurfaceLinkProj
                 l = implode (0, [([(1, 2), (1, 3), (1, 0), (1, 1)], projectionCrossing)])
 
             testCorr l
@@ -34,7 +34,7 @@ test =
             assertEqual "Euler char" 0 $ eulerChar l
 
         , testCase "Hopf link" $ do
-            let l :: SurfaceLinkProjection
+            let l :: SurfaceLinkProj
                 l = implode (0,
                     [ ([(2, 0), (2, 3), (2, 2), (2, 1)], projectionCrossing)
                     , ([(1, 0), (1, 3), (1, 2), (1, 1)], projectionCrossing)
