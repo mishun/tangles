@@ -1,10 +1,10 @@
 module Main (main) where
 
-import Data.Array.Base ((!))
-import Control.Monad.Writer
+import Data.Array.IArray ((!))
+import Control.Monad.Writer (execWriter, tell)
 import Control.Monad (forM_)
 import Diagrams.Prelude
-import Math.Manifolds.SurfaceGraph
+import Math.Topology.Manifolds.SurfaceGraph
 import TestUtil.Drawing
 
 

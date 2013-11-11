@@ -4,10 +4,10 @@ import Data.Monoid (Last(..))
 import Text.Printf
 import Criterion.Main
 import Criterion.Config
-import Math.KnotTh.Tangle.NonAlternating
-import Math.KnotTh.Tangle.NonAlternating.Satellites
-import Math.KnotTh.Link
-import Math.KnotTh.Invariants
+import Math.Topology.KnotTh.Tangle.NonAlternating
+import Math.Topology.KnotTh.Tangle.NonAlternating.Satellites
+import Math.Topology.KnotTh.Link
+import Math.Topology.KnotTh.Invariants
 
 
 polynomialsBenchmark knot =

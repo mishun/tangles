@@ -16,7 +16,7 @@ import Control.Monad (forM_, guard)
 import Text.Printf
 import System.CPUTime (getCPUTime)
 import Test.HUnit
-import Math.KnotTh.Tangle
+import Math.Topology.KnotTh.Tangle
 
 
 

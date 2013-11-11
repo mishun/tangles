@@ -20,7 +20,7 @@ import Data.Bits ((.&.), xor, shiftL, shiftR)
 import Data.Array.Base (unsafeAt)
 import Data.Array.Unboxed (UArray, listArray)
 import Text.Printf
-import Math.Algebra.Group.Dn (DnSubGroup, pointsUnderSubGroup, rotationPeriod, hasReflectionPart, mirroredZero, fromPeriod, fromPeriodAndMirroredZero)
+import qualified Math.Algebra.Group.Dn as Dn -- (DnSubGroup, pointsUnderSubGroup, rotationPeriod, hasReflectionPart, mirroredZero, fromPeriod, fromPeriodAndMirroredZero)
 
 
 -- Element = (E^mirror) * (C^rotation)
@@ -179,21 +179,21 @@ equvalenceClassRepresentatives :: D4SubGroup -> [D4]
 equvalenceClassRepresentatives (SubGroup _ _ r) = r
 
 
-fromDnSubGroup :: DnSubGroup -> D4SubGroup
+fromDnSubGroup :: Dn.DnSubGroup -> D4SubGroup
 fromDnSubGroup s
-    | pointsUnderSubGroup s /= 4  = error $ printf "fromDnSubGroup: order is %i instead of 4" (pointsUnderSubGroup s)
-    | otherwise                   =
-        case rotationPeriod s of
-            1 -> if hasReflectionPart s
+    | Dn.pointsUnderSubGroup s /= 4  = error $ printf "fromDnSubGroup: order is %i instead of 4" (Dn.pointsUnderSubGroup s)
+    | otherwise                      =
+        case Dn.rotationPeriod s of
+            1 -> if Dn.hasReflectionPart s
                 then subGroupD4
                 else subGroupC4
-            2 -> if hasReflectionPart s
-                then if mirroredZero s == 0
+            2 -> if Dn.hasReflectionPart s
+                then if Dn.mirroredZero s == 0
                     then subGroupDS
                     else subGroupGS
                 else subGroupC2
-            _ -> if hasReflectionPart s
-                then case mirroredZero s of
+            _ -> if Dn.hasReflectionPart s
+                then case Dn.mirroredZero s of
                     0 -> subGroupES
                     1 -> subGroupEC3S
                     2 -> subGroupEC2S
@@ -201,16 +201,16 @@ fromDnSubGroup s
                 else subGroupID
 
 
-toDnSubGroup :: D4SubGroup -> DnSubGroup
+toDnSubGroup :: D4SubGroup -> Dn.DnSubGroup
 toDnSubGroup (SubGroup x _ _) =
     case x of
-        0 -> fromPeriodAndMirroredZero 4 1 0
-        1 -> fromPeriod 4 1
-        2 -> fromPeriodAndMirroredZero 4 2 1
-        3 -> fromPeriodAndMirroredZero 4 2 0
-        4 -> fromPeriod 4 2
-        5 -> fromPeriodAndMirroredZero 4 4 0
-        6 -> fromPeriodAndMirroredZero 4 4 3
-        7 -> fromPeriodAndMirroredZero 4 4 2
-        8 -> fromPeriodAndMirroredZero 4 4 1
-        _ -> fromPeriod 4 4
+        0 -> Dn.fromPeriodAndMirroredZero 4 1 0
+        1 -> Dn.fromPeriod 4 1
+        2 -> Dn.fromPeriodAndMirroredZero 4 2 1
+        3 -> Dn.fromPeriodAndMirroredZero 4 2 0
+        4 -> Dn.fromPeriod 4 2
+        5 -> Dn.fromPeriodAndMirroredZero 4 4 0
+        6 -> Dn.fromPeriodAndMirroredZero 4 4 3
+        7 -> Dn.fromPeriodAndMirroredZero 4 4 2
+        8 -> Dn.fromPeriodAndMirroredZero 4 4 1
+        _ -> Dn.fromPeriod 4 4

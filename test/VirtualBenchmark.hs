@@ -6,14 +6,14 @@ import Control.Monad.State.Strict (execState, modify)
 import Control.Monad (forM_, when)
 import Text.Printf
 import Diagrams.Prelude
-import Math.KnotTh.Draw
-import Math.KnotTh.Tangle
-import Math.KnotTh.Tangle.BorderIncremental.IncrementalGluing
-import Math.KnotTh.Tangle.BorderIncremental.SimpleTypes
-import Math.KnotTh.SurfaceLink
-import Math.KnotTh.SurfaceLink.IsomorphismTest
-import Math.KnotTh.SurfaceLink.TestPrime
-import Math.KnotTh.SurfaceLink.TangleStarGlue
+import Math.Topology.KnotTh.Draw
+import Math.Topology.KnotTh.Tangle
+import Math.Topology.KnotTh.Tangle.BorderIncremental.IncrementalGluing
+import Math.Topology.KnotTh.Tangle.BorderIncremental.SimpleTypes
+import Math.Topology.KnotTh.SurfaceLink
+import Math.Topology.KnotTh.SurfaceLink.IsomorphismTest
+import Math.Topology.KnotTh.SurfaceLink.TestPrime
+import Math.Topology.KnotTh.SurfaceLink.TangleStarGlue
 import TestUtil.Drawing
 
 

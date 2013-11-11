@@ -1,19 +1,20 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 module Main (main) where
 
-import Data.Array.Base (listArray)
 import Data.Maybe (mapMaybe)
-import Control.Monad.Writer
+import Control.Monad.Writer (execWriter, tell)
+import Control.Arrow ((&&&))
+import Control.Monad (forM_)
 import Text.Printf
 import Diagrams.Prelude
-import Math.KnotTh.Enumeration.DiagramInfo.MinimalDiagramInfo
-import Math.KnotTh.Enumeration.Applied.NonAlternatingTangles
-import Math.KnotTh.Draw
-import Math.KnotTh.Tangle.Moves.Test
-import Math.KnotTh.Link.Table
+import Math.Topology.KnotTh.Enumeration.DiagramInfo.MinimalDiagramInfo
+import Math.Topology.KnotTh.Enumeration.Applied.NonAlternatingTangles
+import Math.Topology.KnotTh.Draw
+import Math.Topology.KnotTh.Tangle.Moves.Test
+import Math.Topology.KnotTh.Link.Table
 import TestUtil.Table
 import TestUtil.Drawing
-import Math.KnotTh.Tangle.NonAlternating.Satellites
+import Math.Topology.KnotTh.Tangle.NonAlternating.Satellites
 
 
 main :: IO ()
@@ -22,7 +23,7 @@ main = do
 
     let sifted = lookingForwardTanglesEnumeration True 6 0 8
     printTable "Tangles" $ generateTable'
-        (\ tangle -> (numberOfCrossings tangle, numberOfLegs tangle))
+        (numberOfCrossings &&& numberOfLegs)
         (const 1)
         (forM_ (mapMaybe maybePrimeDiagram $ singleRepresentativeClasses sifted))
     putStrLn $ printf "Collision classes: %i" (length $ collisionClasses sifted)

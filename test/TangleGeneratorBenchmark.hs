@@ -1,24 +1,27 @@
+{-# LANGUAGE Rank2Types #-}
 module Main (main) where
 
-import Control.Monad.State
-import Control.Monad
+import Control.Monad.State (execState, modify)
+import Control.Monad (when)
 import Diagrams.Prelude
-import Math.KnotTh.Tangle
-import Math.KnotTh.Draw
-import Math.KnotTh.Tangle.BorderIncremental.SimpleTypes
-import Math.KnotTh.Tangle.BorderIncremental.FlypeGenerator
+import Math.Topology.KnotTh.Tangle
+import Math.Topology.KnotTh.Draw
+import Math.Topology.KnotTh.Tangle.BorderIncremental.SimpleTypes
+import Math.Topology.KnotTh.Tangle.BorderIncremental.FlypeGenerator
+import Math.Combinatorics.Generation.CanonicalConstructionPath
+import Math.Topology.KnotTh.Tangle.BorderIncremental
 import TestUtil.Table
 import TestUtil.Drawing
 
 
 main :: IO ()
 main = do
-    printTable "Prime projections"    $ generateTable False $ simpleIncrementalGenerator primeProjectionType [ProjectionCrossing] 8
-    printTable "Template projections" $ generateTable False $ simpleIncrementalGenerator templateProjectionType [ProjectionCrossing] 9
-    printTable "Alternating tangles"  $ generateTable False $ generateFlypeEquivalent 8
-    printTable "Prime diagrams"       $ generateTable False $ simpleIncrementalGenerator primeDiagramType [ArbitraryCrossing] 6
+    printTable "Prime projections"    $ generateTable $ forCCP_ (primeProjections 8)
+    printTable "Template projections" $ generateTable $ simpleIncrementalGenerator templateProjectionType [ProjectionCrossing] 9
+    printTable "Alternating tangles"  $ generateTable $ generateFlypeEquivalent 8
+    printTable "Prime diagrams"       $ generateTable $ forCCP_ (primeIrreducibleDiagrams 6)
 
     writeSVGImage "tangles.svg" (Width 250) $ pad 1.05 $ flip execState mempty $
-        simpleIncrementalGenerator primeProjectionType [ProjectionCrossing] 5 $ \ tangle _ ->
+        forCCP_ (primeIrreducibleDiagrams 3) $ \ (tangle, _) ->
             when (numberOfLegs tangle == 4) $
                 modify (=== pad 1.1 (drawKnotDef tangle))
