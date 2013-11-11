@@ -8,8 +8,7 @@ import Text.Printf
 import Diagrams.Prelude
 import Math.Topology.KnotTh.Draw
 import Math.Topology.KnotTh.Tangle
-import Math.Topology.KnotTh.Tangle.BorderIncremental.IncrementalGluing
-import Math.Topology.KnotTh.Tangle.BorderIncremental.SimpleTypes
+import Math.Topology.KnotTh.Tangle.BorderIncremental
 import Math.Topology.KnotTh.SurfaceLink
 import Math.Topology.KnotTh.SurfaceLink.IsomorphismTest
 import Math.Topology.KnotTh.SurfaceLink.TestPrime

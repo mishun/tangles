@@ -8,7 +8,7 @@ import Test.Framework (Test, testGroup)
 import Test.Framework.Providers.HUnit (testCase)
 import qualified Math.Algebra.Group.Dn as Dn
 import Math.Topology.KnotTh.Tangle
-import Math.Topology.KnotTh.Tangle.BorderIncremental.SimpleTypes
+import Math.Topology.KnotTh.Tangle.BorderIncremental
 import Math.Topology.KnotTh.Tangle.BorderIncremental.FlypeGenerator
 import TestUtil.Table
 
@@ -16,7 +16,7 @@ import TestUtil.Table
 test :: Test
 test = testGroup "Tangle generators"
     [ testCase "Numbers of prime tangle projections" $
-        testTable (\ n -> generateTable $ simpleIncrementalGenerator primeProjectionType [ProjectionCrossing] n)
+        testTable (\ n -> generateTable $ forCCP_ (primeProjections n))
             [ [1]
             , [1, 1]
             , [2, 2, 2]
@@ -28,7 +28,7 @@ test = testGroup "Tangle generators"
             ]
 
     , testCase "Numbers of basic polyhedral tangle projections" $
-        testTable (\ n -> generateTable $ simpleIncrementalGenerator reducedProjectionType [ProjectionCrossing] n)
+        testTable (\ n -> generateTable $ forCCP_ (reducedProjections n))
             [ [1]
             , [0, 1]
             , [0, 1, 2]
@@ -39,7 +39,7 @@ test = testGroup "Tangle generators"
             ]
 
     , testCase "Numbers of tangle templates" $
-        testTable (\ n -> generateTable $ simpleIncrementalGenerator templateProjectionType [ProjectionCrossing] n)
+        testTable (\ n -> generateTable $ forCCP_ (templateProjections n))
             [ [1]
             , [0, 1]
             , [0, 1, 2]
@@ -51,13 +51,13 @@ test = testGroup "Tangle generators"
             ]
 
     , testCase "Numbers of tangle diagrams" $
-        testTable (\ n -> generateTable $ simpleIncrementalGenerator primeIrreducibleDiagramType [ArbitraryCrossing] n)
+        testTable (\ n -> generateTable $ forCCP_ (primeIrreducibleDiagrams n))
             [ [1]
-            , [1, 3] -- [1, 2]
-            , [3, 6, 10] -- [3, 4, 6]
-            , [18, 41, 58, 58] -- [14, 25, 33, 32]
-            , [116, 268, 484, 564, 397] -- [76, 148, 258, 290, 206]
-            , [836, 2168, 4120, 6070, 6099, 3388] -- [486, 1146, 2125, 3086, 3081, 1718]
+            , [1, 2]
+            , [3, 4, 6]
+            , [14, 25, 33, 32]
+            , [76, 148, 258, 290, 206]
+            , [486, 1146, 2125, 3086, 3081, 1718]
             ]
 
     , testCase "Numbers of alternating tangles" $

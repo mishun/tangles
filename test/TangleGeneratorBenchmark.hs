@@ -6,9 +6,7 @@ import Control.Monad (when)
 import Diagrams.Prelude
 import Math.Topology.KnotTh.Tangle
 import Math.Topology.KnotTh.Draw
-import Math.Topology.KnotTh.Tangle.BorderIncremental.SimpleTypes
 import Math.Topology.KnotTh.Tangle.BorderIncremental.FlypeGenerator
-import Math.Combinatorics.Generation.CanonicalConstructionPath
 import Math.Topology.KnotTh.Tangle.BorderIncremental
 import TestUtil.Table
 import TestUtil.Drawing
@@ -17,7 +15,7 @@ import TestUtil.Drawing
 main :: IO ()
 main = do
     printTable "Prime projections"    $ generateTable $ forCCP_ (primeProjections 8)
-    printTable "Template projections" $ generateTable $ simpleIncrementalGenerator templateProjectionType [ProjectionCrossing] 9
+    printTable "Template projections" $ generateTable $ forCCP_ (templateProjections 9)
     printTable "Alternating tangles"  $ generateTable $ generateFlypeEquivalent 8
     printTable "Prime diagrams"       $ generateTable $ forCCP_ (primeIrreducibleDiagrams 6)
 

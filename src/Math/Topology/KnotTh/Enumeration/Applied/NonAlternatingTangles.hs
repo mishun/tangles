@@ -19,7 +19,7 @@ import Math.Topology.KnotTh.Enumeration.DiagramInfo.MinimalDiagramInfo
 import Math.Topology.KnotTh.Tangle as X
 import Math.Topology.KnotTh.Tangle.NonAlternating.Satellites
 import Math.Topology.KnotTh.Tangle.IsomorphismTest
-import Math.Topology.KnotTh.Tangle.BorderIncremental.SimpleTypes
+import Math.Topology.KnotTh.Tangle.BorderIncremental
 import Math.Topology.KnotTh.Link (tangleDoubling)
 import Math.Topology.KnotTh.Invariants
 import qualified Math.Topology.KnotTh.Tangle.Moves.Flype as Flype
@@ -30,10 +30,10 @@ import qualified Math.Topology.KnotTh.Tangle.Moves.Weak as Weak
 
 
 tangleDiagrams :: (Monad m) => Bool -> Int -> Int -> (NATangle -> m ()) -> m ()
-tangleDiagrams triangle legsLimit n yield =
-    let t | triangle   = triangleBoundedType n primeIrreducibleDiagramType
-          | otherwise  = primeIrreducibleDiagramType
-    in simpleIncrementalGenerator t [ArbitraryCrossing] n $ \ (tangle, _) ->
+tangleDiagrams triangle legsLimit maxN yield =
+    let path | triangle   = primeIrreducibleDiagramsTriangle maxN
+             | otherwise  = primeIrreducibleDiagrams maxN
+    in forCCP_ path $ \ (tangle, _) ->
         when (legsLimit < 0 || numberOfLegs tangle <= legsLimit) $
             yield tangle
 

@@ -4,6 +4,7 @@ module Math.Topology.KnotTh.Enumeration.Applied.Test
     ) where
 
 import Data.Maybe (mapMaybe)
+import Control.Arrow ((&&&))
 import Control.Monad (forM_)
 import Control.Parallel.Strategies
 import Test.Framework (Test, testGroup)
@@ -65,7 +66,7 @@ test = testGroup "Enumeration tests"
                 let sifted = lookingForwardTanglesEnumeration True (-1) 0 n
                 assertEqual "There must be no collisions" 0 $ length $ collisionClasses sifted
                 return $! generateTable'
-                    (\ tangle -> (numberOfCrossings tangle, numberOfLegs tangle))
+                    (numberOfCrossings &&& numberOfLegs)
                     (const 1)
                     (forM_ $ mapMaybe maybePrimeDiagram $ singleRepresentativeClasses sifted)
             )
