@@ -2,8 +2,10 @@ module Math.Topology.KnotTh.Invariants.Skein.StateModels.ChordDiagramsSum
     ( ChordDiagramsSum
     ) where
 
+import qualified Data.Map as M
 import Data.Function (on)
-import Data.Array.IArray ((!), (//), bounds, array, listArray)
+import Data.List (intercalate, foldl')
+import Data.Array.IArray ((!), (//), bounds, array, listArray, elems)
 import Data.Array.MArray (newArray, newArray_, readArray, writeArray, freeze)
 import Data.Array (Array)
 import Data.Array.Unboxed (UArray)
@@ -11,12 +13,75 @@ import Data.Array.ST (STUArray)
 import Data.STRef (newSTRef, readSTRef, modifySTRef')
 import Control.Monad.ST (ST, runST)
 import Control.Monad (forM_, when)
+import Control.DeepSeq
+import Text.Printf
 import Math.Topology.KnotTh.Tangle
 import Math.Topology.KnotTh.Tangle.Moves.Move
 import Math.Topology.KnotTh.Tangle.Moves.ReidemeisterReduction
 import Math.Topology.KnotTh.Tangle.Moves.Skein
 import Math.Topology.KnotTh.Invariants.Skein.Relation
-import Math.Topology.KnotTh.Invariants.Skein.StateModels.ChordDiagramsSum.ChordDiagramsSum
+
+
+data ChordDiagram a = ChordDiagram {-# UNPACK #-} !(UArray Int Int) !a deriving (Eq, Ord)
+
+
+instance Functor ChordDiagram where
+    fmap f (ChordDiagram p x) = ChordDiagram p $ f x
+
+
+instance (NFData a) => NFData (ChordDiagram a) where
+    rnf (ChordDiagram p x) = p `seq` rnf x
+
+
+instance (Show a) => Show (ChordDiagram a) where
+    show (ChordDiagram a x) =
+        printf "(%s)%s" (show x) (show $ elems a)
+
+
+data ChordDiagramsSum a = ChordDiagramsSum {-# UNPACK #-} !Int ![ChordDiagram a] deriving (Eq, Ord)
+
+
+instance Functor ChordDiagramsSum where
+    fmap f (ChordDiagramsSum order list) = ChordDiagramsSum order $ map (fmap f) list
+
+
+instance (NFData a) => NFData (ChordDiagramsSum a) where
+    rnf (ChordDiagramsSum _ list) = rnf list
+
+
+instance (Show a) => Show (ChordDiagramsSum a) where
+    show (ChordDiagramsSum _ list) =
+        case list of
+            [] -> "0"
+            _  -> intercalate "+" $ map show list
+
+
+singletonStateSum :: ChordDiagram a -> ChordDiagramsSum a
+singletonStateSum summand @ (ChordDiagram a _) =
+    ChordDiagramsSum (1 + snd (bounds a)) [summand]
+
+
+concatStateSums :: (Eq a, Num a) => [ChordDiagramsSum a] -> ChordDiagramsSum a
+concatStateSums [] = error $ printf "concatStateSum: empty"
+concatStateSums list @ (ChordDiagramsSum order _ : _) =
+    let s = map (\ (!k, !v) -> ChordDiagram k v) $
+            filter ((/= 0) . snd) $ M.toList $
+                foldl' (\ !m (ChordDiagram !k !v) -> M.insertWith' (+) k v m) M.empty $
+                    concatMap (\ (ChordDiagramsSum order' list') ->
+                            if order' == order
+                                then list'
+                                else error $ printf "concatStateSums: order conflict with %i and %i" order order'
+                        ) list
+    in ChordDiagramsSum order s
+
+
+mapStateSum :: (Eq a, Num a) => (ChordDiagram a -> ChordDiagramsSum a) -> ChordDiagramsSum a -> ChordDiagramsSum a
+mapStateSum _ (ChordDiagramsSum order []) = ChordDiagramsSum order []
+mapStateSum f (ChordDiagramsSum _ list) = concatStateSums $ map f list
+
+
+forAllSummands :: (Monad m) => ChordDiagramsSum a -> (ChordDiagram a -> m ()) -> m ()
+forAllSummands (ChordDiagramsSum _ list) = forM_ list
 
 
 {-# INLINE haveIntersection #-}
@@ -76,7 +141,7 @@ data ThreadTag = BorderThread {-# UNPACK #-} !(Int, Int) {-# UNPACK #-} !Int
 
 irregularCrossings :: NATangle -> [NATangleCrossing]
 irregularCrossings tangle =
-    let ((_, _, threads), ln) = threadsWithLinkingNumbers tangle
+    let ((_, _, threads), _) = threadsWithLinkingNumbers tangle
 
         expectedPassOver =
             let tags :: Array NATangleDart ThreadTag
@@ -102,9 +167,9 @@ irregularCrossings tangle =
             in \ d -> on (tagPassOver $ numberOfLegs tangle) (tags !) d (nextCCW d)
 
     in filter (\ c ->
-               let d0 = nthIncidentDart c 0
-               in passOver d0 /= expectedPassOver d0
-           ) $ allCrossings tangle
+            let d0 = nthIncidentDart c 0
+            in passOver d0 /= expectedPassOver d0
+       ) $ allCrossings tangle
 
 
 decomposeTangle :: (SkeinRelation r a) => r -> [(Int, [(Int, Int)], [([(Int, Int)], ArbitraryCrossingState)])] -> a -> NATangle -> ChordDiagramsSum a
@@ -232,7 +297,9 @@ instance StateModel ChordDiagramsSum where
 
     rotate relation rot
         | rot == 0   = id
-        | otherwise  = mapStateSum (\ (ChordDiagram a factor) -> decomposeTangle relation [] factor $ rotateTangle rot $ restoreBasicTangle a)
+        | otherwise  = mapStateSum $ \ (ChordDiagram a factor) ->
+            decomposeTangle relation [] factor $ rotateTangle rot $ restoreBasicTangle a
 
     mirror relation =
-        mapStateSum (\ (ChordDiagram a factor) -> decomposeTangle relation [] factor $ mirrorTangle $ restoreBasicTangle a)
+        mapStateSum $ \ (ChordDiagram a factor) ->
+            decomposeTangle relation [] factor $ mirrorTangle $ restoreBasicTangle a

@@ -14,6 +14,7 @@ import Math.Topology.KnotTh.Knotted
 import Math.Topology.KnotTh.Crossings.Arbitrary
 import qualified Math.Topology.KnotTh.Link as L
 import qualified Math.Topology.KnotTh.Tangle as T
+import qualified Math.Topology.KnotTh.SurfaceLink as SL
 
 
 --    L+       L-        L0        L∞
@@ -66,11 +67,17 @@ resultOnStructure relation knot =
 
 instance SkeinStructure L.Link where
     type ResultOnStructure L.Link s a = a
-    endpointPlace = error "endpointPlace: must be no endpoints for link"
+    endpointPlace = error "endpointPlace: must be no endpoints for Link"
     resultFromStateSum relation _ = asConst relation
 
 
 instance SkeinStructure T.Tangle where
     type ResultOnStructure T.Tangle s a = s a
     endpointPlace = T.legPlace
+    resultFromStateSum _ _ = id
+
+
+instance SkeinStructure SL.SurfaceLink where
+    type ResultOnStructure SL.SurfaceLink s a = s a
+    endpointPlace = error "endpointPlace: must be no endpoints for SurfaceLink"
     resultFromStateSum _ _ = id

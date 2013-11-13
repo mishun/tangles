@@ -13,7 +13,7 @@ import Math.Topology.KnotTh.Invariants.Skein.StateModels.ChordDiagramsSum as X
 evaluateSkeinRelation :: (SkeinRelation r a, SkeinStructure k) => r -> k ArbitraryCrossing -> ResultOnStructure k (SkeinRelationModel r) a
 evaluateSkeinRelation relation =
     runSkeinStrategy relation $
-        let try [] = error "evaluateSkeinRelation: impossible happened"
+        let try [] = error "evaluateSkeinRelation: no reduction places left"
             try ((v, i) : t) = do
                 (u, _) <- neighbour (v, i)
                 if u /= v

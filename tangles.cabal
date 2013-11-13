@@ -120,7 +120,6 @@ library
         Math.Topology.KnotTh.Invariants.Skein.SkeinM.RelaxVertex,
         Math.Topology.KnotTh.Invariants.Skein.SkeinM.State,
         Math.Topology.KnotTh.Invariants.Skein.StateModels.ChordDiagramsSum,
-        Math.Topology.KnotTh.Invariants.Skein.StateModels.ChordDiagramsSum.ChordDiagramsSum,
         Math.Topology.KnotTh.Invariants.Skein.StateModels.OrientedChordDiagramsSum,
         Math.Topology.KnotTh.Invariants.Skein.StateModels.PlanarDiagramsSum,
         Math.Topology.KnotTh.Invariants.Util.BruteForceMinimization,

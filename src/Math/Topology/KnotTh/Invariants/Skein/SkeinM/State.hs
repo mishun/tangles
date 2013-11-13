@@ -73,10 +73,9 @@ stateFromKnotted relation' knot = do
             , multiple = multiple'
             }
 
-    let pair d
-            | isEndpoint d                      = (0, endpointPlace d)
-            | isOverCrossing (crossingState c)  = (crossingIndex c, p)
-            | otherwise                         = (crossingIndex c, (p + 1) `mod` 4)
+    let pair d | isEndpoint d                      = (0, endpointPlace d)
+               | isOverCrossing (crossingState c)  = (crossingIndex c, p)
+               | otherwise                         = (crossingIndex c, (p + 1) `mod` 4)
             where
                 (c, p) = begin d
 
@@ -85,28 +84,6 @@ stateFromKnotted relation' knot = do
 
     return $! s
 
-{-
-copyState :: SkeinState s a -> ST s (SkeinState s a)
-copyState s = do
-    let n = size s
-
-    alive' <- newSTRef =<< readSTRef (alive s)
-    active' <- mapArray id (active s)
-    state' <- mapArray id (state s)
-
-    adjacent' <- newArray_ (0, n)
-    forM_ [0 .. n] $ \ i ->
-        readArray (adjacent s) i >>= mapArray id >>= writeArray adjacent' i
-
-    return $! SkeinState
-        { relation = relation s
-        , size     = n
-        , alive    = alive'
-        , active   = active'
-        , state    = state'
-        , adjacent = adjacent'
-        }
--}
 
 dumpStateST :: (SkeinRelation r a, Show (SkeinRelationModel r a)) => SkeinState s r a -> ST s String
 dumpStateST s = do
@@ -123,7 +100,7 @@ dumpStateST s = do
 
     alive' <- readSTRef $ alive s
     multiple' <- readSTRef $ multiple s
-    return $! printf "\nalive = %i\nmultiple=%s\n%s" alive' (show multiple') $ unlines cross
+    return $ printf "\nalive = %i\nmultiple=%s\n%s" alive' (show multiple') $ unlines cross
 
 
 appendMultipleST :: (SkeinRelation r a) => SkeinState s r a -> a -> ST s ()

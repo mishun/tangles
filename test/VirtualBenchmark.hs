@@ -13,6 +13,7 @@ import Math.Topology.KnotTh.SurfaceLink
 import Math.Topology.KnotTh.SurfaceLink.IsomorphismTest
 import Math.Topology.KnotTh.SurfaceLink.TestPrime
 import Math.Topology.KnotTh.SurfaceLink.TangleStarGlue
+import Math.Topology.KnotTh.Invariants
 import TestUtil.Drawing
 
 
@@ -42,7 +43,7 @@ generateVirtualKnots maxN = do
                 (\ yield -> forCCP_ (primeIrreducibleDiagrams maxN) $ \ (t, (s, _)) -> yield (t, s))
                 (\ !link ->
                     when (eulerChar link == 0 && not (is1stOr2ndReidemeisterReducible link) && numberOfThreads link == 1 && testPrime link && heuristic link) $
-                        modify $ M.insertWith (++) (numberOfCrossings link) [link]
+                        modify $ M.insertWith' (++) (numberOfCrossings link) [link]
                 )
 
     forM_ (M.toList table) $ \ (n, links) ->
@@ -55,6 +56,11 @@ generateVirtualKnots maxN = do
             forM_ links $ \ link ->
                 hPrint f $ encodeEdgeIndices link
 
+    forM_ (M.toList table) $ \ (n, links) ->
+        forM_ links $ \ link -> do
+            let jp = jonesPolynomial link
+            putStrLn $ printf "%i: %s" n (show jp)
+
     print $ M.map length table
 
 
@@ -66,7 +72,7 @@ generateVirtualKnotProjections maxN = do
                 (forCCP_ $ primeProjections maxN)
                 (\ !link ->
                     when (eulerChar link == 0 && numberOfThreads link == 1 && testPrime link) $
-                        modify (M.insertWith (++) (numberOfCrossings link) [link])
+                        modify (M.insertWith' (++) (numberOfCrossings link) [link])
                 )
 
     forM_ (M.toList table) $ \ (n, links) ->
@@ -112,7 +118,7 @@ generateAlternatingSkeletons maxN = do
 
 main :: IO ()
 main = do
-    let maxN = 4
-    generateAlternatingSkeletons maxN
+    let maxN = 2
+    --generateAlternatingSkeletons maxN
     generateVirtualKnots maxN
-    generateVirtualKnotProjections maxN
+    --generateVirtualKnotProjections maxN
