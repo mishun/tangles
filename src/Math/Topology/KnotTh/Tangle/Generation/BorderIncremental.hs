@@ -18,6 +18,7 @@ import Data.Array.ST (STArray, STUArray, runSTUArray, newArray, newArray_)
 import Data.Array.Unsafe (unsafeFreeze)
 import Data.STRef (newSTRef, readSTRef, writeSTRef)
 import Control.Monad.ST (ST, runST)
+import Control.Arrow (first)
 import Control.Monad (when, guard)
 import qualified Math.Algebra.RotationDirection as R
 import qualified Math.Algebra.Group.Dn as Dn
@@ -282,85 +283,69 @@ representativeGluingSitesEx' crossingsToGlue !gl (!tangle, (!symmetry, !adjBasis
         return (gl, leg, state)
 
 
-primeProjections :: Int -> RootedCanonicalConstructionPath (TangleProj, Dn.DnSubGroup)
+primeProjections, reducedProjections, templateProjections
+    :: Int -> CanonicalConstructionPathI
+        (Tangle ProjectionCrossing, Dn.DnSubGroup)
+        (Int, Dart Tangle ProjectionCrossing, CrossingState ProjectionCrossing)
+        (Crossing Tangle ProjectionCrossing, Dn.DnSubGroup)
+
 primeProjections maxN =
     CanonicalConstructionPathClean
-    { independentUpper = \ (tangle, symmetry) -> do
-        guard $ numberOfCrossings tangle < maxN
-        let l = numberOfLegs tangle
-        gl <- [1 .. min 3 $ min (l - 1) (l `div` 2)]
-        representativeGluingSitesEx' [ProjectionCrossing] gl (tangle, (symmetry, (D4.i, D4.i)))
+        { independentUpper = \ (tangle, symmetry) -> do
+            guard $ numberOfCrossings tangle < maxN
+            let l = numberOfLegs tangle
+            gl <- [1 .. min 3 $ min (l - 1) (l `div` 2)]
+            representativeGluingSitesEx' [ProjectionCrossing] gl (tangle, (symmetry, (D4.i, D4.i)))
+        , tryAscent        = \ (gl, leg, st) -> do
+            let root = glueToBorder leg gl st
+            (sym, _) <- rootingTest root
+            return (root, sym)
+        , lowerProjection  = first crossingTangle
+        , roots            = [(lonerProjection, Dn.fromPeriodAndMirroredZero 4 1 0)]
+        }
 
-    , tryAscent = \ (gl, leg, st) -> do
-        let root = glueToBorder leg gl st
-        (sym, _) <- rootingTest root
-        return (crossingTangle root, sym)
-
-    , lowerProjection = id
-    } `withRoots` [(lonerProjection, Dn.fromPeriodAndMirroredZero 4 1 0)]
-
-
-reducedProjections :: Int -> RootedCanonicalConstructionPath (TangleProj, Dn.DnSubGroup)
 reducedProjections maxN =
-    CanonicalConstructionPathClean
-    { independentUpper = \ (tangle, symmetry) -> do
-        guard $ numberOfCrossings tangle < maxN
-        let l = numberOfLegs tangle
-        gl <- [1 .. min 3 $ min (l - 1) (l `div` 2)]
-        (_, leg, st) <- representativeGluingSitesEx' [ProjectionCrossing] gl (tangle, (symmetry, (D4.i, D4.i)))
-        guard $ testNoMultiEdges leg gl
-        return (gl, leg, st)
-
-    , tryAscent = \ (gl, leg, st) -> do
-        let root = glueToBorder leg gl st
-        (sym, _) <- rootingTest root
-        return (crossingTangle root, sym)
-
-    , lowerProjection = id
-    } `withRoots` [(lonerProjection, Dn.fromPeriodAndMirroredZero 4 1 0)]
+    filterUpper (\ _ (gl, leg, _) -> testNoMultiEdges leg gl) $
+        primeProjections maxN
 
 
-templateProjections :: Int -> RootedCanonicalConstructionPath (TangleProj, Dn.DnSubGroup)
 templateProjections maxN =
-    CanonicalConstructionPathClean
-    { independentUpper = \ (tangle, symmetry) -> do
-        let n = numberOfCrossings tangle
-            l = numberOfLegs tangle
-        guard $ n < maxN
-        gl <- [1 .. min 3 $ min (l - 1) (l `div` 2)]
-        (_, leg, st) <- representativeGluingSitesEx' [ProjectionCrossing] gl (tangle, (symmetry, (D4.i, D4.i)))
-        guard $ (n == 1 || l > 4) && testNoMultiEdges leg gl
-        return (gl, leg, st)
-
-    , tryAscent = \ (gl, leg, st) -> do
-        let root = glueToBorder leg gl st
-        (sym, _) <- rootingTest root
-        guard $ gl < 3 || testFlow4 root
-        return (crossingTangle root, sym)
-
-    , lowerProjection = id
-    } `withRoots` [(lonerProjection, Dn.fromPeriodAndMirroredZero 4 1 0)]
+    filterUpper (\ (t, _) (gl, leg, _) -> (numberOfCrossings t == 1 || numberOfLegs t > 4) && testNoMultiEdges leg gl) $
+        filterLower (\ (gl, _, _) (root, _) -> gl < 3 || testFlow4 root) $
+            primeProjections maxN
 
 
-primeIrreducibleDiagrams :: Int -> RootedCanonicalConstructionPath (NATangle, (Dn.DnSubGroup, (D4.D4, D4.D4)))
+primeIrreducibleDiagrams, primeIrreducibleDiagramsTriangle
+    :: Int -> CanonicalConstructionPathI
+        (NATangle, (Dn.DnSubGroup, (D4.D4, D4.D4)))
+        (Int, NATangleDart, ArbitraryCrossingState)
+        (NATangle, (Dn.DnSubGroup, (D4.D4, D4.D4)))
+
 primeIrreducibleDiagrams maxN =
     CanonicalConstructionPathClean
-    { independentUpper = \ ts@(tangle, _) -> do
-        guard $ numberOfCrossings tangle < maxN
-        let l = numberOfLegs tangle
-        gl <- [1 .. min 3 $ min (l - 1) (l `div` 2)]
-        representativeGluingSitesEx' [ArbitraryCrossing] gl ts
+        { independentUpper = \ ts@(tangle, _) -> do
+            guard $ numberOfCrossings tangle < maxN
+            let l = numberOfLegs tangle
+            gl <- [1 .. min 3 $ min (l - 1) (l `div` 2)]
+            representativeGluingSitesEx' [ArbitraryCrossing] gl ts
+        , tryAscent        = \ (gl, leg, st) -> do
+            guard $ testNo2ndReidemeisterReduction st leg gl
+            let root = glueToBorder leg gl st
+            sym <- rootingTest root
+            return (crossingTangle root, sym)
+        , lowerProjection  = id
+        , roots            = [(lonerOverCrossingTangle, (Dn.fromPeriodAndMirroredZero 4 1 0, (D4.ec, D4.e)))]
+        }
 
-    , tryAscent = \ (gl, leg, st) -> do
-        guard $ testNo2ndReidemeisterReduction st leg gl
-        let root = glueToBorder leg gl st
-        sym <- rootingTest root
-        return (crossingTangle root, sym)
 
-    , lowerProjection = id
-    } `withRoots` [(lonerOverCrossingTangle, (Dn.fromPeriodAndMirroredZero 4 1 0, (D4.ec, D4.e)))]
+cutInTriangle :: Int -> (Int, Dart Tangle ct, a) -> Bool
+cutInTriangle maxN (gl, leg, _) =
+    let diagonalIndex n l = n + l `div` 2 - 2
+        nextNumberOfLegs l = l + 4 - 2 * gl
+        tangle = dartTangle leg
+    in diagonalIndex (1 + numberOfCrossings tangle) (nextNumberOfLegs $ numberOfLegs tangle) <= diagonalIndex maxN 4
 
-
+{-
 {-# INLINE nextNumberOfLegs #-}
 nextNumberOfLegs :: Int -> Int -> Int
 nextNumberOfLegs l gl = l + 4 - 2 * gl
@@ -369,24 +354,7 @@ nextNumberOfLegs l gl = l + 4 - 2 * gl
 {-# INLINE diagonalIndex #-}
 diagonalIndex :: Int -> Int -> Int
 diagonalIndex n l = n + l `div` 2 - 2
+-}
 
-
-primeIrreducibleDiagramsTriangle :: Int -> RootedCanonicalConstructionPath (NATangle, (Dn.DnSubGroup, (D4.D4, D4.D4)))
 primeIrreducibleDiagramsTriangle maxN =
-    CanonicalConstructionPathClean
-    { independentUpper = \ ts@(tangle, _) -> do
-        let n = numberOfCrossings tangle
-            l = numberOfLegs tangle
-        guard $ n < maxN
-        gl <- [1 .. min 3 $ min (l - 1) (l `div` 2)]
-        guard (diagonalIndex (1 + n) (nextNumberOfLegs l gl) <= diagonalIndex maxN 4)
-        representativeGluingSitesEx' [ArbitraryCrossing] gl ts
-
-    , tryAscent = \ (gl, leg, st) -> do
-        guard $ testNo2ndReidemeisterReduction st leg gl
-        let root = glueToBorder leg gl st
-        sym <- rootingTest root
-        return (crossingTangle root, sym)
-
-    , lowerProjection = id
-    } `withRoots` [(lonerOverCrossingTangle, (Dn.fromPeriodAndMirroredZero 4 1 0, (D4.ec, D4.e)))]
+    filterUpper (const $ cutInTriangle maxN) $ primeIrreducibleDiagrams maxN

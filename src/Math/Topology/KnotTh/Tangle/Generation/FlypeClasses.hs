@@ -9,6 +9,7 @@ import Data.List (nubBy, partition)
 import Data.Array ((!), (//), listArray)
 import Data.Function (fix)
 import Control.Monad.State.Strict (evalStateT, execStateT, get, put, lift)
+import Control.Arrow (first)
 import Control.Monad (forM_, when)
 import qualified Math.Algebra.RotationDirection as R
 import qualified Math.Algebra.Group.Dn as Dn
@@ -143,20 +144,20 @@ generateFlypeEquivalentDecomposition' triangle maxN yield = do
 
 
 generateFlypeEquivalentDecomposition :: (Monad m) => Int -> ((SubTangleTangle ProjectionCrossing, Dn.DnSubGroup) -> m ()) -> m ()
-generateFlypeEquivalentDecomposition = generateFlypeEquivalentDecomposition' False
+generateFlypeEquivalentDecomposition =
+    generateFlypeEquivalentDecomposition' False
 
 
 generateFlypeEquivalentDecompositionInTriangle :: (Monad m) => Int -> ((SubTangleTangle ProjectionCrossing, Dn.DnSubGroup) -> m ()) -> m ()
-generateFlypeEquivalentDecompositionInTriangle = generateFlypeEquivalentDecomposition' True
+generateFlypeEquivalentDecompositionInTriangle =
+    generateFlypeEquivalentDecomposition' True
 
 
 generateFlypeEquivalent :: (Monad m) => Int -> ((TangleProj, Dn.DnSubGroup) -> m ()) -> m ()
-generateFlypeEquivalent maxN yield =
-    generateFlypeEquivalentDecomposition maxN
-        (\ (tangle, symmetry) -> yield (substituteTangle tangle, symmetry))
+generateFlypeEquivalent maxN =
+    generateFlypeEquivalentDecomposition maxN . (. first substituteTangle)
 
 
 generateFlypeEquivalentInTriangle :: (Monad m) => Int -> ((TangleProj, Dn.DnSubGroup) -> m ()) -> m ()
-generateFlypeEquivalentInTriangle maxN yield =
-    generateFlypeEquivalentDecompositionInTriangle maxN
-        (\ (tangle, symmetry) -> yield (substituteTangle tangle, symmetry))
+generateFlypeEquivalentInTriangle maxN =
+    generateFlypeEquivalentDecompositionInTriangle maxN . (. first substituteTangle)

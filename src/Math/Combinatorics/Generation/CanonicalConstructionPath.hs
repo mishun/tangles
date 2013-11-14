@@ -1,79 +1,84 @@
 {-# LANGUAGE ExistentialQuantification #-}
 module Math.Combinatorics.Generation.CanonicalConstructionPath
     ( CanonicalConstructionPath(..)
-    , filterUpper
-    , filterLower
-    , substLower
-    , canonicalChildren
     , forCCPFrom_
-    , RootedCanonicalConstructionPath
-    , withRoots
     , forCCP_
+    , CanonicalConstructionPathI(..)
     ) where
 
 import Data.Maybe (mapMaybe)
-import Control.Monad (mfilter, (>=>))
+import Control.Monad (mfilter, guard, (>=>))
 
 
-data CanonicalConstructionPath x u l =
-    CanonicalConstructionPathClean
-        { independentUpper :: x -> [u]
-        , tryAscent        :: u -> Maybe l
-        , lowerProjection  :: l -> x
-        }
-    | forall ord. (Ord ord) => CanonicalConstructionPathFiltering
-        { independentUpper :: x -> [u]
-        , tryAscent        :: u -> Maybe l
-        , lowerProjection  :: l -> x
-        , filterInvariant  :: l -> ord
-        }
+class CanonicalConstructionPath p where
+    filterBranch :: (x -> Bool) -> p x u l -> p x u l
+    filterUpper  :: (x -> u -> Bool) -> p x u l -> p x u l
+    filterLower  :: (u -> l -> Bool) -> p x u l -> p x u l
+    substLower   :: (l -> Maybe l') -> (l' -> l) -> p x u l -> p x u l'
+    withRoots    :: p x u l -> [x] -> p x u l
+
+    rootsList         :: p x u l -> [x]
+    canonicalChildren :: p x u l -> x -> [x]
 
 
-filterUpper :: (u -> Bool) -> CanonicalConstructionPath x u l -> CanonicalConstructionPath x u l
-filterUpper f c = c { independentUpper = filter f . independentUpper c }
-
-
-filterLower :: (l -> Bool) -> CanonicalConstructionPath x u l -> CanonicalConstructionPath x u l
-filterLower f c = c { tryAscent = mfilter f . tryAscent c }
-
-
-substLower :: (l -> Maybe l') -> (l' -> l) -> CanonicalConstructionPath x u l -> CanonicalConstructionPath x u l'
-substLower try' proj c =
-    case c of
-        CanonicalConstructionPathClean {} ->
-            CanonicalConstructionPathClean
-                { independentUpper = independentUpper c
-                , tryAscent        = tryAscent c >=> try'
-                , lowerProjection  = lowerProjection c . proj 
-                }
-        CanonicalConstructionPathFiltering { filterInvariant = x} ->
-            CanonicalConstructionPathFiltering
-                { independentUpper = independentUpper c
-                , tryAscent        = tryAscent c >=> try'
-                , lowerProjection  = lowerProjection c . proj
-                , filterInvariant  = x . proj 
-                }
-
-
-canonicalChildren :: CanonicalConstructionPath x u l -> x -> [x]
-canonicalChildren c =
-    map (lowerProjection c) . mapMaybe (tryAscent c) . independentUpper c
-
-
-forCCPFrom_ :: (Monad m) => CanonicalConstructionPath x u l -> (x -> m ()) -> x -> m ()
+forCCPFrom_ :: (Monad m, CanonicalConstructionPath p) => p x u l -> (x -> m ()) -> x -> m ()
 forCCPFrom_ c yield =
     let scan x = yield x >> mapM_ scan (canonicalChildren c x)
     in scan
 
 
-data RootedCanonicalConstructionPath x =
-    forall u l. RootedCanonicalConstructionPath (CanonicalConstructionPath x u l) [x]
+forCCP_ :: (Monad m, CanonicalConstructionPath p) => p x u l -> (x -> m ()) -> m ()
+forCCP_ c yield =
+    mapM_ (forCCPFrom_ c yield) (rootsList c)
 
 
-withRoots :: CanonicalConstructionPath x u l -> [x] -> RootedCanonicalConstructionPath x
-withRoots = RootedCanonicalConstructionPath
+data CanonicalConstructionPathI x u l =
+    CanonicalConstructionPathClean
+        { independentUpper :: x -> [u]
+        , tryAscent        :: u -> Maybe l
+        , lowerProjection  :: l -> x
+        , roots            :: [x]
+        }
+    | forall ord. (Ord ord) => CanonicalConstructionPathFiltering
+        { independentUpper :: x -> [u]
+        , tryAscent        :: u -> Maybe l
+        , lowerProjection  :: l -> x
+        , roots            :: [x]
+        , filterInvariant  :: l -> ord
+        }
 
 
-forCCP_ :: (Monad m) => RootedCanonicalConstructionPath x -> (x -> m ()) -> m ()
-forCCP_ (RootedCanonicalConstructionPath path roots) yield =
-    mapM_ (forCCPFrom_ path yield) roots
+instance CanonicalConstructionPath CanonicalConstructionPathI where
+    filterBranch f c =
+        c { independentUpper = \ x -> guard (f x) >> independentUpper c x } 
+
+    filterUpper f c =
+        c { independentUpper = \ x -> filter (f x) (independentUpper c x) }
+
+    filterLower f c =
+        c { tryAscent = \ u -> mfilter (f u) (tryAscent c u) }
+
+    substLower try' proj c =
+        case c of
+            CanonicalConstructionPathClean {} ->
+                CanonicalConstructionPathClean
+                    { independentUpper = independentUpper c
+                    , tryAscent        = tryAscent c >=> try'
+                    , lowerProjection  = lowerProjection c . proj
+                    , roots            = roots c 
+                    }
+            CanonicalConstructionPathFiltering { filterInvariant = x } ->
+                CanonicalConstructionPathFiltering
+                    { independentUpper = independentUpper c
+                    , tryAscent        = tryAscent c >=> try'
+                    , lowerProjection  = lowerProjection c . proj
+                    , filterInvariant  = x . proj
+                    , roots            = roots c 
+                    }
+
+    withRoots c r = c { roots = r }
+
+    rootsList = roots
+
+    canonicalChildren c =
+        map (lowerProjection c) . mapMaybe (tryAscent c) . independentUpper c
