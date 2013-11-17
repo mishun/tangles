@@ -2,6 +2,7 @@ module Math.Topology.Manifolds.SurfaceGraph.Embedding.QuadraticInitialization
     ( quadraticInitialization
     ) where
 
+import Data.Ix (Ix)
 import qualified Data.Sequence as Seq
 import System.IO.Unsafe (unsafePerformIO)
 import Data.IORef (newIORef, readIORef, writeIORef, modifyIORef)
@@ -17,20 +18,20 @@ import Math.Topology.Manifolds.SurfaceGraph.Util
 import Math.Topology.Manifolds.SurfaceGraph.Embedding.Optimization
 
 
-quadraticInitialization :: Double -> Vertex -> [(Double, Double)] -> Array Dart (Double, Double)
+quadraticInitialization :: Double -> Vertex SurfaceGraph a -> [(Double, Double)] -> Array (Dart SurfaceGraph a) (Double, Double)
 quadraticInitialization seed s brd
     | vertexDegree s /= length brd  = error "quadraticInitialization: wrong number of elements in border"
     | otherwise                     = unsafePerformIO $ do
-        let g = vertexOwnerGraph s
-        let vi :: UArray Vertex Int
-            vi = listArray (verticesRange g) $! scanl (\ !x !v -> if v == s then x else x + 1) 0 $! graphVertices g
+        let g = vertexOwner s
+        let vi = (listArray :: (Ix i) => (i, i) -> [Int] -> UArray i Int) (verticesRangeG g) $
+                    scanl (\ !x !v -> if v == s then x else x + 1) 0 $ allVertices g
 
         let n = numberOfVertices g - 1
         x <- newArray (0, n - 1) 0
         y <- newArray (0, n - 1) 0
         do
             dist <- do
-                d <- newArray (verticesRange g) (-1) :: IO (IOUArray Vertex Int)
+                d <- (newArray :: (Ix i) => (i, i) -> Int -> IO (IOUArray i Int)) (verticesRangeG g) (-1)
                 writeArray d s 0
                 q <- newIORef $ Seq.singleton s
 
@@ -47,7 +48,8 @@ quadraticInitialization seed s brd
                         unless empty $ do
                             u <- dequeue
                             du <- readArray d u
-                            forM_ (adjacentVertices u) $ \ v -> do
+                            forM_ (outcomingDarts u) $ \ uv -> do
+                                let v = endVertex uv
                                 dv <- readArray d v
                                 when (dv < 0) $ do
                                     writeArray d v (du + 1)
@@ -55,7 +57,7 @@ quadraticInitialization seed s brd
                             loop
 
                 loop
-                unsafeFreeze d :: IO (UArray Vertex Int)
+                (unsafeFreeze :: (Ix i) => IOUArray i Int -> IO (UArray i Int)) d
 
             let dartWeight d =
                     let l = dist ! beginVertex d
@@ -63,18 +65,18 @@ quadraticInitialization seed s brd
                     in realToFrac seed ** realToFrac (min l r)
 
             let defs =
-                    let a = flip map (filter (/= s) $ graphVertices g) $ \ !v ->
+                    let a = flip map (filter (/= s) $ allVertices g) $ \ !v ->
                                 let !i = vi ! v
-                                    !w = sum $ map dartWeight $ dartsIncidentToVertex v
+                                    !w = sum $ map dartWeight $ outcomingDarts v
                                 in (i, i, w)
-                        b = flip map (filter (\ !d -> beginVertex d /= s && endVertex d /= s) $ graphDarts g) $ \ !d ->
+                        b = flip map (filter (\ !d -> beginVertex d /= s && endVertex d /= s) $ allHalfEdges g) $ \ !d ->
                                 let !i = vi ! beginVertex d
                                     !j = vi ! endVertex d
                                     !w = -(dartWeight d)
                                 in (i, j, w)
                     in a ++ b
 
-            let rp = flip map (filter ((/= s) . endVertex . snd) $ zip brd $ dartsIncidentToVertex s) $ \ ((!cx, !cy), !d) ->
+            let rp = flip map (filter ((/= s) . endVertex . snd) $ zip brd $ outcomingDarts s) $ \ ((!cx, !cy), !d) ->
                         let !i = vi ! endVertex d
                             !w = dartWeight d
                         in (i, cx * w, cy * w)
@@ -83,8 +85,8 @@ quadraticInitialization seed s brd
 
         let border :: Array Int (Double, Double)
             border = listArray (0, length brd - 1) brd
-        result <- forM (graphDarts g) $ \ !d -> do
-                let (v, p) = begin d
+        result <- forM (allHalfEdges g) $ \ !d -> do
+                let (v, p) = beginPair d
                 if v == s
                     then return $! border ! p
                     else do
@@ -92,4 +94,4 @@ quadraticInitialization seed s brd
                         cy <- readArray y (vi ! v)
                         return (realToFrac cx, realToFrac cy)
 
-        return $! listArray (dartsRange g) result
+        return $! listArray (dartsRangeG g) result

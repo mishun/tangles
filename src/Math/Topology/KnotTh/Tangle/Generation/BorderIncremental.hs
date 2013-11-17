@@ -28,18 +28,18 @@ import Math.Topology.KnotTh.Tangle
 import Math.Topology.KnotTh.Tangle.Generation.BorderIncremental.IncrementalTests
 
 
-rootingTest :: (CrossingType ct) => Crossing Tangle ct -> Maybe (Dn.DnSubGroup, (D4.D4, D4.D4))
+rootingTest :: (CrossingType ct) => Vertex Tangle ct -> Maybe (Dn.DnSubGroup, (D4.D4, D4.D4))
 rootingTest lastCrossing = do
-    let tangle = crossingTangle lastCrossing
+    let tangle = vertexOwner lastCrossing
     guard $ numberOfLegs tangle >= 4
     cp <- investigateConnectivity lastCrossing
-    analyseSymmetry lastCrossing (unsafeAt cp . crossingIndex)
+    analyseSymmetry lastCrossing (unsafeAt cp . vertexIndex)
 
 
-investigateConnectivity :: Crossing Tangle ct -> Maybe (UArray Int Bool)
+investigateConnectivity :: Vertex Tangle ct -> Maybe (UArray Int Bool)
 investigateConnectivity lastCrossing = runST $ do
-    let tangle = crossingTangle lastCrossing
-    let n = numberOfCrossings tangle
+    let tangle = vertexOwner lastCrossing
+    let n = numberOfVertices tangle
 
     tins <- newArray (0, n) (-1) :: ST s (STUArray s Int Int)
     cp <- newArray (0, n) False :: ST s (STUArray s Int Bool)
@@ -49,22 +49,22 @@ investigateConnectivity lastCrossing = runST $ do
         dfs !v !from = do
             tin <- readSTRef timer
             writeSTRef timer $! tin + 1
-            unsafeWrite tins (crossingIndex v) tin
+            unsafeWrite tins (vertexIndex v) tin
 
             let {-# INLINE walk #-}
                 walk !d (!fup, !border)
                     | isLeg d    = return (fup, border + 1)
                     | u == from  = return (fup, border)
                     | otherwise  = do
-                        utin <- unsafeRead tins (crossingIndex u)
+                        utin <- unsafeRead tins (vertexIndex u)
                         if utin > 0
                             then return (min fup utin, border)
                             else do
                                 (!thatFup, !thatBorder) <- dfs u v
-                                when (thatFup >= tin) (unsafeWrite cp (crossingIndex v) True)
+                                when (thatFup >= tin) (unsafeWrite cp (vertexIndex v) True)
                                 return (min fup thatFup, border + if thatFup <= tin then thatBorder else 1)
                     where
-                        u = incidentCrossing d
+                        u = beginVertex d
 
             foldMAdjacentDarts v walk (tin, 0 :: Int)
 
@@ -72,17 +72,17 @@ investigateConnectivity lastCrossing = runST $ do
     if borderCut <= 2
         then return Nothing
         else do
-            unsafeWrite cp (crossingIndex lastCrossing) False
+            unsafeWrite cp (vertexIndex lastCrossing) False
             (Just $!) `fmap` unsafeFreeze cp
 
 
-analyseSymmetry :: (CrossingType ct) => Crossing Tangle ct -> (Crossing Tangle ct -> Bool) -> Maybe (Dn.DnSubGroup, (D4.D4, D4.D4))
+analyseSymmetry :: (CrossingType ct) => Vertex Tangle ct -> (Vertex Tangle ct -> Bool) -> Maybe (Dn.DnSubGroup, (D4.D4, D4.D4))
 analyseSymmetry lastCrossing skipCrossing = do
-    let tangle = crossingTangle lastCrossing
+    let tangle = vertexOwner lastCrossing
         l = numberOfLegs tangle
 
         rootLegCCW = firstLeg tangle
-        rootLegCW = opposite $ nthIncidentDart lastCrossing 3
+        rootLegCW = opposite $ nthOutcomingDart lastCrossing 3
         (rootGCCW, rootCodeCCW) = rootCodeLeg rootLegCCW R.ccw
         (rootGCW, rootCodeCW) = rootCodeLeg rootLegCW R.cw
 
@@ -96,8 +96,8 @@ analyseSymmetry lastCrossing skipCrossing = do
         rootDir' = R.oppositeDirection rootDir
 
     let skip dir leg =
-            let c = incidentCrossing $ opposite leg
-                c' = incidentCrossing $ opposite $ nextDir dir leg
+            let c = beginVertex $ opposite leg
+                c' = beginVertex $ opposite $ nextDir dir leg
             in skipCrossing c || (c == c')
 
     (period, periodG) <- fix (\ loop !li !leg ->
@@ -141,18 +141,18 @@ rootCodeLeg :: (CrossingType ct) => Dart Tangle ct -> R.RotationDirection -> (D4
 rootCodeLeg !root !dir
     | isDart root                     = error "rootCodeLeg: leg expected"
     | numberOfFreeLoops tangle /= 0   = error "rootCodeLeg: free loops present"
-    | numberOfCrossings tangle > 127  = error "rootCodeLeg: too many crossings"
+    | numberOfVertices tangle > 127   = error "rootCodeLeg: too many crossings"
     | otherwise                       =
         case globalTransformations tangle of
             Nothing      -> (D4.i, code)
             Just globals -> minimumBy (comparing snd) $ map (\ g -> (g, codeWithGlobal g)) globals
     where 
-        tangle = dartTangle root
-        n = numberOfCrossings tangle
+        tangle = dartOwner root
+        n = numberOfVertices tangle
 
         codeWithGlobal global = runSTUArray $ do
             x <- newArray (0, n) 0 :: ST s (STUArray s Int Int)
-            unsafeWrite x (crossingIndex $ adjacentCrossing root) 1
+            unsafeWrite x (vertexIndex $ endVertex root) 1
             q <- newArray_ (0, n - 1) :: ST s (STArray s Int (Dart Tangle ct))
             unsafeWrite q 0 (opposite root)
             free <- newSTRef 2
@@ -161,14 +161,14 @@ rootCodeLeg !root !dir
                 look !d !s
                     | isLeg d    = return $! s `shiftL` 7
                     | otherwise  = do
-                        let u = incidentCrossing d
-                        ux <- unsafeRead x (crossingIndex u)
+                        let u = beginVertex d
+                        ux <- unsafeRead x (vertexIndex u)
                         if ux > 0
                             then return $! ux + (s `shiftL` 7)
                             else do
                                 nf <- readSTRef free
                                 writeSTRef free $! nf + 1
-                                unsafeWrite x (crossingIndex u) nf
+                                unsafeWrite x (vertexIndex u) nf
                                 unsafeWrite q (nf - 1) d
                                 return $! nf + (s `shiftL` 7)
 
@@ -189,7 +189,7 @@ rootCodeLeg !root !dir
 
         code = runSTUArray $ do
             x <- newArray (0, n) 0 :: ST s (STUArray s Int Int)
-            unsafeWrite x (crossingIndex $! adjacentCrossing root) 1
+            unsafeWrite x (vertexIndex $ endVertex root) 1
             q <- newArray_ (0, n - 1) :: ST s (STArray s Int (Dart Tangle ct))
             unsafeWrite q 0 (opposite root)
             free <- newSTRef 2
@@ -198,14 +198,14 @@ rootCodeLeg !root !dir
                 look !d !s
                     | isLeg d    = return $! s `shiftL` 7
                     | otherwise  = do
-                        let u = incidentCrossing d
-                        ux <- unsafeRead x (crossingIndex u)
+                        let u = beginVertex d
+                        ux <- unsafeRead x (vertexIndex u)
                         if ux > 0
                             then return $! ux + (s `shiftL` 7)
                             else do
                                 nf <- readSTRef free
                                 writeSTRef free $! nf + 1
-                                unsafeWrite x (crossingIndex u) nf
+                                unsafeWrite x (vertexIndex u) nf
                                 unsafeWrite q (nf - 1) d
                                 return $! nf + (s `shiftL` 7)
 
@@ -287,12 +287,12 @@ primeProjections, reducedProjections, templateProjections
     :: Int -> CanonicalConstructionPathI
         (Tangle ProjectionCrossing, Dn.DnSubGroup)
         (Int, Dart Tangle ProjectionCrossing, CrossingState ProjectionCrossing)
-        (Crossing Tangle ProjectionCrossing, Dn.DnSubGroup)
+        (Vertex Tangle ProjectionCrossing, Dn.DnSubGroup)
 
 primeProjections maxN =
     CanonicalConstructionPathClean
         { independentUpper = \ (tangle, symmetry) -> do
-            guard $ numberOfCrossings tangle < maxN
+            guard $ numberOfVertices tangle < maxN
             let l = numberOfLegs tangle
             gl <- [1 .. min 3 $ min (l - 1) (l `div` 2)]
             representativeGluingSitesEx' [ProjectionCrossing] gl (tangle, (symmetry, (D4.i, D4.i)))
@@ -300,7 +300,7 @@ primeProjections maxN =
             let root = glueToBorder leg gl st
             (sym, _) <- rootingTest root
             return (root, sym)
-        , lowerProjection  = first crossingTangle
+        , lowerProjection  = first vertexOwner
         , roots            = [(lonerProjection, Dn.fromPeriodAndMirroredZero 4 1 0)]
         }
 
@@ -310,7 +310,7 @@ reducedProjections maxN =
 
 
 templateProjections maxN =
-    filterUpper (\ (t, _) (gl, leg, _) -> (numberOfCrossings t == 1 || numberOfLegs t > 4) && testNoMultiEdges leg gl) $
+    filterUpper (\ (t, _) (gl, leg, _) -> (numberOfVertices t == 1 || numberOfLegs t > 4) && testNoMultiEdges leg gl) $
         filterLower (\ (gl, _, _) (root, _) -> gl < 3 || testFlow4 root) $
             primeProjections maxN
 
@@ -324,7 +324,7 @@ primeIrreducibleDiagrams, primeIrreducibleDiagramsTriangle
 primeIrreducibleDiagrams maxN =
     CanonicalConstructionPathClean
         { independentUpper = \ ts@(tangle, _) -> do
-            guard $ numberOfCrossings tangle < maxN
+            guard $ numberOfVertices tangle < maxN
             let l = numberOfLegs tangle
             gl <- [1 .. min 3 $ min (l - 1) (l `div` 2)]
             representativeGluingSitesEx' [ArbitraryCrossing] gl ts
@@ -332,7 +332,7 @@ primeIrreducibleDiagrams maxN =
             guard $ testNo2ndReidemeisterReduction st leg gl
             let root = glueToBorder leg gl st
             sym <- rootingTest root
-            return (crossingTangle root, sym)
+            return (vertexOwner root, sym)
         , lowerProjection  = id
         , roots            = [(lonerOverCrossingTangle, (Dn.fromPeriodAndMirroredZero 4 1 0, (D4.ec, D4.e)))]
         }
@@ -342,8 +342,8 @@ cutInTriangle :: Int -> (Int, Dart Tangle ct, a) -> Bool
 cutInTriangle maxN (gl, leg, _) =
     let diagonalIndex n l = n + l `div` 2 - 2
         nextNumberOfLegs l = l + 4 - 2 * gl
-        tangle = dartTangle leg
-    in diagonalIndex (1 + numberOfCrossings tangle) (nextNumberOfLegs $ numberOfLegs tangle) <= diagonalIndex maxN 4
+        tangle = dartOwner leg
+    in diagonalIndex (1 + numberOfVertices tangle) (nextNumberOfLegs $ numberOfLegs tangle) <= diagonalIndex maxN 4
 
 {-
 {-# INLINE nextNumberOfLegs #-}

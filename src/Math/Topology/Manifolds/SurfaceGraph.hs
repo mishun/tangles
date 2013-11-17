@@ -14,4 +14,4 @@ import Math.Topology.Manifolds.SurfaceGraph.Embedding as E
 import Math.Topology.Manifolds.SurfaceGraph.SphereStar as SS
 
 
-data Cell = Cell0D Vertex | Cell1D Dart | Cell2D Face deriving (Eq, Ord)
+data Cell a = Cell0D (Vertex SurfaceGraph a) | Cell1D (Dart SurfaceGraph a) | Cell2D (Face SurfaceGraph a) deriving (Eq, Ord)

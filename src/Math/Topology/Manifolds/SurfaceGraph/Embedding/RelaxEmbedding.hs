@@ -2,6 +2,7 @@ module Math.Topology.Manifolds.SurfaceGraph.Embedding.RelaxEmbedding
     ( relaxEmbedding
     ) where
 
+import Data.Ix (Ix)
 import System.IO.Unsafe (unsafePerformIO)
 import Data.IORef (newIORef, readIORef, writeIORef, modifyIORef)
 import Data.Array.IArray ((!), listArray)
@@ -14,39 +15,43 @@ import Math.Topology.Manifolds.SurfaceGraph.Util
 import Math.Topology.Manifolds.SurfaceGraph.Embedding.Optimization
 
 
-relaxEmbedding :: Int -> Either Vertex Face -> Array Dart [(Double, Double)] -> Array Dart [(Double, Double)]
+relaxEmbedding :: Int
+    -> Either (Vertex SurfaceGraph a) (Face SurfaceGraph a)
+        -> Array (Dart SurfaceGraph a) [(Double, Double)]
+            -> Array (Dart SurfaceGraph a) [(Double, Double)]
+
 relaxEmbedding borderSegments root initial
-    | not $ all (even . vertexDegree) $ graphVertices g        = error "relaxEmbedding: all vertices must have even degree"
-    | not $ all ((> 1) . length . (initial !)) $ graphDarts g  = error "relaxEmbedding: there must be at least 2 point at every dart"
-    | otherwise                                                = unsafePerformIO $ do
+    | not $ all (even . vertexDegree) $ allVertices g            = error "relaxEmbedding: all vertices must have even degree"
+    | not $ all ((> 1) . length . (initial !)) $ allHalfEdges g  = error "relaxEmbedding: there must be at least 2 point at every dart"
+    | otherwise                                                  = unsafePerformIO $ do
         let numberOfFrozenPoints =
                 case root of
                     Left v  -> vertexDegree v
                     Right _ -> 0
 
         let totalNumberOfPoints =
-                sum (map ((\ x -> x - 2) . length . (initial !) . fst) $ graphEdges g)
+                sum (map ((\ x -> x - 2) . length . (initial !) . fst) $ allEdges g)
                     + numberOfVertices g + max 0 (numberOfFrozenPoints - 1)
 
             numberOfMovablePoints = totalNumberOfPoints - numberOfFrozenPoints
 
         dartBeginIndex <- do
-            dartBeginIndex <- newArray_ (dartsRange g) :: IO (IOUArray Dart Int)
-            forM_ (graphDarts g) $ \ !d ->
+            dartBeginIndex <- (newArray_ :: (Ix i) => (i, i) -> IO (IOUArray i Int)) (dartsRangeG g)
+            forM_ (allHalfEdges g) $ \ !d ->
                 writeArray dartBeginIndex d $
                     let v = beginVertex d
                     in case root of
                         Left start ->
                             case compare v start of
-                                EQ -> totalNumberOfPoints - vertexDegree start + snd (begin d)
+                                EQ -> totalNumberOfPoints - vertexDegree start + beginPlace d
                                 LT -> vertexIndex v
                                 GT -> vertexIndex v - 1
                         Right _    -> vertexIndex v
 
-            freeze dartBeginIndex :: IO (Array Dart Int)
+            (freeze :: (Ix i) => IOUArray i Int -> IO (Array i Int)) dartBeginIndex
 
         (dartIndices, threads) <- do
-            dartIndices <- newArray_ (dartsRange g) :: IO (IOArray Dart [Int])
+            dartIndices <- (newArray_ :: (Ix i) => (i, i) -> IO (IOArray i a)) (dartsRangeG g)
             freeIndex <- newIORef (case root of { Left _ -> numberOfVertices g - 1 ; Right _ -> numberOfVertices g })
 
             let allocate a = do
@@ -59,7 +64,7 @@ relaxEmbedding borderSegments root initial
                     writeArray dartIndices b $! reverse list
                     return $! list
 
-            visited <- newArray (dartsRange g) False :: IO (IOUArray Dart Bool)
+            visited <- (newArray :: (Ix i) => (i, i) -> Bool -> IO (IOUArray i Bool)) (dartsRangeG g) False
 
             let walk thread first a = do
                     let b = opposite a
@@ -67,7 +72,7 @@ relaxEmbedding borderSegments root initial
                     writeArray visited b True
                     nextThread <- ((++ thread) . reverse . tail) `fmap` allocate a
                     let v = beginVertex b
-                    let cont = nthDartIncidentToVertex v $ snd (begin b) + (vertexDegree v `div` 2)
+                    let cont = nthOutcomingDart v $ beginPlace b + (vertexDegree v `div` 2)
                     if Left v == root || cont == first
                         then return $! nextThread
                         else walk nextThread first cont
@@ -80,11 +85,11 @@ relaxEmbedding borderSegments root initial
                         modifyIORef threads (thread :)
 
             case root of
-                Left v -> forM_ (dartsIncidentToVertex v) tryWalk
+                Left v -> forM_ (outcomingDarts v) tryWalk
                 _      -> return ()
-            forM_ (graphDarts g) tryWalk
+            forM_ (allHalfEdges g) tryWalk
 
-            dartIndices' <- freeze dartIndices :: IO (Array Dart [Int])
+            dartIndices' <- (freeze :: (Ix i) => IOArray i a -> IO (Array i a)) dartIndices
             threads' <- readIORef threads
             return (dartIndices', threads')
 
@@ -98,21 +103,21 @@ relaxEmbedding borderSegments root initial
 
         coords <- newArray (0, 2 * totalNumberOfPoints - 1) 0.0
 
-        forM_ (graphEdges g) $ \ (d, _) ->
+        forM_ (allEdges g) $ \ (d, _) ->
             forM_ (zip (initial ! d) (dartIndices ! d)) $ \ ((x, y), i) -> do
                 writeArray coords (2 * i) (realToFrac x)
                 writeArray coords (2 * i + 1) (realToFrac y)
 
         relaxEmbedding' interaction borderSegments numberOfMovablePoints numberOfFrozenPoints coords threads $
-            let aliveVertices = filter ((/= root) . Left) $! graphVertices g
-            in map (map ((!! 1) . (dartIndices !)) . dartsIncidentToVertex) aliveVertices
+            let aliveVertices = filter ((/= root) . Left) $! allVertices g
+            in map (map ((!! 1) . (dartIndices !)) . outcomingDarts) aliveVertices
 
-        fmap (listArray (dartsRange g)) $ forM (graphDarts g) $ \ d -> forM (dartIndices ! d) $ \ i -> do
+        fmap (listArray (dartsRangeG g)) $ forM (allHalfEdges g) $ \ d -> forM (dartIndices ! d) $ \ i -> do
             x <- readArray coords (2 * i)
             y <- readArray coords (2 * i + 1)
             return (realToFrac x, realToFrac y)
 
     where
         g = case root of
-            Left v  -> vertexOwnerGraph v
-            Right f -> faceOwnerGraph f
+            Left v  -> vertexOwner v
+            Right f -> faceOwner f

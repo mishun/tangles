@@ -10,7 +10,7 @@ import Math.Topology.KnotTh.Tangle.Moves.Move
 
 neighbours :: NATangle -> [NATangle]
 neighbours tangle =
-    flip mapMaybe (allDartsOfCrossings tangle) $ \ ab -> do
+    flip mapMaybe (allOutcomingDarts tangle) $ \ ab -> do
         -- \sc           /rb             \sc   /rb
         --  \           /                 \   /
         -- cs\ cb   bc /br               ac\ /ab
@@ -35,9 +35,9 @@ neighbours tangle =
 
         guard $ bc == opposite cb
 
-        let a = incidentCrossing ab
-            b = incidentCrossing ba
-            c = incidentCrossing ca
+        let a = beginVertex ab
+            b = beginVertex ba
+            c = beginVertex ca
 
         guard $ (a /= b) && (a /= c) && (b /= c)
         guard $ passOver bc == passOver cb

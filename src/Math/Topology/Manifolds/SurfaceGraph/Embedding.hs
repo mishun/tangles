@@ -15,19 +15,22 @@ import Math.Topology.Manifolds.SurfaceGraph.Embedding.QuadraticInitialization
 import Math.Topology.Manifolds.SurfaceGraph.Embedding.RelaxEmbedding
 
 
-embeddingInCircleWithVertexRooting :: Int -> Vertex -> Array Dart [(Double, Double)]
+embeddingInCircleWithVertexRooting :: Int -> Vertex SurfaceGraph a -> Array (Dart SurfaceGraph a) [(Double, Double)]
 embeddingInCircleWithVertexRooting smoothing vertex =
     relaxEmbedding 0 (Left vertex) $
-        circleEmbeddingInitialization (max 1 smoothing) (Left vertex)
+        circleEmbeddingInitialization smoothing (Left vertex)
 
 
-embeddingInCircleWithFaceRooting :: Int -> Face -> Array Dart [(Double, Double)]
+embeddingInCircleWithFaceRooting :: Int -> Face SurfaceGraph a -> Array (Dart SurfaceGraph a) [(Double, Double)]
 embeddingInCircleWithFaceRooting smoothing face =
     relaxEmbedding 0 (Right face) $
         circleEmbeddingInitialization (max 1 smoothing) (Right face)
 
 
-embeddingInPolygonWithGrouping :: (Dart -> Bool) -> Int -> Vertex -> (Int, Array Dart [(Double, Double)])
+embeddingInPolygonWithGrouping
+    :: (Dart SurfaceGraph a -> Bool) -> Int -> Vertex SurfaceGraph a
+        -> (Int, Array (Dart SurfaceGraph a) [(Double, Double)])
+
 embeddingInPolygonWithGrouping sameGroupAsCW subdivisionOrder root
     | numberOfGroups < 3  = error "embeddingInPolygonWithGrouping: there are less than 3 groups"
     | otherwise           = (numberOfGroups, relaxEmbedding numberOfGroups (Left root) embedding)
@@ -35,7 +38,7 @@ embeddingInPolygonWithGrouping sameGroupAsCW subdivisionOrder root
         subdivision level v border
             | level <= 1  = quadraticEmbedding v border
             | otherwise   =
-                let g = vertexOwnerGraph v
+                let g = vertexOwner v
                     (_, vv, _, vd) = barycentricSubdivision' g
                 in barycentricProjection g vd $
                     subdivision (level - 1) (fst $ fromJust $ find ((== v) . snd) vv) $ do
@@ -44,7 +47,7 @@ embeddingInPolygonWithGrouping sameGroupAsCW subdivisionOrder root
 
         l = vertexDegree root
 
-        groups = let ds = dartsIncidentToVertex root
+        groups = let ds = outcomingDarts root
                  in groupBy (const sameGroupAsCW) $
                      take (length ds) $
                          dropWhile sameGroupAsCW $
@@ -62,7 +65,7 @@ embeddingInPolygonWithGrouping sameGroupAsCW subdivisionOrder root
         groupSize = listArray (0, numberOfGroups - 1) $ map length groups
 
         embedding =
-            let g = vertexOwnerGraph root
+            let g = vertexOwner root
                 (_, vv, _, vd) = barycentricSubdivision' g
             in barycentricProjection g vd $
                 subdivision subdivisionOrder (fst $ fromJust $ find ((== root) . snd) vv) $ do
@@ -80,7 +83,10 @@ embeddingInPolygonWithGrouping sameGroupAsCW subdivisionOrder root
                     [put gi (2 * sz) (2 * p + 1), put gi (2 * sz) (2 * p + 2)]
 
 
-circleEmbeddingInitialization :: Int -> Either Vertex Face -> Array Dart [(Double, Double)]
+circleEmbeddingInitialization
+    :: Int -> Either (Vertex SurfaceGraph a) (Face SurfaceGraph a)
+        -> Array (Dart SurfaceGraph a) [(Double, Double)]
+
 circleEmbeddingInitialization subdivisionOrder root
     | subdivisionOrder <= 0  =
         case root of
@@ -94,8 +100,8 @@ circleEmbeddingInitialization subdivisionOrder root
 
     | otherwise   =
         let g = case root of
-                Left vertex -> vertexOwnerGraph vertex
-                Right face  -> faceOwnerGraph face
+                Left vertex -> vertexOwner vertex
+                Right face  -> faceOwner face
 
             (_, vv, vf, vd) = barycentricSubdivision' g
 
@@ -106,17 +112,21 @@ circleEmbeddingInitialization subdivisionOrder root
                     Right face  -> fst $ fromJust $ find ((== face) . snd) vf
 
 
-barycentricProjection :: SurfaceGraph -> [(Vertex, (Dart, Dart))] -> Array Dart [(Double, Double)] -> Array Dart [(Double, Double)]
+barycentricProjection
+    :: SurfaceGraph a -> [(Vertex SurfaceGraph b, (Dart SurfaceGraph a, Dart SurfaceGraph a))]
+        -> Array (Dart SurfaceGraph b) [(Double, Double)]
+            -> Array (Dart SurfaceGraph a) [(Double, Double)]
+
 barycentricProjection g vd be =
-    array (dartsRange g) $ do
+    array (dartsRangeG g) $ do
         (v, (a, b)) <- vd
-        let l = reverse (be ! nthDartIncidentToVertex v 0)
-                ++ tail (be ! nthDartIncidentToVertex v 2)
+        let l = reverse (be ! nthOutcomingDart v 0)
+                ++ tail (be ! nthOutcomingDart v 2)
         [(a, l), (b, reverse l)]
 
 
-quadraticEmbedding :: Vertex -> [(Double, Double)] -> Array Dart [(Double, Double)]
+quadraticEmbedding :: Vertex SurfaceGraph a -> [(Double, Double)] -> Array (Dart SurfaceGraph a) [(Double, Double)]
 quadraticEmbedding v border =
-    let g = vertexOwnerGraph v
+    let g = vertexOwner v
         c = quadraticInitialization 0.99 v border
-    in listArray (dartsRange g) $ map (\ d -> [c ! d, c ! opposite d]) $ graphDarts g
+    in listArray (dartsRangeG g) $ map (\ d -> [c ! d, c ! opposite d]) $ allHalfEdges g

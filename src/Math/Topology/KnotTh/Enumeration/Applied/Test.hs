@@ -66,7 +66,7 @@ test = testGroup "Enumeration tests"
                 let sifted = lookingForwardTanglesEnumeration True (-1) 0 n
                 assertEqual "There must be no collisions" 0 $ length $ collisionClasses sifted
                 return $! generateTable'
-                    (numberOfCrossings &&& numberOfLegs)
+                    (numberOfVertices &&& numberOfLegs)
                     (const 1)
                     (forM_ $ mapMaybe maybePrimeDiagram $ singleRepresentativeClasses sifted)
             )

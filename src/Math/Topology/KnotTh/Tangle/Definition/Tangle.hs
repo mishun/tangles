@@ -1,8 +1,6 @@
 {-# LANGUAGE TemplateHaskell, TypeFamilies #-}
 module Math.Topology.KnotTh.Tangle.Definition.Tangle
     ( Tangle
-    , crossingTangle
-    , dartTangle
     , emptyTangle
     , identityTangle
     , zeroTangle
@@ -18,8 +16,8 @@ import Data.List (nub, sort, foldl')
 import qualified Data.Set as S
 import qualified Data.Map as M
 import Data.Array.IArray (listArray)
-import Data.Array.MArray (newArray, newArray_, readArray)
-import Data.Array.Base (unsafeAt, unsafeWrite)
+import Data.Array.MArray (newArray, newArray_)
+import Data.Array.Base (unsafeAt, unsafeRead, unsafeWrite)
 import Data.Array.ST (STArray, STUArray)
 import Data.Array.Unsafe (unsafeFreeze)
 import Control.Monad.ST (ST, runST)
@@ -31,8 +29,7 @@ import Math.Topology.KnotTh.Knotted
 import Math.Topology.KnotTh.Tangle.Definition.TangleLike
 
 
-produceKnotted
-    [d| data Tangle ct = Tangle { legsCount :: {-# UNPACK #-} !Int } |] $
+produceKnotted [d| data Tangle ct = Tangle { legsCount :: {-# UNPACK #-} !Int } |] $
     let legsCount = varE $ mkName "legsCount"
         dart = conE $ mkName "Dart"
     in defaultKnotted
@@ -83,34 +80,34 @@ produceKnotted
                 }
 
         , modifyNumberOfEdges = Just $ \ t _ ->
-            [| 2 * numberOfCrossings $t + ($legsCount $t `div` 2) |]
+            [| 2 * numberOfVertices $t + ($legsCount $t `div` 2) |]
 
         , modifyIsDart = Just $ \ (t, i) ->
-            [| $i < 4 * numberOfCrossings $t |]
+            [| $i < 4 * numberOfVertices $t |]
 
         , modifyNextCCW = Just $ \ (t, d) e ->
-            [|  let n = 4 * numberOfCrossings $t
+            [|  let n = 4 * numberOfVertices $t
                 in if $d >= n
                     then $dart $t $! n + ($d - n + 1) `mod` $legsCount $t
                     else $e
             |]
 
         , modifyNextCW = Just $ \ (t, d) e ->
-            [|  let n = 4 * numberOfCrossings $t
+            [|  let n = 4 * numberOfVertices $t
                 in if $d >= n
                     then $dart $t $! n + ($d - n - 1) `mod` $legsCount $t
                     else $e
             |]
 
         , modifyDartPlace = Just $ \ (t, d) e ->
-            [|  let n = 4 * numberOfCrossings $t
+            [|  let n = 4 * numberOfVertices $t
                 in if $d >= n
                     then error $ printf "dartPlace: taken from %i-th leg" ($d - n)
                     else $e
             |]
 
         , modifyIncidentCrossing = Just $ \ (t, d) e ->
-            [|  let n = 4 * numberOfCrossings $t
+            [|  let n = 4 * numberOfVertices $t
                 in if $d >= n
                     then error $ printf "incidentCrossing: taken from %i-th leg" ($d - n)
                     else $e
@@ -128,34 +125,35 @@ produceKnotted
         }
 
 
-instance TangleLike Tangle where
+instance PlanarAlgebra Tangle where
     numberOfLegs = legsCount
 
+    nthLeg t i | l == 0     = error "nthLeg: tangle has no legs"
+               | otherwise  = Dart t (n + i `mod` l)
+        where
+            l = numberOfLegs t
+            n = 4 * numberOfVertices t
+
     allLegs t =
-        let n = 4 * numberOfCrossings t
+        let n = 4 * numberOfVertices t
             l = numberOfLegs t
         in map (Dart t) [n .. n + l - 1]
 
-    nthLeg t i
-        | l == 0     = error "nthLeg: tangle has no legs"
-        | otherwise  = Dart t $! n + i `mod` l
-        where
-            l = numberOfLegs t
-            n = 4 * numberOfCrossings t
+    legPlace d@(Dart t i) | isDart d   = error $ printf "legPlace: taken from non-leg %s" $ show d
+                          | otherwise  = i - 4 * numberOfVertices t
 
     isLeg = not . isDart
 
-    legPlace d@(Dart t i)
-        | isDart d   = error $ printf "legPlace: taken from non-leg %s" $ show d
-        | otherwise  = i - 4 * numberOfCrossings t
 
-    identityTangle = Tangle
-        { loopsCount = 0
-        , crossCount = 0
-        , crossArray = listArray (0, 1) [1, 0]
-        , stateArray = listArray (0, -1) []
-        , legsCount  = 2
-        }
+instance TangleLike Tangle where
+    identityTangle =
+        Tangle
+            { loopsCount  = 0
+            , vertexCount = 0
+            , connsArray  = listArray (0, 1) [1, 0]
+            , stateArray  = listArray (0, -1) []
+            , legsCount   = 2
+            }
 
     glueTangles legsToGlue legA legB = runST $ do
         unless (isLeg legA) $ fail $
@@ -163,14 +161,14 @@ instance TangleLike Tangle where
         unless (isLeg legB) $ fail $
             printf "glueTangles: second leg parameter %s is not a leg" (show legB)
 
-        let tangleA = dartTangle legA
+        let tangleA = dartOwner legA
             lA = numberOfLegs tangleA
-            nA = numberOfCrossings tangleA
+            nA = numberOfVertices tangleA
             lpA = legPlace legA
 
-            tangleB = dartTangle legB
+            tangleB = dartOwner legB
             lB = numberOfLegs tangleB
-            nB = numberOfCrossings tangleB
+            nB = numberOfVertices tangleB
             lpB = legPlace legB
 
         when (legsToGlue < 0 || legsToGlue > min lA lB) $ fail $
@@ -186,7 +184,9 @@ instance TangleLike Tangle where
                 convertA !x
                     | x < 4 * nA        = return $! x
                     | ml >= legsToGlue  = return $! 4 * newC + ml - legsToGlue
-                    | otherwise         = unsafeWrite visited ml True >> convertB (crossArray tangleB `unsafeAt` (4 * nB + (lpB - ml) `mod` lB))
+                    | otherwise         = do
+                        unsafeWrite visited ml True
+                        convertB (connsArray tangleB `unsafeAt` (4 * nB + (lpB - ml) `mod` lB))
                     where
                         ml = (x - 4 * nA - lpA) `mod` lA
 
@@ -194,22 +194,24 @@ instance TangleLike Tangle where
                 convertB !x
                     | x < 4 * nB            = return $! 4 * nA + x
                     | ml < lB - legsToGlue  = return $! 4 * newC + ml + lA - legsToGlue
-                    | otherwise             = unsafeWrite visited (lB - ml - 1) True >> convertA (crossArray tangleA `unsafeAt` (4 * nA + (lpA + lB - ml - 1) `mod` lA))
+                    | otherwise             = do
+                        unsafeWrite visited (lB - ml - 1) True
+                        convertA (connsArray tangleA `unsafeAt` (4 * nA + (lpA + lB - ml - 1) `mod` lA))
                     where
                         ml = (x - 4 * nB - lpB - 1) `mod` lB
 
             cr <- newArray_ (0, 4 * newC + newL - 1) :: ST s (STUArray s Int Int)
             forM_ [0 .. 4 * nA - 1] $ \ !i ->
-                convertA (crossArray tangleA `unsafeAt` i)
+                convertA (connsArray tangleA `unsafeAt` i)
                     >>= unsafeWrite cr i
             forM_ [0 .. 4 * nB - 1] $ \ !i ->
-                convertB (crossArray tangleB `unsafeAt` i)
+                convertB (connsArray tangleB `unsafeAt` i)
                     >>= unsafeWrite cr (4 * nA + i)
             forM_ [0 .. lA - legsToGlue - 1] $ \ !i ->
-                convertA (crossArray tangleA `unsafeAt` (4 * nA + (lpA + legsToGlue + i) `mod` lA))
+                convertA (connsArray tangleA `unsafeAt` (4 * nA + (lpA + legsToGlue + i) `mod` lA))
                     >>= unsafeWrite cr (4 * newC + i)
             forM_ [0 .. lB - legsToGlue - 1] $ \ !i ->
-                convertB (crossArray tangleB `unsafeAt` (4 * nB + (lpB + 1 + i) `mod` lB))
+                convertB (connsArray tangleB `unsafeAt` (4 * nB + (lpB + 1 + i) `mod` lB))
                     >>= unsafeWrite cr (4 * newC + lA - legsToGlue + i) 
             unsafeFreeze cr
 
@@ -224,31 +226,31 @@ instance TangleLike Tangle where
         extraLoops <- do
             let markA a = do
                     let ai = 4 * nA + (lpA + a) `mod` lA
-                        bi = crossArray tangleA `unsafeAt` ai
+                        bi = connsArray tangleA `unsafeAt` ai
                         b = (bi - 4 * nA - lpA) `mod` lA
-                    v <- readArray visited b
+                    v <- unsafeRead visited b
                     unless v $ unsafeWrite visited b True >> markB b
 
                 markB a = do
                     let ai = 4 * nB + (lpB - a) `mod` lB
-                        bi = crossArray tangleB `unsafeAt` ai
+                        bi = connsArray tangleB `unsafeAt` ai
                         b = (lpB - (bi - 4 * nB)) `mod` lB
-                    v <- readArray visited b
+                    v <- unsafeRead visited b
                     unless v $ unsafeWrite visited b True >> markA b
 
             foldM (\ !s !i -> do
-                    v <- readArray visited i
+                    v <- unsafeRead visited i
                     if v
                         then return $! s
                         else markA i >> (return $! s + 1)
                 ) 0 [0 .. legsToGlue - 1]
 
         return Tangle
-            { loopsCount = numberOfFreeLoops tangleA + numberOfFreeLoops tangleB + extraLoops
-            , crossCount = newC
-            , crossArray = cr
-            , stateArray = st
-            , legsCount  = newL
+            { loopsCount  = numberOfFreeLoops tangleA + numberOfFreeLoops tangleB + extraLoops
+            , vertexCount = newC
+            , connsArray  = cr
+            , stateArray  = st
+            , legsCount   = newL
             }
 
     glueToBorder leg legsToGlue !crossingToGlue = runST $ do
@@ -258,12 +260,12 @@ instance TangleLike Tangle where
         when (legsToGlue < 0 || legsToGlue > 4) $ fail $
             printf "glueToBorder: legsToGlue must be in [0 .. 4], but %i found" legsToGlue
 
-        let tangle = dartTangle leg
+        let tangle = dartOwner leg
             oldL = numberOfLegs tangle
         when (oldL < legsToGlue) $ fail $
             printf "glueToBorder: not enough legs to glue (l = %i, legsToGlue = %i)" oldL legsToGlue
 
-        let oldC = numberOfCrossings tangle
+        let oldC = numberOfVertices tangle
             newC = oldC + 1
             newL = oldL + 4 - 2 * legsToGlue
             lp = legPlace leg
@@ -277,7 +279,7 @@ instance TangleLike Tangle where
                           | ml < oldL - legsToGlue  = 4 * newC + 4 - legsToGlue + ml
                           | otherwise               = 4 * newC - 5 + oldL - ml
                           where
-                              x = crossArray tangle `unsafeAt` index'
+                              x = connsArray tangle `unsafeAt` index'
                               ml = (x - 4 * oldC - lp - 1) `mod` oldL
                     in unsafeWrite cr index y
 
@@ -305,55 +307,59 @@ instance TangleLike Tangle where
             unsafeFreeze st
 
         let result = Tangle
-                { loopsCount = numberOfFreeLoops tangle
-                , crossCount = newC
-                , crossArray = cr
-                , stateArray = st
-                , legsCount  = newL
+                { loopsCount  = numberOfFreeLoops tangle
+                , vertexCount = newC
+                , connsArray  = cr
+                , stateArray  = st
+                , legsCount   = newL
                 }
 
-        return $! nthCrossing result newC 
+        return $! nthVertex result newC 
 
 
 zeroTangle :: (CrossingType ct) => Tangle ct
-zeroTangle = Tangle
-    { loopsCount = 0
-    , crossCount = 0
-    , crossArray = listArray (0, 3) [3, 2, 1, 0]
-    , stateArray = listArray (0, -1) []
-    , legsCount  = 4
-    }
+zeroTangle =
+    Tangle
+        { loopsCount  = 0
+        , vertexCount = 0
+        , connsArray  = listArray (0, 3) [3, 2, 1, 0]
+        , stateArray  = listArray (0, -1) []
+        , legsCount   = 4
+        }
 
 
 infinityTangle :: (CrossingType ct) => Tangle ct
-infinityTangle = Tangle
-    { loopsCount = 0
-    , crossCount = 0
-    , crossArray = listArray (0, 3) [1, 0, 3, 2]
-    , stateArray = listArray (0, -1) []
-    , legsCount  = 4
-    }
+infinityTangle =
+    Tangle
+        { loopsCount  = 0
+        , vertexCount = 0
+        , connsArray  = listArray (0, 3) [1, 0, 3, 2]
+        , stateArray  = listArray (0, -1) []
+        , legsCount   = 4
+        }
 
 
 lonerTangle :: (CrossingType ct) => CrossingState ct -> Tangle ct
-lonerTangle !cr = Tangle
-    { loopsCount = 0
-    , crossCount = 1
-    , crossArray = listArray (0, 7) [4, 5, 6, 7, 0, 1, 2, 3]
-    , stateArray = listArray (0, 0) [cr]
-    , legsCount  = 4
-    }
+lonerTangle !cr =
+    Tangle
+        { loopsCount  = 0
+        , vertexCount = 1
+        , connsArray  = listArray (0, 7) [4, 5, 6, 7, 0, 1, 2, 3]
+        , stateArray  = listArray (0, 0) [cr]
+        , legsCount   = 4
+        }
 
 
 produceShowDart ''Tangle ''Dart $ \ d -> [([| isLeg $d |], [| printf "(Leg %i)" $ legPlace $d |])]
-produceShowCrossing ''Tangle ''Crossing
+produceShowCrossing ''Tangle ''Vertex
+
 
 instance (CrossingType ct) => Show (Tangle ct) where
     show tangle =
         let border = printf "(Border [ %s ])" $ unwords $ map (show . opposite) $ allLegs tangle
         in printf "(Tangle (%i O) %s)"
             (numberOfFreeLoops tangle)
-            (unwords $ border : map show (allCrossings tangle))
+            (unwords $ border : map show (allVertices tangle))
 
 
 instance KnottedWithConnectivity Tangle where

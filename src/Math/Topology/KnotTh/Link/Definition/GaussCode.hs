@@ -48,7 +48,7 @@ fromDTCode code =
 toGaussCode :: Link ArbitraryCrossing -> [[Int]]
 toGaussCode link =
     flip map (allThreads link) $ map $ \ (_, d) ->
-        (crossingIndex $ incidentCrossing d) * (if passOver d then 1 else -1)
+        (vertexIndex $ beginVertex d) * (if passOver d then 1 else -1)
 
 
 fromGaussCode :: [[Int]] -> Link ArbitraryCrossing

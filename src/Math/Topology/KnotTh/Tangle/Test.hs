@@ -13,20 +13,20 @@ import Math.Topology.KnotTh.Tangle
 test :: Test
 test = testGroup "Basic tangle tests"
     [ testCase "Very basic functions" $ do
-        let t = crossingTangle $ glueToBorder (firstLeg lonerProjection) 1 projectionCrossing
-        let c1 = nthCrossing t 1
-        crossingIndex c1 @?= 1
-        opposite (nthLeg t 3) @?= nthIncidentDart c1 1
+        let t = vertexOwner $ glueToBorder (firstLeg lonerProjection) 1 projectionCrossing
+        let c1 = nthVertex t 1
+        vertexIndex c1 @?= 1
+        opposite (nthLeg t 3) @?= nthOutcomingDart c1 1
 
         forM_ [0 .. 3] $ \ i -> do
-            nextCW (nthIncidentDart c1 i) @?= nthIncidentDart c1 ((i - 1) `mod` 4)
-            nextCCW (nthIncidentDart c1 i) @?= nthIncidentDart c1 ((i + 1) `mod` 4)
+            nextCW (nthOutcomingDart c1 i) @?= nthOutcomingDart c1 ((i - 1) `mod` 4)
+            nextCCW (nthOutcomingDart c1 i) @?= nthOutcomingDart c1 ((i + 1) `mod` 4)
 
         forM_ [0 .. 5] $ \ i -> do
             nextCW (nthLeg t i) @?= nthLeg t ((i - 1) `mod` 6)
             nextCCW (nthLeg t i) @?= nthLeg t ((i + 1) `mod` 6)
 
-        foldMIncidentDartsFrom (nthIncidentDart c1 2) R.ccw (\ _ s -> return $! s + 1) (0 :: Int) >>= (@?= 4)
+        foldMIncidentDartsFrom (nthOutcomingDart c1 2) R.ccw (\ _ s -> return $! s + 1) (0 :: Int) >>= (@?= 4)
 
     , testCase "Show tangle" $ do
         assertEqual "empty tangle" "(Tangle (0 O) (Border [  ]))" $
@@ -59,7 +59,7 @@ test = testGroup "Basic tangle tests"
 
     , testGroup "Glue crossing"
         [ testCase "With 0 legs" $
-            explode (crossingTangle $ glueToBorder (nthLeg lonerProjection 0) 0 projectionCrossing) @?=
+            explode (vertexOwner $ glueToBorder (nthLeg lonerProjection 0) 0 projectionCrossing) @?=
                 ( 0
                 , [(2, 0), (2, 1), (2, 2), (2, 3), (1, 1), (1, 2), (1, 3), (1, 0)]
                 ,   [ ([(0, 7), (0, 4), (0, 5), (0, 6)], projectionCrossing)
@@ -68,7 +68,7 @@ test = testGroup "Basic tangle tests"
                 )
 
         , testCase "With 1 leg" $
-            explode (crossingTangle $ glueToBorder (firstLeg lonerProjection) 1 projectionCrossing) @?=
+            explode (vertexOwner $ glueToBorder (firstLeg lonerProjection) 1 projectionCrossing) @?=
                 ( 0
                 , [(2, 1), (2, 2), (2, 3), (1, 1), (1, 2), (1, 3)]
                 ,   [ ([(2, 0), (0, 3), (0, 4), (0, 5)], projectionCrossing)
@@ -77,7 +77,7 @@ test = testGroup "Basic tangle tests"
                 )
 
         , testCase "With 2 legs" $
-            explode (crossingTangle $ glueToBorder (nthLeg lonerProjection 1) 2 projectionCrossing) @?=
+            explode (vertexOwner $ glueToBorder (nthLeg lonerProjection 1) 2 projectionCrossing) @?=
                 ( 0
                 , [(2, 2), (2, 3), (1, 2), (1, 3)]
                 ,   [ ([(2, 1), (2, 0), (0, 2), (0, 3)], projectionCrossing)
@@ -86,7 +86,7 @@ test = testGroup "Basic tangle tests"
                 )
 
         , testCase "with 3 legs" $
-            explode (crossingTangle $ glueToBorder (nthLeg lonerProjection 3) 3 projectionCrossing) @?=
+            explode (vertexOwner $ glueToBorder (nthLeg lonerProjection 3) 3 projectionCrossing) @?=
                 ( 0
                 , [(2, 3), (1, 0)]
                 ,   [ ([(0, 1), (2, 2), (2, 1), (2, 0)], projectionCrossing)
@@ -95,7 +95,7 @@ test = testGroup "Basic tangle tests"
                 )
 
         , testCase "With 4 legs" $
-            explode (crossingTangle $ glueToBorder (nthLeg lonerProjection 1) 4 projectionCrossing) @?=
+            explode (vertexOwner $ glueToBorder (nthLeg lonerProjection 1) 4 projectionCrossing) @?=
                 ( 0
                 , []
                 ,   [ ([(2, 1), (2, 0), (2, 3), (2, 2)], projectionCrossing)

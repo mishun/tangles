@@ -77,7 +77,7 @@ test = testGroup "Tangle generators"
     , testCase "Numbers of 4-leg alternating tangles without symmetry" $
         testTable
             (\ n -> generateTable'
-                ((numberOfCrossings &&& numberOfLegs) . fst)
+                ((numberOfVertices &&& numberOfLegs) . fst)
                 (\ (_, symmetry) -> Dn.rotationPeriod symmetry * (if Dn.hasReflectionPart symmetry then 1 else 2))
                 (\ yield -> generateFlypeEquivalentInTriangle n
                     (\ (t, s) -> when (numberOfLegs t == 4) $

@@ -23,7 +23,7 @@ main = do
 
     let sifted = lookingForwardTanglesEnumeration True 6 0 8
     printTable "Tangles" $ generateTable'
-        (numberOfCrossings &&& numberOfLegs)
+        (numberOfVertices &&& numberOfLegs)
         (const 1)
         (forM_ (mapMaybe maybePrimeDiagram $ singleRepresentativeClasses sifted))
     putStrLn $ printf "Collision classes: %i" (length $ collisionClasses sifted)

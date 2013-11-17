@@ -32,29 +32,29 @@ threadExpansion invariant tangle =
                             | S.member c s  = (s, c : lst)
                             | otherwise     = (S.insert c s, lst)
                             where
-                                c = incidentCrossing b
+                                c = beginVertex b
 
                 indices = array (crossingIndexRange tangle) $
-                    map (first crossingIndex) $
-                        zip (allCrossings tangle) (repeat 0) ++ zip targets [1 ..]
+                    map (first vertexIndex) $
+                        zip (allVertices tangle) (repeat 0) ++ zip targets [1 ..]
 
                 findTarget u
                     | isLeg v    =
                         case elemIndex v targetLegs of
                             Just i  -> (0, i)
                             Nothing -> error "processThread: internal error"
-                    | ix > 0     = (ix, dartPlace v)
+                    | ix > 0     = (ix, beginPlace v)
                     | otherwise  = findTarget (threadContinuation v)
                     where
                         v = opposite u
-                        ix = indices ! crossingIndex (incidentCrossing v)
+                        ix = indices ! vertexIndex (beginVertex v)
 
                 threadSubset =
                     let loops = length $ flip filter threads $ \ thread ->
                             case thread of
                                 []          -> True
-                                (x, _) : _  -> isDart x && all (\ (_, d) -> (indices ! crossingIndex (incidentCrossing d)) == 0) thread
-                    in implode (loops, map findTarget targetLegs, map (\ c -> (map findTarget $ incidentDarts c, crossingState c)) targets)
+                                (x, _) : _  -> isDart x && all (\ (_, d) -> (indices ! vertexIndex (beginVertex d)) == 0) thread
+                    in implode (loops, map findTarget targetLegs, map (\ c -> (map findTarget $ outcomingDarts c, crossingState c)) targets)
 
                 ecode = sort $ map (\ t -> dist (fst $ head t) (snd $ last t)) $
                     flip filter threads $ \ thread ->

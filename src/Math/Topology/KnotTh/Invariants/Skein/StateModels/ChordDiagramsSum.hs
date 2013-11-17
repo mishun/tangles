@@ -118,7 +118,7 @@ restoreBasicTangle !chordDiagram =
                   in rotateTangle i $ glueTangles 0 (firstLeg identityTangle) (lastLeg tangle)
               | haveIntersection (i, i') (j, j') ->
                   let tangle = restore (a // [(i, j'), (j, i'), (i', j), (j', i)]) (h // [(i, h ! j), (j, h ! i)]) [0 .. l - 1]
-                  in rotateTangle i $ crossingTangle $ glueToBorder (nthLeg tangle j) 2 $
+                  in rotateTangle i $ vertexOwner $ glueToBorder (nthLeg tangle j) 2 $
                       if canonicalOver cdl (h ! i) (h ! j)
                           then overCrossing
                           else underCrossing
@@ -167,9 +167,9 @@ irregularCrossings tangle =
             in \ d -> on (tagPassOver $ numberOfLegs tangle) (tags !) d (nextCCW d)
 
     in filter (\ c ->
-            let d0 = nthIncidentDart c 0
+            let d0 = nthOutcomingDart c 0
             in passOver d0 /= expectedPassOver d0
-       ) $ allCrossings tangle
+       ) $ allVertices tangle
 
 
 decomposeTangle :: (SkeinRelation r a) => r -> [(Int, [(Int, Int)], [([(Int, Int)], ArbitraryCrossingState)])] -> a -> NATangle -> ChordDiagramsSum a

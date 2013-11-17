@@ -4,7 +4,7 @@ import Data.Monoid (Last(..))
 import Text.Printf
 import Criterion.Main
 import Criterion.Config
-import Math.Topology.KnotTh.Tangle.NonAlternating
+import Math.Topology.KnotTh.Tangle
 import Math.Topology.KnotTh.Tangle.NonAlternating.Satellites
 import Math.Topology.KnotTh.Link
 import Math.Topology.KnotTh.Invariants

@@ -28,7 +28,7 @@ isomorphismTest link =
 
     where
         codeWithDirection !global !dir !start = runSTUArray $ do
-            let n = numberOfCrossings link
+            let n = numberOfVertices link
 
             index <- newArray (0, n) 0 :: ST s (STUArray s Int Int)
             incoming <- newArray (0, n) 0 :: ST s (STUArray s Int Int)
@@ -37,17 +37,17 @@ isomorphismTest link =
 
             let {-# INLINE look #-}
                 look !d = do
-                    let u = crossingIndex $! incidentCrossing d
+                    let u = vertexIndex $ beginVertex d
                     ux <- unsafeRead index u
                     if ux > 0
                         then do
                             up <- unsafeRead incoming u
-                            return $! (ux `shiftL` 2) + (((dartPlace d - up) * R.directionSign dir) .&. 3)
+                            return $! (ux `shiftL` 2) + (((beginPlace d - up) * R.directionSign dir) .&. 3)
                         else do
                             nf <- readSTRef free
                             writeSTRef free $! nf + 1
                             unsafeWrite index u nf
-                            unsafeWrite incoming u (dartPlace d)
+                            unsafeWrite incoming u (beginPlace d)
                             unsafeWrite queue (nf - 1) d
                             return $! nf `shiftL` 2
 

@@ -1,38 +1,14 @@
+{-# LANGUAGE TypeFamilies #-}
 module Math.Topology.Manifolds.SurfaceGraph.Definition
-    ( SurfaceGraph
-    , Dart
-    , dartIndex
-    , dartOwnerGraph
-    , Vertex
-    , vertexIndex
-    , vertexOwnerGraph
-    , Face
-    , faceIndex
-    , faceOwnerGraph
-    , numberOfVertices
-    , nthVertex
-    , vertexDegree
-    , nthDartIncidentToVertex
-    , numberOfFaces
-    , nthFace
-    , faceDegree
-    , nthDartInFaceTraverseCCW
-    , numberOfDarts
-    , nthDart
-    , nextBy
-    , opposite
-    , begin
-    , left
-    , toPair
+    ( module X
+    , SurfaceGraph
     , dual
     , constructFromList
-    , constructFromArray
     ) where
 
 import Data.Ix (Ix(..))
-import Data.Ord (comparing)
 import Data.List (intercalate)
-import Data.Array.IArray (IArray, (!), bounds, listArray, elems, assocs, indices)
+import Data.Array.IArray ((!), bounds, listArray, assocs, indices)
 import Data.Array.MArray (newArray, newArray_, readArray, writeArray, freeze)
 import Data.Array (Array)
 import Data.Array.Unboxed (UArray)
@@ -40,195 +16,178 @@ import Data.Array.ST (STArray)
 import Control.Monad.ST (ST, runST)
 import Control.Monad (forM_, foldM)
 import Text.Printf
+import Math.Algebra.PlanarAlgebra as X
 
 
-data SurfaceGraph = Graph
-    { _opposite   :: {-# UNPACK #-} !(UArray Int Int)
-    , _vertices   :: {-# UNPACK #-} !(Array Int (UArray Int Int))
-    , _connToVert :: {-# UNPACK #-} !(Array Int (Int, Int))
-    , _faces      :: {-# UNPACK #-} !(Array Int (UArray Int Int))
-    , _connToFace :: {-# UNPACK #-} !(Array Int (Int, Int))
-    }
+data SurfaceGraph a =
+    Graph
+        { _opposite   :: {-# UNPACK #-} !(UArray Int Int)
+        , _vertices   :: {-# UNPACK #-} !(Array Int (UArray Int Int))
+        , _connToVert :: {-# UNPACK #-} !(Array Int (Int, Int))
+        , _faces      :: {-# UNPACK #-} !(Array Int (UArray Int Int))
+        , _connToFace :: {-# UNPACK #-} !(Array Int (Int, Int))
+        }
 
 
-data Dart = Dart { dartOwnerGraph :: !SurfaceGraph, dartIndex :: {-# UNPACK #-} !Int }
+instance PlanarDiagram SurfaceGraph where
+    numberOfVertices g = (+ 1) $ snd $ bounds $ _vertices g
 
-instance Eq Dart where
-    (==) a b = dartIndex a == dartIndex b
+    numberOfEdges g = (`div` 2) $ (+ 1) $ snd $ bounds $ _opposite g
 
-instance Ord Dart where
-    compare = comparing dartIndex
+    nthVertex g i | inRange b i  = Vertex g i
+                  | otherwise    = error $ printf "nthVertex: index %i is out of bounds %s" i (show b)
+        where
+            b = bounds (_vertices g)
 
-instance Ix Dart where
-    range (Dart _ a, Dart g b) = map (Dart g) [a .. b]
-    index (Dart _ a, Dart _ b) (Dart _ c) = index (a, b) c
-    inRange (Dart _ a, Dart _ b) (Dart _ c) = c >= a && c <= b
-    rangeSize (Dart _ a, Dart _ b) = max 0 $ b - a + 1
+    nthDart g i | inRange b i  = Dart g i
+                | otherwise    = error $ printf "nthDart: index %i is out of bounds %s" i (show b)
+        where
+            b = bounds (_opposite g)
+
+    allVertices g = map (Vertex g) $ range $ bounds $ _vertices g
+
+    allHalfEdges g = map (nthDart g) [0 .. numberOfDarts g - 1]
+
+    data Vertex SurfaceGraph a = Vertex !(SurfaceGraph a) {-# UNPACK #-} !Int
+
+    vertexDegree (Vertex g i) = (+ 1) $ snd $ bounds (_vertices g ! i)
+
+    vertexOwner (Vertex g _) = g
+
+    vertexIndex (Vertex _ i) = i
+
+    nthOutcomingDart v@(Vertex g i) j =
+        let jj = j `mod` vertexDegree v
+        in Dart g $ (_vertices g ! i) ! jj
+
+    outcomingDarts v = map (nthOutcomingDart v) [0 .. vertexDegree v - 1]
+
+    data Dart SurfaceGraph a = Dart !(SurfaceGraph a) {-# UNPACK #-} !Int
+
+    dartOwner (Dart g _) = g
+
+    dartIndex (Dart _ i) = i
+
+    beginPair (Dart g i) =
+        let (vi, p) = _connToVert g ! i
+        in (Vertex g vi, p)
+
+    opposite (Dart g i) = Dart g (_opposite g ! i)
+
+    isDart _ = True
 
 
-data Vertex = Vertex { vertexOwnerGraph :: !SurfaceGraph, vertexIndex :: {-# UNPACK #-} !Int }
+instance SurfaceDiagram SurfaceGraph where
+    numberOfFaces g = (+ 1) $ snd $ bounds $ _faces g
 
-instance Eq Vertex where
-    (==) a b = vertexIndex a == vertexIndex b
+    nthFace g i | inRange b i  = Face g i
+                | otherwise    = error $ printf "nthFace: index %i is out of bounds %s" i (show b)
+        where
+            b = bounds (_faces g)
 
-instance Ord Vertex where
-    compare = comparing vertexIndex
+    allFaces g = map (Face g) $ range $ bounds $ _faces g
 
-instance Ix Vertex where
+    data Face SurfaceGraph a = Face !(SurfaceGraph a) {-# UNPACK #-} !Int
+
+    faceDegree (Face g i) = (+ 1) $ snd $ bounds (_faces g ! i)
+
+    faceOwner (Face g _) = g
+
+    faceIndex (Face _ i) = i
+
+    leftPair (Dart g i) =
+        let (fi, p) = _connToFace g ! i
+        in (Face g fi, p)
+
+    nthDartInCCWTraverse f@(Face g i) j =
+        let jj = j `mod` faceDegree f
+        in Dart g $ (_faces g ! i) ! jj
+
+
+instance Eq (Vertex SurfaceGraph a) where
+    (==) (Vertex _ a) (Vertex _ b) = a == b
+
+instance Ord (Vertex SurfaceGraph a) where
+    compare (Vertex _ a) (Vertex _ b) = compare a b
+
+instance Ix (Vertex SurfaceGraph a) where
     range (Vertex _ a, Vertex g b) = map (Vertex g) [a .. b]
     index (Vertex _ a, Vertex _ b) (Vertex _ c) = index (a, b) c
     inRange (Vertex _ a, Vertex _ b) (Vertex _ c) = c >= a && c <= b
     rangeSize (Vertex _ a, Vertex _ b) = max 0 $ b - a + 1
 
 
-data Face = Face { faceOwnerGraph :: !SurfaceGraph, faceIndex :: {-# UNPACK #-} !Int }
+instance Eq (Dart SurfaceGraph a) where
+    (==) (Dart _ a) (Dart _ b) = a == b
 
-instance Eq Face where
-    (==) a b = faceIndex a == faceIndex b
+instance Ord (Dart SurfaceGraph a) where
+    compare (Dart _ a) (Dart _ b) = compare a b
 
-instance Ord Face where
-    compare = comparing faceIndex
+instance Ix (Dart SurfaceGraph a) where
+    range (Dart _ a, Dart g b) = map (Dart g) [a .. b]
+    index (Dart _ a, Dart _ b) (Dart _ c) = index (a, b) c
+    inRange (Dart _ a, Dart _ b) (Dart _ c) = c >= a && c <= b
+    rangeSize (Dart _ a, Dart _ b) = max 0 $ b - a + 1
 
-instance Ix Face where
+
+instance Eq (Face SurfaceGraph a) where
+    (==) (Face _ a) (Face _ b) = a == b
+
+instance Ord (Face SurfaceGraph a) where
+    compare (Face _ a) (Face _ b) = compare a b
+
+instance Ix (Face SurfaceGraph a) where
     range (Face _ a, Face g b) = map (Face g) [a .. b]
     index (Face _ a, Face _ b) (Face _ c) = index (a, b) c
     inRange (Face _ a, Face _ b) (Face _ c) = c >= a && c <= b
     rangeSize (Face _ a, Face _ b) = max 0 $ b - a + 1
 
 
-numberOfVertices :: SurfaceGraph -> Int
-numberOfVertices g = (+ 1) $ snd $ bounds $ _vertices g
-
-
-nthVertex :: SurfaceGraph -> Int -> Vertex
-nthVertex g i | inRange (bounds $ _vertices g) i  = Vertex g i
-              | otherwise                         = error $ printf "nthVertex: index %i is out of bounds" i
-
-
-vertexDegree :: Vertex -> Int
-vertexDegree (Vertex g i) = (+ 1) $ snd $ bounds (_vertices g ! i)
-
-
-nthDartIncidentToVertex :: Vertex -> Int -> Dart
-nthDartIncidentToVertex v@(Vertex g i) j =
-    let jj = j `mod` vertexDegree v
-    in Dart g $! (_vertices g ! i) ! jj
-
-
-numberOfFaces :: SurfaceGraph -> Int
-numberOfFaces g = (+ 1) $! snd $! bounds $! _faces g
-
-
-nthFace :: SurfaceGraph -> Int -> Face
-nthFace g i | inRange (bounds $ _faces g) i  = Face g i
-            | otherwise                      = error $ printf "nthFace: index %i is out of bounds" i
-
-
-faceDegree :: Face -> Int
-faceDegree (Face g i) = (+ 1) $! snd $! bounds (_faces g ! i)
-
-
-nthDartInFaceTraverseCCW :: Face -> Int -> Dart
-nthDartInFaceTraverseCCW f@(Face g i) j =
-    let jj = j `mod` faceDegree f
-    in Dart g $! (_faces g ! i) ! jj
-
-
-numberOfDarts :: SurfaceGraph -> Int
-numberOfDarts g = (+ 1) $! snd $! bounds $! _opposite g
-
-
-nthDart :: SurfaceGraph -> Int -> Dart
-nthDart g i | inRange (bounds $ _opposite g) i  = Dart g i
-            | otherwise                         = error $ printf "nthDart: index %i is out of bounds" i
-
-
-nextBy :: Int -> Dart -> Dart
-nextBy x (Dart g i) = Dart g $ (v !) $ (p + x) `mod` k
-    where
-        (vi, p) = _connToVert g ! i
-        v = _vertices g ! vi
-        k = snd (bounds v) + 1
-
-
-opposite :: Dart -> Dart
-opposite (Dart g i) = Dart g (_opposite g ! i)
-
-
-begin :: Dart -> (Vertex, Int)
-begin (Dart g i) =
-    let (vi, p) = _connToVert g ! i
-    in (Vertex g vi, p)
-
-
-left :: Dart -> (Face, Int)
-left (Dart g i) =
-    let (fi, p) = _connToFace g ! i
-    in (Face g fi, p)
-
-
-toPair :: Dart -> (Int, Int)
-toPair d =
-    let (v, p) = begin d
-    in (vertexIndex v, p)
-
-
-instance Show SurfaceGraph where
+instance Show (SurfaceGraph a) where
     show graph =
         let showVertex v =
-                let inc = intercalate ", " $ map (show . toPair . opposite . nthDartIncidentToVertex v) [0 .. vertexDegree v - 1]
+                let inc = intercalate ", " $ map (show . beginPair') $ incomingDarts v
                 in concat [show $ vertexIndex v, " -> {", inc, "}"]
-        in (\ s -> concat ["{\n", s, "\n}"]) $ unlines $ map (showVertex . nthVertex graph) [0 .. numberOfVertices graph - 1]
+        in (\ s -> concat ["{\n", s, "\n}"]) $ unlines $ map showVertex $ allVertices graph
 
 
-dual :: SurfaceGraph -> SurfaceGraph
-dual g = Graph
-    { _opposite   = _opposite g
-    , _vertices   = _faces g
-    , _connToVert = _connToFace g
-    , _faces      = _vertices g
-    , _connToFace = _connToVert g
-    }
+dual :: SurfaceGraph a -> SurfaceGraph a
+dual g =
+    Graph
+        { _opposite   = _opposite g
+        , _vertices   = _faces g
+        , _connToVert = _connToFace g
+        , _faces      = _vertices g
+        , _connToFace = _connToVert g
+        }
 
 
-constructFromList :: [[(Int, Int)]] -> SurfaceGraph
+constructFromList :: [[(Int, Int)]] -> SurfaceGraph a
 constructFromList g
     | not idempotent  = error "constructFromList: bad connections"
     | otherwise       = completeDefinition opp vert
     where
         n = length g
-        s = listArray (0, n - 1) $! map length g :: UArray Int Int
-        offset = listArray (0, n) $! scanl (\ k i -> k + s ! i) 0 [0 .. n - 1] :: UArray Int Int
+        s = listArray (0, n - 1) $ map length g :: UArray Int Int
+        offset = listArray (0, n) $ scanl (\ k i -> k + s ! i) 0 [0 .. n - 1] :: UArray Int Int
 
         indexD (v, p)
             | v < 0 || v >= n        = error $ printf "constructFromList: vertex index %i is out of bound" v
             | p < 0 || p >= (s ! v)  = error $ printf "constructFromList: dart index %i is out of bound" p
             | otherwise              = (offset ! v) + p
 
-        opp = listArray (0, (offset ! n) - 1) $! map indexD $! concat g
+        opp = listArray (0, (offset ! n) - 1) $ map indexD $ concat g
 
-        idempotent = all (\ (i, j) -> (i /= j) && (i == opp ! j)) $! assocs opp
+        idempotent = all (\ (i, j) -> (i /= j) && (i == opp ! j)) $ assocs opp
 
-        vert = listArray (0, n - 1) $! map (\ i ->
+        vert = listArray (0, n - 1) $ map (\ i ->
                 let m = s ! i
                     o = offset ! i
-                in listArray (0, m - 1) $! map (+ o) [0 .. m - 1]
+                in listArray (0, m - 1) $ map (+ o) [0 .. m - 1]
             ) [0 .. n - 1]
 
 
-constructFromArray :: (Ix i, Ix j, IArray extA (intA j (i, j)), IArray intA (i, j)) => extA i (intA j (i, j)) -> SurfaceGraph
-constructFromArray g =
-    constructFromList $! map (map (\ (i, j) ->
-        let is | inRange (bounds g) i  = index (bounds g) i
-               | otherwise             = error "constructFromArray: vertex index is out of bound"
-            ja = g ! i
-            js | inRange (bounds ja) j  = index (bounds ja) j
-               | otherwise              = error "constructFromArray: dart index is out of bound"
-        in (is, js)
-    ) . elems) $! elems g
-
-
-completeDefinition :: UArray Int Int -> Array Int (UArray Int Int) -> SurfaceGraph
+completeDefinition :: UArray Int Int -> Array Int (UArray Int Int) -> SurfaceGraph a
 completeDefinition opp vert = runST $ do
     connV <- do
         connV <- newArray_ (bounds opp) :: ST s (STArray s Int e)
@@ -244,17 +203,17 @@ completeDefinition opp vert = runST $ do
                 let next =
                         let (v, p) = connV ! (opp ! cur)
                             s = vert ! v
-                        in s ! (if p > 0 then p - 1 else snd $! bounds s)
+                        in s ! (if p > 0 then p - 1 else snd $ bounds s)
                 if next == start
-                    then return $! listArray (0, l) $! reverse $! cur : path
-                    else walk start next (l + 1) $! cur : path
+                    then return $! listArray (0, l) $ reverse $ cur : path
+                    else walk start next (l + 1) $ cur : path
 
         r <- foldM (\ !l !i -> do
                 v <- readArray visited i
                 if v then return l else walk i i 0 [] >>= (return $!) . (: l)
             ) [] (indices opp)
 
-        return $! listArray (0, length r - 1) $! reverse r
+        return $! listArray (0, length r - 1) $ reverse r
 
     connF <- do
         connF <- newArray_ (bounds opp) :: ST s (STArray s Int e)

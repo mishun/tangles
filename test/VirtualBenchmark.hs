@@ -20,13 +20,13 @@ import TestUtil.Drawing
 heuristic :: SurfaceLink ArbitraryCrossing -> Bool
 heuristic link =
     let test d a
-            | incidentCrossing a == incidentCrossing d   = False
-            | incidentCrossing a == incidentCrossing a'  = False
-            | incidentCrossing d == incidentCrossing a'  = False
-            | opposite (nextCCW a) /= nextCW a'          = False
-            | passOver a == passOver a'                  = True
-            | opposite b == nextCW d                     = passOver b == passOver (opposite b)
-            | otherwise                                  = test d b
+            | beginVertex a == beginVertex d     = False
+            | beginVertex a == beginVertex a'    = False
+            | beginVertex d == beginVertex a'    = False
+            | opposite (nextCCW a) /= nextCW a'  = False
+            | passOver a == passOver a'          = True
+            | opposite b == nextCW d             = passOver b == passOver (opposite b)
+            | otherwise                          = test d b
             where
                 a' = opposite a
                 b = nextCCW a'
@@ -43,7 +43,7 @@ generateVirtualKnots maxN = do
                 (\ yield -> forCCP_ (primeIrreducibleDiagrams maxN) $ \ (t, (s, _)) -> yield (t, s))
                 (\ !link ->
                     when (eulerChar link == 0 && not (is1stOr2ndReidemeisterReducible link) && numberOfThreads link == 1 && testPrime link && heuristic link) $
-                        modify $ M.insertWith' (++) (numberOfCrossings link) [link]
+                        modify $ M.insertWith' (++) (numberOfVertices link) [link]
                 )
 
     forM_ (M.toList table) $ \ (n, links) ->
@@ -56,10 +56,10 @@ generateVirtualKnots maxN = do
             forM_ links $ \ link ->
                 hPrint f $ encodeEdgeIndices link
 
-    forM_ (M.toList table) $ \ (n, links) ->
-        forM_ links $ \ link -> do
-            let jp = jonesPolynomial link
-            putStrLn $ printf "%i: %s" n (show jp)
+    --forM_ (M.toList table) $ \ (n, links) ->
+    --    forM_ links $ \ link -> do
+    --        let jp = jonesPolynomial link
+    --        putStrLn $ printf "%i: %s" n (show jp)
 
     print $ M.map length table
 
@@ -72,7 +72,7 @@ generateVirtualKnotProjections maxN = do
                 (forCCP_ $ primeProjections maxN)
                 (\ !link ->
                     when (eulerChar link == 0 && numberOfThreads link == 1 && testPrime link) $
-                        modify (M.insertWith' (++) (numberOfCrossings link) [link])
+                        modify (M.insertWith' (++) (numberOfVertices link) [link])
                 )
 
     forM_ (M.toList table) $ \ (n, links) ->
@@ -97,7 +97,7 @@ generateAlternatingSkeletons maxN = do
                 (\ !link ->
                     when (not (isReducable link) && testPrime link && not (has4LegPlanarPart link)) $
                         let g = (2 - eulerChar link) `div` 2
-                            n = numberOfCrossings link
+                            n = numberOfVertices link
                         in modify $ M.insertWith' (++) (n, g) [link]
                 )
 

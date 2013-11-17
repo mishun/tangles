@@ -24,7 +24,7 @@ import Math.Topology.KnotTh.Crossings.Arbitrary as X
 
 
 type TangleProj = Tangle ProjectionCrossing
-type TangleProjCrossing = Crossing Tangle ProjectionCrossing
+type TangleProjCrossing = Vertex Tangle ProjectionCrossing
 type TangleProjDart = Dart Tangle ProjectionCrossing
 
 
@@ -33,7 +33,7 @@ lonerProjection = lonerTangle projectionCrossing
 
 
 type NATangle = Tangle ArbitraryCrossing
-type NATangleCrossing = Crossing Tangle ArbitraryCrossing
+type NATangleCrossing = Vertex Tangle ArbitraryCrossing
 type NATangleDart = Dart Tangle ArbitraryCrossing
 
 

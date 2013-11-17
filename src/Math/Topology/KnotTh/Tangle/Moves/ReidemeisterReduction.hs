@@ -24,7 +24,7 @@ reduce1st aad = do
             let ac = nextCW aad
             ba <- oppositeC ab
             substituteC [(ba, ac)]
-            maskC [incidentCrossing aad]
+            maskC [beginVertex aad]
             return True
 
 
@@ -39,13 +39,13 @@ reduce1st aad = do
 --     / \
 reduce2nd :: NATangleDart -> MoveM s ArbitraryCrossing Bool
 reduce2nd abl = do
-    let a = incidentCrossing abl
+    let a = beginVertex abl
     bal <- oppositeC abl
 
     if isLeg bal then return False else do
         let abr = nextCCW abl
             bar = nextCW bal
-            b = incidentCrossing bal
+            b = beginVertex bal
 
         crossingsOk <- liftM2 (==) (passOverC abl) (passOverC bal)
         structureOk <- (== abr) <$> oppositeC bar

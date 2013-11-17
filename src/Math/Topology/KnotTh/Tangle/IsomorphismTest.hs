@@ -21,15 +21,15 @@ import Math.Topology.KnotTh.Tangle
 
 isomorphismTest :: (CrossingType ct) => Tangle ct -> UArray Int Int
 isomorphismTest tangle
-    | numberOfCrossings tangle > 127  = error $ printf "isomorphismTest: too many crossings (%i)" (numberOfCrossings tangle)
-    | otherwise                       = minimum $ do
+    | n > 127    = error $ printf "isomorphismTest: too many crossings (%i)" n
+    | otherwise  = minimum $ do
         leg <- allLegs tangle
         dir <- R.bothDirections
         global <- fromMaybe [D4.i] $ globalTransformations tangle
         return $ code global dir leg
 
     where
-        n = numberOfCrossings tangle
+        n = numberOfVertices tangle
         l = numberOfLegs tangle
 
         code global dir leg = runSTUArray $ do
@@ -41,14 +41,14 @@ isomorphismTest tangle
                 look !d
                     | isLeg d    = return 0
                     | otherwise  = do
-                        let u = incidentCrossing d
-                        ux <- unsafeRead index $! crossingIndex u
+                        let u = beginVertex d
+                        ux <- unsafeRead index $! vertexIndex u
                         if ux > 0
                             then return $! ux
                             else do
                                 nf <- readSTRef free
                                 writeSTRef free $! nf + 1
-                                unsafeWrite index (crossingIndex u) nf
+                                unsafeWrite index (vertexIndex u) nf
                                 unsafeWrite queue (nf - 1) d
                                 return $! nf
 
@@ -105,7 +105,7 @@ isomorphismTest tangle
                                 _  -> (pd, EQ)
                         )
                         (undefined, LT)
-                        [d | i <- notVisited, d <- incidentDarts (nthCrossing tangle i)]
+                        [d | i <- notVisited, d <- outcomingDarts (nthVertex tangle i)]
 
                     writeSTRef free tail
                     forM_ notVisited $ \ !i -> unsafeWrite index i 0

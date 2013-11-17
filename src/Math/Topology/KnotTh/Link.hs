@@ -17,10 +17,10 @@ import Math.Topology.KnotTh.Crossings.Arbitrary as X
 
 
 type LinkProj = Link ProjectionCrossing
-type LinkProjCrossing = Crossing Link ProjectionCrossing
+type LinkProjCrossing = Vertex Link ProjectionCrossing
 type LinkProjDart = Dart Link ProjectionCrossing
 
 
 type NALink = Link ArbitraryCrossing
-type NALinkCrossing = Crossing Link ArbitraryCrossing
+type NALinkCrossing = Vertex Link ArbitraryCrossing
 type NALinkDart = Dart Link ArbitraryCrossing

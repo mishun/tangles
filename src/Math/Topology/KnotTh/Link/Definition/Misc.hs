@@ -7,7 +7,7 @@ module Math.Topology.KnotTh.Link.Definition.Misc
 import Text.Printf
 import Math.Topology.KnotTh.Knotted
 import Math.Topology.KnotTh.Link.Definition.Link
-import Math.Topology.KnotTh.Tangle (Tangle, numberOfLegs, firstLeg, glueTangles, mirrorTangle)
+import Math.Topology.KnotTh.Tangle
 
 
 toTangle :: (CrossingType ct) => Link ct -> Tangle ct

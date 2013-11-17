@@ -14,14 +14,14 @@ test :: Test
 test =
     let testCorr link = do
             forM_ (allHalfEdges link) $ \ d -> do
-                let f = faceToTheLeft d
-                    p = placeToTheLeft d
-                nthCCWBorderDart f p @?= d
+                let f = leftFace d
+                    p = leftPlace d
+                nthDartInCCWTraverse f p @?= d
 
             forM_ (allHalfEdges link) $ \ d -> do
-                let f = faceToTheRight d
-                    p = placeToTheRight d
-                nthCWBorderDart f p @?= d
+                let f = rightFace d
+                    p = rightPlace d
+                nthDartInCWTraverse f p @?= d
 
     in testGroup "SurfaceLink tests"
         [ testCase "Simplest torus link" $ do

@@ -36,12 +36,12 @@ data MoveState s ct = MoveState
     }
 
 
-readMaskST :: MoveState s ct -> Crossing Tangle ct -> ST s (CrossingFlag ct)
-readMaskST st c = readArray (stateMask st) (crossingIndex c)
+readMaskST :: MoveState s ct -> Vertex Tangle ct -> ST s (CrossingFlag ct)
+readMaskST st c = readArray (stateMask st) (vertexIndex c)
 
 
-writeMaskST :: MoveState s ct -> Crossing Tangle ct -> CrossingFlag ct -> ST s ()
-writeMaskST st c = writeArray (stateMask st) (crossingIndex c)
+writeMaskST :: MoveState s ct -> Vertex Tangle ct -> CrossingFlag ct -> ST s ()
+writeMaskST st c = writeArray (stateMask st) (vertexIndex c)
 
 
 reconnectST :: MoveState s ct -> [(Dart Tangle ct, Dart Tangle ct)] -> ST s ()
@@ -59,7 +59,7 @@ disassembleST tangle = do
         writeArray connections (dartIndex a) b
         writeArray connections (dartIndex b) a
 
-    mask <- newListArray (crossingIndexRange tangle) $ map (Direct . crossingState) $ allCrossings tangle
+    mask <- newListArray (crossingIndexRange tangle) $ map (Direct . crossingState) $ allVertices tangle
     circlesCounter <- newSTRef $ numberOfFreeLoops tangle
     return MoveState
         { stateSource      = tangle
@@ -78,24 +78,24 @@ assembleST st = do
             msk <- readMaskST st c
             case msk of
                 Masked -> return x
-                _      -> writeArray offset (crossingIndex c) x >> (return $! x + 1)
-        ) 1 (allCrossings source)
+                _      -> writeArray offset (vertexIndex c) x >> (return $! x + 1)
+        ) 1 (allVertices source)
 
     let pair d | isLeg d    = return $! (,) 0 $! legPlace d
                | otherwise  = do
-                   let i = crossingIndex $ incidentCrossing d
+                   let i = vertexIndex $ beginVertex d
                    msk <- readArray (stateMask st) i
                    off <- readArray offset i
                    case msk of
-                       Direct _  -> return (off, dartPlace d)
-                       Flipped _ -> return (off, 3 - dartPlace d)
+                       Direct _  -> return (off, beginPlace d)
+                       Flipped _ -> return (off, 3 - beginPlace d)
                        Masked    -> fail $ printf "assemble: %s is touching masked crossing %i at:\n%s" (show d) i (show $ stateSource st)
 
     let opp d = readArray (stateConnections st) (dartIndex d)
 
     border <- forM (allLegs source) (opp >=> pair)
     connections <- do
-        alive <- flip filterM (allCrossings source) $ \ !c -> do
+        alive <- flip filterM (allVertices source) $ \ !c -> do
             msk <- readMaskST st c
             return $! case msk of
                 Masked -> False
@@ -103,7 +103,7 @@ assembleST st = do
 
         forM alive $ \ !c -> do
                 msk <- readMaskST st c
-                con <- mapM (opp >=> pair) $ incidentDarts c
+                con <- mapM (opp >=> pair) $ outcomingDarts c
                 return $! case msk of
                     Direct s  -> (con, s)
                     Flipped s -> (reverse con, s)
@@ -130,7 +130,7 @@ assemble = ask >>= \ st -> lift $ assembleST st
 oppositeC :: Dart Tangle ct -> MoveM s ct (Dart Tangle ct)
 oppositeC d = do
     when (isDart d) $ do
-        masked <- isMasked $ incidentCrossing d
+        masked <- isMasked $ beginVertex d
         when masked $ fail $ printf "oppositeC: touching masked crossing when taking from %s" (show d)
     ask >>= \ st -> lift $
         readArray (stateConnections st) (dartIndex d)
@@ -140,11 +140,11 @@ passOverC :: NATangleDart -> MoveM s ArbitraryCrossing Bool
 passOverC d =
     ask >>= \ st -> lift $ do
         when (isLeg d) $ fail $ printf "passOverC: leg %s passed" (show d)
-        msk <- readMaskST st $ incidentCrossing d
+        msk <- readMaskST st $ beginVertex d
         case msk of
             Masked    -> fail "passOverC: touching masked crossing when taking from %s" (show d)
-            Direct t  -> return $! passOverByDartId t (dartPlace d)
-            Flipped t -> return $! passOverByDartId t (3 - dartPlace d)
+            Direct t  -> return $! passOverByDartId t (beginPlace d)
+            Flipped t -> return $! passOverByDartId t (3 - beginPlace d)
 
 
 emitCircle :: Int -> MoveM s ct ()
@@ -153,14 +153,14 @@ emitCircle dn =
         modifySTRef' (stateCircles st) (+ dn)
 
 
-maskC :: [Crossing Tangle ct] -> MoveM s ct ()
+maskC :: [Vertex Tangle ct] -> MoveM s ct ()
 maskC crossings =
     ask >>= \ !st -> lift $
         forM_ crossings $ \ !c ->
             writeMaskST st c Masked
 
 
-isMasked :: Crossing Tangle ct -> MoveM s ct Bool
+isMasked :: Vertex Tangle ct -> MoveM s ct Bool
 isMasked c =
     ask >>= \ !st -> lift $ do
         msk <- readMaskST st c
@@ -169,13 +169,13 @@ isMasked c =
             _      -> False
 
 
-aliveCrossings :: MoveM s ct [Crossing Tangle ct]
+aliveCrossings :: MoveM s ct [Vertex Tangle ct]
 aliveCrossings = do
     st <- ask
-    filterM (fmap not . isMasked) $ allCrossings $ stateSource st
+    filterM (fmap not . isMasked) $ allVertices $ stateSource st
 
 
-modifyC :: (CrossingType ct) => Bool -> (CrossingState ct -> CrossingState ct) -> [Crossing Tangle ct] -> MoveM s ct ()
+modifyC :: (CrossingType ct) => Bool -> (CrossingState ct -> CrossingState ct) -> [Vertex Tangle ct] -> MoveM s ct ()
 modifyC needFlip f crossings =
     ask >>= \ !st -> lift $
         forM_ crossings $ \ !c -> do
@@ -221,7 +221,7 @@ greedy reductionsList = iteration
     where
         iteration = do
             crs <- aliveCrossings
-            changed <- anyM (\ d -> anyM ($ d) reductionsList) $ crs >>= incidentDarts
+            changed <- anyM (\ d -> anyM ($ d) reductionsList) $ crs >>= outcomingDarts
             when changed iteration
 
         anyM :: (Monad m) => (a -> m Bool) -> [a] -> m Bool

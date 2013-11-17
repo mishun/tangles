@@ -21,7 +21,7 @@ import Math.Topology.KnotTh.Tangle.Generation.BorderIncremental.RootingTest
 
 data GluingType ct s t = GluingType
     { preGlueTest  :: CrossingState ct -> Dart Tangle ct -> Int -> Bool
-    , postGlueTest :: Crossing Tangle ct -> Int -> Dart Tangle ct -> s -> Maybe t
+    , postGlueTest :: Vertex Tangle ct -> Int -> Dart Tangle ct -> s -> Maybe t
     }
 
 
@@ -123,7 +123,7 @@ canonicalGluing gluing sites = do
     let root = glueToBorder leg gl st
     case rootingTest root >>= postGlueTest gluing root gl leg of
         Nothing -> []
-        Just r  -> return (crossingTangle root, r)
+        Just r  -> return (vertexOwner root, r)
 
 
 simpleIncrementalGenerator
@@ -134,7 +134,7 @@ simpleIncrementalGenerator
 simpleIncrementalGenerator gluing crossingsToGlue maxN yield =
     let dfs node@(!tangle, !symmetry) = do
             yield (tangle, symmetry)
-            when (numberOfCrossings tangle < maxN) $
+            when (numberOfVertices tangle < maxN) $
                 mapM_ dfs $ canonicalGluing gluing $ representativeGluingSites crossingsToGlue node
     in mapM_ (dfs . makeRoot . makeCrossing') crossingsToGlue
     where

@@ -43,5 +43,5 @@ fromTangleAndStar' withLeg tangle =
                 | otherwise  = watch $ opposite $ withLeg d
     in implode
         ( numberOfFreeLoops tangle + div (length $ filter (\ l -> opposite l == withLeg l) $ allLegs tangle) 2
-        , map (\ c -> (map watch $ adjacentDarts c, crossingState c)) $ allCrossings tangle
+        , map (\ c -> (map watch $ incomingDarts c, crossingState c)) $ allVertices tangle
         )

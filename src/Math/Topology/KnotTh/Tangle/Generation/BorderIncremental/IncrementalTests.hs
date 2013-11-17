@@ -19,7 +19,7 @@ testNoMultiEdges leg gl =
     in and $! zipWith (\ !a !b ->
             let a' = opposite a
                 b' = opposite b
-            in isLeg a' || isLeg b' || incidentCrossing a' /= incidentCrossing b' 
+            in isLeg a' || isLeg b' || beginVertex a' /= beginVertex b' 
         ) ls $! tail ls
 
 
@@ -27,7 +27,7 @@ testNo2ndReidemeisterReduction :: ArbitraryCrossingState -> NATangleDart -> Int 
 testNo2ndReidemeisterReduction cr leg gl =
     let legs = take gl $ iterate nextCW leg
         test (i, a, b)
-            | isLeg a' || isLeg b' || incidentCrossing a' /= incidentCrossing b'                      = True
+            | isLeg a' || isLeg b' || beginVertex a' /= beginVertex b'                                = True
             | (passOver a' == passOverByDartId cr i) && (passOver b' == passOverByDartId cr (i + 1))  = False
             | otherwise                                                                               = True
             where
@@ -36,11 +36,11 @@ testNo2ndReidemeisterReduction cr leg gl =
     in all test $ zip3 [0 ..] legs (tail legs)
 
 
-testFlow4 :: Crossing Tangle ct -> Bool
+testFlow4 :: Vertex Tangle ct -> Bool
 testFlow4 finish = runST $ do
-    let tangle = crossingTangle finish
-    let n = numberOfCrossings tangle
-    let l = numberOfLegs tangle
+    let tangle = vertexOwner finish
+        n = numberOfVertices tangle
+        l = numberOfLegs tangle
 
     flow <- newArray (0, 4 * n - 1) 0 :: ST s (STUArray s Int Int)
     total <- newSTRef =<<
@@ -57,7 +57,7 @@ testFlow4 finish = runST $ do
             tl <- newSTRef 0
 
             let touch !d = do
-                    let ci = crossingIndex $! incidentCrossing d
+                    let ci = vertexIndex $ beginVertex d
                     visited <- unsafeRead v ci
                     unless visited $ do
                         unsafeWrite v ci True
@@ -80,7 +80,7 @@ testFlow4 finish = runST $ do
                     cont <- readSTRef tl >>= \ !t -> return $! (t > h)
                     when cont $ do
                         ci <- unsafeRead q h
-                        forMIncidentDarts (nthCrossing tangle ci) $ \ !a -> do
+                        forMIncidentDarts (nthVertex tangle ci) $ \ !a -> do
                             let b = opposite a
                             when (isDart b) $ do
                                 f <- unsafeRead flow $! dartIndex b
@@ -89,7 +89,7 @@ testFlow4 finish = runST $ do
 
             loop 0
 
-            pathFound <- unsafeRead v $! crossingIndex finish
+            pathFound <- unsafeRead v $ vertexIndex finish
             if pathFound
                 then do
                     let update !a = do
@@ -97,9 +97,9 @@ testFlow4 finish = runST $ do
                             let b = opposite a
                             when (isDart b) $ do
                                 unsafeRead flow (dartIndex b) >>= \ !f -> unsafeWrite flow (dartIndex b) $! f + 1
-                                unsafeRead p (crossingIndex $! incidentCrossing b) >>= update
+                                unsafeRead p (vertexIndex $ beginVertex b) >>= update
 
-                    unsafeRead p (crossingIndex finish) >>= update
+                    unsafeRead p (vertexIndex finish) >>= update
                     modifySTRef' total (+ 1)
                     push
                 else do
@@ -107,7 +107,7 @@ testFlow4 finish = runST $ do
                     foldMIncidentDarts finish (\ !a !ok -> do
                             let b = opposite a
                             if isDart b
-                                then unsafeRead v (crossingIndex $! incidentCrossing b) >>= \ !ok' -> return $! ok' && ok
+                                then unsafeRead v (vertexIndex $ beginVertex b) >>= \ !ok' -> return $! ok' && ok
                                 else return $! ok
                         ) (final == 4)
 

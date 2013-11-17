@@ -9,7 +9,7 @@ import Data.Array (Array)
 import Control.Monad.Writer (tell, execWriter)
 import Control.Monad (when)
 import Diagrams.Prelude
-import qualified Math.Topology.Manifolds.SurfaceGraph as G
+import Math.Topology.Manifolds.SurfaceGraph
 import Math.Topology.KnotTh.SurfaceLink
 import Math.Topology.KnotTh.Draw.Settings
 
@@ -20,31 +20,31 @@ surfaceLinkEmbedding
 
 surfaceLinkEmbedding link =
     let (sphereRoot, _, sphereToStarProjection, _) =
-            let g = G.constructFromList $
+            let g = constructFromList $
                     let (_, r) = explode link
                     in flip map r $ \ (adj, _) ->
                         flip map adj $ \ (v, p) ->
                             (v - 1, p)
-            in G.sphereStarDecomposition g
+            in sphereStarDecomposition g
 
-        spherePart = G.vertexOwnerGraph sphereRoot
+        spherePart = vertexOwner sphereRoot
 
-        (numberOfGroups, embeddingSphere) = G.embeddingInPolygonWithGrouping
+        (numberOfGroups, embeddingSphere) = embeddingInPolygonWithGrouping
             (\ sd ->
                 let d = fromJust $ sphereToStarProjection sd
-                in (G.opposite d /= G.nextCW d) && (G.opposite (G.nextCW d) == G.nextCCW (G.opposite d))
+                in (opposite d /= nextCW d) && (opposite (nextCW d) == nextCCW (opposite d))
             ) 2 sphereRoot
 
         linkToSphereDart d =
-            let (c, p) = begin d
-            in G.nthDartIncidentToVertex (G.nthVertex spherePart $ crossingIndex c) p
+            let (c, p) = beginPair d
+            in nthOutcomingDart (nthVertex spherePart $ vertexIndex c) p
 
         embedding = array (dartsRange link) $ do
             d <- allHalfEdges link
             let gd = linkToSphereDart d
             return $ (,) d $
-                if G.beginVertex (G.opposite gd) == sphereRoot
-                    then Right (embeddingSphere ! gd, embeddingSphere ! G.opposite (linkToSphereDart $ opposite d))
+                if beginVertex (opposite gd) == sphereRoot
+                    then Right (embeddingSphere ! gd, embeddingSphere ! opposite (linkToSphereDart $ opposite d))
                     else Left (embeddingSphere ! gd)
 
     in (numberOfGroups, embedding)

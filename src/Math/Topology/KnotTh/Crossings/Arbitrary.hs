@@ -16,8 +16,8 @@ invertCrossings = mapCrossings invertCrossing
 
 is1stOr2ndReidemeisterReducible :: (Knotted k, Eq (Dart k ArbitraryCrossing)) => k ArbitraryCrossing -> Bool
 is1stOr2ndReidemeisterReducible knot = or $ do
-    c <- allCrossings knot
-    a <- incidentDarts c
+    c <- allVertices knot
+    a <- outcomingDarts c
     let b = opposite a
         r1 = nextCCW a == b
         r2 = isDart b && (passOver a == passOver b) && (nextCCW a == opposite (nextCW b))

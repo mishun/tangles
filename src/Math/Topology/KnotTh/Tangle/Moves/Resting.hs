@@ -27,7 +27,7 @@ restingPart tangle incoming
     where
         m = length incoming
 
-        starts = map incidentCrossing incoming
+        starts = map beginVertex incoming
 
         ends = mapMaybe maybeAdjacentCrossing incoming
 
@@ -49,7 +49,7 @@ restingPart tangle incoming
 
         getSubtangle (flow, flowValue) = Just (result, flowValue)
             where
-                result = listArray (crossingIndexRange tangle) $ map (`S.member` subtangle) $ allCrossings tangle
+                result = listArray (crossingIndexRange tangle) $ map (`S.member` subtangle) $ allVertices tangle
 
                 subtangle = execState (forM_ starts dfs) S.empty
 
@@ -57,7 +57,7 @@ restingPart tangle incoming
                     visited <- gets $ S.member c
                     unless visited $ do
                         modify $ S.insert c
-                        mapM_ (dfs . adjacentCrossing) $ filter (\ d -> (flow ! dartIndex d) < 1) $ incidentDarts c
+                        mapM_ (dfs . endVertex) $ filter (\ d -> (flow ! dartIndex d) < 1) $ outcomingDarts c
 
         checkConnectivity (sub, flowValue)
             | all (`S.member` mask) $ tail starts  = Just (sub, flowValue)
@@ -69,7 +69,7 @@ restingPart tangle incoming
                     visited <- gets $ S.member c
                     unless visited $ do
                         modify $ S.insert c
-                        mapM_ dfs $ filter ((sub !) . crossingIndex) $ mapMaybe maybeAdjacentCrossing $ incidentDarts c
+                        mapM_ dfs $ filter ((sub !) . vertexIndex) $ mapMaybe maybeAdjacentCrossing $ outcomingDarts c
 
         outcoming (sub, flowValue)
             | any (not . onBorder) incoming  = Nothing
@@ -81,12 +81,12 @@ restingPart tangle incoming
                 firstIncoming = head incoming
                 lastIncoming = last incoming
 
-                onBorder xy = isDart xy && (sub ! crossingIndex x) && (isLeg yx || not (sub ! crossingIndex y))
+                onBorder xy = isDart xy && (sub ! vertexIndex x) && (isLeg yx || not (sub ! vertexIndex y))
                     where
                         yx = opposite xy
 
-                        x = incidentCrossing xy
-                        y = incidentCrossing yx
+                        x = beginVertex xy
+                        y = beginVertex yx
 
                 traverseNext = nextCW . opposite
 
@@ -96,15 +96,15 @@ restingPart tangle incoming
                     | otherwise           = restoreOutcoming (traverseNext d) out
 
 
-pushResidualFlow :: Tangle ct -> [Crossing Tangle ct] -> [Crossing Tangle ct] -> UArray Int Int -> Maybe (UArray Int Int)
+pushResidualFlow :: Tangle ct -> [Vertex Tangle ct] -> [Vertex Tangle ct] -> UArray Int Int -> Maybe (UArray Int Int)
 pushResidualFlow tangle starts ends flow = evalState bfs initial >>= push
     where
         initial = (Seq.fromList starts, M.fromList $ zip starts (repeat []))
 
         endFlag :: UArray Int Bool
         endFlag = array (crossingIndexRange tangle) $
-            map (first crossingIndex) $
-                zip (allCrossings tangle) (repeat False) ++ zip ends (repeat True)
+            map (first vertexIndex) $
+                zip (allVertices tangle) (repeat False) ++ zip ends (repeat True)
 
         bfs = do
             empty <- isEmpty
@@ -112,12 +112,12 @@ pushResidualFlow tangle starts ends flow = evalState bfs initial >>= push
                 then return Nothing
                 else do
                     u <- dequeue
-                    if endFlag ! crossingIndex u
+                    if endFlag ! vertexIndex u
                         then do
                             p <- getPath u
                             return $! Just p
                         else do
-                            let ud = filter (\ d -> flow ! dartIndex d < 1) $ incidentDarts u
+                            let ud = filter (\ d -> flow ! dartIndex d < 1) $ outcomingDarts u
                             let brd = find (isLeg . opposite) ud
                             if isJust brd
                                 then do
@@ -128,7 +128,7 @@ pushResidualFlow tangle starts ends flow = evalState bfs initial >>= push
                                     bfs
             where
                 relax d = do
-                    let v = adjacentCrossing d
+                    let v = endVertex d
                     vis <- isVisited v
                     unless vis $ enqueue v d
 
@@ -141,7 +141,7 @@ pushResidualFlow tangle starts ends flow = evalState bfs initial >>= push
 
                 getPath v = gets (\ (_, p) -> p M.! v)
 
-                enqueue c d = modify (\ (q, p) -> (q Seq.|> c, M.insert c (d : p M.! incidentCrossing d) p))
+                enqueue c d = modify (\ (q, p) -> (q Seq.|> c, M.insert c (d : p M.! beginVertex d) p))
 
                 isVisited c = gets (\ (_, p) -> M.member c p)
 

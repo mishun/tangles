@@ -8,7 +8,6 @@ module Math.Topology.KnotTh.Tangle.Definition.Transform
 import Text.Printf
 import qualified Math.Algebra.Group.Dn as Dn
 import Math.Topology.KnotTh.Knotted
-import Math.Topology.KnotTh.Tangle.Definition.TangleLike
 import Math.Topology.KnotTh.Tangle.Definition.Tangle
 
 
@@ -19,17 +18,17 @@ transformTangle g tangle
     | not (Dn.reflection g) && Dn.rotation g == 0  =
         tangle
     | otherwise                                    =
-        implode (numberOfFreeLoops tangle, border, map crossing $ allCrossings tangle)
+        implode (numberOfFreeLoops tangle, border, map crossing $ allVertices tangle)
     where
         l = numberOfLegs tangle
 
         pair d | isLeg d    = (0, Dn.permute g $ legPlace d)
                | otherwise  =
-                   let c = incidentCrossing d
-                   in (crossingIndex c, if Dn.reflection g then 3 - dartPlace d else dartPlace d)
+                   let c = beginVertex d
+                   in (vertexIndex c, if Dn.reflection g then 3 - beginPlace d else beginPlace d)
 
-        crossing c | Dn.reflection g  = (reverse $ map pair $ adjacentDarts c, mirrorReversingDartsOrder $ crossingState c)
-                   | otherwise        = (map pair $ adjacentDarts c, crossingState c)
+        crossing c | Dn.reflection g  = (reverse $ map pair $ incomingDarts c, mirrorReversingDartsOrder $ crossingState c)
+                   | otherwise        = (map pair $ incomingDarts c, crossingState c)
 
         border | Dn.reflection g  = head rotated : reverse (tail rotated)
                | otherwise        = rotated

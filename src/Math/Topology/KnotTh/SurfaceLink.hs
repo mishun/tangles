@@ -16,10 +16,10 @@ import Math.Topology.KnotTh.Crossings.Arbitrary as X
 
 
 type SurfaceLinkProj = SurfaceLink ProjectionCrossing
-type SurfaceLinkProjCrossing = Crossing SurfaceLink ProjectionCrossing
+type SurfaceLinkProjCrossing = Vertex SurfaceLink ProjectionCrossing
 type SurfaceLinkProjDart = Dart SurfaceLink ProjectionCrossing
 
 
 type NASurfaceLink = SurfaceLink ArbitraryCrossing
-type NASurfaceLinkCrossing = Crossing SurfaceLink ArbitraryCrossing
+type NASurfaceLinkCrossing = Vertex SurfaceLink ArbitraryCrossing
 type NASurfaceLinkDart = Dart SurfaceLink ArbitraryCrossing

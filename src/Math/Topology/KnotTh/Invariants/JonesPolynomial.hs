@@ -54,9 +54,9 @@ jonesPolynomial = evaluateSkeinRelation jonesRelation
 
 normalizedJonesPolynomialOfLink :: L.NALink -> Poly
 normalizedJonesPolynomialOfLink link
-    | (numberOfFreeLoops link == 0) && (numberOfCrossings link == 0)  =
+    | (numberOfFreeLoops link == 0) && (numberOfVertices link == 0)  =
         error "jonesPolynomialOfLink: empty link provided"
-    | otherwise                                                       =
+    | otherwise                                                      =
         normalizeBy (1 + monomial 1 jonesVar 1) (monomial (-1) jonesVar (1 / 2) * jonesPolynomial link)
 
 

@@ -90,7 +90,7 @@ restoreBasicTangle chordDiagram =
             | not cross  = restore a h rest
             | otherwise  =
                 let tangle = restore (a // [(i, j'), (j, i'), (i', j), (j', i)]) (h // [(i, h ! j), (j, h ! i)]) [0 .. l]
-                in rotateTangle i $ crossingTangle $ glueToBorder (nthLeg tangle j) 2 $
+                in rotateTangle i $ vertexOwner $ glueToBorder (nthLeg tangle j) 2 $
                     if h ! i < h ! j
                         then overCrossing
                         else underCrossing
@@ -142,7 +142,7 @@ decomposeTangle relation !factor !tangle
                         (circleFactor relation ^ (n - numberOfLegs tangle `div` 2))
 
             tryCrossing (c : rest) =
-                let [d0, d1, d2, d3] = incidentDarts c
+                let [d0, d1, d2, d3] = outcomingDarts c
                 in if passOver d0 == on (<) (\ d -> (threadIndex ! abs (marks ! d), order ! d)) d0 d1
                     then tryCrossing rest
                     else concatStateSums
@@ -170,7 +170,7 @@ decomposeTangle relation !factor !tangle
                                 maskC [c]
                         ]
 
-        in tryCrossing $ allCrossings tangle
+        in tryCrossing $ allVertices tangle
 
 
 bruteForceRotate :: (SkeinRelation r a) => r -> Int -> OrientedChordDiagramsSum a -> OrientedChordDiagramsSum a

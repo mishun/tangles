@@ -18,8 +18,8 @@ produceShowDart knotN dartN extraGuards = (:[]) `fmap` do
             d <- newName "d"
             clause [varP d] (guardedB $ map (uncurry normalGE) $ extraGuards (varE d) ++
                     [ ([| otherwise |],
-                        [|  let (c, p) = begin $(varE d)
-                            in printf "(Dart %i %i)" (crossingIndex c) p
+                        [|  let (c, p) = beginPair' $(varE d)
+                            in printf "(Dart %i %i)" c p
                         |])
                     ]
                 ) []
@@ -33,9 +33,9 @@ produceShowCrossing knotN crosN = (:[]) `fmap` do
         [ valD (varP 'show) (normalB
                 [| \ c ->
                     printf "(Crossing %i %s [ %s ])"
-                        (crossingIndex c)
+                        (vertexIndex c)
                         (show $ crossingState c)
-                        (unwords $ map (show . opposite) $ incidentDarts c)
+                        (unwords $ map (show . opposite) $ outcomingDarts c)
                 |]
             ) []
         ]
@@ -50,7 +50,7 @@ produceShowKnot knotN = (:[]) `fmap` do
                     printf "(%s (%i O) %s)"
                         $(litE $ stringL $ nameBase knotN)
                         (numberOfFreeLoops knot)
-                        (unwords $ map show $ allCrossings knot)
+                        (unwords $ map show $ allVertices knot)
                 |]
             ) []
         ]

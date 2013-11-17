@@ -17,15 +17,15 @@ import Math.Topology.KnotTh.SurfaceLink
 
 isReducable :: SurfaceLink ct -> Bool
 isReducable link = or $ do
-    c <- allCrossings link
-    a <- incidentDarts c
+    c <- allVertices link
+    a <- outcomingDarts c
     return $! nextCW (opposite a) == opposite (nextCCW a)
 
 
 testPrime :: SurfaceLink ct -> Bool
 testPrime link
-    | numberOfCrossings link < 2  = True
-    | otherwise                   =
+    | numberOfVertices link < 2  = True
+    | otherwise                  =
         let mincut = stoerWagner link
         in mincut >= 4
 
@@ -42,12 +42,13 @@ cfor (initial, cond, next) body =
 
 stoerWagner :: SurfaceLink ct -> Int
 stoerWagner link = runST $ do
-    let sz = numberOfCrossings link
+    let sz = numberOfVertices link
     g <- newArray ((1, 1), (sz, sz)) 0 :: ST s (STUArray s (Int, Int) Int)
 
-    forM_ (allCrossings link) $ \ u ->
-        forM_ (adjacentCrossings u) $ \ v -> do
-            let i = (crossingIndex u, crossingIndex v)
+    forM_ (allVertices link) $ \ u ->
+        forM_ (outcomingDarts u) $ \ d -> do
+            let v = endVertex d
+                i = (vertexIndex u, vertexIndex v)
             w <- readArray g i
             writeArray g i $! w + 1
 
@@ -125,9 +126,9 @@ has4LegPlanarPart =
             edge <- (newArray :: (Ix i) => (i, i) -> Bool -> ST s (STUArray s i Bool)) (dartsRange link) False
 
             face <- (newArray :: (Ix i) => (i, i) -> Bool -> ST s (STUArray s i Bool)) (facesRange link) False
-            mapM_ (\ !e -> writeArray face (faceToTheLeft e) True) darts
+            mapM_ (\ !e -> writeArray face (leftFace e) True) darts
 
-            queue <- (newArray_ :: (Ix i) => (i, i) -> ST s (STArray s i a)) (0, numberOfCrossings link)
+            queue <- (newArray_ :: (Ix i) => (i, i) -> ST s (STArray s i a)) (0, numberOfVertices link)
             qtail <- newSTRef 1
 
             writeArray vertex start True
@@ -164,12 +165,12 @@ has4LegPlanarPart =
                     when ok $ do
                         v <- readArray queue qhead
                         forM_ [0 .. 3] $ \ !i -> do
-                            let e = nthIncidentDart v i
+                            let e = nthOutcomingDart v i
                             when (e `notElem` darts) $ do
                                 testEdge e
-                                testFace (faceToTheLeft e)
-                                testFace (faceToTheRight e)
-                                testVertex (adjacentCrossing e)
+                                testFace (leftFace e)
+                                testFace (rightFace e)
+                                testVertex (endVertex e)
 
                         loop $! qhead + 1
 
@@ -179,7 +180,7 @@ has4LegPlanarPart =
             nf' <- readSTRef nf
             ne' <- readSTRef ne
             let euler = nv' + nf' - ne'
-            return $! (nv' > 1) && (nv' < numberOfCrossings link) && (euler == 1)
+            return $! (nv' > 1) && (nv' < numberOfVertices link) && (euler == 1)
 
     in \ link ->
         let select [] _ = False
@@ -189,4 +190,4 @@ has4LegPlanarPart =
                 select r2 $ \ e3 r3 ->
                     select r3 $ \ e4 _ ->
                         let darts = [fst e1, snd e1, fst e2, snd e2, fst e3, snd e3, fst e4, snd e4]
-                        in planar link (incidentCrossing $ fst e1) darts || planar link (incidentCrossing $ snd e1) darts
+                        in planar link (beginVertex $ fst e1) darts || planar link (beginVertex $ snd e1) darts

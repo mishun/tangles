@@ -58,8 +58,8 @@ kauffmanFPolynomial = evaluateSkeinRelation KauffmanFRelation
 
 normalizedKauffmanFPolynomialOfLink :: L.NALink -> Poly2
 normalizedKauffmanFPolynomialOfLink link
-    | (numberOfFreeLoops link == 0) && (numberOfCrossings link == 0)  = error "kauffmanFPolynomialOfLink: emptry link provided"
-    | otherwise                                                       = normalizeBy2 (a * a + 1 - a * z) (a * z * kauffmanFPolynomial link)
+    | (numberOfFreeLoops link == 0) && (numberOfVertices link == 0)  = error "kauffmanFPolynomialOfLink: emptry link provided"
+    | otherwise                                                      = normalizeBy2 (a * a + 1 - a * z) (a * z * kauffmanFPolynomial link)
 
 
 minimalKauffmanFPolynomialOfLink :: L.NALink -> Poly2

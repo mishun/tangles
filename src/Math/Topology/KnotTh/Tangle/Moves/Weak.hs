@@ -23,7 +23,7 @@ neighboursBorderCrossing tangle =
 
         guard $ ya == opposite ay
 
-        let a = incidentCrossing ax
+        let a = beginVertex ax
             ap = nextCCW ay
             aq = nextCCW ap
             pa = opposite ap

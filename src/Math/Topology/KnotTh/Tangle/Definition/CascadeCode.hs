@@ -31,7 +31,7 @@ decodeCascadeCode code =
             let (gl, shift, rot, c) = decodeCrossing pattern
                 p | rot == 0   = id
                   | otherwise  = rotateTangle rot
-            in p $ crossingTangle $ glueToBorder
+            in p $ vertexOwner $ glueToBorder
                 (nthLeg prev $ offset + shift)
                 (case gl of { W -> 3 ; X -> 2 ; M -> 1 })
                 c

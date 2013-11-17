@@ -11,7 +11,7 @@ import Math.Topology.KnotTh.Tangle.Moves.Resting
 
 neighbours :: NATangle -> [NATangle]
 neighbours tangle =
-    flip mapMaybe (allDartsOfCrossings tangle) $ \ ab -> do
+    flip mapMaybe (allOutcomingDarts tangle) $ \ ab -> do
         let ba = opposite ab
             bc = nextCCW ba
             cb = opposite bc

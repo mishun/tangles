@@ -97,7 +97,7 @@ fromTangle' = makeSubTangle substituteTangle
 
 
 {-# INLINE tangleInside #-}
-tangleInside :: (CrossingType ct, Knotted k) => Crossing k (SubTangleCrossing ct) -> Tangle ct
+tangleInside :: (CrossingType ct, Knotted k) => Vertex k (SubTangleCrossing ct) -> Tangle ct
 tangleInside = subTangle . crossingTypeInside
 
 
@@ -107,27 +107,27 @@ tangleInCrossing = subTangle . crossingType
 
 
 {-# INLINE numberOfCrossingsInside #-}
-numberOfCrossingsInside :: (CrossingType ct, Knotted k) => Crossing k (SubTangleCrossing ct) -> Int
-numberOfCrossingsInside = numberOfCrossings . tangleInside
+numberOfCrossingsInside :: (CrossingType ct, Knotted k) => Vertex k (SubTangleCrossing ct) -> Int
+numberOfCrossingsInside = numberOfVertices . tangleInside
 
 
 {-# INLINE isLoner #-}
 isLoner :: (CrossingType ct) => CrossingState (SubTangleCrossing ct) -> Bool
-isLoner = (== 1) . numberOfCrossings . subTangle . crossingType
+isLoner = (== 1) . numberOfVertices . subTangle . crossingType
 
 
 {-# INLINE isLonerInside #-}
-isLonerInside :: (CrossingType ct, Knotted k) => Crossing k (SubTangleCrossing ct) -> Bool
+isLonerInside :: (CrossingType ct, Knotted k) => Vertex k (SubTangleCrossing ct) -> Bool
 isLonerInside = (== 1) . numberOfCrossingsInside
 
 
 numberOfCrossingsAfterSubstitution :: (CrossingType ct, Knotted k) => k (SubTangleCrossing ct) -> Int
-numberOfCrossingsAfterSubstitution = sum . map numberOfCrossingsInside . allCrossings
+numberOfCrossingsAfterSubstitution = sum . map numberOfCrossingsInside . allVertices
 
 
 {-# INLINE subTangleLegFromDart #-}
 subTangleLegFromDart :: (CrossingType ct, Knotted k) => Dart k (SubTangleCrossing ct) -> Dart Tangle ct
-subTangleLegFromDart d = nthLeg (tangleInside $ incidentCrossing d) $ crossingLegIdByDart d
+subTangleLegFromDart d = nthLeg (tangleInside $ beginVertex d) $ crossingLegIdByDart d
 
 
 directSumDecompositionTypeInside :: (CrossingType ct, Knotted k) => Dart k (SubTangleCrossing ct) -> DirectSumDecompositionType
@@ -135,8 +135,8 @@ directSumDecompositionTypeInside d
     | f          = changeSumType st
     | otherwise  = st
     where
-        st = _sumType $ crossingTypeInside $ incidentCrossing d
-        f = isCrossingOrientationInvertedInside (incidentCrossing d) /= odd (crossingLegIdByDart d)
+        st = _sumType $ crossingTypeInside $ beginVertex d
+        f = isCrossingOrientationInvertedInside (beginVertex d) /= odd (crossingLegIdByDart d)
 
 
 directSumDecompositionType :: (CrossingType ct) => CrossingState (SubTangleCrossing ct) -> DirectSumDecompositionType
@@ -153,29 +153,29 @@ substituteTangle tangle =
     implode (numberOfFreeLoops tangle, map oppositeExt $ allLegs tangle,
         let connections b = do
                 let rev = isCrossingOrientationInvertedInside b
-                !c <- allCrossings $ tangleInside b
-                let nb = map (oppositeInt b) $ incidentDarts c
+                !c <- allVertices $ tangleInside b
+                let nb = map (oppositeInt b) $ outcomingDarts c
                 let st | rev        = mapOrientation (D4.ec D4.<*>) $ crossingState c
                        | otherwise  = crossingState c
                 return (if rev then reverse nb else nb, st)
-        in concatMap connections $ allCrossings tangle
+        in concatMap connections $ allVertices tangle
         )
     where
         offset :: UArray Int Int
-        offset = listArray (crossingIndexRange tangle) $ scanl (\ !i !c -> i + numberOfCrossingsInside c) 0 $ allCrossings tangle
+        offset = listArray (crossingIndexRange tangle) $ scanl (\ !i !c -> i + numberOfCrossingsInside c) 0 $ allVertices tangle
 
         oppositeInt b u
             | isLeg v                                = oppositeExt $ dartByCrossingLegId b (legPlace v)
-            | isCrossingOrientationInvertedInside b  = (w, 3 - dartPlace v)
-            | otherwise                              = (w, dartPlace v)
+            | isCrossingOrientationInvertedInside b  = (w, 3 - beginPlace v)
+            | otherwise                              = (w, beginPlace v)
             where
                 v = opposite u
-                c = incidentCrossing v
-                w = (offset ! crossingIndex b) + crossingIndex c
+                c = beginVertex v
+                w = (offset ! vertexIndex b) + vertexIndex c
 
         oppositeExt u
             | isLeg v    = (0, legPlace v)
             | otherwise  = oppositeInt c $ subTangleLegFromDart v
             where
                 v = opposite u
-                c = incidentCrossing v
+                c = beginVertex v

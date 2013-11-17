@@ -7,23 +7,23 @@ import Data.Array.IArray (array, (!))
 import Data.Array (Array)
 import Control.Monad.Writer (tell, execWriter)
 import Control.Monad (when)
-import qualified Math.Topology.Manifolds.SurfaceGraph as G
 import Diagrams.Prelude
+import Math.Topology.Manifolds.SurfaceGraph
 import Math.Topology.KnotTh.Link
 import Math.Topology.KnotTh.Draw.Settings
 
 
 linkEmbedding :: (ThreadedCrossing ct) => Link ct -> Array (Dart Link ct) (Either [(Double, Double)] ([(Double, Double)], [(Double, Double)]))
 linkEmbedding link =
-    let g = G.constructFromList $
+    let g = constructFromList $
             let (_, r) = explode link
             in map fst r
 
-        embedding = G.embeddingInCircleWithVertexRooting 2 (G.nthVertex g 0)
+        embedding = embeddingInCircleWithVertexRooting 2 (nthVertex g 0)
 
         toGraphDart d =
-            let (c, p) = begin d
-            in G.nthDartIncidentToVertex (G.nthVertex g $ crossingIndex c) p
+            let (c, p) = beginPair d
+            in nthOutcomingDart (nthVertex g $ vertexIndex c) p
 
     in array (dartsRange link) $ do
         d <- allHalfEdges link

@@ -12,7 +12,7 @@ import Math.Topology.KnotTh.Tangle.Moves.ReidemeisterReduction
 
 
 neighbours :: NATangle -> [NATangle]
-neighbours tangle = mapMaybe (\ d -> tryPass 1 d d [opposite d]) $ allDartsOfCrossings tangle
+neighbours tangle = mapMaybe (\ d -> tryPass 1 d d [opposite d]) $ allOutcomingDarts tangle
     where
         tryPass n ha tb incoming = do
             let ah = opposite ha
@@ -39,7 +39,7 @@ neighbours tangle = mapMaybe (\ d -> tryPass 1 d d [opposite d]) $ allDartsOfCro
                     --    let inside d = isDart d && sub ! crossingIndex (incidentCrossing d)
                     --    in inside qt || inside ph
                     guard $
-                        let everything = sort $ map incidentCrossing $ selfIncoming ++ outcoming
+                        let everything = sort $ map beginVertex $ selfIncoming ++ outcoming
                         in everything == nub everything
                     return $! pass incoming outcoming
 
@@ -60,5 +60,5 @@ neighbours tangle = mapMaybe (\ d -> tryPass 1 d d [opposite d]) $ allDartsOfCro
                 let p = nextCCW $ opposite $ last toRemove
                 let q = opposite $ nextCW $ opposite $ head toRemove
                 substituteC [(q, p)]
-                maskC $ map adjacentCrossing toRemove
+                maskC $ map endVertex toRemove
             greedy [reduce1st, reduce2nd]

@@ -23,7 +23,7 @@ import Math.Topology.KnotTh.Tangle
 generateTable :: (forall m. (Monad m) => ((Tangle ct, a) -> m ()) -> m ()) -> Table
 generateTable =
     generateTable'
-        (\ (tangle, _) -> (numberOfCrossings tangle, numberOfLegs tangle))
+        (\ (tangle, _) -> (numberOfVertices tangle, numberOfLegs tangle))
         (const 1)
 
 

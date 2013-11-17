@@ -49,7 +49,7 @@ data (SkeinRelation r a) => SkeinState s r a = SkeinState
 stateFromKnotted :: (SkeinRelation rel a, SkeinStructure k) => rel -> k ArbitraryCrossing -> ST s (SkeinState s rel a)
 stateFromKnotted relation' knot = do
     s <- do
-        let n = numberOfCrossings knot
+        let n = numberOfVertices knot
         adjacent' <- newArray_ (0, n)
         newArray_ (0, numberOfEndpoints knot - 1) >>= writeArray adjacent' 0
         forM_ [1 .. n] $ \ !i -> newArray_ (0, 3) >>= writeArray adjacent' i
@@ -74,10 +74,10 @@ stateFromKnotted relation' knot = do
             }
 
     let pair d | isEndpoint d                      = (0, endpointPlace d)
-               | isOverCrossing (crossingState c)  = (crossingIndex c, p)
-               | otherwise                         = (crossingIndex c, (p + 1) `mod` 4)
+               | isOverCrossing (crossingState c)  = (vertexIndex c, p)
+               | otherwise                         = (vertexIndex c, (p + 1) `mod` 4)
             where
-                (c, p) = begin d
+                (c, p) = beginPair d
 
     forM_ (allEdges knot) $ \ (a, b) ->
         connectST s (pair a) (pair b)

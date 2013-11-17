@@ -12,16 +12,16 @@ import Math.Topology.KnotTh.Tangle.Moves.Resting
 
 neighbours :: NATangle -> [NATangle]
 neighbours tangle =
-    flip mapMaybe (allDartsOfCrossings tangle) $ \ ab -> do
+    flip mapMaybe (allOutcomingDarts tangle) $ \ ab -> do
         let ba = opposite ab
             ac = nextCCW ab
             ca = opposite ac
 
         guard $ isDart ba && isDart ca
 
-        let a = incidentCrossing ab
-            b = incidentCrossing ba
-            c = incidentCrossing ca
+        let a = beginVertex ab
+            b = beginVertex ba
+            c = beginVertex ca
 
         guard $ b /= c && a /= b && a /= c
 
@@ -37,4 +37,4 @@ neighbours tangle =
         return $! move tangle $ do
             substituteC [(ba, ae), (ca, ad), (ab, rp), (ac, sq)]
             connectC [(rp, ae), (sq, ad)]
-            modifyC True id $ filter ((sub !) . crossingIndex) $ allCrossings tangle
+            modifyC True id $ filter ((sub !) . vertexIndex) $ allVertices tangle

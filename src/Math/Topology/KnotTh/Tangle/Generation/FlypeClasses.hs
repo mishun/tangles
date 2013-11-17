@@ -26,11 +26,11 @@ generateFlypeEquivalentDecomposition' triangle maxN yield = do
 
     let templateType = GluingType
             { preGlueTest  = \ _ leg gl ->
-                let t = dartTangle leg
+                let t = dartOwner leg
                 in case () of
-                    _ | numberOfCrossings t == 1 -> gl < 2
-                      | numberOfLegs t == 4      -> False
-                      | otherwise                -> testNoMultiEdges leg gl
+                    _ | numberOfVertices t == 1 -> gl < 2
+                      | numberOfLegs t == 4     -> False
+                      | otherwise               -> testNoMultiEdges leg gl
             , postGlueTest = \ root gl _ s ->
                 if gl < 3 || testFlow4 root
                     then return $! s
@@ -39,23 +39,23 @@ generateFlypeEquivalentDecomposition' triangle maxN yield = do
 
     let directSumType = GluingType
             { preGlueTest  = \ cr leg gl ->
-                let t = dartTangle leg
+                let t = dartOwner leg
                     lp = directSumDecompositionType cr
                     rp = directSumDecompositionTypeInside (opposite leg)
                 in case () of
-                    _ | numberOfLegs t /= 4      -> False
-                      | gl /= 2                  -> False
-                      | testNoMultiEdges leg gl  -> False
-                      | lp == DirectSum01x23     -> False
-                      | numberOfCrossings t == 1 -> rp /= DirectSum12x30
-                      | otherwise                -> True
+                    _ | numberOfLegs t /= 4     -> False
+                      | gl /= 2                 -> False
+                      | testNoMultiEdges leg gl -> False
+                      | lp == DirectSum01x23    -> False
+                      | numberOfVertices t == 1 -> rp /= DirectSum12x30
+                      | otherwise               -> True
             , postGlueTest = \ root _ leg s ->
                 let coLeg = nextCCW $ nextCCW leg
                     flypeS =
-                        case additionalFlypeSymmetry (crossingTangle root) of
+                        case additionalFlypeSymmetry (vertexOwner root) of
                             Just x  -> Dn.addSymmetryToSubGroup s x
                             Nothing -> s
-                in case (isLonerInside root, isLonerInside $ incidentCrossing $ opposite leg, isLonerInside $ incidentCrossing $ opposite coLeg) of
+                in case (isLonerInside root, isLonerInside $ beginVertex $ opposite leg, isLonerInside $ beginVertex $ opposite coLeg) of
                     (False, False, False) -> return $! s
                     (True , True , _    ) -> return $! flypeS
                     (True , False, False) ->
@@ -66,7 +66,7 @@ generateFlypeEquivalentDecomposition' triangle maxN yield = do
             }
 
     let directSumDescendants crossings ancestor =
-            let (loners, nonLoners) = partition ((== 1) . numberOfCrossings . subTangle) crossings
+            let (loners, nonLoners) = partition ((== 1) . numberOfVertices . subTangle) crossings
             in nubBy (\ (a, _) (b, _) -> minimumRootCode a == minimumRootCode b) (canonicalGluing directSumType $ allGluingSites' loners 2 $ fst ancestor)
                 ++ canonicalGluing directSumType (representativeGluingSites' nonLoners 2 ancestor)
 
@@ -76,7 +76,7 @@ generateFlypeEquivalentDecomposition' triangle maxN yield = do
                     | (b == c) && (a == d) && (a /= b)  = DirectSum12x30
                     | otherwise                         = NonDirectSumDecomposable
                     where
-                        [a, b, c, d] = map adjacentCrossing $ allLegs template
+                        [a, b, c, d] = map endVertex $ allLegs template
             in fromTangle' template symmetry sumType
 
     let halfN = maxN `div` 2
@@ -87,7 +87,7 @@ generateFlypeEquivalentDecomposition' triangle maxN yield = do
         in flip fix (lonerTangle loner, lonerSymmetry) $ \ growTree (rootTemplate, rootSymmetry) -> do
             (!free, !prevCrossings, !prevList) <- get
             let rootCrossing = buildCrossingType rootTemplate rootSymmetry free
-            let rootN = numberOfCrossings $ subTangle rootCrossing
+            let rootN = numberOfVertices $ subTangle rootCrossing
             let crossings = prevCrossings // [(rootN, rootCrossing : (prevCrossings ! rootN))]
             let root = lonerTangle $ makeCrossing' rootCrossing
             put (free + 1, crossings, ((root, rootSymmetry), crossings) : prevList)

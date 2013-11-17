@@ -17,24 +17,24 @@ instance DiagramInfo MinimalDiagramInfo where
     merge new old = case cmp new old of { LT -> new ; _ -> old } where
 
         cmp (DisconnectedDiagram a) (DisconnectedDiagram b) =
-            comparing numberOfCrossings a b
+            comparing numberOfVertices a b
 
         cmp DisconnectedDiagram {} _                      = LT
         cmp _                      DisconnectedDiagram {} = GT
 
         cmp (CompositeMinimalDiagram a) (CompositeMinimalDiagram b) =
-            comparing numberOfCrossings a b
+            comparing numberOfVertices a b
 
         cmp (CompositeMinimalDiagram c) (PrimeMinimalDiagram g)
-            | numberOfCrossings c <= numberOfCrossings g  = LT
-            | otherwise                                   = GT
+            | numberOfVertices c <= numberOfVertices g  = LT
+            | otherwise                                 = GT
 
         cmp (PrimeMinimalDiagram g) (CompositeMinimalDiagram c)
-            | numberOfCrossings c <= numberOfCrossings g  = GT
-            | otherwise                                   = LT
+            | numberOfVertices c <= numberOfVertices g  = GT
+            | otherwise                                 = LT
 
         cmp (PrimeMinimalDiagram a) (PrimeMinimalDiagram b) =
-            comparing numberOfCrossings a b
+            comparing numberOfVertices a b
 
     wrap !knot
         | not (isConnected knot)  = DisconnectedDiagram knot

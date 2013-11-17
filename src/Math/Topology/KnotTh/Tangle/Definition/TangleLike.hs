@@ -1,22 +1,11 @@
 module Math.Topology.KnotTh.Tangle.Definition.TangleLike
     ( TangleLike(..)
-    , firstLeg
-    , lastLeg
-    , nextLeg
-    , allLegOpposites
     ) where
 
 import Math.Topology.KnotTh.Knotted
 
 
-class (Knotted tangle) => TangleLike tangle where
-    numberOfLegs   :: tangle ct -> Int
-    allLegs        :: tangle ct -> [Dart tangle ct]
-    nthLeg         :: tangle ct -> Int -> Dart tangle ct
-
-    isLeg          :: Dart tangle ct -> Bool
-    legPlace       :: Dart tangle ct -> Int
-
+class (Knotted tangle, PlanarAlgebra tangle) => TangleLike tangle where
     -- | +-------+
     --   |   ^   |
     --   |   |   |
@@ -44,24 +33,4 @@ class (Knotted tangle) => TangleLike tangle where
     -- ........|  |  1      |          ........|  +=========+                  |  |      2  |
     -- ........|  |   \-----|--0       ........|                       (leg-2)-|--|-----/   |
     -- ........|  +=========+          ........|                       ........|  +=========+
-    glueToBorder   :: (CrossingType ct) => Dart tangle ct -> Int -> CrossingState ct -> Crossing tangle ct
-
-
-{-# INLINE firstLeg #-}
-firstLeg :: (TangleLike t) => t ct -> Dart t ct
-firstLeg t = nthLeg t 0
-
-
-{-# INLINE lastLeg #-}
-lastLeg :: (TangleLike t) => t ct -> Dart t ct
-lastLeg t = nthLeg t (-1)
-
-
-{-# INLINE nextLeg #-}
-nextLeg :: (TangleLike t) => Int -> Dart t ct -> Dart t ct
-nextLeg n d = nthLeg (dartOwner d) (legPlace d + n)
-
-
-{-# INLINE allLegOpposites #-}
-allLegOpposites :: (TangleLike t) => t ct -> [Dart t ct]
-allLegOpposites = map opposite . allLegs
+    glueToBorder   :: (CrossingType ct) => Dart tangle ct -> Int -> CrossingState ct -> Vertex tangle ct

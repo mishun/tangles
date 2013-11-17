@@ -81,7 +81,7 @@ lookingForwardTanglesEnumeration :: Bool -> Int -> Int -> Int -> SiftResult Mini
 lookingForwardTanglesEnumeration triangle legsLimit forward n
     | forward < 0  = error $ printf "lookingForwardTanglesEnumeration: number of forward steps must be non-negative, but %i received" forward
     | otherwise    =
-        siftTangles $ filter ((<= n) . numberOfCrossings . representative) $
+        siftTangles $ filter ((<= n) . numberOfVertices . representative) $
             tangleClasses $ tangleDiagrams triangle legsLimit (n + forward)
 
 
@@ -89,5 +89,5 @@ lookingForwardWeakTanglesEnumeration :: Bool -> Int -> Int -> Int -> SiftResult 
 lookingForwardWeakTanglesEnumeration triangle legsLimit forward n
     | forward < 0  = error $ printf "lookingForwardWeakTanglesEnumeration: number of forward steps must be non-negative, but %i received" forward
     | otherwise    =
-        siftWeakTangles $ filter ((<= n) . numberOfCrossings . representative) $
+        siftWeakTangles $ filter ((<= n) . numberOfVertices . representative) $
             weakTangleClasses $ tangleDiagrams triangle legsLimit (n + forward)

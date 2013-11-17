@@ -8,7 +8,7 @@ import Data.Array (Array)
 import Control.Monad.Writer (tell, execWriter)
 import Control.Monad (when, forM_)
 import Diagrams.Prelude
-import qualified Math.Topology.Manifolds.SurfaceGraph as G
+import Math.Topology.Manifolds.SurfaceGraph
 import Math.Topology.KnotTh.Tangle
 import Math.Topology.KnotTh.Draw.Settings
 
@@ -18,12 +18,12 @@ tangleEmbedding tangle =
     let g = let (_, b, r) = explode tangle
                 change (0, j) = (0, (-j) `mod` numberOfLegs tangle)
                 change p = p
-            in G.constructFromList $ map (map change) ((head b : reverse (tail b)) : map fst r)
+            in constructFromList $ map (map change) ((head b : reverse (tail b)) : map fst r)
 
-        embedding = G.embeddingInCircleWithVertexRooting 2 (G.nthVertex g 0)
+        embedding = embeddingInCircleWithVertexRooting 2 (nthVertex g 0)
 
-        toGraphDart d | isLeg d    = G.nthDartIncidentToVertex (G.nthVertex g 0) $ (-legPlace d) `mod` numberOfLegs tangle
-                      | otherwise  = G.nthDartIncidentToVertex (G.nthVertex g $ crossingIndex $ incidentCrossing d) (dartPlace d)
+        toGraphDart d | isLeg d    = nthOutcomingDart (nthVertex g 0) $ (-legPlace d) `mod` numberOfLegs tangle
+                      | otherwise  = nthOutcomingDart (nthVertex g $ vertexIndex $ beginVertex d) (beginPlace d)
 
     in array (dartsRange tangle) $ do
         d <- allHalfEdges tangle

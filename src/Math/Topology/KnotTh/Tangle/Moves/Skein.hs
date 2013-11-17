@@ -9,7 +9,7 @@ import Math.Topology.KnotTh.Tangle.Moves.Move
 
 smoothA :: NATangleCrossing -> MoveM s ArbitraryCrossing ()
 smoothA cs = do
-    let dn@[_, d1, d2, d3] = incidentDarts cs
+    let dn@[_, d1, d2, d3] = outcomingDarts cs
     [od0, od1, od2, od3] <- mapM oppositeC dn
     case () of
         _ | od0 == d1 && od3 == d2 -> emitCircle 2
@@ -22,7 +22,7 @@ smoothA cs = do
 
 smoothB :: NATangleCrossing -> MoveM s ArbitraryCrossing ()
 smoothB cs = do
-    let dn@[_, d1, d2, d3] = incidentDarts cs
+    let dn@[_, d1, d2, d3] = outcomingDarts cs
     [od0, od1, od2, od3] <- mapM oppositeC dn
     case () of
         _ | od0 == d3 && od1 == d2 -> emitCircle 2

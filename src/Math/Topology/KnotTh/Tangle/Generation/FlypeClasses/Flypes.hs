@@ -19,15 +19,15 @@ flypeCodeLeg :: Dart Tangle (SubTangleCrossing ProjectionCrossing) -> R.Rotation
 flypeCodeLeg leg initialDirection
     | isDart leg  = error $ printf "flypeCodeLeg: leg expected, %s received" (show leg)
     | otherwise   = runSTUArray $ do
-        let tangle = dartTangle leg
-        let n = numberOfCrossings tangle
+        let tangle = dartOwner leg
+        let n = numberOfVertices tangle
         code <- newArray (0, 2 * n - 1) 0
 
         let {-# INLINE go #-}
             go !i !d !dir
-                | i >= n || isLeg d                   = return ()
-                | isLonerInside (incidentCrossing d)  = go i (opposite $ nextPi d) (R.oppositeDirection dir)
-                | otherwise                           = do
+                | i >= n || isLeg d              = return ()
+                | isLonerInside (beginVertex d)  = go i (opposite $ nextPi d) (R.oppositeDirection dir)
+                | otherwise                      = do
                     case crossingCode dir d of
                         (# be, le #) -> do
                             unsafeWrite code (2 * i) be
@@ -46,7 +46,7 @@ minimumFlypeCode tangle
     | otherwise                         = error $ printf "minimumFlypeCode: direct sum expected, but got %s" (show tangle)
     where
         [l0, l1, l2, l3] = allLegs tangle
-        [a, b, c, d] = map adjacentCrossing $ allLegs tangle
+        [a, b, c, d] = map endVertex $ allLegs tangle
 
 
 additionalFlypeSymmetry :: Tangle (SubTangleCrossing ProjectionCrossing) -> Maybe Dn.Dn
@@ -63,6 +63,6 @@ additionalFlypeSymmetry tangle
             | (b == c) && (a == d) && (a /= b)  = R.ccw
             | otherwise                         = error $ printf "additionalFlypeSymmetry: direct sum expected, but got %s" (show tangle)
             where
-                [a, b, c, d] = map adjacentCrossing $ allLegs tangle
+                [a, b, c, d] = map endVertex $ allLegs tangle
 
         rev = R.oppositeDirection dir

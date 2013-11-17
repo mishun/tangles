@@ -31,8 +31,8 @@ reducedProjectionType = GluingType
 templateProjectionType :: GluingType ProjectionCrossing Dn.DnSubGroup Dn.DnSubGroup
 templateProjectionType = GluingType
     { preGlueTest  = \ _ leg gl ->
-        let t = dartTangle leg
-            n = numberOfCrossings t
+        let t = dartOwner leg
+            n = numberOfVertices t
             l = numberOfLegs t
         in (n == 1 || l > 4) && testNoMultiEdges leg gl
     , postGlueTest = \ root gl _ s ->
@@ -59,7 +59,7 @@ primeIrreducibleDiagramType = GluingType
 triangleBoundedType :: Int -> GluingType ct a b -> GluingType ct a b
 triangleBoundedType maxN gt = gt
     { preGlueTest = \ cr leg gl ->
-        let t = dartTangle leg
-        in (diagonalIndex (1 + numberOfCrossings t) (nextNumberOfLegs (numberOfLegs t) gl) <= diagonalIndex maxN 4)
+        let t = dartOwner leg
+        in (diagonalIndex (1 + numberOfVertices t) (nextNumberOfLegs (numberOfLegs t) gl) <= diagonalIndex maxN 4)
             && preGlueTest gt cr leg gl
     }

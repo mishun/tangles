@@ -1,9 +1,6 @@
 {-# LANGUAGE TemplateHaskell, TypeFamilies #-}
 module Math.Topology.KnotTh.SurfaceLink.Definition.SurfaceLink
     ( SurfaceLink
-    , crossingSurfaceLink
-    , faceSurfaceLink
-    , dartSurfaceLink
     , emptySurfaceLink
     , changeNumberOfFreeLoops
     ) where
@@ -99,38 +96,42 @@ produceKnotted
         }
 
 produceShowDart ''SurfaceLink ''Dart (const [])
-produceShowCrossing ''SurfaceLink ''Crossing
+produceShowCrossing ''SurfaceLink ''Vertex
 produceShowKnot ''SurfaceLink
 
 
-instance SurfaceKnotted SurfaceLink where
-    data Face SurfaceLink ct = Face !(SurfaceLink ct) {-# UNPACK #-} !Int
-
+instance SurfaceDiagram SurfaceLink where
     numberOfFaces = faceCount
 
-    nthFace link i
-        | i < 1 || i > numberOfFaces link  = error $ printf "nthFace: index %i is out of bounds (1, %i)" i (numberOfFaces link)
-        | otherwise                        = Face link (i - 1)
+    nthFace link i | i > 0 && i <= n  = Face link (i - 1)
+                   | otherwise        = error $ printf "nthFace: index %i is out of bounds (1, %i)" i n
+        where
+            n = numberOfFaces link
 
-    faceOwner = faceSurfaceLink
+    allFaces link = map (Face link) [1 .. numberOfFaces link]
 
-    faceIndex (Face _ i) = i + 1
+    data Face SurfaceLink ct = Face !(SurfaceLink ct) {-# UNPACK #-} !Int
 
     faceDegree (Face l i) =
         let cur = faceDataOffset l `unsafeAt` i
             nxt = faceDataOffset l `unsafeAt` (i + 1)
         in nxt - cur
 
-    nthCCWBorderDart (Face l i) p =
+    faceOwner = faceSurfaceLink
+
+    faceIndex (Face _ i) = i + 1
+
+    leftFace (Dart l i) = Face l $ faceLLookup l `unsafeAt` (2 * i)
+
+    leftPlace (Dart l i) = faceLLookup l `unsafeAt` (2 * i + 1)
+
+    nthDartInCCWTraverse (Face l i) p =
         let cur = faceDataOffset l `unsafeAt` i
             nxt = faceDataOffset l `unsafeAt` (i + 1)
         in Dart l $ faceCCWBrdDart l `unsafeAt` (cur + p `mod` (nxt - cur))
 
-    faceToTheLeft (Dart l i) =
-        Face l $ faceLLookup l `unsafeAt` (2 * i)
 
-    placeToTheLeft (Dart l i) =
-        faceLLookup l `unsafeAt` (2 * i + 1)
+instance SurfaceKnotted SurfaceLink
 
 
 instance Eq (Face SurfaceLink ct) where

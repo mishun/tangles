@@ -14,22 +14,21 @@ class (CrossingType ct) => EdgeIndicesCrossing ct where
 
 
 instance EdgeIndicesCrossing ProjectionCrossing where
-    indexPlace = dartPlace
+    indexPlace = beginPlace
 
 
 instance EdgeIndicesCrossing ArbitraryCrossing where
-    indexPlace d | passOver (nthIncidentDart c 0)  = p
-                 | otherwise                       = (p - 1) `mod` 4
+    indexPlace d | passOver (nthOutcomingDart c 0)  = p
+                 | otherwise                        = (p - 1) `mod` 4
         where
-            c = incidentCrossing d
-            p = dartPlace d
+            (c, p) = beginPair d
 
 
 encodeEdgeIndices :: (EdgeIndicesCrossing ct) => SurfaceLink ct -> [Int]
 encodeEdgeIndices link =
     let offset d =
-            let c = incidentCrossing d
-            in 4 * (crossingIndex c - 1) + indexPlace d
+            let c = beginVertex d
+            in 4 * (vertexIndex c - 1) + indexPlace d
     in map snd $ sort $ do
         (i, (a, b)) <- [1 ..] `zip` allEdges link
         [(offset a, i), (offset b, i)]

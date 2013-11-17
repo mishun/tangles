@@ -1,8 +1,6 @@
 {-# LANGUAGE TemplateHaskell, TypeFamilies #-}
 module Math.Topology.KnotTh.Link.Definition.Link
     ( Link
-    , crossingLink
-    , dartLink
     , emptyLink
     , changeNumberOfFreeLoops
     ) where
@@ -17,5 +15,5 @@ produceKnotted
     defaultKnotted
 
 produceShowDart ''Link ''Dart (const [])
-produceShowCrossing ''Link ''Crossing
+produceShowCrossing ''Link ''Vertex
 produceShowKnot ''Link

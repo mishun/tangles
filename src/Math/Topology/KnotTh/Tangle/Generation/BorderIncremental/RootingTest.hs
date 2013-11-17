@@ -19,18 +19,18 @@ import qualified Math.Algebra.Group.Dn as Dn
 import Math.Topology.KnotTh.Tangle
 
 
-rootingTest :: (CrossingType ct) => Crossing Tangle ct -> Maybe Dn.DnSubGroup
+rootingTest :: (CrossingType ct) => Vertex Tangle ct -> Maybe Dn.DnSubGroup
 rootingTest lastCrossing = do
-    let tangle = crossingTangle lastCrossing
+    let tangle = vertexOwner lastCrossing
     when (numberOfLegs tangle < 4) Nothing
     cp <- investigateConnectivity lastCrossing
-    analyseSymmetry lastCrossing (unsafeAt cp . crossingIndex)
+    analyseSymmetry lastCrossing (unsafeAt cp . vertexIndex)
 
 
-investigateConnectivity :: Crossing Tangle ct -> Maybe (UArray Int Bool)
+investigateConnectivity :: Vertex Tangle ct -> Maybe (UArray Int Bool)
 investigateConnectivity lastCrossing = runST $ do
-    let tangle = crossingTangle lastCrossing
-    let n = numberOfCrossings tangle
+    let tangle = vertexOwner lastCrossing
+    let n = numberOfVertices tangle
 
     tins <- newArray (0, n) (-1) :: ST s (STUArray s Int Int)
     cp <- newArray (0, n) False :: ST s (STUArray s Int Bool)
@@ -40,22 +40,22 @@ investigateConnectivity lastCrossing = runST $ do
         dfs !v !from = do
             tin <- readSTRef timer
             writeSTRef timer $! tin + 1
-            unsafeWrite tins (crossingIndex v) tin
+            unsafeWrite tins (vertexIndex v) tin
 
             let {-# INLINE walk #-}
                 walk !d (!fup, !border)
                     | isLeg d    = return (fup, border + 1)
                     | u == from  = return (fup, border)
                     | otherwise  = do
-                        utin <- unsafeRead tins (crossingIndex u)
+                        utin <- unsafeRead tins (vertexIndex u)
                         if utin > 0
                             then return (min fup utin, border)
                             else do
                                 (!thatFup, !thatBorder) <- dfs u v
-                                when (thatFup >= tin) (unsafeWrite cp (crossingIndex v) True)
+                                when (thatFup >= tin) (unsafeWrite cp (vertexIndex v) True)
                                 return (min fup thatFup, border + if thatFup <= tin then thatBorder else 1)
                     where
-                        u = incidentCrossing d
+                        u = beginVertex d
 
             foldMAdjacentDarts v walk (tin, 0 :: Int)
 
@@ -63,19 +63,19 @@ investigateConnectivity lastCrossing = runST $ do
     if borderCut <= 2
         then return Nothing
         else do
-            unsafeWrite cp (crossingIndex lastCrossing) False
+            unsafeWrite cp (vertexIndex lastCrossing) False
             (Just $!) <$> unsafeFreeze cp
 
 
-analyseSymmetry :: (CrossingType ct) => Crossing Tangle ct -> (Crossing Tangle ct -> Bool) -> Maybe Dn.DnSubGroup
+analyseSymmetry :: (CrossingType ct) => Vertex Tangle ct -> (Vertex Tangle ct -> Bool) -> Maybe Dn.DnSubGroup
 analyseSymmetry lastCrossing skipCrossing = findSymmetry
     where
-        tangle = crossingTangle lastCrossing
+        tangle = vertexOwner lastCrossing
 
         lastRootCode = min rcCCW rcCW
             where
                 startCCW = firstLeg tangle
-                startCW = opposite $ nthIncidentDart lastCrossing 3
+                startCW = opposite $ nthOutcomingDart lastCrossing 3
                 rcCCW = rootCodeLeg startCCW R.ccw
                 rcCW = rootCodeLeg startCW R.cw
 
@@ -109,27 +109,27 @@ analyseSymmetry lastCrossing skipCrossing = findSymmetry
                             state2 <- if pv /= cur then testCCW leg state1 else return state1
                             Just state2
                     where
-                        cur = fst $ begin $ opposite leg
-                        nx = fst $ begin $ opposite $ nextCCW leg
-                        pv = fst $ begin $ opposite $ nextCW leg
+                        cur = fst $ beginPair $ opposite leg
+                        nx = fst $ beginPair $ opposite $ nextCCW leg
+                        pv = fst $ beginPair $ opposite $ nextCW leg
 
 
 rootCodeLeg :: (CrossingType ct) => Dart Tangle ct -> R.RotationDirection -> UArray Int Int
 rootCodeLeg !root !dir
     | isDart root                     = error "rootCodeLeg: leg expected"
     | numberOfFreeLoops tangle /= 0   = error "rootCodeLeg: free loops present"
-    | numberOfCrossings tangle > 127  = error "rootCodeLeg: too many crossings"
+    | n > 127                         = error "rootCodeLeg: too many crossings"
     | otherwise                       =
         case globalTransformations tangle of
             Nothing      -> code
             Just globals -> minimum $ map codeWithGlobal globals
     where 
-        tangle = dartTangle root
-        n = numberOfCrossings tangle
+        tangle = dartOwner root
+        n = numberOfVertices tangle
 
         codeWithGlobal global = runSTUArray $ do
             x <- newArray (0, n) 0 :: ST s (STUArray s Int Int)
-            unsafeWrite x (crossingIndex $! adjacentCrossing root) 1
+            unsafeWrite x (vertexIndex $ endVertex root) 1
             q <- newArray_ (0, n - 1) :: ST s (STArray s Int (Dart Tangle ct))
             unsafeWrite q 0 (opposite root)
             free <- newSTRef 2
@@ -138,14 +138,14 @@ rootCodeLeg !root !dir
                 look !d !s
                     | isLeg d    = return $! s `shiftL` 7
                     | otherwise  = do
-                        let u = incidentCrossing d
-                        ux <- unsafeRead x (crossingIndex u)
+                        let u = beginVertex d
+                        ux <- unsafeRead x (vertexIndex u)
                         if ux > 0
                             then return $! ux + (s `shiftL` 7)
                             else do
                                 nf <- readSTRef free
                                 writeSTRef free $! nf + 1
-                                unsafeWrite x (crossingIndex u) nf
+                                unsafeWrite x (vertexIndex u) nf
                                 unsafeWrite q (nf - 1) d
                                 return $! nf + (s `shiftL` 7)
 
@@ -166,7 +166,7 @@ rootCodeLeg !root !dir
 
         code = runSTUArray $ do
             x <- newArray (0, n) 0 :: ST s (STUArray s Int Int)
-            unsafeWrite x (crossingIndex $! adjacentCrossing root) 1
+            unsafeWrite x (vertexIndex $ endVertex root) 1
             q <- newArray_ (0, n - 1) :: ST s (STArray s Int (Dart Tangle ct))
             unsafeWrite q 0 (opposite root)
             free <- newSTRef 2
@@ -175,14 +175,14 @@ rootCodeLeg !root !dir
                 look !d !s
                     | isLeg d    = return $! s `shiftL` 7
                     | otherwise  = do
-                        let u = incidentCrossing d
-                        ux <- unsafeRead x (crossingIndex u)
+                        let u = beginVertex d
+                        ux <- unsafeRead x (vertexIndex u)
                         if ux > 0
                             then return $! ux + (s `shiftL` 7)
                             else do
                                 nf <- readSTRef free
                                 writeSTRef free $! nf + 1
-                                unsafeWrite x (crossingIndex u) nf
+                                unsafeWrite x (vertexIndex u) nf
                                 unsafeWrite q (nf - 1) d
                                 return $! nf + (s `shiftL` 7)
 
