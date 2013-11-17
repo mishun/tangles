@@ -57,6 +57,7 @@ library
     exposed-modules:
         Math.Algebra.Group.D4,
         Math.Algebra.Group.Dn,
+        Math.Algebra.PlanarAlgebra,
         Math.Algebra.RotationDirection,
         Math.Combinatorics.ChordDiagram,
         Math.Combinatorics.ChordDiagram.Draw,
@@ -98,6 +99,8 @@ library
         Math.Topology.KnotTh.Tangle.TensorSubst,
         Math.Topology.Manifolds.SurfaceGraph
     other-modules:
+        Math.Algebra.PlanarAlgebra.Definition,
+        Math.Algebra.PlanarAlgebra.Reduction,
         Math.Combinatorics.ChordDiagram.Definition,
         Math.Combinatorics.ChordDiagram.Generator,
         Math.Topology.KnotTh.Crossings.Arbitrary.Alternating,
