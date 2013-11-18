@@ -18,6 +18,7 @@ import Data.Array (Array)
 import Data.Array.Unboxed (UArray)
 import Data.Array.Unsafe (unsafeFreeze)
 import Data.Array.ST (STArray, STUArray)
+import Control.Arrow (first)
 import Control.Monad.ST (ST, runST)
 import Control.Monad.Writer (Writer, WriterT, execWriter, execWriterT, tell)
 import Control.Monad ((>=>), when, forM_)
@@ -91,13 +92,15 @@ produceKnotted knotPattern inst = execWriterT $ do
     [DataD [] knotTN [PlainTV crossType] [RecC knotCN knotFields] []] <- lift knotPattern
 
     let dartN = mkName "Dart"
-    let vertN = mkName "Vertex"
-    let nameL = litE $ stringL $ nameBase knotTN
+        vertN = mkName "Vertex"
+        nameL = litE $ stringL $ nameBase knotTN
 
     let loopsCount = mkName "loopsCount"
-    let vertexCount = mkName "vertexCount"
-    let stateArray = mkName "stateArray"
-    let connsArray = mkName "connsArray"
+        vertexCount = mkName "vertexCount"
+        stateArray = mkName "stateArray"
+        connsArray = mkName "connsArray"
+
+    let ies = implodeExplodeSettings inst
 
     declare $ dataD (cxt []) knotTN [PlainTV crossType] [recC knotCN $
         [ (,,) loopsCount  Unpacked `fmap` [t| Int |]
@@ -266,6 +269,14 @@ produceKnotted knotPattern inst = execWriterT $ do
                         [| $(varE d) .&. 3 :: Int |]
                 ) []
 
+        tell $ (:[]) $ funD 'beginPair' $ (:[]) $ do
+                d <- newName "d"
+                clause [varP d]
+                    (guardedB $
+                        map (uncurry normalGE) $ map ($ varE d) (extraExplodePairCases ies) ++
+                            [ ([| otherwise |], [| first vertexIndex $ beginPair $(varE d) |]) ]
+                    ) []
+
         tell $ (:[]) $ funD 'opposite $ (:[]) $ do
             k <- newName "k"
             d <- newName "d"
@@ -368,16 +379,6 @@ produceKnotted knotPattern inst = execWriterT $ do
                 ) []
 
         do
-            let ies = implodeExplodeSettings inst
-
-            tell $ (:[]) $ funD 'toPair $ (:[]) $ do
-                d <- newName "d"
-                clause [varP d]
-                    (guardedB $
-                        map (uncurry normalGE) $ map ($ varE d) (extraExplodePairCases ies) ++
-                            [ ([| otherwise |], [| beginPair' $(varE d) |]) ]
-                    ) []
-
             tell $ (:[]) $ do
                 ct <- newName "ct"
                 tySynInstD ''ExplodeType [conT knotTN, varT ct] $ do    
@@ -389,7 +390,7 @@ produceKnotted knotPattern inst = execWriterT $ do
                 clause [varP knot] (normalB $ tupE $ execWriter $ do
                         tell $ (:[]) $ [| numberOfFreeLoops $(varE knot) |]
                         tell $ map (\ (_, _, f) -> f $ varE knot) $ extraImplodeExplodeParams ies
-                        tell $ (:[]) [| map (\ c -> (map (toPair . opposite) $ outcomingDarts c, crossingState c)) $ allVertices $(varE knot) |]
+                        tell $ (:[]) [| map (\ c -> (map endPair' $ outcomingDarts c, crossingState c)) $ allVertices $(varE knot) |]
                     ) []
 
             tell $ (:[]) $ funD 'implode $ (:[]) $ do

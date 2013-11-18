@@ -50,7 +50,6 @@ instance Knotted Link where
     numberOfFreeLoops (L t) = numberOfFreeLoops t
     mapCrossings f (L t) = L (mapCrossings f t)
     crossingState (V v) = crossingState v
-    toPair (D d) = toPair d
 
     type ExplodeType Link ct = (Int, [([(Int, Int)], CrossingState ct)])
     explode (L t) = let (f, [], l) = explode t in (f, l)

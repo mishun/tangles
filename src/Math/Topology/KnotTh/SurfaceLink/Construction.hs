@@ -39,7 +39,7 @@ fromTangleAndStar cd tangle
 {-# INLINE fromTangleAndStar' #-}
 fromTangleAndStar' :: (CrossingType ct) => (Dart Tangle ct -> Dart Tangle ct) -> Tangle ct -> SurfaceLink ct
 fromTangleAndStar' withLeg tangle =
-    let watch d | isDart d   = toPair d
+    let watch d | isDart d   = beginPair' d
                 | otherwise  = watch $ opposite $ withLeg d
     in implode
         ( numberOfFreeLoops tangle + div (length $ filter (\ l -> opposite l == withLeg l) $ allLegs tangle) 2

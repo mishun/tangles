@@ -157,8 +157,6 @@ class (PlanarDiagram knot) => Knotted knot where
     mapCrossings      :: (CrossingType a, CrossingType b) => (CrossingState a -> CrossingState b) -> knot a -> knot b
     crossingState     :: Vertex knot ct -> CrossingState ct
 
-    toPair            :: Dart knot ct -> (Int, Int)
-
     type ExplodeType knot ct :: *
     explode :: knot ct -> ExplodeType knot ct
     implode :: (CrossingType ct) => ExplodeType knot ct -> knot ct

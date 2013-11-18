@@ -5,8 +5,6 @@ module Math.Algebra.PlanarAlgebra.Definition
     , hasVertices
     , numberOfDarts
     , nextDir
-    , beginVertexM
-    , beginPair'
     , endVertex
     , endPlace
     , endVertexM
@@ -75,10 +73,15 @@ class PlanarDiagram a where
     beginVertex        :: Dart a t -> Vertex a t
     beginPlace         :: Dart a t -> Int
     beginPair          :: Dart a t -> (Vertex a t, Int)
+    beginPair'         :: Dart a t -> (Int, Int)
+    beginVertexM       :: Dart a t -> Maybe (Vertex a t)
 
     beginVertex = fst . beginPair
     beginPlace  = snd . beginPair
     beginPair d = (beginVertex d, beginPlace d)
+    beginPair' = first vertexIndex . beginPair
+    beginVertexM d | isDart d   = Just $! beginVertex d
+                   | otherwise  = Nothing
 
     nextCCW, nextCW    :: Dart a t -> Dart a t
     nextBy             :: Int -> Dart a t -> Dart a t
@@ -115,17 +118,6 @@ numberOfDarts = (* 2) . numberOfEdges
 nextDir :: (PlanarDiagram a) => R.RotationDirection -> Dart a t -> Dart a t
 nextDir dir | R.isClockwise dir  = nextCW
             | otherwise          = nextCCW
-
-
-{-# INLINE beginVertexM #-}
-beginVertexM :: (PlanarDiagram a) => Dart a t -> Maybe (Vertex a t)
-beginVertexM d | isDart d   = Just $! beginVertex d
-               | otherwise  = Nothing
-
-
-{-# INLINE beginPair' #-}
-beginPair' :: (PlanarDiagram a) => Dart a t -> (Int, Int)
-beginPair' = first vertexIndex . beginPair
 
 
 {-# INLINE endVertex #-}
@@ -209,14 +201,16 @@ class (PlanarDiagram a) => SurfaceDiagram a where
     leftFace             :: Dart a t -> Face a t
     leftPlace            :: Dart a t -> Int
     leftPair             :: Dart a t -> (Face a t, Int)
+    leftPair'            :: Dart a t -> (Int, Int)
 
     leftFace   = fst . leftPair
     leftPlace  = snd . leftPair
     leftPair d = (leftFace d, leftPlace d)
+    leftPair' = first faceIndex . leftPair
 
     nthDartInCCWTraverse :: Face a t -> Int -> Dart a t
-
     faceTraverseCCW      :: Face a t -> [Dart a t]
+
     faceTraverseCCW f = map (nthDartInCCWTraverse f) [0 .. faceDegree f - 1]
 
     faceIndicesRange     :: a t -> (Int, Int)

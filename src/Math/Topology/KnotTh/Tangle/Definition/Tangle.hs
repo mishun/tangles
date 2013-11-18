@@ -40,7 +40,7 @@ produceKnotted [d| data Tangle ct = Tangle { legsCount :: {-# UNPACK #-} !Int } 
                 brd = varE brdN
             in defaultImplodeExplode
                 { extraImplodeExplodeParams =
-                    [ (brdN, [t| [(Int, Int)] |], \ t -> [| map (toPair . opposite) $ allLegs $t |])
+                    [ (brdN, [t| [(Int, Int)] |], \ t -> [| map endPair' $ allLegs $t |])
                     ]
 
                 , extraImplodePairCases =
