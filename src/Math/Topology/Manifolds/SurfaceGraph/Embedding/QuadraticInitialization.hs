@@ -14,7 +14,6 @@ import Data.Array.Unboxed (UArray)
 import Data.Array.IO (IOUArray)
 import Control.Monad (when, unless, forM_, forM, liftM)
 import Math.Topology.Manifolds.SurfaceGraph.Definition
-import Math.Topology.Manifolds.SurfaceGraph.Util
 import Math.Topology.Manifolds.SurfaceGraph.Embedding.Optimization
 
 
@@ -23,7 +22,7 @@ quadraticInitialization seed s brd
     | vertexDegree s /= length brd  = error "quadraticInitialization: wrong number of elements in border"
     | otherwise                     = unsafePerformIO $ do
         let g = vertexOwner s
-        let vi = (listArray :: (Ix i) => (i, i) -> [Int] -> UArray i Int) (verticesRangeG g) $
+        let vi = (listArray :: (Ix i) => (i, i) -> [Int] -> UArray i Int) (verticesRange g) $
                     scanl (\ !x !v -> if v == s then x else x + 1) 0 $ allVertices g
 
         let n = numberOfVertices g - 1
@@ -31,7 +30,7 @@ quadraticInitialization seed s brd
         y <- newArray (0, n - 1) 0
         do
             dist <- do
-                d <- (newArray :: (Ix i) => (i, i) -> Int -> IO (IOUArray i Int)) (verticesRangeG g) (-1)
+                d <- (newArray :: (Ix i) => (i, i) -> Int -> IO (IOUArray i Int)) (verticesRange g) (-1)
                 writeArray d s 0
                 q <- newIORef $ Seq.singleton s
 
@@ -94,4 +93,4 @@ quadraticInitialization seed s brd
                         cy <- readArray y (vi ! v)
                         return (realToFrac cx, realToFrac cy)
 
-        return $! listArray (dartsRangeG g) result
+        return $! listArray (dartsRange g) result

@@ -14,8 +14,7 @@ import Data.Array.Unsafe (unsafeFreeze)
 import Data.Array.ST (STUArray, newArray, readArray, writeArray)
 import Control.Monad.ST
 import Control.Monad (foldM)
-import Math.Topology.KnotTh.Knotted.Definition.Knotted
-import Math.Topology.KnotTh.Knotted.Definition.Misc
+import Math.Topology.KnotTh.Knotted.Definition
 
 
 type ThreadList dart = (Int, UArray dart Int, [(Int, [(dart, dart)])])

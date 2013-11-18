@@ -12,7 +12,6 @@ import Control.Monad (forM_, liftM2)
 import Foreign.Ptr (Ptr)
 import Foreign.C.Types
 import Math.Topology.Manifolds.SurfaceGraph.Definition
-import Math.Topology.Manifolds.SurfaceGraph.Util
 
 
 foreign import ccall "sphereStarDecomposition"
@@ -52,12 +51,12 @@ backtrack graph = unsafePerformIO $ do
                             vertexDegreesPtr edgesPtr coedgesPtr
                             resultFacesPtr resultEdgesPtr
 
-    faceMarks <- (newArray :: (Ix i) => (i, i) -> Bool -> IO (IOUArray i Bool)) (facesRangeG graph) False
+    faceMarks <- (newArray :: (Ix i) => (i, i) -> Bool -> IO (IOUArray i Bool)) (facesRange graph) False
     forM_ ([0 ..] `zip` allFaces graph) $ \ (i, face) -> do
         mark <- (/= 0) `fmap` readArray resultFaces i
         writeArray faceMarks face mark
 
-    edgeMarks <- (newArray :: (Ix i) => (i, i) -> Bool -> IO (IOUArray i Bool)) (dartsRangeG graph) False
+    edgeMarks <- (newArray :: (Ix i) => (i, i) -> Bool -> IO (IOUArray i Bool)) (dartsRange graph) False
     forM_ ([0 ..] `zip` allEdges graph) $ \ (i, (a, b)) -> do
         mark <- (/= 0) `fmap` readArray resultEdges i
         writeArray edgeMarks a mark

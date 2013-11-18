@@ -11,7 +11,6 @@ import Data.Array (Array)
 import Data.Array.IO (IOArray, IOUArray)
 import Control.Monad (unless, forM_, forM)
 import Math.Topology.Manifolds.SurfaceGraph.Definition
-import Math.Topology.Manifolds.SurfaceGraph.Util
 import Math.Topology.Manifolds.SurfaceGraph.Embedding.Optimization
 
 
@@ -36,7 +35,7 @@ relaxEmbedding borderSegments root initial
             numberOfMovablePoints = totalNumberOfPoints - numberOfFrozenPoints
 
         dartBeginIndex <- do
-            dartBeginIndex <- (newArray_ :: (Ix i) => (i, i) -> IO (IOUArray i Int)) (dartsRangeG g)
+            dartBeginIndex <- (newArray_ :: (Ix i) => (i, i) -> IO (IOUArray i Int)) (dartsRange g)
             forM_ (allHalfEdges g) $ \ !d ->
                 writeArray dartBeginIndex d $
                     let v = beginVertex d
@@ -51,7 +50,7 @@ relaxEmbedding borderSegments root initial
             (freeze :: (Ix i) => IOUArray i Int -> IO (Array i Int)) dartBeginIndex
 
         (dartIndices, threads) <- do
-            dartIndices <- (newArray_ :: (Ix i) => (i, i) -> IO (IOArray i a)) (dartsRangeG g)
+            dartIndices <- (newArray_ :: (Ix i) => (i, i) -> IO (IOArray i a)) (dartsRange g)
             freeIndex <- newIORef (case root of { Left _ -> numberOfVertices g - 1 ; Right _ -> numberOfVertices g })
 
             let allocate a = do
@@ -64,7 +63,7 @@ relaxEmbedding borderSegments root initial
                     writeArray dartIndices b $! reverse list
                     return $! list
 
-            visited <- (newArray :: (Ix i) => (i, i) -> Bool -> IO (IOUArray i Bool)) (dartsRangeG g) False
+            visited <- (newArray :: (Ix i) => (i, i) -> Bool -> IO (IOUArray i Bool)) (dartsRange g) False
 
             let walk thread first a = do
                     let b = opposite a
@@ -112,7 +111,7 @@ relaxEmbedding borderSegments root initial
             let aliveVertices = filter ((/= root) . Left) $! allVertices g
             in map (map ((!! 1) . (dartIndices !)) . outcomingDarts) aliveVertices
 
-        fmap (listArray (dartsRangeG g)) $ forM (allHalfEdges g) $ \ d -> forM (dartIndices ! d) $ \ i -> do
+        fmap (listArray (dartsRange g)) $ forM (allHalfEdges g) $ \ d -> forM (dartIndices ! d) $ \ i -> do
             x <- readArray coords (2 * i)
             y <- readArray coords (2 * i + 1)
             return (realToFrac x, realToFrac y)

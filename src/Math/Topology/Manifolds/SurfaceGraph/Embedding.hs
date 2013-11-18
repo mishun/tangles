@@ -9,7 +9,6 @@ import Data.List (find, groupBy)
 import Data.Array.IArray ((!), array, listArray)
 import Data.Array (Array)
 import Math.Topology.Manifolds.SurfaceGraph.Definition
-import Math.Topology.Manifolds.SurfaceGraph.Util
 import Math.Topology.Manifolds.SurfaceGraph.Barycentric
 import Math.Topology.Manifolds.SurfaceGraph.Embedding.QuadraticInitialization
 import Math.Topology.Manifolds.SurfaceGraph.Embedding.RelaxEmbedding
@@ -118,7 +117,7 @@ barycentricProjection
             -> Array (Dart SurfaceGraph a) [(Double, Double)]
 
 barycentricProjection g vd be =
-    array (dartsRangeG g) $ do
+    array (dartsRange g) $ do
         (v, (a, b)) <- vd
         let l = reverse (be ! nthOutcomingDart v 0)
                 ++ tail (be ! nthOutcomingDart v 2)
@@ -129,4 +128,4 @@ quadraticEmbedding :: Vertex SurfaceGraph a -> [(Double, Double)] -> Array (Dart
 quadraticEmbedding v border =
     let g = vertexOwner v
         c = quadraticInitialization 0.99 v border
-    in listArray (dartsRangeG g) $ map (\ d -> [c ! d, c ! opposite d]) $ allHalfEdges g
+    in listArray (dartsRange g) $ map (\ d -> [c ! d, c ! opposite d]) $ allHalfEdges g

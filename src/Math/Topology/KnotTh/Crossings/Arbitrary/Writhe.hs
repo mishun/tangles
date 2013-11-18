@@ -31,7 +31,7 @@ selfWritheArray :: (Knotted k, Ix (Vertex k ArbitraryCrossing), Ix (Dart k Arbit
 
 selfWritheArray knot =
     let (_, tag, _) = allThreadsWithMarks knot
-    in listArray (crossingsRange knot) $ do
+    in listArray (verticesRange knot) $ do
         c <- allVertices knot
         let ((a, b), w) = crossingWrithe tag c
         return $ if a == b then w else 0

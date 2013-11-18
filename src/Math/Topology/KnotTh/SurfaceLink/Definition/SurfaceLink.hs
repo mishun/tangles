@@ -130,6 +130,8 @@ instance SurfaceDiagram SurfaceLink where
             nxt = faceDataOffset l `unsafeAt` (i + 1)
         in Dart l $ faceCCWBrdDart l `unsafeAt` (cur + p `mod` (nxt - cur))
 
+    faceIndicesRange l = (1, numberOfFaces l)
+
 
 instance SurfaceKnotted SurfaceLink
 

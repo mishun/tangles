@@ -40,7 +40,7 @@ identityBraidTangle n
 
 braidGeneratorTangle :: (CrossingType ct) => Int -> (Int, CrossingState ct) -> Tangle ct
 braidGeneratorTangle n (k, s)
-    | n < 2               = error $ printf "braidGeneratorTangle: braid must have at least 2 strands, but %s requested" n
+    | n < 2               = error $ printf "braidGeneratorTangle: braid must have at least 2 strands, but %i requested" n
     | k < 0 || k > n - 2  = error $ printf "braidGeneratorTangle: generator offset %i is out of bounds (0, %i)" k (n - 2)
     | otherwise           =
         let n' = 2 * n - 1

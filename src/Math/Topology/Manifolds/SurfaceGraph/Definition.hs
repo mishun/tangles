@@ -76,6 +76,10 @@ instance PlanarDiagram SurfaceGraph where
 
     isDart _ = True
 
+    vertexIndicesRange g = (0, numberOfVertices g - 1)
+
+    dartIndicesRange g = (0, numberOfDarts g - 1)
+
 
 instance SurfaceDiagram SurfaceGraph where
     numberOfFaces g = (+ 1) $ snd $ bounds $ _faces g
@@ -102,6 +106,8 @@ instance SurfaceDiagram SurfaceGraph where
     nthDartInCCWTraverse f@(Face g i) j =
         let jj = j `mod` faceDegree f
         in Dart g $ (_faces g ! i) ! jj
+
+    faceIndicesRange g = (0, numberOfFaces g - 1)
 
 
 instance Eq (Vertex SurfaceGraph a) where

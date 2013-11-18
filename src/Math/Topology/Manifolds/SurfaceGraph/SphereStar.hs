@@ -10,7 +10,6 @@ import Data.Array.ST (STArray, STUArray)
 import Control.Monad.ST (ST, runST)
 import Control.Monad (when, forM, filterM)
 import Math.Topology.Manifolds.SurfaceGraph.Definition
-import Math.Topology.Manifolds.SurfaceGraph.Util
 import Math.Topology.Manifolds.SurfaceGraph.SphereStar.Backtrack
 
 
@@ -44,7 +43,7 @@ sphereStarDecomposition graph
         externalEdges <- filterM (fmap not . readArray edgeMarks) $ allHalfEdges graph
         let numberOfExternalEdges = length externalEdges
 
-        borderPlace <- (newArray :: (Ix i) => (i, i) -> Int -> ST s (STUArray s i Int)) (dartsRangeG graph) (-1)
+        borderPlace <- (newArray :: (Ix i) => (i, i) -> Int -> ST s (STUArray s i Int)) (dartsRange graph) (-1)
         borderConn <- (newArray_ :: (Ix i) => (i, i) -> ST s (STArray s i a)) (0, numberOfExternalEdges - 1)
         flip fix (0, head externalEdges) $ \ loop (!free, !edge) ->
                 when (free < numberOfExternalEdges) $ do

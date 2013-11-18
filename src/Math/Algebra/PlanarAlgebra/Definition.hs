@@ -5,9 +5,11 @@ module Math.Algebra.PlanarAlgebra.Definition
     , hasVertices
     , numberOfDarts
     , nextDir
+    , beginVertexM
     , beginPair'
     , endVertex
     , endPlace
+    , endVertexM
     , endPair
     , endPair'
     , nthIncomingDart
@@ -26,8 +28,9 @@ module Math.Algebra.PlanarAlgebra.Definition
     , eulerChar
     ) where
 
+import Data.Ix (Ix(..))
 import Data.Array.Unboxed (UArray)
-import Control.Arrow (first)
+import Control.Arrow (first, (***))
 import qualified Math.Algebra.RotationDirection as R
 
 
@@ -42,49 +45,60 @@ class PlanarState s where
 -- Laws:
 -- nthVertex (vertexOwner d) (vertexIndex d) == d
 class PlanarDiagram a where
-    numberOfVertices :: a t -> Int
-    numberOfEdges    :: a t -> Int
-    nthVertex        :: a t -> Int -> Vertex a t
-    nthDart          :: a t -> Int -> Dart a t
-    allVertices      :: a t -> [Vertex a t]
+    numberOfVertices   :: a t -> Int
+    numberOfEdges      :: a t -> Int
+    nthVertex          :: a t -> Int -> Vertex a t
+    nthDart            :: a t -> Int -> Dart a t
+    allVertices        :: a t -> [Vertex a t]
 
-    allEdges         :: a t -> [(Dart a t, Dart a t)]
+    allEdges           :: a t -> [(Dart a t, Dart a t)]
     allEdges = filter (\ (a, b) -> dartIndex a < dartIndex b) . map (\ d -> (d, opposite d)) . allHalfEdges
 
-    allHalfEdges     :: a t -> [Dart a t]
+    allHalfEdges       :: a t -> [Dart a t]
     allHalfEdges = concatMap (\ (a, b) -> [a, b]) . allEdges
 
     data Vertex a t
-    vertexDegree     :: Vertex a t -> Int
-    vertexOwner      :: Vertex a t -> a t
-    vertexIndex      :: Vertex a t -> Int
-    nthOutcomingDart :: Vertex a t -> Int -> Dart a t
-    outcomingDarts   :: Vertex a t -> [Dart a t]
+    vertexDegree       :: Vertex a t -> Int
+    vertexOwner        :: Vertex a t -> a t
+    vertexIndex        :: Vertex a t -> Int
+    nthOutcomingDart   :: Vertex a t -> Int -> Dart a t
+    outcomingDarts     :: Vertex a t -> [Dart a t]
 
     data Dart a t
-    dartOwner        :: Dart a t -> a t
-    dartIndex        :: Dart a t -> Int
-    opposite         :: Dart a t -> Dart a t
+    dartOwner          :: Dart a t -> a t
+    dartIndex          :: Dart a t -> Int
+    opposite           :: Dart a t -> Dart a t
 
-    beginVertex :: Dart a t -> Vertex a t
+    isDart             :: Dart a t -> Bool
+    isDart _ = True
+
+    beginVertex        :: Dart a t -> Vertex a t
+    beginPlace         :: Dart a t -> Int
+    beginPair          :: Dart a t -> (Vertex a t, Int)
+
     beginVertex = fst . beginPair
-
-    beginPlace :: Dart a t -> Int
     beginPlace  = snd . beginPair
-
-    beginPair :: Dart a t -> (Vertex a t, Int)
     beginPair d = (beginVertex d, beginPlace d)
 
-    nextCCW, nextCW :: Dart a t -> Dart a t
+    nextCCW, nextCW    :: Dart a t -> Dart a t
+    nextBy             :: Int -> Dart a t -> Dart a t
+
     nextCCW = nextBy 1
     nextCW = nextBy (-1)
-
-    nextBy :: Int -> Dart a t -> Dart a t
     nextBy n d = let (v, p) = beginPair d
                  in nthOutcomingDart v $ (p + n) `mod` vertexDegree v
 
-    isDart :: Dart a t -> Bool
-    isDart _ = True
+    vertexIndicesRange :: a t -> (Int, Int)
+    verticesRange      :: (Ix (Vertex a t)) => a t -> (Vertex a t, Vertex a t)
+
+    verticesRange a | numberOfVertices a > 0  = (nthVertex a *** nthVertex a) $ vertexIndicesRange a
+                    | otherwise               = error "verticesRange: no vertices"
+
+    dartIndicesRange   :: a t -> (Int, Int)
+    dartsRange         :: (Ix (Dart a t)) => a t -> (Dart a t, Dart a t)
+
+    dartsRange a | numberOfDarts a > 0  = (nthDart a *** nthDart a) $ dartIndicesRange a
+                 | otherwise            = error "dartsRange: no darts"
 
 
 {-# INLINE hasVertices #-}
@@ -103,6 +117,12 @@ nextDir dir | R.isClockwise dir  = nextCW
             | otherwise          = nextCCW
 
 
+{-# INLINE beginVertexM #-}
+beginVertexM :: (PlanarDiagram a) => Dart a t -> Maybe (Vertex a t)
+beginVertexM d | isDart d   = Just $! beginVertex d
+               | otherwise  = Nothing
+
+
 {-# INLINE beginPair' #-}
 beginPair' :: (PlanarDiagram a) => Dart a t -> (Int, Int)
 beginPair' = first vertexIndex . beginPair
@@ -116,6 +136,11 @@ endVertex = beginVertex . opposite
 {-# INLINE endPlace #-}
 endPlace :: (PlanarDiagram a) => Dart a t -> Int
 endPlace = beginPlace . opposite
+
+
+{-# INLINE endVertexM #-}
+endVertexM :: (PlanarDiagram a) => Dart a t -> Maybe (Vertex a t)
+endVertexM = beginVertexM . opposite
 
 
 {-# INLINE endPair #-}
@@ -182,18 +207,23 @@ class (PlanarDiagram a) => SurfaceDiagram a where
     faceIndex            :: Face a t -> Int
 
     leftFace             :: Dart a t -> Face a t
-    leftFace   = fst . leftPair
-
     leftPlace            :: Dart a t -> Int
-    leftPlace  = snd . leftPair
-
     leftPair             :: Dart a t -> (Face a t, Int)
+
+    leftFace   = fst . leftPair
+    leftPlace  = snd . leftPair
     leftPair d = (leftFace d, leftPlace d)
 
     nthDartInCCWTraverse :: Face a t -> Int -> Dart a t
 
     faceTraverseCCW      :: Face a t -> [Dart a t]
     faceTraverseCCW f = map (nthDartInCCWTraverse f) [0 .. faceDegree f - 1]
+
+    faceIndicesRange     :: a t -> (Int, Int)
+    facesRange           :: (Ix (Face a t)) => a t -> (Face a t, Face a t)
+
+    facesRange a | numberOfFaces a > 0  = (nthFace a *** nthFace a) $ faceIndicesRange a
+                 | otherwise            = error "facesRange: no faces"
 
 
 {-# INLINE rightFace #-}

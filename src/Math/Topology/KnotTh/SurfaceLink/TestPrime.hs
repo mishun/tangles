@@ -122,7 +122,7 @@ stoerWagner link = runST $ do
 has4LegPlanarPart :: SurfaceLink ct -> Bool
 has4LegPlanarPart =
     let planar link start darts = runST $ do
-            vertex <- (newArray :: (Ix i) => (i, i) -> Bool -> ST s (STUArray s i Bool)) (crossingsRange link) False
+            vertex <- (newArray :: (Ix i) => (i, i) -> Bool -> ST s (STUArray s i Bool)) (verticesRange link) False
             edge <- (newArray :: (Ix i) => (i, i) -> Bool -> ST s (STUArray s i Bool)) (dartsRange link) False
 
             face <- (newArray :: (Ix i) => (i, i) -> Bool -> ST s (STUArray s i Bool)) (facesRange link) False

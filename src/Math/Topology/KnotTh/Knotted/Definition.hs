@@ -1,5 +1,5 @@
 {-# LANGUAGE UnboxedTuples, TypeFamilies #-}
-module Math.Topology.KnotTh.Knotted.Definition.Knotted
+module Math.Topology.KnotTh.Knotted.Definition
     ( module X
     , CrossingType(..)
     , CrossingState
@@ -8,14 +8,18 @@ module Math.Topology.KnotTh.Knotted.Definition.Knotted
     , crossingLegIdByDartId
     , dartIdByCrossingLegId
     , mapOrientation
+    , crossingTypeInside
+    , isCrossingOrientationInvertedInside
+    , crossingLegIdByDart
+    , dartByCrossingLegId
     , makeCrossing
+    , makeCrossing'
     , mapCrossing
     , Knotted(..)
     , KnottedWithConnectivity(..)
-    , crossingIndexRange
-    , crossingsRange
-    , dartIndexRange
-    , dartsRange
+    , SurfaceKnotted
+    , isEndpoint
+    , numberOfEndpoints
     , crossingCode
     , crossingCodeWithGlobal
     , forMAdjacentDarts
@@ -24,7 +28,6 @@ module Math.Topology.KnotTh.Knotted.Definition.Knotted
     ) where
 
 import Data.Bits ((.&.))
-import Data.Ix (Ix)
 import Control.DeepSeq
 import Control.Monad (guard)
 import Text.Printf
@@ -112,6 +115,26 @@ mapOrientation :: (D4.D4 -> D4.D4) -> CrossingState ct -> CrossingState ct
 mapOrientation f crossing = crossing { orientation = f $ orientation crossing }
 
 
+{-# INLINE crossingTypeInside #-}
+crossingTypeInside :: (CrossingType ct, Knotted k) => Vertex k ct -> ct
+crossingTypeInside = crossingType . crossingState
+
+
+{-# INLINE isCrossingOrientationInvertedInside #-}
+isCrossingOrientationInvertedInside :: (CrossingType ct, Knotted k) => Vertex k ct -> Bool
+isCrossingOrientationInvertedInside = isCrossingOrientationInverted . crossingState
+
+
+{-# INLINE crossingLegIdByDart #-}
+crossingLegIdByDart :: (CrossingType ct, Knotted k) => Dart k ct -> Int
+crossingLegIdByDart d = crossingLegIdByDartId (crossingState $ beginVertex d) (beginPlace d)
+
+
+{-# INLINE dartByCrossingLegId #-}
+dartByCrossingLegId :: (CrossingType ct, Knotted k) => Vertex k ct -> Int -> Dart k ct
+dartByCrossingLegId c = nthOutcomingDart c . dartIdByCrossingLegId (crossingState c)
+
+
 makeCrossing :: (CrossingType ct) => ct -> D4.D4 -> CrossingState ct
 makeCrossing !ct !g = Crossing
     { code         = crossingTypeCode ct
@@ -119,6 +142,10 @@ makeCrossing !ct !g = Crossing
     , symmetry     = localCrossingSymmetry ct
     , crossingType = ct
     }
+
+
+makeCrossing' :: (CrossingType ct) => ct -> CrossingState ct
+makeCrossing' = flip makeCrossing D4.i
 
 
 mapCrossing :: (CrossingType a, CrossingType b) => (a -> b) -> CrossingState a -> CrossingState b
@@ -167,32 +194,17 @@ class (Knotted knot) => KnottedWithConnectivity knot where
     isPrime     :: knot ct -> Bool
 
 
-{-# INLINE crossingIndexRange #-}
-crossingIndexRange :: (Knotted k) => k ct -> (Int, Int)
-crossingIndexRange knot = (1, numberOfVertices knot)
+class (Knotted knot, SurfaceDiagram knot) => SurfaceKnotted knot where
 
 
-{-# INLINE crossingsRange #-}
-crossingsRange :: (Knotted k, Ix (Vertex k ct)) => k ct -> (Vertex k ct, Vertex k ct)
-crossingsRange knot
-    | n > 0      = (nthVertex knot 1, nthVertex knot n)
-    | otherwise  = error "crossingsRange: no crossings"
-    where
-        n = numberOfVertices knot
+{-# INLINE isEndpoint #-}
+isEndpoint :: (Knotted k) => Dart k ct -> Bool
+isEndpoint = not . isDart
 
 
-{-# INLINE dartIndexRange #-}
-dartIndexRange :: (Knotted k) => k ct -> (Int, Int)
-dartIndexRange k = (0, 2 * numberOfEdges k - 1)
-
-
-{-# INLINE dartsRange #-}
-dartsRange :: (Knotted k, Ix (Dart k ct)) => k ct -> (Dart k ct, Dart k ct)
-dartsRange knot
-    | e > 0      = (nthDart knot 0, nthDart knot $ 2 * e - 1)
-    | otherwise  = error "dartsRange: no darts"
-    where
-        e = numberOfEdges knot
+{-# INLINE numberOfEndpoints #-}
+numberOfEndpoints :: (Knotted k) => k ct -> Int
+numberOfEndpoints knot = 2 * numberOfEdges knot - 4 * numberOfVertices knot
 
 
 {-# INLINE crossingCode #-}

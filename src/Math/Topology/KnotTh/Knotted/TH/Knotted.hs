@@ -296,6 +296,18 @@ produceKnotted knotPattern inst = execWriterT $ do
                     maybe [| True |] ($ (varE k, varE d)) (modifyIsDart inst)
                 ) []
 
+        tell $ (:[]) $ funD 'vertexIndicesRange $ (:[]) $ do
+            k <- newName "k"
+            clause [varP k] (normalB [|
+                    (1 :: Int, numberOfVertices $(varE k))
+                |]) []
+
+        tell $ (:[]) $ funD 'dartIndicesRange $ (:[]) $ do
+            k <- newName "k"
+            clause [varP k] (normalB [|
+                    (0 :: Int, numberOfDarts $(varE k) - 1 :: Int)
+                |]) []
+
     declare $ instanceD (cxt []) ([t| Knotted |] `appT` conT knotTN) $ execWriter $ do
 
         tell $ (:[]) $ funD 'numberOfFreeLoops $ (:[]) $

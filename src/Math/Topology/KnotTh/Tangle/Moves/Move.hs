@@ -54,12 +54,12 @@ reconnectST st connections =
 
 disassembleST :: (CrossingType ct) => Tangle ct -> ST s (MoveState s ct)
 disassembleST tangle = do
-    connections <- newArray_ (dartIndexRange tangle)
+    connections <- newArray_ (dartIndicesRange tangle)
     forM_ (allEdges tangle) $ \ (!a, !b) -> do
         writeArray connections (dartIndex a) b
         writeArray connections (dartIndex b) a
 
-    mask <- newListArray (crossingIndexRange tangle) $ map (Direct . crossingState) $ allVertices tangle
+    mask <- newListArray (vertexIndicesRange tangle) $ map (Direct . crossingState) $ allVertices tangle
     circlesCounter <- newSTRef $ numberOfFreeLoops tangle
     return MoveState
         { stateSource      = tangle
@@ -73,7 +73,7 @@ assembleST :: (CrossingType ct) => MoveState s ct -> ST s (Tangle ct)
 assembleST st = do
     let source = stateSource st
 
-    offset <- newArray_ (crossingIndexRange source) :: ST s (STUArray s Int Int)
+    offset <- newArray_ (vertexIndicesRange source) :: ST s (STUArray s Int Int)
     foldM_ (\ !x !c -> do
             msk <- readMaskST st c
             case msk of
@@ -202,7 +202,7 @@ substituteC substitutions = do
     lift $ do
         let source = stateSource st
 
-        arr <- newArray_ (dartIndexRange source) :: ST s (STArray s Int (Dart Tangle ct))
+        arr <- newArray_ (dartIndicesRange source) :: ST s (STArray s Int (Dart Tangle ct))
         forM_ (allEdges source) $ \ (!a, !b) -> do
             writeArray arr (dartIndex a) a
             writeArray arr (dartIndex b) b

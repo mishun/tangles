@@ -15,7 +15,7 @@ import Math.Topology.KnotTh.Tangle
 
 
 zeroFlow :: Tangle ct -> UArray Int Int
-zeroFlow tangle = listArray (dartIndexRange tangle) $ repeat 0
+zeroFlow tangle = listArray (dartIndicesRange tangle) $ repeat 0
 
 
 restingPart :: Tangle ct -> [Dart Tangle ct] -> Maybe ([Dart Tangle ct], UArray Int Bool)
@@ -29,7 +29,7 @@ restingPart tangle incoming
 
         starts = map beginVertex incoming
 
-        ends = mapMaybe maybeAdjacentCrossing incoming
+        ends = mapMaybe endVertexM incoming
 
         startsDifferent = all (uncurry (/=)) $ zip starts (tail starts)
 
@@ -49,7 +49,7 @@ restingPart tangle incoming
 
         getSubtangle (flow, flowValue) = Just (result, flowValue)
             where
-                result = listArray (crossingIndexRange tangle) $ map (`S.member` subtangle) $ allVertices tangle
+                result = listArray (vertexIndicesRange tangle) $ map (`S.member` subtangle) $ allVertices tangle
 
                 subtangle = execState (forM_ starts dfs) S.empty
 
@@ -69,7 +69,7 @@ restingPart tangle incoming
                     visited <- gets $ S.member c
                     unless visited $ do
                         modify $ S.insert c
-                        mapM_ dfs $ filter ((sub !) . vertexIndex) $ mapMaybe maybeAdjacentCrossing $ outcomingDarts c
+                        mapM_ dfs $ filter ((sub !) . vertexIndex) $ mapMaybe endVertexM $ outcomingDarts c
 
         outcoming (sub, flowValue)
             | any (not . onBorder) incoming  = Nothing
@@ -102,7 +102,7 @@ pushResidualFlow tangle starts ends flow = evalState bfs initial >>= push
         initial = (Seq.fromList starts, M.fromList $ zip starts (repeat []))
 
         endFlag :: UArray Int Bool
-        endFlag = array (crossingIndexRange tangle) $
+        endFlag = array (vertexIndicesRange tangle) $
             map (first vertexIndex) $
                 zip (allVertices tangle) (repeat False) ++ zip ends (repeat True)
 

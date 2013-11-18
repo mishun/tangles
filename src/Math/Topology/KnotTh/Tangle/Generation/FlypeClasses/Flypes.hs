@@ -26,7 +26,7 @@ flypeCodeLeg leg initialDirection
         let {-# INLINE go #-}
             go !i !d !dir
                 | i >= n || isLeg d              = return ()
-                | isLonerInside (beginVertex d)  = go i (opposite $ nextPi d) (R.oppositeDirection dir)
+                | isLonerInside (beginVertex d)  = go i (opposite $ nextBy 2 d) (R.oppositeDirection dir)
                 | otherwise                      = do
                     case crossingCode dir d of
                         (# be, le #) -> do

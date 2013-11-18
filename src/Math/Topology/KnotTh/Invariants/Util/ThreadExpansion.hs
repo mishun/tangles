@@ -34,7 +34,7 @@ threadExpansion invariant tangle =
                             where
                                 c = beginVertex b
 
-                indices = array (crossingIndexRange tangle) $
+                indices = array (vertexIndicesRange tangle) $
                     map (first vertexIndex) $
                         zip (allVertices tangle) (repeat 0) ++ zip targets [1 ..]
 
