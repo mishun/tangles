@@ -5,19 +5,18 @@ module Math.Topology.KnotTh.Crossings.Arbitrary.Writhe
     , threadsWithLinkingNumbers
     ) where
 
-import Data.Ix (Ix)
 import Data.Array.IArray (listArray, accumArray, (!), elems)
 import Data.Array.Unboxed (UArray)
 import Math.Topology.KnotTh.Knotted
 import Math.Topology.KnotTh.Crossings.Arbitrary.Arbitrary
 
 
-selfWrithe :: (Knotted k, Ix (Vertex k ArbitraryCrossing), Ix (Dart k ArbitraryCrossing)) => k ArbitraryCrossing -> Int
+selfWrithe :: (Knotted k) => k ArbitraryCrossing -> Int
 selfWrithe knot | hasVertices knot  = sum $ elems $ selfWritheArray knot
                 | otherwise         = 0
 
 
-selfWritheByThread :: (Knotted k, Ix (Dart k ArbitraryCrossing)) => k ArbitraryCrossing -> UArray Int Int
+selfWritheByThread :: (Knotted k) => k ArbitraryCrossing -> UArray Int Int
 selfWritheByThread knot =
     let (n, tag, _) = allThreadsWithMarks knot
     in accumArray (+) 0 (1, n) $ do
@@ -26,9 +25,7 @@ selfWritheByThread knot =
         [(a, w) | a == b]
 
 
-selfWritheArray :: (Knotted k, Ix (Vertex k ArbitraryCrossing), Ix (Dart k ArbitraryCrossing))
-    => k ArbitraryCrossing -> UArray (Vertex k ArbitraryCrossing) Int
-
+selfWritheArray :: (Knotted k) => k ArbitraryCrossing -> UArray (Vertex k ArbitraryCrossing) Int
 selfWritheArray knot =
     let (_, tag, _) = allThreadsWithMarks knot
     in listArray (verticesRange knot) $ do
@@ -37,7 +34,7 @@ selfWritheArray knot =
         return $ if a == b then w else 0
 
 
-threadsWithLinkingNumbers :: (Knotted k, Ix (Dart k ArbitraryCrossing))
+threadsWithLinkingNumbers :: (Knotted k)
     => k ArbitraryCrossing
         -> ((Int, UArray (Dart k ArbitraryCrossing) Int, [(Int, [(Dart k ArbitraryCrossing, Dart k ArbitraryCrossing)])]), UArray (Int, Int) Int)
 
@@ -55,7 +52,7 @@ threadsWithLinkingNumbers knot =
 
 
 {-# INLINE crossingWrithe #-}
-crossingWrithe :: (Knotted k, Ix (Dart k ArbitraryCrossing))
+crossingWrithe :: (Knotted k)
     => UArray (Dart k ArbitraryCrossing) Int -> Vertex k ArbitraryCrossing -> ((Int, Int), Int)
 
 crossingWrithe t cross =

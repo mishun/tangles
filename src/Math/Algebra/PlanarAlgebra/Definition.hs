@@ -92,16 +92,42 @@ class PlanarDiagram a where
                  in nthOutcomingDart v $ (p + n) `mod` vertexDegree v
 
     vertexIndicesRange :: a t -> (Int, Int)
-    verticesRange      :: (Ix (Vertex a t)) => a t -> (Vertex a t, Vertex a t)
+    verticesRange      :: a t -> (Vertex a t, Vertex a t)
 
     verticesRange a | numberOfVertices a > 0  = (nthVertex a *** nthVertex a) $ vertexIndicesRange a
                     | otherwise               = error "verticesRange: no vertices"
 
     dartIndicesRange   :: a t -> (Int, Int)
-    dartsRange         :: (Ix (Dart a t)) => a t -> (Dart a t, Dart a t)
+    dartsRange         :: a t -> (Dart a t, Dart a t)
 
     dartsRange a | numberOfDarts a > 0  = (nthDart a *** nthDart a) $ dartIndicesRange a
                  | otherwise            = error "dartsRange: no darts"
+
+
+instance (PlanarDiagram a) => Eq (Vertex a t) where
+    (==) a b = vertexIndex a == vertexIndex b
+
+instance (PlanarDiagram a) => Ord (Vertex a t) where
+    compare a b = vertexIndex a `compare` vertexIndex b
+
+instance (PlanarDiagram a) => Ix (Vertex a t) where
+    range (a, b) = map (nthVertex (vertexOwner b)) [vertexIndex a .. vertexIndex b]
+    index (a, b) c = index (vertexIndex a, vertexIndex b) (vertexIndex c)
+    inRange (a, b) c = (vertexIndex c >= vertexIndex a) && (vertexIndex c <= vertexIndex b)
+    rangeSize (a, b) = max 0 (vertexIndex b - vertexIndex a + 1)
+
+
+instance (PlanarDiagram a) => Eq (Dart a t) where
+    (==) a b = dartIndex a == dartIndex b
+
+instance (PlanarDiagram a) => Ord (Dart a t) where
+    compare a b = dartIndex a `compare` dartIndex b
+
+instance (PlanarDiagram a) => Ix (Dart a t) where
+    range (a, b) = map (nthDart (dartOwner b)) [dartIndex a .. dartIndex b]
+    index (a, b) c = index (dartIndex a, dartIndex b) (dartIndex c)
+    inRange (a, b) c = (dartIndex c >= dartIndex a) && (dartIndex c <= dartIndex b)
+    rangeSize (a, b) = max 0 (dartIndex b - dartIndex a + 1)
 
 
 {-# INLINE hasVertices #-}
@@ -214,10 +240,23 @@ class (PlanarDiagram a) => SurfaceDiagram a where
     faceTraverseCCW f = map (nthDartInCCWTraverse f) [0 .. faceDegree f - 1]
 
     faceIndicesRange     :: a t -> (Int, Int)
-    facesRange           :: (Ix (Face a t)) => a t -> (Face a t, Face a t)
+    facesRange           :: a t -> (Face a t, Face a t)
 
     facesRange a | numberOfFaces a > 0  = (nthFace a *** nthFace a) $ faceIndicesRange a
                  | otherwise            = error "facesRange: no faces"
+
+
+instance (SurfaceDiagram a) => Eq (Face a t) where
+    (==) a b = faceIndex a == faceIndex b
+
+instance (SurfaceDiagram a) => Ord (Face a t) where
+    compare a b = faceIndex a `compare` faceIndex b
+
+instance (SurfaceDiagram a) => Ix (Face a t) where
+    range (a, b) = map (nthFace (faceOwner b)) [faceIndex a .. faceIndex b]
+    index (a, b) c = index (faceIndex a, faceIndex b) (faceIndex c)
+    inRange (a, b) c = (faceIndex c >= faceIndex a) && (faceIndex c <= faceIndex b)
+    rangeSize (a, b) = max 0 (faceIndex b - faceIndex a + 1)
 
 
 {-# INLINE rightFace #-}

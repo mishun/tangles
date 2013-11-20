@@ -110,45 +110,6 @@ instance SurfaceDiagram SurfaceGraph where
     faceIndicesRange g = (0, numberOfFaces g - 1)
 
 
-instance Eq (Vertex SurfaceGraph a) where
-    (==) (Vertex _ a) (Vertex _ b) = a == b
-
-instance Ord (Vertex SurfaceGraph a) where
-    compare (Vertex _ a) (Vertex _ b) = compare a b
-
-instance Ix (Vertex SurfaceGraph a) where
-    range (Vertex _ a, Vertex g b) = map (Vertex g) [a .. b]
-    index (Vertex _ a, Vertex _ b) (Vertex _ c) = index (a, b) c
-    inRange (Vertex _ a, Vertex _ b) (Vertex _ c) = c >= a && c <= b
-    rangeSize (Vertex _ a, Vertex _ b) = max 0 $ b - a + 1
-
-
-instance Eq (Dart SurfaceGraph a) where
-    (==) (Dart _ a) (Dart _ b) = a == b
-
-instance Ord (Dart SurfaceGraph a) where
-    compare (Dart _ a) (Dart _ b) = compare a b
-
-instance Ix (Dart SurfaceGraph a) where
-    range (Dart _ a, Dart g b) = map (Dart g) [a .. b]
-    index (Dart _ a, Dart _ b) (Dart _ c) = index (a, b) c
-    inRange (Dart _ a, Dart _ b) (Dart _ c) = c >= a && c <= b
-    rangeSize (Dart _ a, Dart _ b) = max 0 $ b - a + 1
-
-
-instance Eq (Face SurfaceGraph a) where
-    (==) (Face _ a) (Face _ b) = a == b
-
-instance Ord (Face SurfaceGraph a) where
-    compare (Face _ a) (Face _ b) = compare a b
-
-instance Ix (Face SurfaceGraph a) where
-    range (Face _ a, Face g b) = map (Face g) [a .. b]
-    index (Face _ a, Face _ b) (Face _ c) = index (a, b) c
-    inRange (Face _ a, Face _ b) (Face _ c) = c >= a && c <= b
-    rangeSize (Face _ a, Face _ b) = max 0 $ b - a + 1
-
-
 instance Show (SurfaceGraph a) where
     show graph =
         let showVertex v =

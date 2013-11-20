@@ -7,7 +7,6 @@ module Math.Topology.KnotTh.SurfaceLink.Definition.SurfaceLink
 
 import Language.Haskell.TH
 import Data.Function (fix)
-import Data.Ix (Ix(..))
 import Data.Bits ((.&.), complement)
 import Data.Array.IArray (listArray)
 import Data.Array.MArray (newArray, newArray_, readArray, writeArray)
@@ -117,7 +116,7 @@ instance SurfaceDiagram SurfaceLink where
             nxt = faceDataOffset l `unsafeAt` (i + 1)
         in nxt - cur
 
-    faceOwner = faceSurfaceLink
+    faceOwner (Face l _) = l
 
     faceIndex (Face _ i) = i + 1
 
@@ -134,28 +133,3 @@ instance SurfaceDiagram SurfaceLink where
 
 
 instance SurfaceKnotted SurfaceLink
-
-
-instance Eq (Face SurfaceLink ct) where
-    (==) (Face _ a) (Face _ b) = a == b
-
-
-instance Ord (Face SurfaceLink ct) where
-    compare (Face _ a) (Face _ b) = compare a b
-
-
-instance Ix (Face SurfaceLink ct) where
-    range (Face _ a, Face l b) = map (Face l) [a .. b]
-
-    rangeSize (Face _ a, Face _ b) = max 0 $ 1 + b - a
-
-    inRange (Face _ a, Face _ b) (Face _ i) = (i >= a) && (i <= b)
-
-    index (Face _ a, Face _ b) (Face _ i)
-        | (i >= a) && (i <= b)  = i - a
-        | otherwise             = error "out of range"
-
-
-{-# INLINE faceSurfaceLink #-}
-faceSurfaceLink :: Face SurfaceLink ct -> SurfaceLink ct
-faceSurfaceLink (Face l _) = l

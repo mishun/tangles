@@ -8,7 +8,6 @@ module Math.Topology.KnotTh.Knotted.TH.Knotted
     ) where
 
 import Language.Haskell.TH
-import Data.Ix (Ix(..))
 import Data.List (foldl')
 import Data.Bits ((.&.), shiftL, shiftR, complement)
 import Data.Array.IArray (listArray, bounds, amap)
@@ -469,122 +468,10 @@ produceKnotted knotPattern inst = execWriterT $ do
                                 |]
                         ) []
 
-
-    declare $ do
-        ct <- newName "ct"
-        instanceD (cxt []) (appT [t| Eq |] $ conT vertN `appT` conT knotTN `appT` varT ct)
-            [ funD '(==) $ (:[]) $ do
-                a <- newName "a"
-                b <- newName "b"
-                clause [conP vertN [wildP, varP a], conP vertN [wildP, varP b]]
-                    (normalB [| $(varE a) == $(varE b) |]) []
-            ]
-
-    declare $ do
-        ct <- newName "ct"
-        instanceD (cxt []) (appT [t| Ord |] $ conT vertN `appT` conT knotTN `appT` varT ct)
-            [ funD 'compare $ (:[]) $ do
-                a <- newName "a"
-                b <- newName "b"
-                clause [conP vertN [wildP, varP a], conP vertN [wildP, varP b]]
-                    (normalB [| $(varE a) `compare` $(varE b) |]) []
-            ]
-
     declare $ do
         ct <- newName "ct"
         instanceD (cxt [classP ''NFData [varT ct]]) (appT [t| NFData |] $ conT vertN `appT` conT knotTN `appT` varT ct) []
 
-
-    declare $ do
-        ct <- newName "ct"
-        instanceD (cxt []) (appT [t| Eq |] $ conT dartN `appT` conT knotTN `appT` varT ct)
-            [ funD '(==) $ (:[]) $ do
-                a <- newName "a"
-                b <- newName "b"
-                clause [conP dartN [wildP, varP a], conP dartN [wildP, varP b]]
-                    (normalB [| $(varE a) == $(varE b) |]) []
-            ]
-
-    declare $ do
-        ct <- newName "ct"
-        instanceD (cxt []) (appT [t| Ord |] $ conT dartN `appT` conT knotTN `appT` varT ct)
-            [ funD 'compare $ (:[]) $ do
-                a <- newName "a"
-                b <- newName "b"
-                clause [conP dartN [wildP, varP a], conP dartN [wildP, varP b]]
-                    (normalB [| $(varE a) `compare` $(varE b) |]) []
-            ]
-
     declare $ do
         ct <- newName "ct"
         instanceD (cxt [classP ''NFData [varT ct]]) (appT [t| NFData |] $ conT dartN `appT` conT knotTN `appT` varT ct) []
-
-
-    declare $ do
-        ct <- newName "ct"
-        instanceD (cxt []) (appT [t| Ix |] $ conT vertN `appT` conT knotTN `appT` varT ct)
-            [ funD 'range $ (:[]) $ do
-                k <- newName "k"
-                a <- newName "a"
-                b <- newName "b"
-                clause [tupP [conP vertN [wildP, varP a], conP vertN [varP k, varP b]]]
-                    (normalB [| map ($(conE vertN) $(varE k)) [$(varE a) .. $(varE b)] |]) []
-
-            , funD 'rangeSize $ (:[]) $ do
-                a <- newName "a"
-                b <- newName "b"
-                clause [tupP [conP vertN [wildP, varP a], conP vertN [wildP, varP b]]]
-                    (normalB [| max 0 $ 1 + $(varE b) - $(varE a) :: Int |]) []
-
-            , funD 'inRange $ (:[]) $ do
-                a <- newName "a"
-                b <- newName "b"
-                i <- newName "i"
-                clause [tupP [conP vertN [wildP, varP a], conP vertN [wildP, varP b]], conP vertN [wildP, varP i]]
-                    (normalB [| ($(varE i) >= $(varE a)) && ($(varE i) <= $(varE b)) |]) []
-
-            , funD 'index $ (:[]) $ do
-                a <- newName "a"
-                b <- newName "b"
-                i <- newName "i"
-                clause [tupP [conP vertN [wildP, varP a], conP vertN [wildP, varP b]], conP vertN [wildP, varP i]]
-                    (guardedB $ map (uncurry normalGE)
-                        [ ([| ($(varE i) >= $(varE a)) && ($(varE i) <= $(varE b)) |], [| $(varE i) - $(varE a) :: Int |])
-                        , ([| otherwise |], [| error "out of range" |])
-                        ]) []
-            ]
-
-
-    declare $ do
-        ct <- newName "ct"
-        instanceD (cxt []) (appT [t| Ix |] $ conT dartN `appT` conT knotTN `appT` varT ct)
-            [ funD 'range $ (:[]) $ do
-                k <- newName "k"
-                a <- newName "a"
-                b <- newName "b"
-                clause [tupP [conP dartN [wildP, varP a], conP dartN [varP k, varP b]]]
-                    (normalB [| map ($(conE dartN) $(varE k)) [$(varE a) .. $(varE b)] |]) []
-
-            , funD 'rangeSize $ (:[]) $ do
-                a <- newName "a"
-                b <- newName "b"
-                clause [tupP [conP dartN [wildP, varP a], conP dartN [wildP, varP b]]]
-                    (normalB [| max 0 $ 1 + $(varE b) - $(varE a) :: Int |]) []
-
-            , funD 'inRange $ (:[]) $ do
-                a <- newName "a"
-                b <- newName "b"
-                i <- newName "i"
-                clause [tupP [conP dartN [wildP, varP a], conP dartN [wildP, varP b]], conP dartN [wildP, varP i]]
-                    (normalB [| ($(varE i) >= $(varE a)) && ($(varE i) <= $(varE b)) |]) []
-
-            , funD 'index $ (:[]) $ do
-                a <- newName "a"
-                b <- newName "b"
-                i <- newName "i"
-                clause [tupP [conP dartN [wildP, varP a], conP dartN [wildP, varP b]], conP dartN [wildP, varP i]]
-                    (guardedB $ map (uncurry normalGE)
-                        [ ([| ($(varE i) >= $(varE a)) && ($(varE i) <= $(varE b)) |], [| $(varE i) - $(varE a) :: Int |])
-                        , ([| otherwise |], [| error "out of range" |])
-                        ]) []
-            ]

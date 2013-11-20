@@ -33,21 +33,21 @@ maybeThreadContinuation d | isDart d   = Just $! threadContinuation d
                           | otherwise  = Nothing
 
 
-allThreads :: (ThreadedCrossing ct, Knotted k, Ix (Dart k ct)) => k ct -> [[(Dart k ct, Dart k ct)]]
+allThreads :: (ThreadedCrossing ct, Knotted k) => k ct -> [[(Dart k ct, Dart k ct)]]
 allThreads knot =
     let (_, _, threads) = allThreadsWithMarks knot
     in map snd threads
 
 
-numberOfThreads :: (ThreadedCrossing ct, Knotted k, Ix (Dart k ct)) => k ct -> Int
+numberOfThreads :: (ThreadedCrossing ct, Knotted k) => k ct -> Int
 numberOfThreads knot =
     let (n, _, _) = allThreadsWithMarks knot
     in n
 
 
-allThreadsWithMarks :: (ThreadedCrossing ct, Knotted k, Ix (Dart k ct)) => k ct -> ThreadList (Dart k ct)
+allThreadsWithMarks :: (ThreadedCrossing ct, Knotted k) => k ct -> ThreadList (Dart k ct)
 allThreadsWithMarks knot = runST $ do
-    visited <- (newArray :: Ix i => (i, i) -> Int -> ST s (STUArray s i Int)) (dartsRange knot) 0
+    visited <- (newArray :: (Ix i) => (i, i) -> Int -> ST s (STUArray s i Int)) (dartsRange knot) 0
     threads <- newSTRef $ replicate (numberOfFreeLoops knot) (0, [])
 
     n <- flip (`foldM` 1) (allEdges knot) $ \ !i (!startA, !startB) -> do

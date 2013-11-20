@@ -6,7 +6,6 @@ module Math.Topology.KnotTh.Link.Definition.Link
     , tangleToLink
     ) where
 
-import Data.Ix (Ix)
 import Control.Arrow ((***))
 import Math.Topology.KnotTh.Knotted
 import Math.Topology.KnotTh.Knotted.TH.Show
@@ -25,14 +24,14 @@ instance PlanarDiagram Link where
     allEdges (L t) = map (D *** D) (allEdges t)
     allHalfEdges (L t) = map D (allHalfEdges t)
 
-    newtype Vertex Link ct = V (Vertex Tangle ct) deriving (Eq, Ord, Ix)
+    newtype Vertex Link ct = V (Vertex Tangle ct)
     vertexDegree (V v) = vertexDegree v
     vertexOwner (V v) = L (vertexOwner v)
     vertexIndex (V v) = vertexIndex v
     nthOutcomingDart (V v) n = D (nthOutcomingDart v n)
     outcomingDarts (V v) = map D (outcomingDarts v)
 
-    newtype Dart Link ct = D (Dart Tangle ct) deriving (Eq, Ord, Ix)
+    newtype Dart Link ct = D (Dart Tangle ct)
     dartOwner (D d) = L (dartOwner d)
     dartIndex (D d) = dartIndex d
     opposite (D d) = D (opposite d)

@@ -2,7 +2,6 @@ module Math.Topology.KnotTh.Draw.DrawCrossing
     ( DrawableCrossingType(..)
     ) where
 
-import Data.Ix (Ix)
 import Data.Either (lefts)
 import Data.List (groupBy)
 import Data.Array.IArray ((!))
@@ -14,7 +13,7 @@ import Math.Topology.KnotTh.Knotted
 import Math.Topology.KnotTh.Draw.Settings
 
 
-cutThread :: (Knotted k, Ix (Dart k ct)) => [(Dart k ct, Dart k ct)]
+cutThread :: (Knotted k) => [(Dart k ct, Dart k ct)]
     -> Array (Dart k ct) (Either [(Double, Double)] ([(Double, Double)], [(Double, Double)]))
         -> (Dart k ct -> Bool) -> ((Maybe (Dart k ct), Maybe (Dart k ct)) -> [(Double, Double)] -> a)
             -> [Either a [(Double, Double)]]
@@ -74,7 +73,7 @@ cutThread thread embedding isCut process
 
 class (ThreadedCrossing ct) => DrawableCrossingType ct where
     crossingDependentSegmentation
-        :: (Knotted k, Ix (Dart k ct)) => DrawKnotSettings -> k ct
+        :: (Knotted k) => DrawKnotSettings -> k ct
             -> Array (Dart k ct) (Either [(Double, Double)] ([(Double, Double)], [(Double, Double)]))
                 -> [Either [(Double, Double)] [(Double, Double)]]
 
