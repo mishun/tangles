@@ -1,4 +1,4 @@
-module Math.Topology.KnotTh.Draw.SurfaceLink
+module Math.Topology.KnotTh.Draw.EmbeddedLink
     ( surfaceLinkEmbedding
     , surfaceLinkImage
     ) where
@@ -10,13 +10,13 @@ import Control.Monad.Writer (tell, execWriter)
 import Control.Monad (when)
 import Diagrams.Prelude
 import Math.Topology.Manifolds.SurfaceGraph
-import Math.Topology.KnotTh.SurfaceLink
+import Math.Topology.KnotTh.EmbeddedLink
 import Math.Topology.KnotTh.Draw.Settings
 
 
 surfaceLinkEmbedding
-    :: SurfaceLink ct
-        -> (Int, Array (Dart SurfaceLink ct) (Either [(Double, Double)] ([(Double, Double)], [(Double, Double)])))
+    :: EmbeddedLink ct
+        -> (Int, Array (Dart EmbeddedLink ct) (Either [(Double, Double)] ([(Double, Double)], [(Double, Double)])))
 
 surfaceLinkEmbedding link =
     let (sphereRoot, _, sphereToStarProjection, _) =
@@ -50,7 +50,7 @@ surfaceLinkEmbedding link =
     in (numberOfGroups, embedding)
 
 
-surfaceLinkImage :: (Renderable (Path R2) b) => DrawKnotSettings -> SurfaceLink ct -> Int -> Diagram b R2 -> Diagram b R2
+surfaceLinkImage :: (Renderable (Path R2) b) => DrawKnotSettings -> EmbeddedLink ct -> Int -> Diagram b R2 -> Diagram b R2
 surfaceLinkImage s _ numberOfGroups img =
     execWriter $ do
         when (borderWidth s > 0.0) $

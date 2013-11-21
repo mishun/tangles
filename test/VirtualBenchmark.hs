@@ -9,15 +9,15 @@ import Diagrams.Prelude
 import Math.Topology.KnotTh.Draw
 import Math.Topology.KnotTh.Tangle
 import Math.Topology.KnotTh.Tangle.Generation.BorderIncremental
-import Math.Topology.KnotTh.SurfaceLink
-import Math.Topology.KnotTh.SurfaceLink.IsomorphismTest
-import Math.Topology.KnotTh.SurfaceLink.TestPrime
-import Math.Topology.KnotTh.SurfaceLink.TangleStarGlue
+import Math.Topology.KnotTh.EmbeddedLink
+import Math.Topology.KnotTh.EmbeddedLink.IsomorphismTest
+import Math.Topology.KnotTh.EmbeddedLink.TestPrime
+import Math.Topology.KnotTh.EmbeddedLink.TangleStarGlue
 import Math.Topology.KnotTh.Invariants
 import TestUtil.Drawing
 
 
-heuristic :: SurfaceLink ArbitraryCrossing -> Bool
+heuristic :: EmbeddedLink ArbitraryCrossing -> Bool
 heuristic link =
     let test d a
             | beginVertex a == beginVertex d     = False

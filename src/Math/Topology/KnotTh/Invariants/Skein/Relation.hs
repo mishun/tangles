@@ -13,7 +13,7 @@ import Math.Topology.KnotTh.Knotted
 import Math.Topology.KnotTh.Crossings.Arbitrary
 import qualified Math.Topology.KnotTh.Link as L
 import qualified Math.Topology.KnotTh.Tangle as T
-import qualified Math.Topology.KnotTh.SurfaceLink as SL
+import qualified Math.Topology.KnotTh.EmbeddedLink as EL
 
 
 --    L+       L-        L0        L∞
@@ -76,7 +76,7 @@ instance SkeinStructure T.Tangle where
     resultFromStateSum _ _ = id
 
 
-instance SkeinStructure SL.SurfaceLink where
-    type ResultOnStructure SL.SurfaceLink s a = s a
-    endpointPlace = error "endpointPlace: must be no endpoints for SurfaceLink"
+instance SkeinStructure EL.EmbeddedLink where
+    type ResultOnStructure EL.EmbeddedLink s a = s a
+    endpointPlace = error "endpointPlace: must be no endpoints for EmbeddedLink"
     resultFromStateSum _ _ = id

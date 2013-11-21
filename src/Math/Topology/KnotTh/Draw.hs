@@ -7,12 +7,12 @@ module Math.Topology.KnotTh.Draw
 import Diagrams.Prelude
 import Math.Topology.KnotTh.Tangle
 import Math.Topology.KnotTh.Link
-import Math.Topology.KnotTh.SurfaceLink
+import Math.Topology.KnotTh.EmbeddedLink
 import Math.Topology.KnotTh.Draw.Settings
 import Math.Topology.KnotTh.Draw.DrawCrossing
 import Math.Topology.KnotTh.Draw.Tangle
 import Math.Topology.KnotTh.Draw.Link
-import Math.Topology.KnotTh.Draw.SurfaceLink
+import Math.Topology.KnotTh.Draw.EmbeddedLink
 
 
 class DrawableKnotted k where
@@ -40,7 +40,7 @@ instance (DrawableCrossingType ct) => DrawableKnotted (Link ct) where
                 linkEmbedding link
 
 
-instance (DrawableCrossingType ct) => DrawableKnotted (SurfaceLink ct) where
+instance (DrawableCrossingType ct) => DrawableKnotted (EmbeddedLink ct) where
     drawKnot s link =
         let (numberOfGroups, embedding) = surfaceLinkEmbedding link
         in surfaceLinkImage s link numberOfGroups $

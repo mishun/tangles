@@ -1,5 +1,5 @@
 {-# LANGUAGE UnboxedTuples #-}
-module Math.Topology.KnotTh.SurfaceLink.IsomorphismTest
+module Math.Topology.KnotTh.EmbeddedLink.IsomorphismTest
     ( isomorphismTest
     ) where
 
@@ -15,10 +15,10 @@ import Control.Monad.ST (ST)
 import Control.Monad (when, void)
 import qualified Math.Algebra.Group.D4 as D4
 import qualified Math.Algebra.RotationDirection as R
-import Math.Topology.KnotTh.SurfaceLink
+import Math.Topology.KnotTh.EmbeddedLink
 
 
-isomorphismTest :: (CrossingType ct) => SurfaceLink ct -> UArray Int Int
+isomorphismTest :: (CrossingType ct) => EmbeddedLink ct -> UArray Int Int
 isomorphismTest link =
     minimum $ do
         dart <- allHalfEdges link
@@ -32,7 +32,7 @@ isomorphismTest link =
 
             index <- newArray (0, n) 0 :: ST s (STUArray s Int Int)
             incoming <- newArray (0, n) 0 :: ST s (STUArray s Int Int)
-            queue <- newArray_ (0, n - 1) :: ST s (STArray s Int (Dart SurfaceLink ct))
+            queue <- newArray_ (0, n - 1) :: ST s (STArray s Int (Dart EmbeddedLink ct))
             free <- newSTRef 1
 
             let {-# INLINE look #-}

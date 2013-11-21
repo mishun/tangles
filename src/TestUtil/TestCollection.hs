@@ -9,13 +9,13 @@ import qualified Math.Topology.KnotTh.Tangle.Generation.Test as TestTangleGenera
 import qualified Math.Topology.KnotTh.Enumeration.Applied.Test as TestTangleEnumeration
 import qualified Math.Topology.KnotTh.Tangle.Test as TestBasicTangle
 import qualified Math.Combinatorics.Strings.Test as TestCombinatoricsStrings
-import qualified Math.Topology.KnotTh.SurfaceLink.Test as TestSurfaceLink
+import qualified Math.Topology.KnotTh.EmbeddedLink.Test as TestEmbeddedLink
 
 
 tests :: [Test]
 tests =
     [ TestCombinatoricsStrings.test
-    , TestSurfaceLink.test
+    , TestEmbeddedLink.test
     , TestBasicTangle.test
     , TestChordDiagrams.test
     , TestTangleGenerators.test

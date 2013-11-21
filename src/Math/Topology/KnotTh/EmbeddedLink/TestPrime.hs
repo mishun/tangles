@@ -1,4 +1,4 @@
-module Math.Topology.KnotTh.SurfaceLink.TestPrime
+module Math.Topology.KnotTh.EmbeddedLink.TestPrime
     ( isReducable
     , testPrime
     , has4LegPlanarPart
@@ -12,17 +12,17 @@ import Control.Monad.ST (ST, runST)
 import Control.Monad (when, unless, forM_, liftM2)
 import Control.Applicative ((<$>))
 import Control.Monad.IfElse (whenM, whileM)
-import Math.Topology.KnotTh.SurfaceLink
+import Math.Topology.KnotTh.EmbeddedLink
 
 
-isReducable :: SurfaceLink ct -> Bool
+isReducable :: EmbeddedLink ct -> Bool
 isReducable link = or $ do
     c <- allVertices link
     a <- outcomingDarts c
     return $! nextCW (opposite a) == opposite (nextCCW a)
 
 
-testPrime :: SurfaceLink ct -> Bool
+testPrime :: EmbeddedLink ct -> Bool
 testPrime link
     | numberOfVertices link < 2  = True
     | otherwise                  =
@@ -40,7 +40,7 @@ cfor (initial, cond, next) body =
     in initial >>= loop
 
 
-stoerWagner :: SurfaceLink ct -> Int
+stoerWagner :: EmbeddedLink ct -> Int
 stoerWagner link = runST $ do
     let sz = numberOfVertices link
     g <- newArray ((1, 1), (sz, sz)) 0 :: ST s (STUArray s (Int, Int) Int)
@@ -119,7 +119,7 @@ stoerWagner link = runST $ do
     readSTRef best
 
 
-has4LegPlanarPart :: SurfaceLink ct -> Bool
+has4LegPlanarPart :: EmbeddedLink ct -> Bool
 has4LegPlanarPart =
     let planar link start darts = runST $ do
             vertex <- (newArray :: (Ix i) => (i, i) -> Bool -> ST s (STUArray s i Bool)) (verticesRange link) False

@@ -1,4 +1,4 @@
-module Math.Topology.KnotTh.SurfaceLink.Test
+module Math.Topology.KnotTh.EmbeddedLink.Test
     ( test
     ) where
 
@@ -6,8 +6,8 @@ import Control.Monad (forM_)
 import Test.Framework (Test, testGroup)
 import Test.Framework.Providers.HUnit (testCase)
 import Test.HUnit hiding (Test, test)
-import Math.Topology.KnotTh.SurfaceLink
-import Math.Topology.KnotTh.SurfaceLink.TestPrime
+import Math.Topology.KnotTh.EmbeddedLink
+import Math.Topology.KnotTh.EmbeddedLink.TestPrime
 
 
 test :: Test
@@ -23,9 +23,9 @@ test =
                     p = rightPlace d
                 nthDartInCWTraverse f p @?= d
 
-    in testGroup "SurfaceLink tests"
+    in testGroup "EmbeddedLink tests"
         [ testCase "Simplest torus link" $ do
-            let l :: SurfaceLinkProj
+            let l :: EmbeddedLinkProj
                 l = implode (0, [([(1, 2), (1, 3), (1, 0), (1, 1)], projectionCrossing)])
 
             testCorr l
@@ -34,7 +34,7 @@ test =
             assertEqual "Euler char" 0 $ eulerChar l
 
         , testCase "Hopf link" $ do
-            let l :: SurfaceLinkProj
+            let l :: EmbeddedLinkProj
                 l = implode (0,
                     [ ([(2, 0), (2, 3), (2, 2), (2, 1)], projectionCrossing)
                     , ([(1, 0), (1, 3), (1, 2), (1, 1)], projectionCrossing)

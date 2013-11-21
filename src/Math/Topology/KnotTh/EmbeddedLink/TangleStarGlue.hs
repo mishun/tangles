@@ -1,5 +1,5 @@
 {-# LANGUAGE Rank2Types #-}
-module Math.Topology.KnotTh.SurfaceLink.TangleStarGlue
+module Math.Topology.KnotTh.EmbeddedLink.TangleStarGlue
     ( StarType(..)
     , tangleStarGlue
     ) where
@@ -10,9 +10,9 @@ import Control.Monad (when, forM_)
 import qualified Math.Algebra.Group.Dn as Dn
 import Math.Combinatorics.ChordDiagram (generateNonPlanarRaw, generateBicolourableNonPlanarRaw, listChordDiagrams)
 import Math.Topology.KnotTh.Tangle
-import Math.Topology.KnotTh.SurfaceLink
-import Math.Topology.KnotTh.SurfaceLink.Construction (fromTangleAndStar)
-import Math.Topology.KnotTh.SurfaceLink.IsomorphismTest
+import Math.Topology.KnotTh.EmbeddedLink
+import Math.Topology.KnotTh.EmbeddedLink.Construction (fromTangleAndStar)
+import Math.Topology.KnotTh.EmbeddedLink.IsomorphismTest
 
 
 data StarType = BicolourableStar | AnyStar
@@ -21,7 +21,7 @@ data StarType = BicolourableStar | AnyStar
 tangleStarGlue :: (Monad m, CrossingType ct)
                    => StarType
                    -> (forall m'. (Monad m') => ((Tangle ct, Dn.DnSubGroup) -> m' ()) -> m' ())
-                   -> (SurfaceLink ct -> m ())
+                   -> (EmbeddedLink ct -> m ())
                    -> m ()
 
 tangleStarGlue starType tangleGenerator yield =

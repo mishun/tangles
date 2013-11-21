@@ -1,4 +1,4 @@
-module Math.Topology.KnotTh.SurfaceLink.Construction
+module Math.Topology.KnotTh.EmbeddedLink.Construction
     ( fromLink
     , toLink
     , fromTangleAndStar
@@ -7,21 +7,21 @@ module Math.Topology.KnotTh.SurfaceLink.Construction
 import Data.Array.IArray ((!))
 import Math.Combinatorics.ChordDiagram
 import Math.Topology.KnotTh.Knotted
-import Math.Topology.KnotTh.SurfaceLink
+import Math.Topology.KnotTh.EmbeddedLink
 import Math.Topology.KnotTh.Tangle
 import Math.Topology.KnotTh.Link
 
 
-fromLink :: (CrossingType ct) => Link ct -> SurfaceLink ct
+fromLink :: (CrossingType ct) => Link ct -> EmbeddedLink ct
 fromLink = implode . explode
 
 
-toLink :: (CrossingType ct) => SurfaceLink ct -> Link ct
+toLink :: (CrossingType ct) => EmbeddedLink ct -> Link ct
 toLink sl | eulerChar sl == 2  = implode (explode sl)
           | otherwise          = error "toLink: euler char must be 2"
 
 
-fromTangleAndStar :: (CrossingType ct) => ChordDiagram -> Tangle ct -> SurfaceLink ct
+fromTangleAndStar :: (CrossingType ct) => ChordDiagram -> Tangle ct -> EmbeddedLink ct
 fromTangleAndStar cd tangle
     | p /= l     = error "fromTangleAndStar: size conflict"
     | otherwise  = fromTangleAndStar' changeLeg tangle
@@ -37,7 +37,7 @@ fromTangleAndStar cd tangle
 
 
 {-# INLINE fromTangleAndStar' #-}
-fromTangleAndStar' :: (CrossingType ct) => (Dart Tangle ct -> Dart Tangle ct) -> Tangle ct -> SurfaceLink ct
+fromTangleAndStar' :: (CrossingType ct) => (Dart Tangle ct -> Dart Tangle ct) -> Tangle ct -> EmbeddedLink ct
 fromTangleAndStar' withLeg tangle =
     let watch d | isDart d   = beginPair' d
                 | otherwise  = watch $ opposite $ withLeg d

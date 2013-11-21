@@ -1,4 +1,4 @@
-module Math.Topology.KnotTh.SurfaceLink.Definition.EdgeIndicesEncoding
+module Math.Topology.KnotTh.EmbeddedLink.Definition.EdgeIndicesEncoding
     ( encodeEdgeIndices
     ) where
 
@@ -6,11 +6,11 @@ import Data.List (sort)
 import Math.Topology.KnotTh.Knotted
 import Math.Topology.KnotTh.Crossings.Projection
 import Math.Topology.KnotTh.Crossings.Arbitrary
-import Math.Topology.KnotTh.SurfaceLink.Definition.SurfaceLink
+import Math.Topology.KnotTh.EmbeddedLink.Definition.EmbeddedLink
 
 
 class (CrossingType ct) => EdgeIndicesCrossing ct where
-    indexPlace :: Dart SurfaceLink ct -> Int
+    indexPlace :: Dart EmbeddedLink ct -> Int
 
 
 instance EdgeIndicesCrossing ProjectionCrossing where
@@ -24,7 +24,7 @@ instance EdgeIndicesCrossing ArbitraryCrossing where
             (c, p) = beginPair d
 
 
-encodeEdgeIndices :: (EdgeIndicesCrossing ct) => SurfaceLink ct -> [Int]
+encodeEdgeIndices :: (EdgeIndicesCrossing ct) => EmbeddedLink ct -> [Int]
 encodeEdgeIndices link =
     let offset d =
             let c = beginVertex d

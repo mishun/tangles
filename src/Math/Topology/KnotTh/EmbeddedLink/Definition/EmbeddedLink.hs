@@ -1,7 +1,7 @@
 {-# LANGUAGE TemplateHaskell, TypeFamilies #-}
-module Math.Topology.KnotTh.SurfaceLink.Definition.SurfaceLink
-    ( SurfaceLink
-    , emptySurfaceLink
+module Math.Topology.KnotTh.EmbeddedLink.Definition.EmbeddedLink
+    ( EmbeddedLink
+    , emptyEmbeddedLink
     , changeNumberOfFreeLoops
     ) where
 
@@ -23,7 +23,7 @@ import Math.Topology.KnotTh.Knotted.TH.Show
 
 
 produceKnotted
-    [d| data SurfaceLink ct = SurfaceLink
+    [d| data EmbeddedLink ct = EmbeddedLink
             { faceCount      :: !Int
             , faceDataOffset :: !(UArray Int Int)
             , faceCCWBrdDart :: !(UArray Int Int)
@@ -94,12 +94,12 @@ produceKnotted
             ]
         }
 
-produceShowDart ''SurfaceLink ''Dart (const [])
-produceShowCrossing ''SurfaceLink ''Vertex
-produceShowKnot ''SurfaceLink
+produceShowDart ''EmbeddedLink ''Dart (const [])
+produceShowCrossing ''EmbeddedLink ''Vertex
+produceShowKnot ''EmbeddedLink
 
 
-instance SurfaceDiagram SurfaceLink where
+instance SurfaceDiagram EmbeddedLink where
     numberOfFaces = faceCount
 
     nthFace link i | i > 0 && i <= n  = Face link (i - 1)
@@ -109,7 +109,7 @@ instance SurfaceDiagram SurfaceLink where
 
     allFaces link = map (Face link) [1 .. numberOfFaces link]
 
-    data Face SurfaceLink ct = Face !(SurfaceLink ct) {-# UNPACK #-} !Int
+    data Face EmbeddedLink ct = Face !(EmbeddedLink ct) {-# UNPACK #-} !Int
 
     faceDegree (Face l i) =
         let cur = faceDataOffset l `unsafeAt` i
@@ -132,4 +132,4 @@ instance SurfaceDiagram SurfaceLink where
     faceIndicesRange l = (1, numberOfFaces l)
 
 
-instance SurfaceKnotted SurfaceLink
+instance SurfaceKnotted EmbeddedLink
