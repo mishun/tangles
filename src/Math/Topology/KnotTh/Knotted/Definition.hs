@@ -153,7 +153,14 @@ mapCrossing f x = makeCrossing (f $ crossingType x) (orientation x)
 
 
 class (PlanarDiagram knot) => Knotted knot where
-    numberOfFreeLoops :: knot ct -> Int
+    numberOfFreeLoops       :: knot ct -> Int
+    changeNumberOfFreeLoops :: Int -> knot ct -> knot ct
+
+    emptyKnotted   :: knot ct
+    isEmptyKnotted :: knot ct -> Bool
+
+    isEmptyKnotted k = (numberOfVertices k == 0) && (numberOfFreeLoops k == 0)
+
     mapCrossings      :: (CrossingType a, CrossingType b) => (CrossingState a -> CrossingState b) -> knot a -> knot b
     crossingState     :: Vertex knot ct -> CrossingState ct
 

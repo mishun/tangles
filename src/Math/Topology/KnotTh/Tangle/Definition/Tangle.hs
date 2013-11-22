@@ -8,7 +8,6 @@ module Math.Topology.KnotTh.Tangle.Definition.Tangle
     , lonerTangle
     , glueToBorder
     , glueTangles
-    , changeNumberOfFreeLoops
     ) where
 
 import Language.Haskell.TH
@@ -315,6 +314,10 @@ instance TangleLike Tangle where
                 }
 
         return $! nthVertex result newC 
+
+
+emptyTangle :: (CrossingType ct) => Tangle ct
+emptyTangle = emptyKnotted
 
 
 zeroTangle :: (CrossingType ct) => Tangle ct

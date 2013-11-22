@@ -47,6 +47,8 @@ instance PlanarDiagram Link where
 
 instance Knotted Link where
     numberOfFreeLoops (L t) = numberOfFreeLoops t
+    changeNumberOfFreeLoops n (L t) = L (changeNumberOfFreeLoops n t)
+    emptyKnotted = L emptyKnotted
     mapCrossings f (L t) = L (mapCrossings f t)
     crossingState (V v) = crossingState v
 
@@ -60,8 +62,8 @@ produceShowCrossing ''Link ''Vertex
 produceShowKnot ''Link
 
 
-emptyLink :: Link ct
-emptyLink = L emptyTangle
+emptyLink :: (CrossingType ct) => Link ct
+emptyLink = emptyKnotted
 
 
 linkToTangle :: Link ct -> Tangle ct

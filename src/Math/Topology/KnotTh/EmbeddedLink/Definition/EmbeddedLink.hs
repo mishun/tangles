@@ -1,8 +1,6 @@
 {-# LANGUAGE TemplateHaskell, TypeFamilies #-}
 module Math.Topology.KnotTh.EmbeddedLink.Definition.EmbeddedLink
     ( EmbeddedLink
-    , emptyEmbeddedLink
-    , changeNumberOfFreeLoops
     ) where
 
 import Language.Haskell.TH
