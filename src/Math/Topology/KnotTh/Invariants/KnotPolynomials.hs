@@ -61,8 +61,6 @@ skeinRelationPostMinimization invariant tangle = minimum $ do
 
 skeinRelationPreMinimization :: (Ord (f p), SkeinRelation f p) => (NATangle -> f p) -> NATangle -> f p 
 skeinRelationPreMinimization invariant tangle = minimum $ do
-    let l = numberOfLegs tangle
-    rotation <- if l == 0 then [id] else map rotateTangle [0 .. l - 1]
-    reflection <- [id, mirrorTangle]
+    tangle' <- allOrientationsOfTangle tangle
     inv <- [id, invertCrossings]
-    return $ invariant $ inv $ rotation $ reflection tangle
+    return $ invariant $ inv tangle'
