@@ -63,9 +63,9 @@ weakTangleClasses =
 
 siftTangles :: (DiagramInfo info) => [info NATangle] -> SiftResult info NATangle
 siftTangles = siftByInvariant $ \ tangle ->
-    ( minimalJonesPolynomialOfTangle tangle
-    , minimalJonesPolynomialOfTangle $ twistedDoubleSatellite tangle
---    , minimalKauffmanFPolynomialOfTangle $ twistedTripleSatellite tangle
+    ( minimalJonesPolynomial tangle
+    , minimalJonesPolynomial $ twistedDoubleSatellite tangle
+--    , minimalKauffmanFPolynomial $ twistedTripleSatellite tangle
     )
 
 

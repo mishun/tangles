@@ -109,7 +109,7 @@ decomposeTangle relation !factor !tangle
     | numberOfFreeLoops tangle > 0  =
         decomposeTangle relation
             (factor * (circleFactor relation ^ numberOfFreeLoops tangle))
-            (changeNumberOfFreeLoops tangle 0)
+            (changeNumberOfFreeLoops 0 tangle)
     | otherwise                     =
         let (n, marks, threads) = allThreadsWithMarks tangle
 

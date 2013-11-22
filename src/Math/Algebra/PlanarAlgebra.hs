@@ -3,4 +3,3 @@ module Math.Algebra.PlanarAlgebra
     ) where
 
 import Math.Algebra.PlanarAlgebra.Definition as X
-import Math.Algebra.PlanarAlgebra.Reduction as X

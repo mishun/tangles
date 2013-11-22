@@ -45,19 +45,19 @@ test = testGroup "Enumeration tests"
             testInvariantness tangleClasses 6 linkingNumbersInvariant
 
         , testCase "Jones polynomial" $
-            testInvariantness tangleClasses 6 minimalJonesPolynomialOfTangle
+            testInvariantness tangleClasses 6 minimalJonesPolynomial
 
         , testCase "Kauffman F polynomial" $
-            testInvariantness tangleClasses 5 minimalKauffmanFPolynomialOfTangle
+            testInvariantness tangleClasses 5 minimalKauffmanFPolynomial
 
         , testCase "Jones polynomial of gluing with mirror image (weak classes invariant)" $
             testInvariantness weakTangleClasses 5 (jonesPolynomial . tangleDoubling id)
 
         , testCase "Jones polynomial of doubling satellite" $
-            testInvariantness tangleClasses 4 (minimalJonesPolynomialOfTangle . twistedDoubleSatellite)
+            testInvariantness tangleClasses 4 (minimalJonesPolynomial . twistedDoubleSatellite)
 
         , testCase "Kauffman F polynomial of triple satellite" $
-            testInvariantness tangleClasses 1 (minimalKauffmanFPolynomialOfTangle . twistedTripleSatellite)
+            testInvariantness tangleClasses 1 (minimalKauffmanFPolynomial . twistedTripleSatellite)
         ]
 
     , testCase "Enumeration of tangles" $

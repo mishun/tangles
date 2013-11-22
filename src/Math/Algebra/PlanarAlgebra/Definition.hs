@@ -1,7 +1,6 @@
 {-# LANGUAGE TypeFamilies #-}
 module Math.Algebra.PlanarAlgebra.Definition
-    ( PlanarState(..)
-    , PlanarDiagram(..)
+    ( PlanarDiagram(..)
     , hasVertices
     , numberOfDarts
     , nextDir
@@ -27,17 +26,8 @@ module Math.Algebra.PlanarAlgebra.Definition
     ) where
 
 import Data.Ix (Ix(..))
-import Data.Array.Unboxed (UArray)
 import Control.Arrow (first, (***))
 import qualified Math.Algebra.RotationDirection as R
-
-
-class PlanarState s where
-    stateDegree   :: s -> Int
-    rotateState   :: Int -> s -> s
-    mirrorState   :: s -> s
-    loopState     :: Int -> (s, Int) -> (s, UArray Int Int)
-    connectStates :: Int -> (s, Int) -> (s, Int) -> (s, UArray Int Int, UArray Int Int) 
 
 
 -- Laws:

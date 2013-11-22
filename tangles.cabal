@@ -116,6 +116,8 @@ library
         Math.Topology.KnotTh.Invariants.HomflyPolynomial,
         Math.Topology.KnotTh.Invariants.JonesPolynomial,
         Math.Topology.KnotTh.Invariants.KauffmanFPolynomial,
+        Math.Topology.KnotTh.Invariants.KnotPolynomials,
+        Math.Topology.KnotTh.Invariants.KnotPolynomials.JonesStateSum,
         Math.Topology.KnotTh.Invariants.LinkingNumber,
         Math.Topology.KnotTh.Invariants.Skein,
         Math.Topology.KnotTh.Invariants.Skein.Relation,

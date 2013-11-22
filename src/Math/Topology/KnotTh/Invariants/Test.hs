@@ -74,7 +74,7 @@ test = testGroup "Invariants"
                 , ("group -2"      , rationalTangle [-2]        , "(-t^-1+1)[1,0,3,2]+(t^1/2)[3,2,1,0]")
                 , ("II reducable"  , decodeCascadeCode [(XU, 0)], "(1)[3,2,1,0]"                       )
                 ]
-
+{-
         , testGroup "Kauffman X polynomial" $
             map (\ (name, l, target) -> testCase name $ show (kauffmanXPolynomial l) @?= target)
                 [ ("unknot"           , unknot              , "-A^-2-A^2"         )
@@ -83,7 +83,7 @@ test = testGroup "Invariants"
                 , ("figure eight knot", figureEightKnot     , "-A^-10-A^10"       )
                 , ("hopf link"        , hopfLink            , "A^-6+A^-2+A^2+A^6" )
                 ]
-
+-}
         , testCase "Collision between Conway and Kinoshita-Terasaka knots" $
             jonesPolynomial conwayKnot @?= jonesPolynomial kinoshitaTerasakaKnot
         ]

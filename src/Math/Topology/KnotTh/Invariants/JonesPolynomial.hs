@@ -1,84 +1,57 @@
 {-# LANGUAGE TypeFamilies #-}
 module Math.Topology.KnotTh.Invariants.JonesPolynomial
     ( jonesPolynomial
+    , minimalJonesPolynomial
     , normalizedJonesPolynomialOfLink
-    , minimalJonesPolynomialOfLink
-    , minimalJonesPolynomialOfTangle
-    , kauffmanXPolynomial
-    , minimalKauffmanXPolynomialOfLink
+--    , kauffmanXPolynomial
+--    , minimalKauffmanXPolynomialOfLink
     ) where
 
-import Math.Topology.KnotTh.Knotted
-import Math.Topology.KnotTh.Crossings.Arbitrary
-import qualified Math.Topology.KnotTh.Link as L
-import qualified Math.Topology.KnotTh.Tangle as T
-import Math.Topology.KnotTh.Invariants.Skein
 import Math.Topology.KnotTh.Invariants.Util.Poly
+import Math.Topology.KnotTh.Invariants.KnotPolynomials
+import Math.Topology.KnotTh.Invariants.KnotPolynomials.JonesStateSum
+import Math.Topology.KnotTh.Link
 
 
-data BracketLikeRelation a = BracketLikeRelation a a
+class (Knotted k) => KnottedWithJonesPolynomial k where
+    type JonesPolynomial k :: *
+    jonesPolynomial        :: k ArbitraryCrossing -> JonesPolynomial k
+    minimalJonesPolynomial :: k ArbitraryCrossing -> JonesPolynomial k
 
 
-instance (Ord a, Num a, Show a) => SkeinRelation (BracketLikeRelation a) a where
-    type SkeinRelationModel (BracketLikeRelation a) = PlanarDiagramsSum
+instance KnottedWithJonesPolynomial Tangle where
+    type JonesPolynomial Tangle = JonesStateSum Poly
 
-    circleFactor (BracketLikeRelation a b) = -(a * a + b * b)
+    jonesPolynomial = reduceSkeinStd
 
-    initialLplus (BracketLikeRelation a b) = [(Lzero, a), (Linfty, b)]
-
-    twistPFactor = undefined
-    twistNFactor = undefined
-
-    smoothLplusFactor  = undefined
-    smoothLzeroFactor  = undefined
-    smoothLinftyFactor = undefined
-
-    finalNormalization (BracketLikeRelation a b) knot =
-        let factor =
-                let w = selfWrithe knot
-                in (if w <= 0 then -a else -b) ^ abs (3 * w)
-        in (factor *)
+    minimalJonesPolynomial tangle = minimum $ do
+        let p = jonesPolynomial tangle
+            l = numberOfLegs tangle
+        rotation <- if l == 0 then [id] else map rotateState [0 .. l - 1]
+        reflection <- [id, mirrorState]
+        inv <- [id, invertCrossingsAction]
+        return $ inv $ reflection $ rotation p
 
 
-jonesVar :: String
-jonesVar = "t"
+instance KnottedWithJonesPolynomial Link where
+    type JonesPolynomial Link = Poly
+
+    jonesPolynomial link =
+        scalarJonesStateSum $
+            jonesPolynomial (linkToTangle link)
+
+    minimalJonesPolynomial link =
+        scalarJonesStateSum $
+            minimalJonesPolynomial (linkToTangle link)
 
 
-jonesRelation :: BracketLikeRelation Poly
-jonesRelation = BracketLikeRelation (monomial 1 jonesVar (-1 / 4)) (monomial 1 jonesVar (1 / 4))
-
-
-jonesPolynomial :: (SkeinStructure k) => k ArbitraryCrossing -> ResultOnStructure k PlanarDiagramsSum Poly
-jonesPolynomial = evaluateSkeinRelation jonesRelation
-
-
-normalizedJonesPolynomialOfLink :: L.NALink -> Poly
+normalizedJonesPolynomialOfLink :: NALink -> Poly
 normalizedJonesPolynomialOfLink link
-    | (numberOfFreeLoops link == 0) && (numberOfVertices link == 0)  =
-        error "jonesPolynomialOfLink: empty link provided"
-    | otherwise                                                      =
-        normalizeBy (1 + monomial 1 jonesVar 1) (monomial (-1) jonesVar (1 / 2) * jonesPolynomial link)
+    | isEmptyKnotted link  = error "jonesPolynomialOfLink: empty link provided"
+    | otherwise            = normalizeBy (1 + monomial 1 "t" 1) (monomial (-1) "t" (1 / 2) * jonesPolynomial link)
 
 
-minimalJonesPolynomialOfLink :: L.NALink -> Poly
-minimalJonesPolynomialOfLink link =
-    let p = jonesPolynomial link
-    in min p (invert jonesVar p)
-
-
-minimalJonesPolynomialOfTangle :: T.NATangle -> PlanarDiagramsSum Poly
-minimalJonesPolynomialOfTangle tangle
-    | l == 0     = min p $ fmap (invert jonesVar) p
-    | otherwise  = minimum $ do
-        rot <- [0 .. l - 1]
-        let rotated = rotate jonesRelation rot p
-            mirrored = mirror jonesRelation rotated
-        [rotated, fmap (invert jonesVar) rotated, mirrored, fmap (invert jonesVar) mirrored]
-    where
-        p = jonesPolynomial tangle
-        l = T.numberOfLegs tangle
-
-
+{-
 kauffmanXVar :: String
 kauffmanXVar = "A"
 
@@ -91,7 +64,8 @@ kauffmanXPolynomial :: (SkeinStructure k) => k ArbitraryCrossing -> ResultOnStru
 kauffmanXPolynomial = evaluateSkeinRelation kauffmanXRelation
 
 
-minimalKauffmanXPolynomialOfLink :: L.NALink -> Poly
+minimalKauffmanXPolynomialOfLink :: NALink -> Poly
 minimalKauffmanXPolynomialOfLink link =
     let p = kauffmanXPolynomial link
     in min p (invert kauffmanXVar p)
+-}

@@ -1,9 +1,10 @@
 {-# LANGUAGE TypeFamilies #-}
 module Math.Topology.KnotTh.Invariants.HomflyPolynomial
     ( homflyPolynomial
+    , minimalHomflyPolynomial
     ) where
 
-import Math.Topology.KnotTh.Crossings.Arbitrary
+import Math.Topology.KnotTh.Tangle
 import Math.Topology.KnotTh.Invariants.Skein
 import Math.Topology.KnotTh.Invariants.Util.Poly
 
@@ -38,5 +39,15 @@ instance SkeinRelation HomflyRelation Poly2 where
         in (factor *)
 
 
-homflyPolynomial :: (SkeinStructure k) => k ArbitraryCrossing -> ResultOnStructure k ChordDiagramsSum Poly2
-homflyPolynomial = evaluateSkeinRelation HomflyRelation
+class (Knotted k) => KnottedWithHomflyPolynomial k where
+    type HomflyPolynomial k :: *
+    homflyPolynomial        :: k ArbitraryCrossing -> HomflyPolynomial k
+    minimalHomflyPolynomial :: k ArbitraryCrossing -> HomflyPolynomial k
+
+
+instance KnottedWithHomflyPolynomial Tangle where
+    type HomflyPolynomial Tangle = ChordDiagramsSum Poly2
+
+    homflyPolynomial = evaluateSkeinRelation HomflyRelation
+
+    minimalHomflyPolynomial = undefined
