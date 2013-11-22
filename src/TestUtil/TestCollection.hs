@@ -17,8 +17,8 @@ tests =
     [ TestCombinatoricsStrings.test
     , TestEmbeddedLink.test
     , TestBasicTangle.test
+    , TestInvariants.test
     , TestChordDiagrams.test
     , TestTangleGenerators.test
-    , TestInvariants.test
     , TestTangleEnumeration.test
     ]
