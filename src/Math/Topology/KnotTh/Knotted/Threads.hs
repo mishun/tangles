@@ -17,7 +17,7 @@ import Control.Monad (foldM)
 import Math.Topology.KnotTh.Knotted.Definition
 
 
-type ThreadList dart = (Int, UArray dart Int, [(Int, [(dart, dart)])])
+type ThreadList d = (Int, UArray d Int, [(Int, [(d, d)])])
 
 
 class (CrossingType ct) => ThreadedCrossing ct where
@@ -47,45 +47,50 @@ numberOfThreads knot =
 
 allThreadsWithMarks :: (ThreadedCrossing ct, Knotted k) => k ct -> ThreadList (Dart k ct)
 allThreadsWithMarks knot = runST $ do
-    visited <- (newArray :: (Ix i) => (i, i) -> Int -> ST s (STUArray s i Int)) (dartsRange knot) 0
-    threads <- newSTRef $ replicate (numberOfFreeLoops knot) (0, [])
+    let lp = numberOfFreeLoops knot
+    threads <- newSTRef $ replicate lp (0, [])
 
-    n <- flip (`foldM` 1) (allEdges knot) $ \ !i (!startA, !startB) -> do
-        v <- readArray visited startA
-        if v /= 0
-            then return $! i
-            else do
-                let traceBack !prev !b = do
-                        let a = opposite b
-                        writeArray visited a i
-                        writeArray visited b (-i)
-                        let !next = (a, b) : prev
-                        if isEndpoint a
-                            then return $! Right $! next
-                            else do
-                                let b' = threadContinuation a
-                                if b' == startB
-                                    then return $! Left $! next
-                                    else traceBack next b'
+    (n, visited) <- if numberOfEdges knot == 0
+        then return (1, undefined)
+        else do
+            visited <- (newArray :: (Ix i) => (i, i) -> Int -> ST s (STUArray s i Int)) (dartsRange knot) 0
+            n <- foldM (\ !i (!startA, !startB) -> do
+                    v <- readArray visited startA
+                    if v /= 0
+                        then return $! i
+                        else do
+                            let traceBack !prev !b = do
+                                    let a = opposite b
+                                    writeArray visited a i
+                                    writeArray visited b (-i)
+                                    let !next = (a, b) : prev
+                                    if isEndpoint a
+                                        then return $! Right $! next
+                                        else do
+                                            let b' = threadContinuation a
+                                            if b' == startB
+                                                then return $! Left $! next
+                                                else traceBack next b'
 
-                let traceFront !prev !b'
-                        | isEndpoint b'  = return $! reverse prev
-                        | otherwise      = do
-                            let !a = threadContinuation b'
-                            let !b = opposite a
-                            writeArray visited a i
-                            writeArray visited b (-i)
-                            traceFront ((a, b) : prev) b
+                                traceFront !prev !b'
+                                    | isEndpoint b'  = return $! reverse prev
+                                    | otherwise      = do
+                                        let !a = threadContinuation b'
+                                        let !b = opposite a
+                                        writeArray visited a i
+                                        writeArray visited b (-i)
+                                        traceFront ((a, b) : prev) b
 
-                tb <- traceBack [] startB
-                thread <- case tb of
-                    Left thread  -> return $! thread
-                    Right prefix -> do
-                        !suffix <- traceFront [] startB
-                        return $! prefix ++ suffix
+                            tb <- traceBack [] startB
+                            thread <- case tb of
+                                Left thread  -> return $! thread
+                                Right prefix -> do
+                                    !suffix <- traceFront [] startB
+                                    return $! prefix ++ suffix
 
-                modifySTRef' threads ((i, thread) :)
-                return $! i + 1
+                            modifySTRef' threads ((i, thread) :)
+                            return $! i + 1
+                ) 1 (allEdges knot)
+            (,) n `fmap` unsafeFreeze visited
 
-    visited' <- unsafeFreeze visited
-    (,,) (n - 1 + numberOfFreeLoops knot) visited' `fmap` readSTRef threads
+    (,,) (n - 1 + lp) visited `fmap` readSTRef threads

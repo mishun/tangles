@@ -118,6 +118,7 @@ library
         Math.Topology.KnotTh.Invariants.KauffmanFPolynomial,
         Math.Topology.KnotTh.Invariants.KnotPolynomials,
         Math.Topology.KnotTh.Invariants.KnotPolynomials.JonesStateSum,
+        Math.Topology.KnotTh.Invariants.KnotPolynomials.KauffmanFStateSum,
         Math.Topology.KnotTh.Invariants.LinkingNumber,
         Math.Topology.KnotTh.Invariants.Skein,
         Math.Topology.KnotTh.Invariants.Skein.Relation,

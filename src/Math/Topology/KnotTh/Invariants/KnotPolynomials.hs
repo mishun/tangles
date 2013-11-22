@@ -5,6 +5,8 @@ module Math.Topology.KnotTh.Invariants.KnotPolynomials
     , reduceSkeinWithStrategy
     , reduceSkeinStd
     , standardReductionStrategy
+    , skeinRelationPostMinimization
+    , skeinRelationPreMinimization
     ) where
 
 import Math.Algebra.PlanarAlgebra.Reduction as X
@@ -15,6 +17,7 @@ class (Functor f, PlanarStateSum (f p)) => SkeinRelation f p where
     skeinLPlus, skeinLMinus :: f p
     finalNormalization      :: NATangle -> f p -> f p
     invertCrossingsAction   :: f p -> f p
+    takeAsScalar            :: f p -> p
 
     finalNormalization _ = id
 
@@ -44,3 +47,22 @@ standardReductionStrategy =
                 then return $! Contract (v, i)
                 else try t
     in try
+
+
+skeinRelationPostMinimization :: (Ord (f p), SkeinRelation f p) => (NATangle -> f p) -> NATangle -> f p 
+skeinRelationPostMinimization invariant tangle = minimum $ do
+    let l = numberOfLegs tangle
+        p = invariant tangle
+    rotation <- if l == 0 then [id] else map rotateState [0 .. l - 1]
+    reflection <- [id, mirrorState]
+    inv <- [id, invertCrossingsAction]
+    return $ inv $ reflection $ rotation p
+
+
+skeinRelationPreMinimization :: (Ord (f p), SkeinRelation f p) => (NATangle -> f p) -> NATangle -> f p 
+skeinRelationPreMinimization invariant tangle = minimum $ do
+    let l = numberOfLegs tangle
+    rotation <- if l == 0 then [id] else map rotateTangle [0 .. l - 1]
+    reflection <- [id, mirrorTangle]
+    inv <- [id, invertCrossings]
+    return $ invariant $ inv $ rotation $ reflection tangle

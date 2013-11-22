@@ -1,6 +1,6 @@
 module Math.Topology.KnotTh.Invariants.KnotPolynomials.JonesStateSum
-    ( JonesStateSum
-    , scalarJonesStateSum
+    ( JonesArg(..)
+    , JonesStateSum
     ) where
 
 import Data.List (foldl', intercalate)
@@ -18,14 +18,17 @@ import Math.Topology.KnotTh.Invariants.KnotPolynomials
 import Math.Topology.KnotTh.Invariants.Util.Poly
 
 
-jonesVar :: String
-jonesVar = "t"
+class (Eq a, Ord a, Num a) => JonesArg a where
+    aFactor, bFactor, circleFactor :: a
+    swapFactors                    :: a -> a
+
+    circleFactor = -(aFactor * aFactor + bFactor * bFactor)
 
 
-jonesA, jonesB, jonesCircle :: Poly
-jonesA = monomial 1 jonesVar (-1 / 4)
-jonesB = monomial 1 jonesVar (1 / 4)
-jonesCircle = -(jonesA * jonesA + jonesB * jonesB)
+instance JonesArg Poly where
+    aFactor = monomial 1 "t" (-1 / 4)
+    bFactor = monomial 1 "t" (1 / 4)
+    swapFactors = invert "t"
 
 
 data PlanarChordDiagram a = PlanarChordDiagram !(UArray Int Int) !a deriving (Eq, Ord)
@@ -55,14 +58,6 @@ instance (Show a) => Show (JonesStateSum a) where
             _  -> intercalate "+" $ map show list
 
 
-scalarJonesStateSum :: (Num a) => JonesStateSum a -> a
-scalarJonesStateSum s =
-    case s of
-        JonesStateSum 0 []                       -> 0
-        JonesStateSum 0 [PlanarChordDiagram _ x] -> x
-        _                                        -> undefined
-
-
 singletonStateSum :: PlanarChordDiagram a -> JonesStateSum a
 singletonStateSum summand @ (PlanarChordDiagram a _) =
     JonesStateSum (1 + snd (bounds a)) [summand]
@@ -90,17 +85,17 @@ forAllSummands :: (Monad m) => JonesStateSum a -> (PlanarChordDiagram a -> m ())
 forAllSummands (JonesStateSum _ list) = forM_ list
 
 
-instance (Eq a, Num a) => Monoid (JonesStateSum a) where
+instance (JonesArg a) => Monoid (JonesStateSum a) where
     mempty = JonesStateSum 0 [PlanarChordDiagram (listArray (0, -1) []) 1]
 
     mappend a b =
-       let c = scalarJonesStateSum a * scalarJonesStateSum b
+       let c = takeAsScalar a * takeAsScalar b
        in JonesStateSum 0 $ if c == 0
            then []
            else [PlanarChordDiagram (listArray (0, -1) []) c]
 
 
-instance PlanarStateSum (JonesStateSum Poly) where
+instance (JonesArg a) => PlanarStateSum (JonesStateSum a) where
     stateDegree (JonesStateSum d _) = d
 
     loopState _ (preSum@(JonesStateSum !degree _), !p) =
@@ -126,7 +121,7 @@ instance PlanarStateSum (JonesStateSum Poly) where
                                 writeArray xm (subst ! i) (subst ! j)
                         return $! xm
 
-                    k' | x ! p == p'  = k * jonesCircle
+                    k' | x ! p == p'  = k * circleFactor
                        | otherwise    = k
 
                 in singletonStateSum $ PlanarChordDiagram x' k'
@@ -190,7 +185,7 @@ instance PlanarStateSum (JonesStateSum Poly) where
                         writeArray cd a b
                     substState (factor * f) rest
 
-        substState (scalarJonesStateSum global) [1 .. n]
+        substState (takeAsScalar global) [1 .. n]
         (concatStateSums . map singletonStateSum) `fmap` readSTRef result
 
     rotateState rot
@@ -216,26 +211,32 @@ instance PlanarStateSum (JonesStateSum Poly) where
             in singletonStateSum $ PlanarChordDiagram x' f
 
 
-instance SkeinRelation JonesStateSum Poly where
+instance (JonesArg a) => SkeinRelation JonesStateSum a where
     skeinLPlus =
         concatStateSums $ map singletonStateSum
-            [ PlanarChordDiagram (listArray (0, 3) [3, 2, 1, 0]) jonesA
-            , PlanarChordDiagram (listArray (0, 3) [1, 0, 3, 2]) jonesB
+            [ PlanarChordDiagram (listArray (0, 3) [3, 2, 1, 0]) aFactor
+            , PlanarChordDiagram (listArray (0, 3) [1, 0, 3, 2]) bFactor
             ]
 
     skeinLMinus =
         concatStateSums $ map singletonStateSum
-            [ PlanarChordDiagram (listArray (0, 3) [3, 2, 1, 0]) jonesB
-            , PlanarChordDiagram (listArray (0, 3) [1, 0, 3, 2]) jonesA
+            [ PlanarChordDiagram (listArray (0, 3) [3, 2, 1, 0]) bFactor
+            , PlanarChordDiagram (listArray (0, 3) [1, 0, 3, 2]) aFactor
             ]
 
     finalNormalization tangle =
         let factor =
                 let writheFactor =
                         let w = selfWrithe tangle
-                        in (if w <= 0 then -jonesA else -jonesB) ^ abs (3 * w)
-                    loopsFactor = jonesCircle ^ numberOfFreeLoops tangle
+                        in (if w <= 0 then -aFactor else -bFactor) ^ abs (3 * w)
+                    loopsFactor = circleFactor ^ numberOfFreeLoops tangle
                 in writheFactor * loopsFactor
         in fmap (* factor)
 
-    invertCrossingsAction = fmap (invert jonesVar)
+    invertCrossingsAction = fmap swapFactors
+
+    takeAsScalar s =
+        case s of
+            JonesStateSum 0 []                       -> 0
+            JonesStateSum 0 [PlanarChordDiagram _ x] -> x
+            _                                        -> undefined
