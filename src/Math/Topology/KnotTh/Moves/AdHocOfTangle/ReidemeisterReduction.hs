@@ -1,4 +1,4 @@
-module Math.Topology.KnotTh.Tangle.Moves.ReidemeisterReduction
+module Math.Topology.KnotTh.Moves.AdHocOfTangle.ReidemeisterReduction
     ( greedy1st2ndReduction
     , reduce1st
     , reduce2nd
@@ -7,7 +7,7 @@ module Math.Topology.KnotTh.Tangle.Moves.ReidemeisterReduction
 import Control.Monad (when, liftM2)
 import Control.Applicative ((<$>))
 import Math.Topology.KnotTh.Tangle
-import Math.Topology.KnotTh.Tangle.Moves.Move
+import Math.Topology.KnotTh.Moves.AdHocOfTangle.Move
 
 
 greedy1st2ndReduction :: NATangle -> NATangle

@@ -22,11 +22,11 @@ import Math.Topology.KnotTh.Tangle.IsomorphismTest
 import Math.Topology.KnotTh.Tangle.Generation.BorderIncremental
 import Math.Topology.KnotTh.Link (tangleDoubling)
 import Math.Topology.KnotTh.Invariants
-import qualified Math.Topology.KnotTh.Tangle.Moves.Flype as Flype
-import qualified Math.Topology.KnotTh.Tangle.Moves.Pass as Pass
-import qualified Math.Topology.KnotTh.Tangle.Moves.ReidemeisterIII as ReidemeisterIII
-import qualified Math.Topology.KnotTh.Tangle.Moves.ReidemeisterReduction as ReidemeisterReduction
-import qualified Math.Topology.KnotTh.Tangle.Moves.Weak as Weak
+import qualified Math.Topology.KnotTh.Moves.AdHocOfTangle.Flype as Flype
+import qualified Math.Topology.KnotTh.Moves.AdHocOfTangle.Pass as Pass
+import qualified Math.Topology.KnotTh.Moves.AdHocOfTangle.ReidemeisterIII as ReidemeisterIII
+import qualified Math.Topology.KnotTh.Moves.AdHocOfTangle.ReidemeisterReduction as ReidemeisterReduction
+import qualified Math.Topology.KnotTh.Moves.AdHocOfTangle.Weak as Weak
 
 
 tangleDiagrams :: (Monad m) => Bool -> Int -> Int -> (NATangle -> m ()) -> m ()

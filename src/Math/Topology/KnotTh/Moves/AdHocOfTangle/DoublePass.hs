@@ -1,4 +1,4 @@
-module Math.Topology.KnotTh.Tangle.Moves.DoublePass
+module Math.Topology.KnotTh.Moves.AdHocOfTangle.DoublePass
     ( neighbours
     ) where
 
@@ -6,7 +6,7 @@ import Data.Maybe
 import Debug.Trace
 import Control.Monad (guard)
 import Math.Topology.KnotTh.Tangle
-import Math.Topology.KnotTh.Tangle.Moves.Resting
+import Math.Topology.KnotTh.Moves.AdHocOfTangle.Resting
 
 
 neighbours :: NATangle -> [NATangle]

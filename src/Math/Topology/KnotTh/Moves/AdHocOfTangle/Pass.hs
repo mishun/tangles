@@ -1,4 +1,4 @@
-module Math.Topology.KnotTh.Tangle.Moves.Pass
+module Math.Topology.KnotTh.Moves.AdHocOfTangle.Pass
     ( neighbours
     ) where
 
@@ -6,9 +6,9 @@ import Data.Maybe (mapMaybe)
 import Data.List (sort, nub)
 import Control.Monad (unless, guard, msum)
 import Math.Topology.KnotTh.Tangle
-import Math.Topology.KnotTh.Tangle.Moves.Resting
-import Math.Topology.KnotTh.Tangle.Moves.Move
-import Math.Topology.KnotTh.Tangle.Moves.ReidemeisterReduction
+import Math.Topology.KnotTh.Moves.AdHocOfTangle.Resting
+import Math.Topology.KnotTh.Moves.AdHocOfTangle.Move
+import Math.Topology.KnotTh.Moves.AdHocOfTangle.ReidemeisterReduction
 
 
 neighbours :: NATangle -> [NATangle]

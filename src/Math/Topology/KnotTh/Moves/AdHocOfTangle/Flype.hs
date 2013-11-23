@@ -1,4 +1,4 @@
-module Math.Topology.KnotTh.Tangle.Moves.Flype
+module Math.Topology.KnotTh.Moves.AdHocOfTangle.Flype
     ( neighbours
     ) where
 
@@ -6,8 +6,8 @@ import Data.Maybe (mapMaybe)
 import Data.Array.Unboxed ((!))
 import Control.Monad (guard)
 import Math.Topology.KnotTh.Tangle
-import Math.Topology.KnotTh.Tangle.Moves.Move
-import Math.Topology.KnotTh.Tangle.Moves.Resting
+import Math.Topology.KnotTh.Moves.AdHocOfTangle.Move
+import Math.Topology.KnotTh.Moves.AdHocOfTangle.Resting
 
 
 neighbours :: NATangle -> [NATangle]

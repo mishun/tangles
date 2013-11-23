@@ -18,9 +18,9 @@ import Control.Monad (forM_, when)
 import Control.DeepSeq
 import Text.Printf
 import Math.Topology.KnotTh.Tangle
-import Math.Topology.KnotTh.Tangle.Moves.Move
-import Math.Topology.KnotTh.Tangle.Moves.ReidemeisterReduction
-import Math.Topology.KnotTh.Tangle.Moves.Skein
+import Math.Topology.KnotTh.Moves.AdHocOfTangle.Move
+import Math.Topology.KnotTh.Moves.AdHocOfTangle.ReidemeisterReduction
+import Math.Topology.KnotTh.Moves.AdHocOfTangle.Skein
 import Math.Topology.KnotTh.Invariants.KnotPolynomials
 import Math.Topology.KnotTh.Invariants.Util.Poly
 

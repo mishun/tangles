@@ -1,5 +1,5 @@
 {-# LANGUAGE Rank2Types #-}
-module Math.Topology.KnotTh.Tangle.Moves.Move
+module Math.Topology.KnotTh.Moves.AdHocOfTangle.Move
     ( MoveM
     , move
     , assemble

@@ -10,7 +10,7 @@ import Diagrams.Prelude
 import Math.Topology.KnotTh.Enumeration.DiagramInfo.MinimalDiagramInfo
 import Math.Topology.KnotTh.Enumeration.Applied.NonAlternatingTangles
 import Math.Topology.KnotTh.Draw
-import Math.Topology.KnotTh.Tangle.Moves.Test
+import Math.Topology.KnotTh.Moves.AdHocOfTangle.Test
 import Math.Topology.KnotTh.Link.Table
 import TestUtil.Table
 import TestUtil.Drawing

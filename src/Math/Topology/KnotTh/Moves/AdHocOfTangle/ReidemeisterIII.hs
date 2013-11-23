@@ -1,11 +1,11 @@
-module Math.Topology.KnotTh.Tangle.Moves.ReidemeisterIII
+module Math.Topology.KnotTh.Moves.AdHocOfTangle.ReidemeisterIII
     ( neighbours
     ) where
 
 import Data.Maybe
 import Control.Monad (guard)
 import Math.Topology.KnotTh.Tangle
-import Math.Topology.KnotTh.Tangle.Moves.Move
+import Math.Topology.KnotTh.Moves.AdHocOfTangle.Move
 
 
 neighbours :: NATangle -> [NATangle]

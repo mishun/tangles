@@ -1,4 +1,4 @@
-module Math.Topology.KnotTh.Tangle.Moves.Resting
+module Math.Topology.KnotTh.Moves.AdHocOfTangle.Resting
     ( restingPart
     ) where
 

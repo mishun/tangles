@@ -1,11 +1,11 @@
-module Math.Topology.KnotTh.Tangle.Moves.Weak
+module Math.Topology.KnotTh.Moves.AdHocOfTangle.Weak
     ( neighbours
     ) where
 
 import Data.Maybe
 import Control.Monad (guard)
 import Math.Topology.KnotTh.Tangle
-import Math.Topology.KnotTh.Tangle.Moves.Move
+import Math.Topology.KnotTh.Moves.AdHocOfTangle.Move
 
 
 neighbours :: NATangle -> [NATangle]

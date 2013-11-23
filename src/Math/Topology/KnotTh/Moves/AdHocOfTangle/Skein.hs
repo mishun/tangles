@@ -1,10 +1,10 @@
-module Math.Topology.KnotTh.Tangle.Moves.Skein
+module Math.Topology.KnotTh.Moves.AdHocOfTangle.Skein
     ( smoothA
     , smoothB
     ) where
 
 import Math.Topology.KnotTh.Tangle
-import Math.Topology.KnotTh.Tangle.Moves.Move
+import Math.Topology.KnotTh.Moves.AdHocOfTangle.Move
 
 
 smoothA :: NATangleCrossing -> MoveM s ArbitraryCrossing ()

@@ -1,9 +1,9 @@
-module Math.Topology.KnotTh.Tangle.Moves.Test
+module Math.Topology.KnotTh.Moves.AdHocOfTangle.Test
     ( passTests
     ) where
 
 import Math.Topology.KnotTh.Tangle
-import qualified Math.Topology.KnotTh.Tangle.Moves.Pass as Pass
+import qualified Math.Topology.KnotTh.Moves.AdHocOfTangle.Pass as Pass
 
 
 passTests :: [(NATangle, [NATangle])]
