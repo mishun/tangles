@@ -56,6 +56,8 @@ instance Knotted Link where
     explode (L t) = let (f, [], l) = explode t in (f, l)
     implode (f, l) = L (implode (f, [], l))
 
+    homeomorphismInvariant (L t) = homeomorphismInvariant t
+
 
 produceShowDart ''Link ''Dart (const [])
 produceShowCrossing ''Link ''Vertex

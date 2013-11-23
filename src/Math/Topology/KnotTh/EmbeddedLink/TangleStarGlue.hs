@@ -14,7 +14,6 @@ import Math.Combinatorics.ChordDiagram (generateNonPlanarRaw, generateBicolourab
 import Math.Topology.KnotTh.Tangle
 import Math.Topology.KnotTh.EmbeddedLink
 import Math.Topology.KnotTh.EmbeddedLink.Construction (fromTangleAndStar)
-import Math.Topology.KnotTh.EmbeddedLink.IsomorphismTest
 import Math.Topology.Manifolds.SurfaceGraph
 
 
@@ -45,7 +44,7 @@ tangleStarGlue starType tangleGenerator yield =
 
                 in forM_ variants $ \ !g -> do
                     let link = fromTangleAndStar star $ transformTangle g tangle
-                        token = isomorphismTest link
+                        token = homeomorphismInvariant link
                     new <- gets (S.notMember token)
                     when new $ do
                         modify (S.insert token)

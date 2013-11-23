@@ -1,32 +1,112 @@
-{-# LANGUAGE TemplateHaskell, TypeFamilies #-}
+{-# LANGUAGE TemplateHaskell, TypeFamilies, UnboxedTuples #-}
 module Math.Topology.KnotTh.EmbeddedLink.Definition.EmbeddedLink
     ( EmbeddedLink
     ) where
 
 import Language.Haskell.TH
 import Data.Function (fix)
-import Data.Bits ((.&.), complement)
+import Data.Maybe (fromMaybe)
+import Data.Bits ((.&.), shiftL, complement)
 import Data.Array.IArray (listArray)
 import Data.Array.MArray (newArray, newArray_, readArray, writeArray)
-import Data.Array.Base (unsafeAt)
+import Data.Array.Base (unsafeAt, unsafeRead, unsafeWrite)
 import Data.Array.Unboxed (UArray)
 import Data.Array.Unsafe (unsafeFreeze)
-import Data.Array.ST (STUArray)
+import Data.Array.ST (STArray, STUArray, runSTUArray)
+import Data.STRef (newSTRef, readSTRef, writeSTRef)
 import Control.Monad.ST (ST)
-import Control.Monad (forM_, foldM, foldM_)
+import Control.Monad (void, when, forM_, foldM, foldM_)
 import Text.Printf
+import qualified Math.Algebra.Group.D4 as D4
+import qualified Math.Algebra.RotationDirection as R
 import Math.Topology.KnotTh.Knotted
 import Math.Topology.KnotTh.Knotted.TH.Knotted
 import Math.Topology.KnotTh.Knotted.TH.Show
 
 
 produceKnotted
-    [d| data EmbeddedLink ct = EmbeddedLink
-            { faceCount      :: !Int
-            , faceDataOffset :: !(UArray Int Int)
-            , faceCCWBrdDart :: !(UArray Int Int)
-            , faceLLookup    :: !(UArray Int Int)
-            }
+    [d| data EmbeddedLink ct =
+            EmbeddedLink
+                { faceCount      :: !Int
+                , faceDataOffset :: !(UArray Int Int)
+                , faceCCWBrdDart :: !(UArray Int Int)
+                , faceLLookup    :: !(UArray Int Int)
+                }
+
+        instance Knotted EmbeddedLink where
+            numberOfFreeLoops = undefined
+            changeNumberOfFreeLoops = undefined
+            emptyKnotted = undefined
+            mapCrossings = undefined
+            crossingState = undefined
+            implode = undefined
+
+            type ExplodeType EmbeddedLink ct = (Int, [([(Int, Int)], CrossingState ct)])
+
+            explode link =
+                ( numberOfFreeLoops link
+                , map (\ c -> (map endPair' $ outcomingDarts c, crossingState c)) $ allVertices link
+                )
+
+            homeomorphismInvariant link =
+                minimum $ do
+                    dart <- allHalfEdges link
+                    dir <- R.bothDirections
+                    globalG <- fromMaybe [D4.i] $ globalTransformations link
+                    return $! codeWithDirection globalG dir dart
+
+                where
+                    codeWithDirection !globalG !dir !start = runSTUArray $ do
+                        let n = numberOfVertices link
+
+                        index <- newArray (0, n) 0 :: ST s (STUArray s Int Int)
+                        incoming <- newArray (0, n) 0 :: ST s (STUArray s Int Int)
+                        queue <- newArray_ (0, n - 1) :: ST s (STArray s Int (Dart EmbeddedLink ct))
+                        free <- newSTRef 1
+
+                        let {-# INLINE look #-}
+                            look !d = do
+                                let u = vertexIndex $ beginVertex d
+                                ux <- unsafeRead index u
+                                if ux > 0
+                                    then do
+                                        up <- unsafeRead incoming u
+                                        return $! (ux `shiftL` 2) + (((beginPlace d - up) * R.directionSign dir) .&. 3)
+                                    else do
+                                        nf <- readSTRef free
+                                        writeSTRef free $! nf + 1
+                                        unsafeWrite index u nf
+                                        unsafeWrite incoming u (beginPlace d)
+                                        unsafeWrite queue (nf - 1) d
+                                        return $! nf `shiftL` 2
+
+                        rc <- newArray (0, 6 * n) 0 :: ST s (STUArray s Int Int)
+                        unsafeWrite rc 0 $! numberOfFreeLoops link
+
+                        let {-# INLINE lookAndWrite #-}
+                            lookAndWrite !d !offset = do
+                                look d >>= unsafeWrite rc offset
+                                return $! offset + 1
+
+                        void $ look start
+                        flip fix 0 $ \ bfs !headI -> do
+                            tailI <- readSTRef free
+                            when (headI < tailI - 1) $ do
+                                input <- unsafeRead queue headI
+                                void $ foldMAdjacentDartsFrom input dir lookAndWrite (6 * headI + 3)
+                                case crossingCodeWithGlobal globalG dir input of
+                                    (# be, le #) -> do
+                                        unsafeWrite rc (6 * headI + 1) be
+                                        unsafeWrite rc (6 * headI + 2) le
+                                bfs $! headI + 1
+
+                        fix $ \ _ -> do
+                            tailI <- readSTRef free
+                            when (tailI <= n) $
+                                fail "codeWithDirection: disconnected diagram (not implemented)"
+
+                        return rc
+
     |] $
     let fcN = mkName "fc"
         fllookN = mkName "fllook"

@@ -28,6 +28,7 @@ module Math.Topology.KnotTh.Knotted.Definition
     ) where
 
 import Data.Bits ((.&.))
+import Data.Array.Unboxed (UArray)
 import Control.DeepSeq
 import Control.Monad (guard)
 import Text.Printf
@@ -163,6 +164,8 @@ class (PlanarDiagram knot) => Knotted knot where
 
     mapCrossings      :: (CrossingType a, CrossingType b) => (CrossingState a -> CrossingState b) -> knot a -> knot b
     crossingState     :: Vertex knot ct -> CrossingState ct
+
+    homeomorphismInvariant :: (CrossingType ct) => knot ct -> UArray Int Int
 
     type ExplodeType knot ct :: *
     explode :: knot ct -> ExplodeType knot ct

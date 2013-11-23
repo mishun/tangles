@@ -24,7 +24,6 @@ import Control.Monad ((>=>), when, forM_)
 import Control.Monad.Trans (lift)
 import Control.DeepSeq
 import Text.Printf
-import qualified Math.Algebra.RotationDirection as R
 import Math.Topology.KnotTh.Knotted
 
 
@@ -86,36 +85,65 @@ append' :: Q Dec -> WriterT [Dec] Q ()
 append' = lift >=> tell . (:[])
 
 
+appends' :: Q [Dec] -> WriterT [Dec] Q ()
+appends' = lift >=> tell
+
+
 appendF :: (MonadWriter [Q Dec] m) => Name -> Q Clause -> m ()
 appendF name body = tell $ (:[]) $ funD name [body]
 
 
+loopsCount, vertexCount, stateArray, connsArray :: Name
+loopsCount = mkName "loopsCount"
+vertexCount = mkName "vertexCount"
+stateArray = mkName "stateArray"
+connsArray = mkName "connsArray"
+
+
+removeUndefined :: [Dec] -> Q [Dec]
+removeUndefined decs = do
+    undef <- [| undefined |]
+    return $ filter (\ dec ->
+            case dec of
+                ValD _ (NormalB f) [] | f == undef -> False
+                _                                  -> True
+        ) decs
+
+
+modifyInstance :: [Dec] -> Q Type -> [Q Dec] -> Q [Dec]
+modifyInstance decs targetHeaderQ addMembersQ = do
+    targetHeader <- targetHeaderQ
+    addMembers <- sequence addMembersQ
+    mapM (\ dec ->
+            case dec of
+                InstanceD context header members | header == targetHeader ->
+                    InstanceD context header `fmap` removeUndefined (members ++ addMembers)
+                _                                                         ->
+                    return dec
+        ) decs
+
+
 produceKnotted :: DecsQ -> KnottedSettings -> DecsQ
 produceKnotted knotPattern inst = execWriterT $ do
-    [DataD [] knotTN [PlainTV crossType] [RecC knotCN knotFields] []] <- lift knotPattern
+    DataD [] knotType [PlainTV crossType] [RecC knotConstr knotFields] [] : declarations <- lift knotPattern
 
     let dartN = mkName "Dart"
         vertN = mkName "Vertex"
-        nameL = litE $ stringL $ nameBase knotTN
+        ies = implodeExplodeSettings inst
 
-    let loopsCount = mkName "loopsCount"
-        vertexCount = mkName "vertexCount"
-        stateArray = mkName "stateArray"
-        connsArray = mkName "connsArray"
-
-    let ies = implodeExplodeSettings inst
-
-    append' $ dataD (cxt []) knotTN [PlainTV crossType] [recC knotCN $
-        [ (,,) loopsCount  Unpacked `fmap` [t| Int |]
-        , (,,) vertexCount Unpacked `fmap` [t| Int |]
-        , (,,) connsArray  Unpacked `fmap` [t| UArray Int Int |]
-        , (,,) stateArray  Unpacked `fmap` [t| Array Int (CrossingState $(varT crossType)) |]
-        ] ++ map return knotFields] []
+    append' $ dataD (cxt []) knotType [PlainTV crossType]
+        [ recC knotConstr $
+            [ (,,) loopsCount  Unpacked `fmap` [t| Int |]
+            , (,,) vertexCount Unpacked `fmap` [t| Int |]
+            , (,,) connsArray  Unpacked `fmap` [t| UArray Int Int |]
+            , (,,) stateArray  Unpacked `fmap` [t| Array Int (CrossingState $(varT crossType)) |]
+            ] ++ map return knotFields
+        ] []
 
     append' $ do
         ct <- newName "ct"
         k <- newName "k"
-        instanceD (cxt [classP ''NFData [varT ct]]) ([t| NFData |] `appT` (conT knotTN `appT` varT ct))
+        instanceD (cxt [classP ''NFData [varT ct]]) ([t| NFData |] `appT` (conT knotType `appT` varT ct))
             [ funD 'rnf $ (:[]) $ clause [varP k] (normalB
                     [| rnf ($(varE stateArray) $(varE k)) `seq` $(varE k) `seq` () |]
                 ) []
@@ -123,13 +151,13 @@ produceKnotted knotPattern inst = execWriterT $ do
 
     append' $ do
         ct <- newName "ct"
-        instanceD (cxt [classP ''NFData [varT ct]]) (appT [t| NFData |] $ conT vertN `appT` conT knotTN `appT` varT ct) []
+        instanceD (cxt [classP ''NFData [varT ct]]) [t| NFData (Vertex $(conT knotType) $(varT ct)) |] []
 
     append' $ do
         ct <- newName "ct"
-        instanceD (cxt [classP ''NFData [varT ct]]) (appT [t| NFData |] $ conT dartN `appT` conT knotTN `appT` varT ct) []
+        instanceD (cxt [classP ''NFData [varT ct]]) [t| NFData (Dart $(conT knotType) $(varT ct)) |] []
 
-    append' $ instanceD (cxt []) ([t| PlanarDiagram |] `appT` conT knotTN) $ execWriter $ do
+    append' $ instanceD (cxt []) ([t| PlanarDiagram |] `appT` conT knotType) $ execWriter $ do
         appendF 'numberOfVertices $
             clause [] (normalB $ varE vertexCount) []
 
@@ -186,8 +214,8 @@ produceKnotted knotPattern inst = execWriterT $ do
 
         append $ do
             ct <- newName "ct"
-            dataInstD (cxt []) ''Vertex [conT knotTN, varT ct] [normalC vertN
-                [ (,) IsStrict `fmap` [t| $(conT knotTN) $(varT ct) |]
+            dataInstD (cxt []) ''Vertex [conT knotType, varT ct] [normalC vertN
+                [ (,) IsStrict `fmap` [t| $(conT knotType) $(varT ct) |]
                 , (,) Unpacked `fmap` [t| Int |]
                 ]] []
 
@@ -218,8 +246,8 @@ produceKnotted knotPattern inst = execWriterT $ do
 
         append $ do
             ct <- newName "ct"
-            dataInstD (cxt []) ''Dart [conT knotTN, varT ct] [normalC dartN
-                [ (,) IsStrict `fmap` [t| $(conT knotTN) $(varT ct) |]
+            dataInstD (cxt []) ''Dart [conT knotType, varT ct] [normalC dartN
+                [ (,) IsStrict `fmap` [t| $(conT knotType) $(varT ct) |]
                 , (,) Unpacked `fmap` [t| Int |]
                 ]] []
 
@@ -298,7 +326,7 @@ produceKnotted knotPattern inst = execWriterT $ do
                     (0 :: Int, numberOfDarts $(varE k) - 1 :: Int)
                 |]) []
 
-    append' $ instanceD (cxt []) ([t| Knotted |] `appT` conT knotTN) $ execWriter $ do
+    appends' $ modifyInstance declarations ([t| Knotted |] `appT` conT knotType) $ execWriter $ do
         appendF 'numberOfFreeLoops $
             clause [] (normalB $ varE loopsCount) []
 
@@ -312,7 +340,7 @@ produceKnotted knotPattern inst = execWriterT $ do
                 |]) []
 
         appendF 'emptyKnotted $
-            clause [] (normalB $ recConE knotCN $
+            clause [] (normalB $ recConE knotConstr $
                     [ (,) vertexCount `fmap` [| 0 :: Int |]
                     , (,) connsArray  `fmap` [| listArray (0 :: Int, -1 :: Int) [] |]
                     , (,) stateArray  `fmap` [| listArray (0 :: Int, -1 :: Int) [] |]
@@ -331,7 +359,7 @@ produceKnotted knotPattern inst = execWriterT $ do
             c <- newName "c"
             clause [conP vertN [varP k, varP c]]
                 (normalB [| $(varE stateArray) $(varE k) `unsafeAt` $(varE c) |]) []
-
+{-
         appendF 'forMIncidentDarts $ do
             k <- newName "k"
             c <- newName "c"
@@ -373,21 +401,7 @@ produceKnotted knotPattern inst = execWriterT $ do
                                     >>= $(varE f) ($(conE dartN) $(varE k) $! r + l3)
                     |]
                 ) []
-
-        append $ do
-            ct <- newName "ct"
-            tySynInstD ''ExplodeType [conT knotTN, varT ct] $ do
-                let types = [ [t| Int |] ] ++ map (\ (_, x, _) -> x) (extraImplodeExplodeParams ies) ++ [ [t| [([(Int, Int)], CrossingState $(varT ct))] |] ]
-                foldl appT (tupleT $ length types) types
-
-        appendF 'explode $ do
-            knot <- newName "knot"
-            clause [varP knot] (normalB $ tupE $ execWriter $ do
-                    append [| numberOfFreeLoops $(varE knot) |]
-                    tell $ map (\ (_, _, f) -> f $ varE knot) $ extraImplodeExplodeParams ies
-                    append [| map (\ c -> (map endPair' $ outcomingDarts c, crossingState c)) $ allVertices $(varE knot) |]
-                ) []
-
+-}
         appendF 'implode $ do
             arg <- newName "arg"
             loops <- newName "loops"
@@ -401,7 +415,7 @@ produceKnotted knotPattern inst = execWriterT $ do
             clause [asP arg $ tupP $ map (bangP . varP) $ [loops] ++ (map (\ (x, _, _) -> x) $ extraImplodeExplodeParams ies) ++ [list]] (normalB $
                     appE (varE 'runST) $ doE $ execWriter $ do
                         let spliceError text args =
-                                let literal = litE $ stringL $ nameBase knotTN ++ ".implode: " ++ text ++ " at %s"
+                                let literal = litE $ stringL $ nameBase knotType ++ ".implode: " ++ text ++ " at %s"
                                 in appE [| error |] $ foldl appE [| printf $literal |] $ args ++ [ [| show $(varE arg) |] ]
 
                         append $ noBindS
@@ -455,7 +469,7 @@ produceKnotted knotPattern inst = execWriterT $ do
                         append $ bindS (varP cr') [| unsafeFreeze $(varE cr) |]
                         append $ bindS (varP st') [| unsafeFreeze $(varE st) |]
                         append $ noBindS
-                            [|  return $! $(recConE knotCN $
+                            [|  return $! $(recConE knotConstr $
                                     [ (,) vertexCount `fmap` varE n
                                     , (,) connsArray  `fmap` varE cr'
                                     , (,) stateArray  `fmap` varE st'

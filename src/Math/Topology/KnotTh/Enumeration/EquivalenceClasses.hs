@@ -21,13 +21,12 @@ data State k v = St
 
 
 equivalenceClasses ::
-    (CrossingType ct, KnottedWithConnectivity knot, Ord code, DiagramInfo info)
-        => (knot ct -> code)
-        -> [knot ct -> [knot ct]]
+    (CrossingType ct, KnottedWithConnectivity knot, DiagramInfo info)
+        => [knot ct -> [knot ct]]
         -> (forall m. (Monad m) => (knot ct -> m ()) -> m ())
         -> [info (knot ct)]
 
-equivalenceClasses isomorphismTest moves enumerateDiagrams =
+equivalenceClasses moves enumerateDiagrams =
     IM.elems $ vals $ flip execState St{set = DS.empty, keys = M.empty, vals = IM.empty} $ do
         let declareEquivalent !a !b = do
                 eq <- do
@@ -66,7 +65,7 @@ equivalenceClasses isomorphismTest moves enumerateDiagrams =
 
         enumerateDiagrams $
             flip fix Nothing $ \ dfs !prevCode !diagram -> do
-                let code = isomorphismTest diagram
+                let code = homeomorphismInvariant diagram
                 inserted <- insert code $ wrap diagram
                 maybe (return ()) (declareEquivalent code) prevCode
                 when inserted $

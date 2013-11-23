@@ -1,4 +1,4 @@
-{-# LANGUAGE TemplateHaskell, TypeFamilies #-}
+{-# LANGUAGE TemplateHaskell, TypeFamilies, UnboxedTuples #-}
 module Math.Topology.KnotTh.Tangle.Definition.Tangle
     ( Tangle
     , emptyTangle
@@ -11,24 +11,146 @@ module Math.Topology.KnotTh.Tangle.Definition.Tangle
     ) where
 
 import Language.Haskell.TH
+import Data.Function (fix)
+import Data.Maybe (fromMaybe)
+import Data.Bits (shiftL)
 import Data.List (nub, sort, foldl')
 import qualified Data.Set as S
 import qualified Data.Map as M
 import Data.Array.IArray (listArray)
 import Data.Array.MArray (newArray, newArray_)
 import Data.Array.Base (unsafeAt, unsafeRead, unsafeWrite)
-import Data.Array.ST (STArray, STUArray)
+import Data.Array.ST (STArray, STUArray, runSTArray, runSTUArray)
 import Data.Array.Unsafe (unsafeFreeze)
+import Data.STRef (newSTRef, readSTRef, writeSTRef)
 import Control.Monad.ST (ST, runST)
-import Control.Monad (forM_, when, unless, foldM)
+import Control.Monad (void, forM_, when, unless, foldM_, foldM, filterM)
 import Text.Printf
+import qualified Math.Algebra.Group.D4 as D4
+import qualified Math.Algebra.RotationDirection as R
 import Math.Topology.KnotTh.Knotted.TH.Knotted
 import Math.Topology.KnotTh.Knotted.TH.Show
 import Math.Topology.KnotTh.Knotted
 import Math.Topology.KnotTh.Tangle.Definition.TangleLike
 
 
-produceKnotted [d| data Tangle ct = Tangle { legsCount :: {-# UNPACK #-} !Int } |] $
+produceKnotted
+    [d| data Tangle ct =
+            Tangle
+                { legsCount :: {-# UNPACK #-} !Int
+                }
+
+        instance Knotted Tangle where
+            numberOfFreeLoops = undefined
+            changeNumberOfFreeLoops = undefined
+            emptyKnotted = undefined
+            mapCrossings = undefined
+            crossingState = undefined
+            implode = undefined
+
+            type ExplodeType Tangle ct = (Int, [(Int, Int)], [([(Int, Int)], CrossingState ct)])
+
+            explode tangle =
+                ( numberOfFreeLoops tangle
+                , map endPair' $ allLegs tangle
+                , map (\ c -> (map endPair' $ outcomingDarts c, crossingState c)) $ allVertices tangle
+                )
+
+            homeomorphismInvariant tangle
+                | n > 127    = error $ printf "homeomorphismInvariant: too many crossings (%i)" n
+                | otherwise  = minimum $ do
+                    leg <- allLegs tangle
+                    dir <- R.bothDirections
+                    globalG <- fromMaybe [D4.i] $ globalTransformations tangle
+                    return $ code globalG dir leg
+                where
+                    n = numberOfVertices tangle
+                    l = numberOfLegs tangle
+
+                    code globalG dir leg = runSTUArray $ do
+                        index <- newArray (0, n) 0 :: ST s (STUArray s Int Int)
+                        queue <- newArray_ (0, n - 1) :: ST s (STArray s Int (Dart Tangle ct))
+                        free <- newSTRef 1
+
+                        let {-# INLINE look #-}
+                            look !d
+                                | isLeg d    = return 0
+                                | otherwise  = do
+                                    let u = beginVertex d
+                                    ux <- unsafeRead index $! vertexIndex u
+                                    if ux > 0
+                                        then return $! ux
+                                        else do
+                                            nf <- readSTRef free
+                                            writeSTRef free $! nf + 1
+                                            unsafeWrite index (vertexIndex u) nf
+                                            unsafeWrite queue (nf - 1) d
+                                            return $! nf
+
+                            {-# INLINE lookAndAdd #-}
+                            lookAndAdd !d !s = do
+                                !c <- look d
+                                return $! c + s `shiftL` 7
+
+                        rc <- newArray_ (0, l + 2 * n) :: ST s (STUArray s Int Int)
+                        unsafeWrite rc 0 $! numberOfFreeLoops tangle
+                        foldM_ (\ !d !i -> do
+                                look (opposite d) >>= unsafeWrite rc i
+                                return $! nextDir dir d
+                            ) leg [1 .. l]
+
+                        let bfs !st !headI = do
+                                tailI <- readSTRef free
+                                if headI >= tailI - 1 then return $! st else do
+                                    input <- unsafeRead queue headI
+                                    !nb <- foldMAdjacentDartsFrom input dir lookAndAdd 0
+                                    case crossingCodeWithGlobal globalG dir input of
+                                        (# be, le'' #) -> do
+                                            let le = le'' + shiftL nb 3
+                                                bi = l + 1 + 2 * headI
+                                                li = bi + 1
+                                            case st of
+                                                LT -> unsafeWrite rc bi be >> unsafeWrite rc li le >> bfs LT (headI + 1)
+                                                EQ -> do
+                                                    be' <- unsafeRead rc bi
+                                                    case compare be be' of
+                                                        LT -> unsafeWrite rc bi be >> unsafeWrite rc li le >> bfs LT (headI + 1)
+                                                        EQ -> do
+                                                            le' <- unsafeRead rc li
+                                                            case compare le le' of
+                                                                LT -> unsafeWrite rc li le >> bfs LT (headI + 1)
+                                                                EQ -> bfs EQ (headI + 1)
+                                                                GT -> return GT
+                                                        GT -> return GT
+                                                GT -> return GT
+
+                        LT <- bfs LT 0
+                        fix $ \ recheck -> do
+                            tailI <- readSTRef free
+                            when (tailI <= n) $ do
+                                notVisited <- filterM (\ !i -> (== 0) `fmap` unsafeRead index i) [1 .. n]
+
+                                (d, _) <- foldM (\ (pd, !st) !d -> do
+                                        writeSTRef free tailI
+                                        forM_ notVisited $ \ !i -> unsafeWrite index i 0
+                                        void $ look d
+                                        r <- bfs st (tailI - 1)
+                                        return $! case r of
+                                            LT -> (d, EQ)
+                                            _  -> (pd, EQ)
+                                    )
+                                    (undefined, LT)
+                                    [d | i <- notVisited, d <- outcomingDarts (nthVertex tangle i)]
+
+                                writeSTRef free tailI
+                                forM_ notVisited $ \ !i -> unsafeWrite index i 0
+                                void $ look d
+                                LT <- bfs LT (tailI - 1)
+                                recheck
+
+                        return rc
+
+    |] $
     let legsCount = varE $ mkName "legsCount"
         dart = conE $ mkName "Dart"
     in defaultKnotted
@@ -155,10 +277,10 @@ instance TangleLike Tangle where
             }
 
     glueTangles legsToGlue legA legB = runST $ do
-        unless (isLeg legA) $ fail $
-            printf "glueTangles: first leg parameter %s is not a leg" (show legA)
-        unless (isLeg legB) $ fail $
-            printf "glueTangles: second leg parameter %s is not a leg" (show legB)
+        unless (isLeg legA) $
+            fail $ printf "glueTangles: first leg parameter %s is not a leg" (show legA)
+        unless (isLeg legB) $
+            fail $ printf "glueTangles: second leg parameter %s is not a leg" (show legB)
 
         let tangleA = dartOwner legA
             lA = numberOfLegs tangleA
@@ -170,8 +292,8 @@ instance TangleLike Tangle where
             nB = numberOfVertices tangleB
             lpB = legPlace legB
 
-        when (legsToGlue < 0 || legsToGlue > min lA lB) $ fail $
-            printf "glueTangles: number of legs to glue %i is out of bound" legsToGlue
+        when (legsToGlue < 0 || legsToGlue > min lA lB) $
+            fail $ printf "glueTangles: number of legs to glue %i is out of bound" legsToGlue
 
         let newL = lA + lB - 2 * legsToGlue
             newC = nA + nB
@@ -214,14 +336,6 @@ instance TangleLike Tangle where
                     >>= unsafeWrite cr (4 * newC + lA - legsToGlue + i) 
             unsafeFreeze cr
 
-        st <- do
-            st <- newArray_ (0, newC - 1) :: ST s (STArray s Int a)
-            forM_ [0 .. nA - 1] $ \ !i ->
-                unsafeWrite st i $ stateArray tangleA `unsafeAt` i
-            forM_ [0 .. nB - 1] $ \ !i ->
-                unsafeWrite st (i + nA) $ stateArray tangleB `unsafeAt` i
-            unsafeFreeze st
-
         extraLoops <- do
             let markA a = do
                     let ai = 4 * nA + (lpA + a) `mod` lA
@@ -248,21 +362,27 @@ instance TangleLike Tangle where
             { loopsCount  = numberOfFreeLoops tangleA + numberOfFreeLoops tangleB + extraLoops
             , vertexCount = newC
             , connsArray  = cr
-            , stateArray  = st
+            , stateArray  = runSTArray $ do
+                st <- newArray_ (0, newC - 1)
+                forM_ [0 .. nA - 1] $ \ !i ->
+                    unsafeWrite st i $ stateArray tangleA `unsafeAt` i
+                forM_ [0 .. nB - 1] $ \ !i ->
+                    unsafeWrite st (i + nA) $ stateArray tangleB `unsafeAt` i
+                return st
             , legsCount   = newL
             }
 
     glueToBorder leg legsToGlue !crossingToGlue = runST $ do
-        unless (isLeg leg) $ fail $
-            printf "glueToBorder: leg expected, but %s received" (show leg)
+        unless (isLeg leg) $
+            fail $ printf "glueToBorder: leg expected, but %s received" (show leg)
 
-        when (legsToGlue < 0 || legsToGlue > 4) $ fail $
-            printf "glueToBorder: legsToGlue must be in [0 .. 4], but %i found" legsToGlue
+        when (legsToGlue < 0 || legsToGlue > 4) $
+            fail $ printf "glueToBorder: legsToGlue must be in [0 .. 4], but %i found" legsToGlue
 
         let tangle = dartOwner leg
             oldL = numberOfLegs tangle
-        when (oldL < legsToGlue) $ fail $
-            printf "glueToBorder: not enough legs to glue (l = %i, legsToGlue = %i)" oldL legsToGlue
+        when (oldL < legsToGlue) $
+            fail $ printf "glueToBorder: not enough legs to glue (l = %i, legsToGlue = %i)" oldL legsToGlue
 
         let oldC = numberOfVertices tangle
             newC = oldC + 1
@@ -298,18 +418,16 @@ instance TangleLike Tangle where
 
             unsafeFreeze cr
 
-        st <- do
-            st <- newArray_ (0, newC - 1) :: ST s (STArray s Int a)
-            forM_ [0 .. oldC - 1] $ \ !i ->
-                unsafeWrite st i $ stateArray tangle `unsafeAt` i
-            unsafeWrite st (newC - 1) crossingToGlue
-            unsafeFreeze st
-
         let result = Tangle
                 { loopsCount  = numberOfFreeLoops tangle
                 , vertexCount = newC
                 , connsArray  = cr
-                , stateArray  = st
+                , stateArray  = runSTArray $ do
+                    st <- newArray_ (0, newC - 1)
+                    forM_ [0 .. oldC - 1] $ \ !i ->
+                        unsafeWrite st i $ stateArray tangle `unsafeAt` i
+                    unsafeWrite st (newC - 1) crossingToGlue
+                    return st
                 , legsCount   = newL
                 }
 

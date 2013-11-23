@@ -18,7 +18,6 @@ import Math.Topology.KnotTh.Enumeration.DiagramInfo as X
 import Math.Topology.KnotTh.Enumeration.DiagramInfo.MinimalDiagramInfo
 import Math.Topology.KnotTh.Tangle as X
 import Math.Topology.KnotTh.Tangle.NonAlternating.Satellites
-import Math.Topology.KnotTh.Tangle.IsomorphismTest
 import Math.Topology.KnotTh.Tangle.Generation.BorderIncremental
 import Math.Topology.KnotTh.Link (tangleDoubling)
 import Math.Topology.KnotTh.Invariants
@@ -41,7 +40,6 @@ tangleDiagrams triangle legsLimit maxN yield =
 tangleClasses :: (DiagramInfo info) => (forall m. (Monad m) => (NATangle -> m ()) -> m ()) -> [info NATangle]
 tangleClasses =
     equivalenceClasses
-        isomorphismTest
         (map (map ReidemeisterReduction.greedy1st2ndReduction .)
             [ ReidemeisterIII.neighbours
             , Flype.neighbours
@@ -52,7 +50,6 @@ tangleClasses =
 weakTangleClasses :: (DiagramInfo info) => (forall m. (Monad m) => (NATangle -> m ()) -> m ()) -> [info NATangle]
 weakTangleClasses =
     equivalenceClasses
-        isomorphismTest
         (map (map ReidemeisterReduction.greedy1st2ndReduction .)
             [ Weak.neighbours
             , ReidemeisterIII.neighbours

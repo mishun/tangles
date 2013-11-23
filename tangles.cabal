@@ -69,7 +69,6 @@ library
         Math.Topology.KnotTh.Draw,
         Math.Topology.KnotTh.EmbeddedLink,
         Math.Topology.KnotTh.EmbeddedLink.Construction,
-        Math.Topology.KnotTh.EmbeddedLink.IsomorphismTest,
         Math.Topology.KnotTh.EmbeddedLink.TangleStarGlue,
         Math.Topology.KnotTh.EmbeddedLink.TestPrime,
         Math.Topology.KnotTh.Enumeration.Applied.NonAlternatingTangles,
@@ -86,7 +85,6 @@ library
         Math.Topology.KnotTh.Tangle.Generation.BorderIncremental,
         Math.Topology.KnotTh.Tangle.Generation.FlypeClasses,
         Math.Topology.KnotTh.Tangle.Generation.FlypeClasses.Flypes,
-        Math.Topology.KnotTh.Tangle.IsomorphismTest,
         Math.Topology.KnotTh.Tangle.NonAlternating.Satellites,
         Math.Topology.KnotTh.Tangle.TensorSubst,
         Math.Topology.Manifolds.SurfaceGraph
