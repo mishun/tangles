@@ -6,6 +6,7 @@ module Math.Topology.KnotTh.Invariants.KnotPolynomials
     , reduceSkeinStd
     , standardReductionStrategy
     , skeinRelationPostMinimization
+    , skeinRelationMidMinimization
     , skeinRelationPreMinimization
     ) where
 
@@ -15,7 +16,7 @@ import Math.Topology.KnotTh.Tangle as X
 
 class (Functor f, PlanarStateSum (f p)) => SkeinRelation f p where
     skeinLPlus, skeinLMinus :: f p
-    finalNormalization      :: NATangle -> f p -> f p
+    finalNormalization      :: (Knotted k) => k ArbitraryCrossing -> f p -> f p
     invertCrossingsAction   :: f p -> f p
     takeAsScalar            :: f p -> p
 
@@ -34,8 +35,7 @@ reduceSkeinWithStrategy tangle =
 
 reduceSkeinStd :: (SkeinRelation f p) => NATangle -> f p
 reduceSkeinStd tangle =
-    finalNormalization tangle $
-        reduceSkeinWithStrategy tangle standardReductionStrategy
+    reduceSkeinWithStrategy tangle standardReductionStrategy
 
 
 standardReductionStrategy :: Strategy a
@@ -59,8 +59,18 @@ skeinRelationPostMinimization invariant tangle = minimum $ do
     return $ inv $ reflection $ rotation p
 
 
+skeinRelationMidMinimization :: (Ord (f p), SkeinRelation f p) => (NATangle -> f p) -> NATangle -> f p
+skeinRelationMidMinimization invariant tangle = minimum $ do
+    let l = numberOfLegs tangle
+    tangle' <- [tangle, invertCrossings tangle]
+    let p = invariant tangle'
+    rotation <- if l == 0 then [id] else map rotateState [0 .. l - 1]
+    reflection <- [id, mirrorState]
+    return $ reflection $ rotation p
+
+
 skeinRelationPreMinimization :: (Ord (f p), SkeinRelation f p) => (NATangle -> f p) -> NATangle -> f p 
 skeinRelationPreMinimization invariant tangle = minimum $ do
-    tangle' <- allOrientationsOfTangle tangle
     inv <- [id, invertCrossings]
+    tangle' <- allOrientationsOfTangle tangle
     return $ invariant $ inv tangle'

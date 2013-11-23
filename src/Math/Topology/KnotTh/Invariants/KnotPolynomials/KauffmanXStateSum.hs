@@ -1,6 +1,7 @@
-module Math.Topology.KnotTh.Invariants.KnotPolynomials.JonesStateSum
-    ( JonesArg(..)
-    , JonesStateSum
+module Math.Topology.KnotTh.Invariants.KnotPolynomials.KauffmanXStateSum
+    ( KauffmanXArg(..)
+    , PlanarChordDiagram(..)
+    , KauffmanXStateSum(..)
     ) where
 
 import Data.List (foldl', intercalate)
@@ -18,17 +19,17 @@ import Math.Topology.KnotTh.Invariants.KnotPolynomials
 import Math.Topology.KnotTh.Invariants.Util.Poly
 
 
-class (Eq a, Ord a, Num a) => JonesArg a where
+class (Eq a, Ord a, Num a) => KauffmanXArg a where
     aFactor, bFactor, circleFactor :: a
     swapFactors                    :: a -> a
 
     circleFactor = -(aFactor * aFactor + bFactor * bFactor)
 
 
-instance JonesArg Poly where
-    aFactor = monomial 1 "t" (-1 / 4)
-    bFactor = monomial 1 "t" (1 / 4)
-    swapFactors = invert "t"
+instance KauffmanXArg Poly where
+    aFactor = monomial 1 "a" 1
+    bFactor = monomial 1 "a" (-1)
+    swapFactors = invert "a"
 
 
 data PlanarChordDiagram a = PlanarChordDiagram !(UArray Int Int) !a deriving (Eq, Ord)
@@ -44,61 +45,61 @@ instance (Show a) => Show (PlanarChordDiagram a) where
         printf "(%s)%s" (show x) (show $ elems a)
 
 
-data JonesStateSum a = JonesStateSum !Int ![PlanarChordDiagram a] deriving (Eq, Ord)
+data KauffmanXStateSum a = KauffmanXStateSum !Int ![PlanarChordDiagram a] deriving (Eq, Ord)
 
 
-instance Functor JonesStateSum where
-    fmap f (JonesStateSum n l) =
-        JonesStateSum n (map (fmap f) l)
+instance Functor KauffmanXStateSum where
+    fmap f (KauffmanXStateSum n l) =
+        KauffmanXStateSum n (map (fmap f) l)
 
-instance (Show a) => Show (JonesStateSum a) where
-    show (JonesStateSum _ list) =
+instance (Show a) => Show (KauffmanXStateSum a) where
+    show (KauffmanXStateSum _ list) =
         case list of
             [] -> "0"
             _  -> intercalate "+" $ map show list
 
 
-singletonStateSum :: PlanarChordDiagram a -> JonesStateSum a
+singletonStateSum :: PlanarChordDiagram a -> KauffmanXStateSum a
 singletonStateSum summand @ (PlanarChordDiagram a _) =
-    JonesStateSum (1 + snd (bounds a)) [summand]
+    KauffmanXStateSum (1 + snd (bounds a)) [summand]
 
 
-concatStateSums :: (Eq a, Num a) => [JonesStateSum a] -> JonesStateSum a
+concatStateSums :: (Eq a, Num a) => [KauffmanXStateSum a] -> KauffmanXStateSum a
 concatStateSums [] = error $ printf "concatStateSum: empty"
-concatStateSums list @ (JonesStateSum order _ : _) =
-    JonesStateSum order $ map (\ (!k, !v) -> PlanarChordDiagram k v) $
+concatStateSums list @ (KauffmanXStateSum order _ : _) =
+    KauffmanXStateSum order $ map (\ (!k, !v) -> PlanarChordDiagram k v) $
         filter ((/= 0) . snd) $ M.toList $
             foldl' (\ !m (PlanarChordDiagram !k !v) -> M.insertWith' (+) k v m) M.empty $
-                concatMap (\ (JonesStateSum order' list') ->
+                concatMap (\ (KauffmanXStateSum order' list') ->
                         if order' == order
                             then list'
                             else error $ printf "concatStateSums: order conflict with %i and %i" order order'
                     ) list
 
 
-mapStateSum :: (Eq a, Num a) => (PlanarChordDiagram a -> JonesStateSum a) -> JonesStateSum a -> JonesStateSum a
-mapStateSum _ (JonesStateSum order []) = JonesStateSum order []
-mapStateSum f (JonesStateSum _ list) = concatStateSums $ map f list
+mapStateSum :: (Eq a, Num a) => (PlanarChordDiagram a -> KauffmanXStateSum a) -> KauffmanXStateSum a -> KauffmanXStateSum a
+mapStateSum _ (KauffmanXStateSum order []) = KauffmanXStateSum order []
+mapStateSum f (KauffmanXStateSum _ list) = concatStateSums $ map f list
 
 
-forAllSummands :: (Monad m) => JonesStateSum a -> (PlanarChordDiagram a -> m ()) -> m ()
-forAllSummands (JonesStateSum _ list) = forM_ list
+forAllSummands :: (Monad m) => KauffmanXStateSum a -> (PlanarChordDiagram a -> m ()) -> m ()
+forAllSummands (KauffmanXStateSum _ list) = forM_ list
 
 
-instance (JonesArg a) => Monoid (JonesStateSum a) where
-    mempty = JonesStateSum 0 [PlanarChordDiagram (listArray (0, -1) []) 1]
+instance (KauffmanXArg a) => Monoid (KauffmanXStateSum a) where
+    mempty = KauffmanXStateSum 0 [PlanarChordDiagram (listArray (0, -1) []) 1]
 
     mappend a b =
        let c = takeAsScalar a * takeAsScalar b
-       in JonesStateSum 0 $ if c == 0
+       in KauffmanXStateSum 0 $ if c == 0
            then []
            else [PlanarChordDiagram (listArray (0, -1) []) c]
 
 
-instance (JonesArg a) => PlanarStateSum (JonesStateSum a) where
-    stateDegree (JonesStateSum d _) = d
+instance (KauffmanXArg a) => PlanarStateSum (KauffmanXStateSum a) where
+    stateDegree (KauffmanXStateSum d _) = d
 
-    loopState _ (preSum@(JonesStateSum !degree _), !p) =
+    loopState _ (preSum@(KauffmanXStateSum !degree _), !p) =
         let !p' = (p + 1) `mod` degree
 
             !subst = runSTUArray $ do
@@ -127,7 +128,7 @@ instance (JonesArg a) => PlanarStateSum (JonesStateSum a) where
                 in singletonStateSum $ PlanarChordDiagram x' k'
         in (result, subst)
 
-    connectStates _ (sumV@(JonesStateSum !degreeV _), !p) (sumU@(JonesStateSum !degreeU _), !q) =
+    connectStates _ (sumV@(KauffmanXStateSum !degreeV _), !p) (sumU@(KauffmanXStateSum !degreeU _), !q) =
         let !substV = runSTUArray $ do
                 a <- newArray (0, degreeV - 1) (-1) :: ST s (STUArray s Int Int)
                 forM_ [0 .. p - 1] $ \ !i ->
@@ -211,7 +212,7 @@ instance (JonesArg a) => PlanarStateSum (JonesStateSum a) where
             in singletonStateSum $ PlanarChordDiagram x' f
 
 
-instance (JonesArg a) => SkeinRelation JonesStateSum a where
+instance (KauffmanXArg a) => SkeinRelation KauffmanXStateSum a where
     skeinLPlus =
         concatStateSums $ map singletonStateSum
             [ PlanarChordDiagram (listArray (0, 3) [3, 2, 1, 0]) aFactor
@@ -237,6 +238,6 @@ instance (JonesArg a) => SkeinRelation JonesStateSum a where
 
     takeAsScalar s =
         case s of
-            JonesStateSum 0 []                       -> 0
-            JonesStateSum 0 [PlanarChordDiagram _ x] -> x
-            _                                        -> undefined
+            KauffmanXStateSum 0 []                       -> 0
+            KauffmanXStateSum 0 [PlanarChordDiagram _ x] -> x
+            _                                            -> undefined

@@ -19,8 +19,8 @@ class (Knotted k) => KnottedWithKauffmanFPolynomial k where
 
 instance KnottedWithKauffmanFPolynomial Tangle where
     type KauffmanFPolynomial Tangle = ChordDiagramsSum Poly2
-    kauffmanFPolynomial = reduceSkeinStd
-    minimalKauffmanFPolynomial = skeinRelationPreMinimization kauffmanFPolynomial
+    kauffmanFPolynomial tangle = finalNormalization tangle (reduceSkeinStd tangle)
+    minimalKauffmanFPolynomial = skeinRelationMidMinimization kauffmanFPolynomial
 
 
 instance KnottedWithKauffmanFPolynomial Link where

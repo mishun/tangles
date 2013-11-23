@@ -7,6 +7,7 @@ module Math.Topology.KnotTh.Invariants.Util.Poly
     , monomial
     , invert
     , normalizeBy
+    , kauffmanXToJones
     ) where
 
 import Data.Ratio (Ratio, (%), numerator)
@@ -69,3 +70,14 @@ invert = invertPoly
 
 normalizeBy :: Poly -> Poly -> Poly
 normalizeBy = normalizePoly
+
+
+kauffmanXToJones :: Poly -> Poly
+kauffmanXToJones (LMP.LP monomials) =
+    sum $ do
+        (LMP.LM m, coeff) <- monomials
+        let next = case M.assocs m of
+                [("a", p)] | odd (B.numeratorQ p) -> (LMP.LM $ M.fromList [("t", p / (-4))], coeff)
+                           | otherwise            -> (LMP.LM $ M.fromList [("t", p / (-4))], coeff)
+                _                                 -> (LMP.LM m, coeff)
+        return $ LMP.LP [next]

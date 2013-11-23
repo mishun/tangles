@@ -1,6 +1,9 @@
 module Main (main) where
 
+import Data.Ord (comparing)
+import Data.Function (on)
 import qualified Data.Map as M
+import Data.List (sortBy, groupBy)
 import System.IO (withFile, IOMode(..), hPrint)
 import Control.Monad.State.Strict (execState, modify)
 import Control.Monad (forM_, when)
@@ -17,51 +20,54 @@ import Math.Topology.KnotTh.Invariants
 import TestUtil.Drawing
 
 
-heuristic :: EmbeddedLink ArbitraryCrossing -> Bool
-heuristic link =
-    let test d a
-            | beginVertex a == beginVertex d     = False
-            | beginVertex a == beginVertex a'    = False
-            | beginVertex d == beginVertex a'    = False
-            | opposite (nextCCW a) /= nextCW a'  = False
-            | passOver a == passOver a'          = True
-            | opposite b == nextCW d             = passOver b == passOver (opposite b)
-            | otherwise                          = test d b
-            where
-                a' = opposite a
-                b = nextCCW a'
-    in not $ or $ do
-        d <- allHalfEdges link
-        return $! test (opposite d) (nextCCW d)
-
-
 generateVirtualKnots :: Int -> IO ()
 generateVirtualKnots maxN = do
-    let table = flip execState M.empty $
+    let heuristic link =
+            let test d a
+                    | beginVertex a == beginVertex d     = False
+                    | beginVertex a == beginVertex a'    = False
+                    | beginVertex d == beginVertex a'    = False
+                    | opposite (nextCCW a) /= nextCW a'  = False
+                    | passOver a == passOver a'          = True
+                    | opposite b == nextCW d             = passOver b == passOver (opposite b)
+                    | otherwise                          = test d b
+                    where
+                        a' = opposite a
+                        b = nextCCW a'
+            in not $ or $ do
+                d <- allHalfEdges link
+                return $! test (opposite d) (nextCCW d)
+
+    let diagrams = flip execState [] $
             tangleStarGlue
                 AnyStar
                 (\ yield -> forCCP_ (primeIrreducibleDiagrams maxN) $ \ (t, (s, _)) -> yield (t, s))
                 (\ !link ->
                     when (eulerChar link == 0 && not (is1stOr2ndReidemeisterReducible link) && numberOfThreads link == 1 && testPrime link && heuristic link) $
-                        modify $ M.insertWith' (++) (numberOfVertices link) [link]
+                        modify (link :)
                 )
 
-    forM_ (M.toList table) $ \ (n, links) ->
-        writeSVGImage (printf "knot-diagrams-%i.svg" n) (Width 500) $ pad 1.05 $ flip execState mempty $
-            forM_ links $ \ link ->
-                modify (=== pad 1.1 (drawKnotDef link))
+    let results =
+            groupBy (on (==) (numberOfVertices . head . snd)) $ sortBy (comparing $ numberOfVertices . head . snd) $
+                map (\ pairs@((poly, _) : _) -> (poly, sortBy (comparing numberOfVertices) $ map snd pairs)) $
+                    filter (not . null) $ groupBy (on (==) fst) $ sortBy (comparing fst) $
+                        map (\ d -> (minimalKauffmanXPolynomial d, d)) diagrams
 
-    forM_ (M.toList table) $ \ (n, links) ->
-        withFile (printf "knot-diagram-codes-%i.txt" n) WriteMode $ \ f ->
-            forM_ links $ \ link ->
-                hPrint f $ encodeEdgeIndices link
+    mapM_ (print . fst) $ concat results
 
-    --forM_ (M.toList table) $ \ (n, links) ->
-    --    forM_ links $ \ link -> do
-    --        let jp = jonesPolynomial link
-    --        putStrLn $ printf "%i: %s" n (show jp)
+    writeSVGImage "diagrams.svg" (Width 500) $ pad 1.05 $
+        flip execState mempty $
+            forM_ results $ \ ofSize ->
+                let pack = flip execState mempty $
+                        forM_ ([1 :: Int ..] `zip` ofSize) $ \ (i, (poly, reps)) ->
+                            let line = flip execState mempty $ do
+                                    forM_ reps $ \ link -> modify (||| pad 1.1 (drawKnotDef link # freeze # scale 8))
+                                    modify $ (|||) $ text (show poly) <> strutX 50
+                                    modify $ (|||) $ text (show i ++ ".") <> strutX 3
+                            in modify (=== line)
+                in modify (=== strutY 5) >> modify (=== pack)
 
-    print $ M.map length table
+    print $ map length results
 
 
 generateVirtualKnotProjections :: Int -> IO ()
@@ -118,7 +124,7 @@ generateAlternatingSkeletons maxN = do
 
 main :: IO ()
 main = do
-    let maxN = 2
+    let maxN = 5
     --generateAlternatingSkeletons maxN
     generateVirtualKnots maxN
     --generateVirtualKnotProjections maxN
