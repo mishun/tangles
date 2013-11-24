@@ -22,4 +22,3 @@ is1stOr2ndReidemeisterReducible knot = or $ do
         r1 = nextCCW a == b
         r2 = isDart b && (passOver a == passOver b) && (nextCCW a == opposite (nextCW b))
     return $! r1 || r2
- 

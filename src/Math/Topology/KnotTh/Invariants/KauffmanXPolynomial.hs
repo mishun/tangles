@@ -47,7 +47,7 @@ instance KnottedWithKauffmanXPolynomial EmbeddedLink where
             let (tangle, star) = splitIntoTangleAndStar link
                 l = numberOfLegs tangle
 
-                border :: Array Int (Int, (Int, Int))
+                border :: Array Int (Int, [Int])
                 border = array (0, l - 1) $ do
                     (pair, gr) <-
                         let ds =
@@ -56,40 +56,39 @@ instance KnottedWithKauffmanXPolynomial EmbeddedLink where
                                     let (pre, post) = span isBigon (outcomingDarts star)
                                     in post ++ pre
                         in case length ds of
-                            4 -> [(1, 0), (0, 1), (-1, 0), (0, -1)] `zip` ds
-                            6 -> [(1, 0), (1, 1), (0, 1), (-1, 0), (-1, -1), (0, -1)] `zip` ds
+                            4 -> [[1, 0], [0, 1], [-1, 0], [0, -1]] `zip` ds
+                            6 -> [[1, 0], [1, 1], [0, 1], [-1, 0], [-1, -1], [0, -1]] `zip` ds
                             _ -> error "internal error"
 
                     d <- gr
                     return (beginPlace d, (endPlace d, pair))
 
-                homotopyMultiple (PlanarChordDiagram a startFactor) = runST $ do
+                homologyMultiple (PlanarChordDiagram a startFactor) = runST $ do
                     visited <- newArray (0, l - 1) False :: ST s (STUArray s Int Bool)
                     foldM (\ !f !start -> do
                             vs <- readArray visited start
                             if vs
                                 then return f
                                 else do
-                                    pair <- fix (\ loop (!p, !q) !i -> do
+                                    homology <- fix (\ loop hom !i -> do
                                             c <- readArray visited i
                                             if c
-                                                then return (p, q)
+                                                then return hom
                                                 else do
-                                                    let (i', (dp, dq)) = border ! i
+                                                    let (i', hom') = border ! i
                                                     writeArray visited i True
                                                     writeArray visited i' True
-                                                    loop (p + dp, q + dq) (a ! i')
-                                        ) (0, 0) start
+                                                    loop (zipWith (+) hom hom') (a ! i')
+                                        ) (replicate (2 * genus link) 0) start
                                     return $ f *
-                                        (case pair of
-                                            (0, 0) -> circleFactor
-                                            _      -> monomial 1 "x" 1
-                                        )
+                                        if all (== 0) homology
+                                            then circleFactor
+                                            else monomial 1 "x" 1
                         ) startFactor [0 .. l - 1]
 
                 result =
                     let KauffmanXStateSum _ list = finalNormalization link $ reduceSkeinStd tangle
-                    in sum $ map homotopyMultiple list
+                    in sum $ map homologyMultiple list
             in result
 
     minimalKauffmanXPolynomial link =

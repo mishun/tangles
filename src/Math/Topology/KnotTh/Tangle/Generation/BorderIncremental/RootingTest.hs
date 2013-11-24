@@ -1,10 +1,12 @@
 {-# LANGUAGE UnboxedTuples #-}
 module Math.Topology.KnotTh.Tangle.Generation.BorderIncremental.RootingTest
-    ( rootingTest
+    ( rootingSymmetryTest
     , rootCodeLeg
-    , minimumRootCode
     ) where
 
+import Data.Function (fix)
+import Data.Ord (comparing)
+import Data.List (minimumBy)
 import Data.Bits (shiftL)
 import Data.Array.Base (unsafeRead, unsafeWrite, unsafeAt)
 import Data.Array.Unboxed (UArray)
@@ -12,17 +14,17 @@ import Data.Array.ST (STArray, STUArray, runSTUArray, newArray, newArray_)
 import Data.Array.Unsafe (unsafeFreeze)
 import Data.STRef (newSTRef, readSTRef, writeSTRef)
 import Control.Monad.ST (ST, runST)
-import Control.Monad (when, foldM)
-import Control.Applicative ((<$>))
+import Control.Monad (when, guard)
 import qualified Math.Algebra.RotationDirection as R
 import qualified Math.Algebra.Group.Dn as Dn
+import qualified Math.Algebra.Group.D4 as D4
 import Math.Topology.KnotTh.Tangle
 
 
-rootingTest :: (CrossingType ct) => Vertex Tangle ct -> Maybe Dn.DnSubGroup
-rootingTest lastCrossing = do
+rootingSymmetryTest :: (CrossingType ct) => Vertex Tangle ct -> Maybe (Dn.DnSubGroup, (D4.D4, D4.D4), UArray Int Int)
+rootingSymmetryTest lastCrossing = do
     let tangle = vertexOwner lastCrossing
-    when (numberOfLegs tangle < 4) Nothing
+    guard $ numberOfLegs tangle >= 4
     cp <- investigateConnectivity lastCrossing
     analyseSymmetry lastCrossing (unsafeAt cp . vertexIndex)
 
@@ -64,65 +66,79 @@ investigateConnectivity lastCrossing = runST $ do
         then return Nothing
         else do
             unsafeWrite cp (vertexIndex lastCrossing) False
-            (Just $!) <$> unsafeFreeze cp
+            (Just $!) `fmap` unsafeFreeze cp
 
 
-analyseSymmetry :: (CrossingType ct) => Vertex Tangle ct -> (Vertex Tangle ct -> Bool) -> Maybe Dn.DnSubGroup
-analyseSymmetry lastCrossing skipCrossing = findSymmetry
-    where
-        tangle = vertexOwner lastCrossing
+analyseSymmetry :: (CrossingType ct) => Vertex Tangle ct -> (Vertex Tangle ct -> Bool) -> Maybe (Dn.DnSubGroup, (D4.D4, D4.D4), UArray Int Int)
+analyseSymmetry lastCrossing skipCrossing = do
+    let tangle = vertexOwner lastCrossing
+        l = numberOfLegs tangle
 
-        lastRootCode = min rcCCW rcCW
-            where
-                startCCW = firstLeg tangle
-                startCW = opposite $ nthOutcomingDart lastCrossing 3
-                rcCCW = rootCodeLeg startCCW R.ccw
-                rcCW = rootCodeLeg startCW R.cw
+        rootLegCCW = firstLeg tangle
+        rootLegCW = opposite $ nthOutcomingDart lastCrossing 3
+        (rootGCCW, rootCodeCCW) = rootCodeLeg rootLegCCW R.ccw
+        (rootGCW, rootCodeCW) = rootCodeLeg rootLegCW R.cw
 
-        findSymmetry =
-            finalState >>= \ (symmetryDir, symmetryRev, positionDir, positionRev) ->
-                let l = numberOfLegs tangle
-                    period = div l (max symmetryDir symmetryRev)
-                in Just $! if symmetryDir == symmetryRev
-                    then Dn.fromPeriodAndMirroredZero l period (positionRev + positionDir)
-                    else Dn.fromPeriod l period
-            where
-                finalState = foldM analyseLeg (0, 0, 0, 0) $ allLegs tangle
+        compareRoots = compare rootCodeCCW rootCodeCW
 
-                testCW leg st@(symDir, symRev, posDir, _) =
-                    case compare (rootCodeLeg leg R.cw) lastRootCode of
-                        LT -> Nothing
-                        GT -> Just st
-                        EQ -> Just (symDir, symRev + 1, posDir, legPlace leg)
+        (rootG, rootCode, rootLeg, rootDir) =
+            case compareRoots of
+                GT -> (rootGCW, rootCodeCW, rootLegCW, R.cw)
+                _  -> (rootGCCW, rootCodeCCW, rootLegCCW, R.ccw)
 
-                testCCW leg st@(symDir, symRev, _, posRev) =
-                    case compare (rootCodeLeg leg R.ccw) lastRootCode of
-                        LT -> Nothing
-                        GT -> Just st
-                        EQ -> Just (symDir + 1, symRev, legPlace leg, posRev)
+        rootDir' = R.oppositeDirection rootDir
 
-                analyseLeg state0 leg =
-                    if skipCrossing cur
-                        then Just state0
-                        else do
-                            state1 <- if nx /= cur then testCW leg state0 else return state0
-                            state2 <- if pv /= cur then testCCW leg state1 else return state1
-                            Just state2
-                    where
-                        cur = fst $ beginPair $ opposite leg
-                        nx = fst $ beginPair $ opposite $ nextCCW leg
-                        pv = fst $ beginPair $ opposite $ nextCW leg
+    let skip dir leg =
+            let c = beginVertex $ opposite leg
+                c' = beginVertex $ opposite $ nextDir dir leg
+            in skipCrossing c || (c == c')
+
+    (period, periodG) <- fix (\ loop !li !leg ->
+            case () of
+                _ | li >= l           -> return (l, D4.i)
+                  | skip rootDir' leg -> loop (li + 1) (nextCCW leg)
+                  | otherwise         ->
+                      let (g, cmp) = compareRootCode leg rootDir rootCode
+                      in case cmp of
+                          LT -> Nothing
+                          GT -> loop (li + 1) (nextCCW leg)
+                          EQ -> return (li, g D4.<*> D4.inverse rootG)
+        ) 1 (nextCCW rootLeg)
+
+    mirror <- case compareRoots of
+        EQ -> return $ Just (legPlace rootLegCW, rootGCW D4.<*> D4.inverse rootGCCW)
+        _  -> fix (\ loop !li !leg ->
+                case () of
+                    _ | li >= period     -> return Nothing
+                      | skip rootDir leg -> loop (li + 1) (nextCCW leg)
+                      | otherwise        ->
+                          let (g, cmp) = compareRootCode leg rootDir' rootCode
+                          in case cmp of
+                              LT -> Nothing
+                              GT -> loop (li + 1) (nextCCW leg)
+                              EQ -> return $ Just (li + 2 * legPlace rootLeg, g D4.<*> D4.inverse rootG)
+            ) 0 rootLeg
+
+    return $ case mirror of
+        Just (mirrorZ, mirrorG) -> (Dn.fromPeriodAndMirroredZero l period mirrorZ, (periodG, mirrorG), rootCode)
+        Nothing                 -> (Dn.fromPeriod l period, (periodG, D4.i), rootCode)
 
 
-rootCodeLeg :: (CrossingType ct) => Dart Tangle ct -> R.RotationDirection -> UArray Int Int
+compareRootCode :: (CrossingType ct) => Dart Tangle ct -> R.RotationDirection -> UArray Int Int -> (D4.D4, Ordering)
+compareRootCode leg dir rootCode =
+    let (g, code) = rootCodeLeg leg dir
+    in (g, compare code rootCode)
+
+
+rootCodeLeg :: (CrossingType ct) => Dart Tangle ct -> R.RotationDirection -> (D4.D4, UArray Int Int)
 rootCodeLeg !root !dir
     | isDart root                     = error "rootCodeLeg: leg expected"
     | numberOfFreeLoops tangle /= 0   = error "rootCodeLeg: free loops present"
-    | n > 127                         = error "rootCodeLeg: too many crossings"
+    | numberOfVertices tangle > 127   = error "rootCodeLeg: too many crossings"
     | otherwise                       =
         case globalTransformations tangle of
-            Nothing      -> code
-            Just globals -> minimum $ map codeWithGlobal globals
+            Nothing      -> (D4.i, code)
+            Just globals -> minimumBy (comparing snd) $ map (\ g -> (g, codeWithGlobal g)) globals
     where 
         tangle = dartOwner root
         n = numberOfVertices tangle
@@ -200,7 +216,3 @@ rootCodeLeg !root !dir
 
             bfs 0
             return rc
-
-
-minimumRootCode :: (CrossingType ct) => Tangle ct -> UArray Int Int
-minimumRootCode tangle = minimum [ rootCodeLeg leg dir | leg <- allLegs tangle, dir <- R.bothDirections ]

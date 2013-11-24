@@ -23,6 +23,7 @@ module Math.Algebra.PlanarAlgebra.Definition
     , rightPair
     , nthDartInCWTraverse
     , eulerChar
+    , genus
     ) where
 
 import Data.Ix (Ix(..))
@@ -270,3 +271,7 @@ nthDartInCWTraverse f p = opposite $ nthDartInCCWTraverse f p
 
 eulerChar :: (SurfaceDiagram a) => a t -> Int
 eulerChar a = numberOfVertices a + numberOfFaces a - numberOfEdges a
+
+
+genus :: (SurfaceDiagram a) => a t -> Int
+genus a = (2 - eulerChar a) `div` 2
