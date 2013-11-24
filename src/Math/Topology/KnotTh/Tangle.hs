@@ -1,14 +1,8 @@
 module Math.Topology.KnotTh.Tangle
     ( module X
-    , TangleProj
-    , TangleProjCrossing
-    , TangleProjDart
     , lonerProjection
-    , NATangle
-    , NATangleCrossing
-    , NATangleDart
-    , lonerOverCrossingTangle
-    , lonerUnderCrossingTangle
+    , lonerOverCrossing
+    , lonerUnderCrossing
     , rationalTangle
     ) where
 
@@ -20,32 +14,19 @@ import Math.Topology.KnotTh.Tangle.Definition.Transform as X
 import Math.Topology.KnotTh.Tangle.Definition.Misc as X
 import Math.Topology.KnotTh.Tangle.Definition.CascadeCode as X
 import Math.Topology.KnotTh.Crossings.Projection as X
-import Math.Topology.KnotTh.Crossings.Arbitrary as X
-
-
-type TangleProj = Tangle ProjectionCrossing
-type TangleProjCrossing = Vertex Tangle ProjectionCrossing
-type TangleProjDart = Dart Tangle ProjectionCrossing
+import Math.Topology.KnotTh.Crossings.Diagram as X
 
 
 lonerProjection :: TangleProj
 lonerProjection = lonerTangle projectionCrossing
 
 
-type NATangle = Tangle ArbitraryCrossing
-type NATangleCrossing = Vertex Tangle ArbitraryCrossing
-type NATangleDart = Dart Tangle ArbitraryCrossing
+lonerOverCrossing, lonerUnderCrossing :: TangleDiagram
+lonerOverCrossing = lonerTangle overCrossing
+lonerUnderCrossing = lonerTangle underCrossing
 
 
-lonerOverCrossingTangle :: NATangle
-lonerOverCrossingTangle = lonerTangle overCrossing
-
-
-lonerUnderCrossingTangle :: NATangle
-lonerUnderCrossingTangle = lonerTangle underCrossing
-
-
-rationalTangle :: [Int] -> NATangle
+rationalTangle :: [Int] -> TangleDiagram
 rationalTangle = flip foldl infinityTangle $ \ tangle x ->
     let g = chainTangle $ replicate (abs x) (if x >= 0 then overCrossing else underCrossing)
     in glueTangles 2 (nthLeg g 2) (nthLeg tangle 2)

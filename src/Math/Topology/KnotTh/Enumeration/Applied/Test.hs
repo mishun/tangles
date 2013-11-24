@@ -11,7 +11,7 @@ import Test.Framework (Test, testGroup)
 import Test.Framework.Providers.HUnit (testCase)
 import Test.HUnit hiding (Test, test)
 import Math.Topology.KnotTh.Tangle
-import Math.Topology.KnotTh.Tangle.NonAlternating.Satellites
+import Math.Topology.KnotTh.Tangle.Satellites
 import Math.Topology.KnotTh.Link (tangleDoubling)
 import Math.Topology.KnotTh.Enumeration.DiagramInfo.MinimalDiagramInfo
 import Math.Topology.KnotTh.Enumeration.DiagramInfo.AllDiagramsInfo
@@ -22,11 +22,9 @@ import TestUtil.Table
 
 testInvariantness ::
     (Eq a, Show a)
-        => ((forall m. (Monad m) => (NATangle -> m ()) -> m ())
-        -> [AllDiagramsInfo NATangle])
-        -> Int
-        -> (NATangle -> a)
-        -> Assertion
+        => ((forall m. (Monad m) => (TangleDiagram -> m ()) -> m ())
+            -> [AllDiagramsInfo TangleDiagram])
+               -> Int -> (TangleDiagram -> a) -> Assertion
 
 testInvariantness sortClasses n f = do
     let classes = map allDiagrams $ sortClasses $ tangleDiagrams True (-1) n

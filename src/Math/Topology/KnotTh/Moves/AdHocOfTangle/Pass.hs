@@ -11,7 +11,7 @@ import Math.Topology.KnotTh.Moves.AdHocOfTangle.Move
 import Math.Topology.KnotTh.Moves.AdHocOfTangle.ReidemeisterReduction
 
 
-neighbours :: NATangle -> [NATangle]
+neighbours :: TangleDiagram -> [TangleDiagram]
 neighbours tangle = mapMaybe (\ d -> tryPass 1 d d [opposite d]) $ allOutcomingDarts tangle
     where
         tryPass n ha tb incoming = do

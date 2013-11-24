@@ -97,7 +97,7 @@ primeProjections maxN =
             let l = numberOfLegs tangle
             gl <- [1 .. min 3 $ min (l - 1) (l `div` 2)]
             (leg, inducedSymmetry) <- uniqueGlueSites' gl (tangle, symmetry)
-            state <- possibleOrientations ProjectionCrossing inducedSymmetry
+            state <- possibleOrientations undefined inducedSymmetry
             return (gl, leg, state)
 
         , tryAscent        = \ (gl, leg, st) -> do
@@ -122,9 +122,9 @@ templateProjections maxN =
 
 primeIrreducibleDiagrams, primeIrreducibleDiagramsTriangle
     :: Int -> CanonicalConstructionPathI
-        (NATangle, (Dn.DnSubGroup, (D4.D4, D4.D4)))
-        (Int, NATangleDart, ArbitraryCrossingState)
-        (NATangle, (Dn.DnSubGroup, (D4.D4, D4.D4)))
+        (TangleDiagram, (Dn.DnSubGroup, (D4.D4, D4.D4)))
+        (Int, TangleDiagramDart, DiagramCrossingState)
+        (TangleDiagram, (Dn.DnSubGroup, (D4.D4, D4.D4)))
 
 primeIrreducibleDiagrams maxN =
     CanonicalConstructionPathClean
@@ -133,7 +133,7 @@ primeIrreducibleDiagrams maxN =
             let l = numberOfLegs tangle
             gl <- [1 .. min 3 $ min (l - 1) (l `div` 2)]
             (leg, inducedSymmetry) <- uniqueGlueSites gl ts
-            state <- possibleOrientations ArbitraryCrossing inducedSymmetry
+            state <- possibleOrientations undefined inducedSymmetry
             return (gl, leg, state)
 
         , tryAscent        = \ (gl, leg, st) -> do
@@ -143,7 +143,7 @@ primeIrreducibleDiagrams maxN =
             return (vertexOwner root, (sym, adj))
 
         , lowerProjection  = id
-        , roots            = [(lonerOverCrossingTangle, (Dn.fromPeriodAndMirroredZero 4 1 0, (D4.ec, D4.e)))]
+        , roots            = [(lonerOverCrossing, (Dn.fromPeriodAndMirroredZero 4 1 0, (D4.ec, D4.e)))]
         }
 
 

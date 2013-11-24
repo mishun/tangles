@@ -8,7 +8,7 @@ import Math.Topology.KnotTh.Tangle
 import Math.Topology.KnotTh.Moves.AdHocOfTangle.Move
 
 
-neighbours :: NATangle -> [NATangle]
+neighbours :: TangleDiagram -> [TangleDiagram]
 neighbours tangle =
     flip mapMaybe (allOutcomingDarts tangle) $ \ ab -> do
         -- \sc           /rb             \sc   /rb

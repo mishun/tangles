@@ -14,8 +14,8 @@ import Math.Topology.KnotTh.Invariants.KauffmanXPolynomial
 
 class (Knotted k) => KnottedWithJonesPolynomial k where
     type JonesPolynomial k :: * 
-    jonesPolynomial        :: k ArbitraryCrossing -> JonesPolynomial k
-    minimalJonesPolynomial :: k ArbitraryCrossing -> JonesPolynomial k
+    jonesPolynomial        :: k DiagramCrossing -> JonesPolynomial k
+    minimalJonesPolynomial :: k DiagramCrossing -> JonesPolynomial k
 
 
 instance KnottedWithJonesPolynomial Tangle where
@@ -30,7 +30,7 @@ instance KnottedWithJonesPolynomial Link where
     minimalJonesPolynomial = kauffmanXToJones . minimalKauffmanXPolynomial
 
 
-normalizedJonesPolynomialOfLink :: NALink -> Poly
+normalizedJonesPolynomialOfLink :: LinkDiagram -> Poly
 normalizedJonesPolynomialOfLink link
     | isEmptyKnotted link  = error "jonesPolynomialOfLink: empty link provided"
     | otherwise            = normalizeBy (1 + monomial 1 "t" 1) (monomial (-1) "t" (1 / 2) * jonesPolynomial link)

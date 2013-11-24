@@ -120,11 +120,11 @@ canonicalOver _ (!a, !b) (!c, !d) =
 --    in (sa, min a b) < (sb, min c d)
 
 
-restoreBasicTangle :: UArray Int Int -> NATangle
+restoreBasicTangle :: UArray Int Int -> TangleDiagram
 restoreBasicTangle !chordDiagram =
     let cdl = 1 + snd (bounds chordDiagram)
 
-        restore :: UArray Int Int -> Array Int (Int, Int) -> [Int] -> NATangle
+        restore :: UArray Int Int -> Array Int (Int, Int) -> [Int] -> TangleDiagram
         restore _ _ [] = error "impossible happened"
         restore a h (i : rest) = case () of
             _ | l == 0                           -> emptyTangle
@@ -158,12 +158,12 @@ data ThreadTag = BorderThread {-# UNPACK #-} !(Int, Int) {-# UNPACK #-} !Int
                | InternalThread {-# UNPACK #-} !Int {-# UNPACK #-} !Int
 
 
-irregularCrossings :: NATangle -> [NATangleCrossing]
+irregularCrossings :: TangleDiagram -> [TangleDiagramCrossing]
 irregularCrossings tangle =
     let ((_, _, threads), _) = threadsWithLinkingNumbers tangle
 
         expectedPassOver =
-            let tags :: Array NATangleDart ThreadTag
+            let tags :: Array TangleDiagramDart ThreadTag
                 tags = array (dartsRange tangle) $ do
                     (tid, thread) <- threads
                     let make = case thread of
@@ -191,7 +191,7 @@ irregularCrossings tangle =
        ) $ allVertices tangle
 
 
-decomposeTangle :: (KauffmanFArg a) => [(Int, [(Int, Int)], [([(Int, Int)], ArbitraryCrossingState)])] -> a -> NATangle -> ChordDiagramsSum a
+decomposeTangle :: (KauffmanFArg a) => [(Int, [(Int, Int)], [([(Int, Int)], DiagramCrossingState)])] -> a -> TangleDiagram -> ChordDiagramsSum a
 decomposeTangle path !initialFactor !tangle' =
     let splices [] toInvert factor inter =
             let tangle = move tangle' $ modifyC False invertCrossing toInvert

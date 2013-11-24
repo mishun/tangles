@@ -13,8 +13,8 @@ import Math.Topology.KnotTh.Link
 
 class (Knotted k) => KnottedWithKauffmanFPolynomial k where
     type KauffmanFPolynomial k :: *
-    kauffmanFPolynomial        :: k ArbitraryCrossing -> KauffmanFPolynomial k
-    minimalKauffmanFPolynomial :: k ArbitraryCrossing -> KauffmanFPolynomial k
+    kauffmanFPolynomial        :: k DiagramCrossing -> KauffmanFPolynomial k
+    minimalKauffmanFPolynomial :: k DiagramCrossing -> KauffmanFPolynomial k
 
 
 instance KnottedWithKauffmanFPolynomial Tangle where
@@ -29,7 +29,7 @@ instance KnottedWithKauffmanFPolynomial Link where
     minimalKauffmanFPolynomial = takeAsScalar . minimalKauffmanFPolynomial . linkToTangle
 
 
-normalizedKauffmanFPolynomialOfLink :: NALink -> Poly2
+normalizedKauffmanFPolynomialOfLink :: LinkDiagram -> Poly2
 normalizedKauffmanFPolynomialOfLink link
     | isEmptyKnotted link  = error "normalizedKauffmanFPolynomialOfLink: empty link provided"
     | otherwise            =

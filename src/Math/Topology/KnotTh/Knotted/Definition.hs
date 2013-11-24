@@ -25,6 +25,8 @@ module Math.Topology.KnotTh.Knotted.Definition
     , forMAdjacentDarts
     , foldMAdjacentDarts
     , foldMAdjacentDartsFrom
+
+    , orientation
     ) where
 
 import Data.Bits ((.&.))
@@ -59,12 +61,13 @@ class (Eq ct, Show ct) => CrossingType ct where
     mirrorReversingDartsOrder = mapOrientation (D4.ec D4.<*>)
 
 
-data CrossingState ct = Crossing
-    { code         :: {-# UNPACK #-} !Int
-    , orientation  :: {-# UNPACK #-} !D4.D4
-    , symmetry     :: !D4.D4SubGroup
-    , crossingType :: !ct
-    }
+data CrossingState ct =
+    Crossing
+        { code         :: {-# UNPACK #-} !Int
+        , orientation  :: {-# UNPACK #-} !D4.D4
+        , symmetry     :: !D4.D4SubGroup
+        , crossingType :: !ct
+        }
 
 
 instance (Eq ct) => Eq (CrossingState ct) where
@@ -137,12 +140,13 @@ dartByCrossingLegId c = nthOutcomingDart c . dartIdByCrossingLegId (crossingStat
 
 
 makeCrossing :: (CrossingType ct) => ct -> D4.D4 -> CrossingState ct
-makeCrossing !ct !g = Crossing
-    { code         = crossingTypeCode ct
-    , orientation  = g
-    , symmetry     = localCrossingSymmetry ct
-    , crossingType = ct
-    }
+makeCrossing !ct !g =
+    Crossing
+        { code         = crossingTypeCode ct
+        , orientation  = g
+        , symmetry     = localCrossingSymmetry ct
+        , crossingType = ct
+        }
 
 
 makeCrossing' :: (CrossingType ct) => ct -> CrossingState ct
@@ -154,26 +158,26 @@ mapCrossing f x = makeCrossing (f $ crossingType x) (orientation x)
 
 
 class (PlanarDiagram knot) => Knotted knot where
-    numberOfFreeLoops       :: knot ct -> Int
-    changeNumberOfFreeLoops :: Int -> knot ct -> knot ct
+    numberOfFreeLoops       :: knot a -> Int
+    changeNumberOfFreeLoops :: Int -> knot a -> knot a
 
-    emptyKnotted   :: knot ct
-    isEmptyKnotted :: knot ct -> Bool
+    emptyKnotted   :: knot a
+    isEmptyKnotted :: knot a -> Bool
 
     isEmptyKnotted k = (numberOfVertices k == 0) && (numberOfFreeLoops k == 0)
 
-    mapCrossings      :: (CrossingType a, CrossingType b) => (CrossingState a -> CrossingState b) -> knot a -> knot b
-    crossingState     :: Vertex knot ct -> CrossingState ct
+    mapCrossings      :: (CrossingType b) => (CrossingState a -> CrossingState b) -> knot a -> knot b
+    crossingState     :: Vertex knot a -> CrossingState a
 
-    homeomorphismInvariant :: (CrossingType ct) => knot ct -> UArray Int Int
+    homeomorphismInvariant :: (CrossingType a) => knot a -> UArray Int Int
 
-    type ExplodeType knot ct :: *
-    explode :: knot ct -> ExplodeType knot ct
-    implode :: (CrossingType ct) => ExplodeType knot ct -> knot ct
+    type ExplodeType knot a :: *
+    explode :: knot a -> ExplodeType knot a
+    implode :: (CrossingType a) => ExplodeType knot a -> knot a
 
-    forMIncidentDarts      :: (Monad m) => Vertex knot ct -> (Dart knot ct -> m ()) -> m ()
-    foldMIncidentDarts     :: (Monad m) => Vertex knot ct -> (Dart knot ct -> s -> m s) -> s -> m s
-    foldMIncidentDartsFrom :: (Monad m) => Dart knot ct -> R.RotationDirection -> (Dart knot ct -> s -> m s) -> s -> m s
+    forMIncidentDarts      :: (Monad m) => Vertex knot a -> (Dart knot a -> m ()) -> m ()
+    foldMIncidentDarts     :: (Monad m) => Vertex knot a -> (Dart knot a -> s -> m s) -> s -> m s
+    foldMIncidentDartsFrom :: (Monad m) => Dart knot a -> R.RotationDirection -> (Dart knot a -> s -> m s) -> s -> m s
 
     forMIncidentDarts c f =
         f (nthOutcomingDart c 0)
@@ -198,8 +202,8 @@ class (PlanarDiagram knot) => Knotted knot where
 
 
 class (Knotted knot) => KnottedWithConnectivity knot where
-    isConnected :: knot ct -> Bool
-    isPrime     :: knot ct -> Bool
+    isConnected :: knot a -> Bool
+    isPrime     :: knot a -> Bool
 
 
 class (Knotted knot, SurfaceDiagram knot) => SurfaceKnotted knot where

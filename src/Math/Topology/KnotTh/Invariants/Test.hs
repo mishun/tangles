@@ -68,8 +68,8 @@ test = testGroup "Invariants"
                 , ("identity"      , identityTangle             , "(1)[1,0]"                           )
                 , ("zero"          , zeroTangle                 , "(1)[3,2,1,0]"                       )
                 , ("infinity"      , infinityTangle             , "(1)[1,0,3,2]"                       )
-                , ("over crossing" , lonerOverCrossingTangle    , "(t^1/4)[1,0,3,2]+(t^-1/4)[3,2,1,0]" )
-                , ("under crossing", lonerUnderCrossingTangle   , "(t^-1/4)[1,0,3,2]+(t^1/4)[3,2,1,0]" )
+                , ("over crossing" , lonerOverCrossing          , "(t^1/4)[1,0,3,2]+(t^-1/4)[3,2,1,0]" )
+                , ("under crossing", lonerUnderCrossing         , "(t^-1/4)[1,0,3,2]+(t^1/4)[3,2,1,0]" )
                 , ("group 2"       , rationalTangle [2]         , "(1-t)[1,0,3,2]+(t^-1/2)[3,2,1,0]"   )
                 , ("group -2"      , rationalTangle [-2]        , "(-t^-1+1)[1,0,3,2]+(t^1/2)[3,2,1,0]")
                 , ("II reducable"  , decodeCascadeCode [(XU, 0)], "(1)[3,2,1,0]"                       )
@@ -103,12 +103,12 @@ test = testGroup "Invariants"
 
         , testGroup "Exact values on tangles" $
             map (\ (name, t, target) -> testCase name $ show (kauffmanFPolynomial t) @?= target)
-                [ ("empty"         , emptyTangle                , "(1)[]"                                  )
-                , ("identity"      , identityTangle             , "(1)[1,0]"                               )
-                , ("zero"          , zeroTangle                 , "(1)[3,2,1,0]"                           )
-                , ("infinity"      , infinityTangle             , "(1)[1,0,3,2]"                           )
-                , ("over crossing" , lonerOverCrossingTangle    , "(1)[2,3,0,1]"                           )
-                , ("under crossing", lonerUnderCrossingTangle   , "(z)[1,0,3,2]+(-1)[2,3,0,1]+(z)[3,2,1,0]")
+                [ ("empty"         , emptyTangle        , "(1)[]"                                  )
+                , ("identity"      , identityTangle     , "(1)[1,0]"                               )
+                , ("zero"          , zeroTangle         , "(1)[3,2,1,0]"                           )
+                , ("infinity"      , infinityTangle     , "(1)[1,0,3,2]"                           )
+                , ("over crossing" , lonerOverCrossing  , "(1)[2,3,0,1]"                           )
+                , ("under crossing", lonerUnderCrossing , "(z)[1,0,3,2]+(-1)[2,3,0,1]+(z)[3,2,1,0]")
                 ]
 
         , testCase "Relation to Jones polynomial" $ do

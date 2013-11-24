@@ -21,7 +21,6 @@ import Control.Monad.ST (ST, runST)
 import Control.Monad.Reader (ReaderT, runReaderT, ask, lift)
 import Control.Monad ((>=>), when, forM, forM_, foldM_, filterM)
 import Text.Printf
-import Math.Topology.KnotTh.Crossings.Arbitrary
 import Math.Topology.KnotTh.Tangle
 
 
@@ -136,15 +135,15 @@ oppositeC d = do
         readArray (stateConnections st) (dartIndex d)
 
 
-passOverC :: NATangleDart -> MoveM s ArbitraryCrossing Bool
+passOverC :: TangleDiagramDart -> MoveM s DiagramCrossing Bool
 passOverC d =
     ask >>= \ st -> lift $ do
         when (isLeg d) $ fail $ printf "passOverC: leg %s passed" (show d)
         msk <- readMaskST st $ beginVertex d
         case msk of
             Masked    -> fail "passOverC: touching masked crossing when taking from %s" (show d)
-            Direct t  -> return $! passOverByDartId t (beginPlace d)
-            Flipped t -> return $! passOverByDartId t (3 - beginPlace d)
+            Direct t  -> return $! passOver' t (beginPlace d)
+            Flipped t -> return $! passOver' t (3 - beginPlace d)
 
 
 emitCircle :: Int -> MoveM s ct ()

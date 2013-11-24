@@ -8,7 +8,7 @@ import Data.Array.IArray ((!))
 import Data.Array (Array)
 import Control.Monad (mfilter)
 import Math.Topology.KnotTh.Crossings.Projection
-import Math.Topology.KnotTh.Crossings.Arbitrary
+import Math.Topology.KnotTh.Crossings.Diagram
 import Math.Topology.KnotTh.Knotted
 import Math.Topology.KnotTh.Draw.Settings
 
@@ -84,7 +84,7 @@ instance DrawableCrossingType ProjectionCrossing where
         cutThread thread embedding (const False) (const id)
 
 
-instance DrawableCrossingType ArbitraryCrossing where
+instance DrawableCrossingType DiagramCrossing where
     crossingDependentSegmentation s knot embedding = do
         thread <- filter (not . null) $ allThreads knot
         cutThread thread embedding

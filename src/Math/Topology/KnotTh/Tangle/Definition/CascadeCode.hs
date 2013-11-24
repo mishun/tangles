@@ -9,7 +9,7 @@ module Math.Topology.KnotTh.Tangle.Definition.CascadeCode
 import Data.Char (isSpace)
 import Text.Printf
 import Math.Topology.KnotTh.Crossings.Projection
-import Math.Topology.KnotTh.Crossings.Arbitrary
+import Math.Topology.KnotTh.Crossings.Diagram
 import Math.Topology.KnotTh.Knotted
 import Math.Topology.KnotTh.Tangle.Definition.TangleLike
 import Math.Topology.KnotTh.Tangle.Definition.Tangle
@@ -72,7 +72,7 @@ instance Read DiagPattern where
         _             -> []
 
 
-instance CascadeCodePattern DiagPattern ArbitraryCrossing where
+instance CascadeCodePattern DiagPattern DiagramCrossing where
     cascadeCodeRoot _ = lonerTangle overCrossing
 
     decodeCrossing WO = (W, 1, 0, underCrossing)

@@ -5,10 +5,10 @@ module Math.Topology.KnotTh.Invariants.LinkingNumber
 import Data.List (sort)
 import Data.Array.IArray ((!))
 import Math.Topology.KnotTh.Knotted
-import Math.Topology.KnotTh.Crossings.Arbitrary
+import Math.Topology.KnotTh.Crossings.Diagram
 
 
-linkingNumbersInvariant :: (Knotted k) => k ArbitraryCrossing -> [Int]
+linkingNumbersInvariant :: (Knotted k) => k DiagramCrossing -> [Int]
 linkingNumbersInvariant knot = sort $ do
     let ((n, _, _), ln) = threadsWithLinkingNumbers knot
     i <- [1 .. n]

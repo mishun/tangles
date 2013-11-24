@@ -24,70 +24,70 @@ import Math.Topology.KnotTh.Link
 import Math.Topology.KnotTh.Link.Table.Access
 
 
-unlink :: Int -> NALink
+unlink :: Int -> LinkDiagram
 unlink k | k < 0      = error $ printf "unlink: number of components %i is negative" k
          | otherwise  = implode (k, [])
 
 
-unknot :: NALink
+unknot :: LinkDiagram
 unknot = unlink 1
 
 
-singleCrossingUnknot :: NALink
+singleCrossingUnknot :: LinkDiagram
 singleCrossingUnknot = fromGaussCode [[1, -1]]
 
 
-hopfLink :: NALink
+hopfLink :: LinkDiagram
 hopfLink = link 2 2 1
 
 
-leftTrefoilKnot :: NALink
+leftTrefoilKnot :: LinkDiagram
 leftTrefoilKnot = knot 3 1
 
 
-rightTrefoilKnot :: NALink
+rightTrefoilKnot :: LinkDiagram
 rightTrefoilKnot = invertCrossings leftTrefoilKnot
 
 
-figureEightKnot :: NALink
+figureEightKnot :: LinkDiagram
 figureEightKnot = knot 4 1
 
 
-leftCinquefoilKnot :: NALink
+leftCinquefoilKnot :: LinkDiagram
 leftCinquefoilKnot = knot 5 1
 
 
-rightCinquefoilKnot :: NALink
+rightCinquefoilKnot :: LinkDiagram
 rightCinquefoilKnot = invertCrossings leftCinquefoilKnot
 
 
-threeTwistKnot :: NALink
+threeTwistKnot :: LinkDiagram
 threeTwistKnot = knot 5 2
 
 
-whiteheadLink :: NALink
+whiteheadLink :: LinkDiagram
 whiteheadLink = link 2 5 1
 
 
-grannyKnot :: NALink
+grannyKnot :: LinkDiagram
 grannyKnot = fromGaussCode [[1, -2, 3, -1, 2, -3, 4, -5, 6, -4, 5, -6]]
 
 
-squareKnot :: NALink
+squareKnot :: LinkDiagram
 squareKnot = fromGaussCode [[1, -2, 3, -1, 2, -3, -4, 5, -6, 4, -5, 6]]
 
 
-stevedoreKnot :: NALink
+stevedoreKnot :: LinkDiagram
 stevedoreKnot = knot 6 1
 
 
-borromeanRingsLink :: NALink
+borromeanRingsLink :: LinkDiagram
 borromeanRingsLink = link 3 6 1
 
 
-conwayKnot :: NALink
+conwayKnot :: LinkDiagram
 conwayKnot = fromDTCode [[4, 8, 12, 2, -16, -18, 6, -20, -22, -14, -10]]
 
 
-kinoshitaTerasakaKnot :: NALink
+kinoshitaTerasakaKnot :: LinkDiagram
 kinoshitaTerasakaKnot = fromDTCode [[4, 8, 12, 2, -18, -20, 6, -10, -22, -14, -16]]

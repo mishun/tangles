@@ -1,4 +1,4 @@
-module Math.Topology.KnotTh.Tangle.NonAlternating.Satellites
+module Math.Topology.KnotTh.Tangle.Satellites
     ( twistedDoubleSatellite
     , twistedTripleSatellite
     ) where
@@ -8,15 +8,15 @@ import Math.Topology.KnotTh.Tangle
 import Math.Topology.KnotTh.Tangle.TensorSubst
 
 
-twistedDoubleSatellite :: NATangle -> NATangle
+twistedDoubleSatellite :: TangleDiagram -> TangleDiagram
 twistedDoubleSatellite = twistedNSatellite 2
 
 
-twistedTripleSatellite :: NATangle -> NATangle
+twistedTripleSatellite :: TangleDiagram -> TangleDiagram
 twistedTripleSatellite = twistedNSatellite 3
 
 
-twistedNSatellite :: Int -> NATangle -> NATangle
+twistedNSatellite :: Int -> TangleDiagram -> TangleDiagram
 twistedNSatellite n tangle
     | n < 0      = error "twistedNSattelite: negative order"
     | n == 0     = emptyTangle
@@ -25,16 +25,15 @@ twistedNSatellite n tangle
     where
         w = selfWritheArray tangle
 
-        wrap c
-            | wc == 0    = cross
-            | otherwise  =
-                let r | wc > 0     = underCrossing
-                      | otherwise  = overCrossing
+        wrap c | wc == 0    = cross
+               | otherwise  =
+                   let r | wc > 0     = underCrossing
+                         | otherwise  = overCrossing
 
-                    braid =
-                        let half = reversingBraidTangle n r
-                        in half |=| half
-                in glueTangles n (nthLeg braid n) (nthLeg cross $ n - 1)
+                       braid =
+                           let half = reversingBraidTangle n r
+                           in half |=| half
+                   in glueTangles n (nthLeg braid n) (nthLeg cross $ n - 1)
             where
                 wc = w ! c
                 s = crossingState c

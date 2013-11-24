@@ -4,6 +4,12 @@ module Math.Topology.KnotTh.Link.Definition.Link
     , emptyLink
     , linkToTangle
     , tangleToLink
+    , LinkProj
+    , LinkProjCrossing
+    , LinkProjDart
+    , LinkDiagram
+    , LinkDiagramCrossing
+    , LinkDiagramDart
     ) where
 
 import Control.Arrow ((***))
@@ -75,3 +81,13 @@ linkToTangle (L t) = t
 tangleToLink :: Tangle ct -> Link ct
 tangleToLink t | numberOfLegs t == 0  = L t
                | otherwise            = error "tangleToLink: tangle must have 0 legs"
+
+
+type LinkProj = Link ProjectionCrossing
+type LinkProjCrossing = Vertex Link ProjectionCrossing
+type LinkProjDart = Dart Link ProjectionCrossing
+
+
+type LinkDiagram = Link DiagramCrossing
+type LinkDiagramCrossing = Vertex Link DiagramCrossing
+type LinkDiagramDart = Dart Link DiagramCrossing

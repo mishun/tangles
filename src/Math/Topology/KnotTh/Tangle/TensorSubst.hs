@@ -17,7 +17,8 @@ tensorSubst k crossF tangle = implode (k * numberOfFreeLoops tangle, border, bod
         crossSubst = (listArray (1, n) :: [a] -> Array Int a) $ do
             c <- allVertices tangle
             let t = crossF c
-            when (numberOfLegs t /= 4 * k) $ error "bad number of legs"
+            when (numberOfLegs t /= 4 * k) $
+                fail "bad number of legs"
             return $! t
 
         crossOffset = (listArray (1, n) :: [Int] -> UArray Int Int) $

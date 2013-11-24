@@ -14,7 +14,7 @@ import Math.Topology.KnotTh.Moves.AdHocOfTangle.Test
 import Math.Topology.KnotTh.Link.Table
 import TestUtil.Table
 import TestUtil.Drawing
-import Math.Topology.KnotTh.Tangle.NonAlternating.Satellites
+import Math.Topology.KnotTh.Tangle.Satellites
 
 
 main :: IO ()

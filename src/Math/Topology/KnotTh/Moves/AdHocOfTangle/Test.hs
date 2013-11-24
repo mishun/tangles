@@ -6,7 +6,7 @@ import Math.Topology.KnotTh.Tangle
 import qualified Math.Topology.KnotTh.Moves.AdHocOfTangle.Pass as Pass
 
 
-passTests :: [(NATangle, [NATangle])]
+passTests :: [(TangleDiagram, [TangleDiagram])]
 passTests = map (\ tangle -> (tangle, Pass.neighbours tangle))
     [ decodeCascadeCode [(WU, 0), (MO, 0)]
     , decodeCascadeCode [(XO, 0), (XO, 0), (XO, 1)]

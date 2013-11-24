@@ -1,6 +1,12 @@
 {-# LANGUAGE TemplateHaskell, TypeFamilies, UnboxedTuples #-}
 module Math.Topology.KnotTh.EmbeddedLink.Definition.EmbeddedLink
     ( EmbeddedLink
+    , EmbeddedLinkProj
+    , EmbeddedLinkProjCrossing
+    , EmbeddedLinkProjDart
+    , EmbeddedLinkDiagram
+    , EmbeddedLinkDiagramCrossing
+    , EmbeddedLinkDiagramDart
     ) where
 
 import Language.Haskell.TH
@@ -20,6 +26,8 @@ import Text.Printf
 import qualified Math.Algebra.Group.D4 as D4
 import qualified Math.Algebra.RotationDirection as R
 import Math.Topology.KnotTh.Knotted
+import Math.Topology.KnotTh.Crossings.Projection
+import Math.Topology.KnotTh.Crossings.Diagram
 import Math.Topology.KnotTh.Knotted.TH.Knotted
 import Math.Topology.KnotTh.Knotted.TH.Show
 
@@ -211,3 +219,13 @@ instance SurfaceDiagram EmbeddedLink where
 
 
 instance SurfaceKnotted EmbeddedLink
+
+
+type EmbeddedLinkProj = EmbeddedLink ProjectionCrossing
+type EmbeddedLinkProjCrossing = Vertex EmbeddedLink ProjectionCrossing
+type EmbeddedLinkProjDart = Dart EmbeddedLink ProjectionCrossing
+
+
+type EmbeddedLinkDiagram = EmbeddedLink DiagramCrossing
+type EmbeddedLinkDiagramCrossing = Vertex EmbeddedLink DiagramCrossing
+type EmbeddedLinkDiagramDart = Dart EmbeddedLink DiagramCrossing

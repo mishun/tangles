@@ -15,16 +15,16 @@ import Data.STRef (newSTRef, readSTRef, writeSTRef)
 import Control.Monad.ST (ST, runST)
 import Control.Monad (forM, forM_, when, unless, foldM_, liftM2)
 import Text.Printf
-import Math.Topology.KnotTh.Crossings.Arbitrary
 import Math.Topology.KnotTh.Knotted
+import Math.Topology.KnotTh.Crossings.Diagram
 import Math.Topology.KnotTh.Link.Definition.Link
 
 
-toDTCode :: Link ArbitraryCrossing -> [[Int]]
+toDTCode :: LinkDiagram -> [[Int]]
 toDTCode _ = error "not implemented"
 
 
-fromDTCode :: [[Int]] -> Link ArbitraryCrossing
+fromDTCode :: [[Int]] -> LinkDiagram
 fromDTCode code =
     let common = concat code
         sz = length common
@@ -45,13 +45,13 @@ fromDTCode code =
         ) 1 code
 
 
-toGaussCode :: Link ArbitraryCrossing -> [[Int]]
+toGaussCode :: LinkDiagram -> [[Int]]
 toGaussCode link =
     flip map (allThreads link) $ map $ \ (_, d) ->
         (vertexIndex $ beginVertex d) * (if passOver d then 1 else -1)
 
 
-fromGaussCode :: [[Int]] -> Link ArbitraryCrossing
+fromGaussCode :: [[Int]] -> LinkDiagram
 fromGaussCode = decode . simplifyGaussCode
 
 
@@ -80,7 +80,7 @@ splice i = go
                 (pref, suf) -> (tail suf ++ pref ++ [head suf], threads)
 
 
-decode :: (Int, [[Int]]) -> Link ArbitraryCrossing
+decode :: (Int, [[Int]]) -> LinkDiagram
 decode (n, threads) = implode (length $ filter null threads, incidence)
     where
         chords = foldl (\ l i -> splice i l) (filter (not . null) threads) [1 .. n]
@@ -116,7 +116,7 @@ decode (n, threads) = implode (length $ filter null threads, incidence)
 
         incidence = runST $ do
             conn <- newArray_ ((1, 0), (n, 3)) :: ST s (STArray s (Int, Int) (Int, Int))
-            state <- newArray_ (1, n) :: ST s (STArray s Int ArbitraryCrossingState)
+            state <- newArray_ (1, n) :: ST s (STArray s Int DiagramCrossingState)
 
             let connect a b = writeArray conn a b >> writeArray conn b a
 

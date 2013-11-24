@@ -13,7 +13,6 @@ import Math.Topology.KnotTh.Draw
 import Math.Topology.KnotTh.Tangle
 import Math.Topology.KnotTh.Tangle.Generation.BorderIncremental
 import Math.Topology.KnotTh.EmbeddedLink
-import Math.Topology.KnotTh.EmbeddedLink.IsomorphismTest
 import Math.Topology.KnotTh.EmbeddedLink.TestPrime
 import Math.Topology.KnotTh.EmbeddedLink.TangleStarGlue
 import Math.Topology.KnotTh.Invariants
@@ -22,7 +21,15 @@ import TestUtil.Drawing
 
 generateVirtualKnots :: Int -> IO ()
 generateVirtualKnots maxN = do
-    let heuristic link =
+    let is1stOr2ndReidemeisterReducible knot = or $ do
+            c <- allVertices knot
+            a <- outcomingDarts c
+            let b = opposite a
+                r1 = nextCCW a == b
+                r2 = isDart b && (passOver a == passOver b) && (nextCCW a == opposite (nextCW b))
+            return $! r1 || r2
+
+        heuristic link =
             let test d a
                     | beginVertex a == beginVertex d     = False
                     | beginVertex a == beginVertex a'    = False
@@ -124,7 +131,7 @@ generateAlternatingSkeletons maxN = do
 
 main :: IO ()
 main = do
-    let maxN = 5
+    let maxN = 3
     --generateAlternatingSkeletons maxN
     generateVirtualKnots maxN
     --generateVirtualKnotProjections maxN

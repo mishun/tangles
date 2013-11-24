@@ -5,7 +5,7 @@ import Text.Printf
 import Criterion.Main
 import Criterion.Config
 import Math.Topology.KnotTh.Tangle
-import Math.Topology.KnotTh.Tangle.NonAlternating.Satellites
+import Math.Topology.KnotTh.Tangle.Satellites
 import Math.Topology.KnotTh.Link
 import Math.Topology.KnotTh.Invariants
 
@@ -25,7 +25,7 @@ benchmarks =
             polynomialsBenchmark $ rationalTangle ratCode
 
     , bgroup "Twisted triple of loner" $
-        let tangle = twistedTripleSatellite lonerOverCrossingTangle
+        let tangle = twistedTripleSatellite lonerOverCrossing
         in polynomialsBenchmark tangle
 
     , bgroup "Twisted triple of pair" $

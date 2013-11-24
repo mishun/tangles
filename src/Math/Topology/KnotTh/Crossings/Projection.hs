@@ -1,5 +1,5 @@
 module Math.Topology.KnotTh.Crossings.Projection
-    ( ProjectionCrossing(..)
+    ( ProjectionCrossing
     , ProjectionCrossingState
     , projectionCrossing
     , projectionCrossings

@@ -8,6 +8,12 @@ module Math.Topology.KnotTh.Tangle.Definition.Tangle
     , lonerTangle
     , glueToBorder
     , glueTangles
+    , TangleProj
+    , TangleProjCrossing
+    , TangleProjDart
+    , TangleDiagram
+    , TangleDiagramCrossing
+    , TangleDiagramDart
     ) where
 
 import Language.Haskell.TH
@@ -31,6 +37,8 @@ import qualified Math.Algebra.RotationDirection as R
 import Math.Topology.KnotTh.Knotted.TH.Knotted
 import Math.Topology.KnotTh.Knotted.TH.Show
 import Math.Topology.KnotTh.Knotted
+import Math.Topology.KnotTh.Crossings.Projection
+import Math.Topology.KnotTh.Crossings.Diagram
 import Math.Topology.KnotTh.Tangle.Definition.TangleLike
 
 
@@ -536,3 +544,13 @@ instance KnottedWithConnectivity Tangle where
                     walkBackward (d, path)
                         | isLeg d    = path
                         | otherwise  = let prev = opposite $ adjBackward d in walkBackward (prev, prev : path)
+
+
+type TangleProj = Tangle ProjectionCrossing
+type TangleProjCrossing = Vertex Tangle ProjectionCrossing
+type TangleProjDart = Dart Tangle ProjectionCrossing
+
+
+type TangleDiagram = Tangle DiagramCrossing
+type TangleDiagramCrossing = Vertex Tangle DiagramCrossing
+type TangleDiagramDart = Dart Tangle DiagramCrossing

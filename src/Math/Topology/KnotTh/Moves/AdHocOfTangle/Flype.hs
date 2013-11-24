@@ -10,7 +10,7 @@ import Math.Topology.KnotTh.Moves.AdHocOfTangle.Move
 import Math.Topology.KnotTh.Moves.AdHocOfTangle.Resting
 
 
-neighbours :: NATangle -> [NATangle]
+neighbours :: TangleDiagram -> [TangleDiagram]
 neighbours tangle =
     flip mapMaybe (allOutcomingDarts tangle) $ \ ab -> do
         let ba = opposite ab

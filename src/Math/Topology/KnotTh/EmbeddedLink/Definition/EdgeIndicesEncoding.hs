@@ -5,7 +5,7 @@ module Math.Topology.KnotTh.EmbeddedLink.Definition.EdgeIndicesEncoding
 import Data.List (sort)
 import Math.Topology.KnotTh.Knotted
 import Math.Topology.KnotTh.Crossings.Projection
-import Math.Topology.KnotTh.Crossings.Arbitrary
+import Math.Topology.KnotTh.Crossings.Diagram
 import Math.Topology.KnotTh.EmbeddedLink.Definition.EmbeddedLink
 
 
@@ -17,7 +17,7 @@ instance EdgeIndicesCrossing ProjectionCrossing where
     indexPlace = beginPlace
 
 
-instance EdgeIndicesCrossing ArbitraryCrossing where
+instance EdgeIndicesCrossing DiagramCrossing where
     indexPlace d | passOver (nthOutcomingDart c 0)  = p
                  | otherwise                        = (p - 1) `mod` 4
         where

@@ -16,14 +16,14 @@ import Math.Topology.KnotTh.Tangle as X
 
 class (Functor f, PlanarStateSum (f p)) => SkeinRelation f p where
     skeinLPlus, skeinLMinus :: f p
-    finalNormalization      :: (Knotted k) => k ArbitraryCrossing -> f p -> f p
+    finalNormalization      :: (Knotted k) => k DiagramCrossing -> f p -> f p
     invertCrossingsAction   :: f p -> f p
     takeAsScalar            :: f p -> p
 
     finalNormalization _ = id
 
 
-reduceSkeinWithStrategy :: (SkeinRelation f p) => NATangle -> Strategy (f p) -> f p
+reduceSkeinWithStrategy :: (SkeinRelation f p) => TangleDiagram -> Strategy (f p) -> f p
 reduceSkeinWithStrategy tangle =
     reduceWithStrategy tangle
         (\ v -> let d = nthOutcomingDart v 0
@@ -33,7 +33,7 @@ reduceSkeinWithStrategy tangle =
         )
 
 
-reduceSkeinStd :: (SkeinRelation f p) => NATangle -> f p
+reduceSkeinStd :: (SkeinRelation f p) => TangleDiagram -> f p
 reduceSkeinStd tangle =
     reduceSkeinWithStrategy tangle standardReductionStrategy
 
@@ -49,7 +49,7 @@ standardReductionStrategy =
     in try
 
 
-skeinRelationPostMinimization :: (Ord (f p), SkeinRelation f p) => (NATangle -> f p) -> NATangle -> f p 
+skeinRelationPostMinimization :: (Ord (f p), SkeinRelation f p) => (TangleDiagram -> f p) -> TangleDiagram -> f p 
 skeinRelationPostMinimization invariant tangle = minimum $ do
     let l = numberOfLegs tangle
         p = invariant tangle
@@ -59,7 +59,7 @@ skeinRelationPostMinimization invariant tangle = minimum $ do
     return $ inv $ reflection $ rotation p
 
 
-skeinRelationMidMinimization :: (Ord (f p), SkeinRelation f p) => (NATangle -> f p) -> NATangle -> f p
+skeinRelationMidMinimization :: (Ord (f p), SkeinRelation f p) => (TangleDiagram -> f p) -> TangleDiagram -> f p
 skeinRelationMidMinimization invariant tangle = minimum $ do
     let l = numberOfLegs tangle
     tangle' <- [tangle, invertCrossings tangle]
@@ -69,7 +69,7 @@ skeinRelationMidMinimization invariant tangle = minimum $ do
     return $ reflection $ rotation p
 
 
-skeinRelationPreMinimization :: (Ord (f p), SkeinRelation f p) => (NATangle -> f p) -> NATangle -> f p 
+skeinRelationPreMinimization :: (Ord (f p), SkeinRelation f p) => (TangleDiagram -> f p) -> TangleDiagram -> f p 
 skeinRelationPreMinimization invariant tangle = minimum $ do
     inv <- [id, invertCrossings]
     tangle' <- allOrientationsOfTangle tangle
