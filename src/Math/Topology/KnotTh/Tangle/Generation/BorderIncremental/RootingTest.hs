@@ -29,6 +29,16 @@ rootingSymmetryTest lastCrossing = do
     analyseSymmetry lastCrossing (unsafeAt cp . vertexIndex)
 
 
+rootCodeLeg :: (CrossingType ct) => Dart Tangle ct -> R.RotationDirection -> (D4.D4, UArray Int Int)
+rootCodeLeg root dir
+    | isDart root                     = error "rootCodeLeg: leg expected"
+    | numberOfFreeLoops tangle /= 0   = error "rootCodeLeg: free loops present"
+    | numberOfVertices tangle > 127   = error "rootCodeLeg: too many crossings"
+    | otherwise                       = rootCodeLegUnsafe root dir
+    where
+        tangle = dartOwner root
+
+
 investigateConnectivity :: Vertex Tangle ct -> Maybe (UArray Int Bool)
 investigateConnectivity lastCrossing = runST $ do
     let tangle = vertexOwner lastCrossing
@@ -76,8 +86,8 @@ analyseSymmetry lastCrossing skipCrossing = do
 
         rootLegCCW = firstLeg tangle
         rootLegCW = opposite $ nthOutcomingDart lastCrossing 3
-        (rootGCCW, rootCodeCCW) = rootCodeLeg rootLegCCW R.ccw
-        (rootGCW, rootCodeCW) = rootCodeLeg rootLegCW R.cw
+        (rootGCCW, rootCodeCCW) = rootCodeLegUnsafe rootLegCCW R.ccw
+        (rootGCW, rootCodeCW) = rootCodeLegUnsafe rootLegCW R.cw
 
         compareRoots = compare rootCodeCCW rootCodeCW
 
@@ -98,7 +108,7 @@ analyseSymmetry lastCrossing skipCrossing = do
                 _ | li >= l           -> return (l, D4.i)
                   | skip rootDir' leg -> loop (li + 1) (nextCCW leg)
                   | otherwise         ->
-                      let (g, cmp) = compareRootCode leg rootDir rootCode
+                      let (g, cmp) = compareRootCodeUnsafe leg rootDir rootCode
                       in case cmp of
                           LT -> Nothing
                           GT -> loop (li + 1) (nextCCW leg)
@@ -112,7 +122,7 @@ analyseSymmetry lastCrossing skipCrossing = do
                     _ | li >= period     -> return Nothing
                       | skip rootDir leg -> loop (li + 1) (nextCCW leg)
                       | otherwise        ->
-                          let (g, cmp) = compareRootCode leg rootDir' rootCode
+                          let (g, cmp) = compareRootCodeUnsafe leg rootDir' rootCode
                           in case cmp of
                               LT -> Nothing
                               GT -> loop (li + 1) (nextCCW leg)
@@ -124,21 +134,95 @@ analyseSymmetry lastCrossing skipCrossing = do
         Nothing                 -> (Dn.fromPeriod l period, (periodG, D4.i), rootCode)
 
 
-compareRootCode :: (CrossingType ct) => Dart Tangle ct -> R.RotationDirection -> UArray Int Int -> (D4.D4, Ordering)
-compareRootCode leg dir rootCode =
-    let (g, code) = rootCodeLeg leg dir
-    in (g, compare code rootCode)
+compareRootCodeUnsafe :: (CrossingType ct) => Dart Tangle ct -> R.RotationDirection -> UArray Int Int -> (D4.D4, Ordering)
+compareRootCodeUnsafe root dir rootCode =
+    case globalTransformations tangle of
+        Nothing      -> (D4.i, rawCompare)
+        Just globals -> minimumBy (comparing snd) $ map (\ g -> (g, rawCompareWithGlobal g)) globals
+    where
+        tangle = dartOwner root
+        n = numberOfVertices tangle
+
+        rawCompareWithGlobal global = runST $ do
+            x <- newArray (0, n) 0 :: ST s (STUArray s Int Int)
+            unsafeWrite x (vertexIndex $ endVertex root) 1
+            q <- newArray_ (0, n - 1) :: ST s (STArray s Int (Dart Tangle ct))
+            unsafeWrite q 0 (opposite root)
+            free <- newSTRef 2
+
+            let {-# INLINE look #-}
+                look !d !s
+                    | isLeg d    = return $! s `shiftL` 7
+                    | otherwise  = do
+                        let u = beginVertex d
+                        ux <- unsafeRead x (vertexIndex u)
+                        if ux > 0
+                            then return $! ux + (s `shiftL` 7)
+                            else do
+                                nf <- readSTRef free
+                                writeSTRef free $! nf + 1
+                                unsafeWrite x (vertexIndex u) nf
+                                unsafeWrite q (nf - 1) d
+                                return $! nf + (s `shiftL` 7)
+
+            let {-# INLINE bfs #-}
+                bfs !h | h >= n     = return EQ
+                       | otherwise  = do
+                    d <- unsafeRead q h
+                    nb <- foldMAdjacentDartsFrom d dir look 0
+                    case crossingCodeWithGlobal global dir d of
+                        (# be, le #) ->
+                            case compare be (rootCode `unsafeAt` (2 * h)) of
+                                EQ -> case compare (le + nb `shiftL` 3) (rootCode `unsafeAt` (2 * h + 1)) of
+                                        EQ -> bfs $! h + 1
+                                        cp -> return cp
+                                cp -> return cp
+
+            bfs 0
+
+        rawCompare = runST $ do
+            x <- newArray (0, n) 0 :: ST s (STUArray s Int Int)
+            unsafeWrite x (vertexIndex $ endVertex root) 1
+            q <- newArray_ (0, n - 1) :: ST s (STArray s Int (Dart Tangle ct))
+            unsafeWrite q 0 (opposite root)
+            free <- newSTRef 2
+
+            let {-# INLINE look #-}
+                look !d !s
+                    | isLeg d    = return $! s `shiftL` 7
+                    | otherwise  = do
+                        let u = beginVertex d
+                        ux <- unsafeRead x (vertexIndex u)
+                        if ux > 0
+                            then return $! ux + (s `shiftL` 7)
+                            else do
+                                nf <- readSTRef free
+                                writeSTRef free $! nf + 1
+                                unsafeWrite x (vertexIndex u) nf
+                                unsafeWrite q (nf - 1) d
+                                return $! nf + (s `shiftL` 7)
+
+            let {-# INLINE bfs #-}
+                bfs !h | h >= n     = return EQ
+                       | otherwise  = do
+                    d <- unsafeRead q h
+                    nb <- foldMAdjacentDartsFrom d dir look 0
+                    case crossingCode dir d of
+                        (# be, le #) ->
+                            case compare be (rootCode `unsafeAt` (2 * h)) of
+                                EQ -> case compare (le + nb `shiftL` 3) (rootCode `unsafeAt` (2 * h + 1)) of
+                                        EQ -> bfs $! h + 1
+                                        cp -> return cp
+                                cp -> return cp
+
+            bfs 0
 
 
-rootCodeLeg :: (CrossingType ct) => Dart Tangle ct -> R.RotationDirection -> (D4.D4, UArray Int Int)
-rootCodeLeg !root !dir
-    | isDart root                     = error "rootCodeLeg: leg expected"
-    | numberOfFreeLoops tangle /= 0   = error "rootCodeLeg: free loops present"
-    | numberOfVertices tangle > 127   = error "rootCodeLeg: too many crossings"
-    | otherwise                       =
-        case globalTransformations tangle of
-            Nothing      -> (D4.i, code)
-            Just globals -> minimumBy (comparing snd) $ map (\ g -> (g, codeWithGlobal g)) globals
+rootCodeLegUnsafe :: (CrossingType ct) => Dart Tangle ct -> R.RotationDirection -> (D4.D4, UArray Int Int)
+rootCodeLegUnsafe root dir =
+    case globalTransformations tangle of
+        Nothing      -> (D4.i, code)
+        Just globals -> minimumBy (comparing snd) $ map (\ g -> (g, codeWithGlobal g)) globals
     where 
         tangle = dartOwner root
         n = numberOfVertices tangle
