@@ -100,14 +100,14 @@ generateFlypeEquivalentDecomposition' triangle maxN yield = do
                     | otherwise                         = NonDirectSumDecomposable
                     where
                         [a, b, c, d] = map endVertex $ allLegs template
-            in fromTangle' template symmetry sumType
+            in crossingFromTangle' template symmetry sumType
 
     let halfN = maxN `div` 2
 
     (finalFree, finalCrossings, rootList) <-
         flip execStateT (0, listArray (1, halfN) $ repeat [], []) $
             let lonerSymmetry = Dn.maximumSubGroup 4
-                loner = makeCrossing' $ fromTangle lonerProjection lonerSymmetry NonDirectSumDecomposable 0
+                loner = makeCrossing' (crossingFromTangle lonerProjection lonerSymmetry NonDirectSumDecomposable 0)
             in flip fix (lonerTangle loner, lonerSymmetry) $ \ growTree (rootTemplate, rootSymmetry) -> do
                 (!free, !prevCrossings, !prevList) <- get
                 let rootCrossing = buildCrossingType rootTemplate rootSymmetry free

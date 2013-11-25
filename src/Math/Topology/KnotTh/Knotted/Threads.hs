@@ -64,7 +64,7 @@ allThreadsWithMarks knot = runST $ do
                                     writeArray visited a i
                                     writeArray visited b (-i)
                                     let !next = (a, b) : prev
-                                    if isEndpoint a
+                                    if not (isDart a)
                                         then return $! Right $! next
                                         else do
                                             let b' = threadContinuation a
@@ -73,8 +73,8 @@ allThreadsWithMarks knot = runST $ do
                                                 else traceBack next b'
 
                                 traceFront !prev !b'
-                                    | isEndpoint b'  = return $! reverse prev
-                                    | otherwise      = do
+                                    | not (isDart b')  = return $! reverse prev
+                                    | otherwise        = do
                                         let !a = threadContinuation b'
                                         let !b = opposite a
                                         writeArray visited a i

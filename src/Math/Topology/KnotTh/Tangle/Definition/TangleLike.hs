@@ -5,13 +5,27 @@ module Math.Topology.KnotTh.Tangle.Definition.TangleLike
 import Math.Topology.KnotTh.Knotted
 
 
-class (Knotted tangle, PlanarAlgebra tangle) => TangleLike tangle where
+class (Knotted t, PlanarAlgebra t) => TangleLike t where
+    emptyTangle :: t a
+    emptyTangle = emptyKnotted
+
+    -- | 2--1
+    --   3--0
+    zeroTangle     :: t a
+
+    -- | 2   1
+    --   |   |
+    --   3   0
+    infinityTangle :: t a
+
     -- | +-------+
     --   |   ^   |
     --   |   |   |
     --   |   |   |
     --   +-------+
-    identityTangle :: (CrossingType ct) => tangle ct
+    identityTangle :: t a
+
+    lonerTangle :: (CrossingType a) => CrossingState a -> t a
 
     -- |           legsToGlue = 2
     --  ..............|
@@ -21,7 +35,7 @@ class (Knotted tangle, PlanarAlgebra tangle) => TangleLike tangle where
     --  ..............|     |..............
     --  (legA) -------|-----|--- (legB)
     --  ..............|     |..............
-    glueTangles    :: (CrossingType ct) => Int -> Dart tangle ct -> Dart tangle ct -> tangle ct
+    glueTangles :: (CrossingType a) => Int -> Dart t a -> Dart t a -> t a
 
     -- |     edgesToGlue = 1                 edgesToGlue = 2                 edgesToGlue = 3
     -- ........|                       ........|                       ........|
@@ -33,4 +47,4 @@ class (Knotted tangle, PlanarAlgebra tangle) => TangleLike tangle where
     -- ........|  |  1      |          ........|  +=========+                  |  |      2  |
     -- ........|  |   \-----|--0       ........|                       (leg-2)-|--|-----/   |
     -- ........|  +=========+          ........|                       ........|  +=========+
-    glueToBorder   :: (CrossingType ct) => Dart tangle ct -> Int -> CrossingState ct -> Vertex tangle ct
+    glueToBorder :: (CrossingType a) => Dart t a -> Int -> CrossingState a -> Vertex t a

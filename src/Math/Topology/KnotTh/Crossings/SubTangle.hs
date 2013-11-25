@@ -3,15 +3,10 @@ module Math.Topology.KnotTh.Crossings.SubTangle
     , SubTangleCrossing
     , subTangle
     , SubTangleTangle
-    , fromTangle
-    , fromTangle'
-    , tangleInside
-    , tangleInCrossing
-    , numberOfCrossingsInside
-    , isLoner
+    , crossingFromTangle
+    , crossingFromTangle'
     , isLonerInside
     , numberOfCrossingsAfterSubstitution
-    , subTangleLegFromDart
     , directSumDecompositionTypeInside
     , directSumDecompositionType
     , substituteTangle
@@ -72,30 +67,26 @@ instance (CrossingType ct) => Show (SubTangleCrossing ct) where
 type SubTangleTangle ct = Tangle (SubTangleCrossing ct)
 
 
-makeSubTangle :: (CrossingType a, CrossingType b)
-    => (Tangle a -> Tangle b) -> Tangle a
-        -> Dn.DnSubGroup -> DirectSumDecompositionType -> Int
-            -> SubTangleCrossing b
-
-makeSubTangle f tangle symmetry sumType code
-    | numberOfLegs tangle /= 4              = error $ printf "makeSubTangle: tangle must have 4 legs, %i found" $ numberOfLegs tangle
-    | Dn.pointsUnderSubGroup symmetry /= 4  = error $ printf "makeSubTangle: symmetry group must have 4 points, %i found" $ Dn.pointsUnderSubGroup symmetry
-    | numberOfFreeLoops tangle /= 0         = error $ printf "makeSubTangle: tangle contains %i free loops" $ numberOfFreeLoops tangle
-    | otherwise                             =
+crossingFromTangle :: (CrossingType ct) => Tangle ct -> Dn.DnSubGroup -> DirectSumDecompositionType -> Int -> SubTangleCrossing ct
+crossingFromTangle tangle symmetry sumType code
+    | l /= 4     = error $ printf "crossingFromTangle: tangle must have 4 legs, %i found" l
+    | l' /= 4    = error $ printf "crossingFromTangle: symmetry group must have 4 points, %i found" l'
+    | lp > 0     = error $ printf "crossingFromTangle: tangle contains %i free loops" lp
+    | otherwise  =
         SubTangle
             { _code     = code
             , _symmetry = D4.fromDnSubGroup symmetry
             , _sumType  = sumType
-            , subTangle = f tangle
+            , subTangle = tangle
             }
+    where
+        l = numberOfLegs tangle
+        l' = Dn.pointsUnderSubGroup symmetry
+        lp = numberOfFreeLoops tangle
 
 
-fromTangle :: (CrossingType ct) => Tangle ct -> Dn.DnSubGroup -> DirectSumDecompositionType -> Int -> SubTangleCrossing ct
-fromTangle = makeSubTangle id
-
-
-fromTangle' :: (CrossingType ct) => Tangle (SubTangleCrossing ct) -> Dn.DnSubGroup -> DirectSumDecompositionType -> Int -> SubTangleCrossing ct
-fromTangle' = makeSubTangle substituteTangle
+crossingFromTangle' :: (CrossingType ct) => Tangle (SubTangleCrossing ct) -> Dn.DnSubGroup -> DirectSumDecompositionType -> Int -> SubTangleCrossing ct
+crossingFromTangle' tangle = crossingFromTangle (substituteTangle tangle)
 
 
 {-# INLINE tangleInside #-}
@@ -103,19 +94,9 @@ tangleInside :: (CrossingType ct, Knotted k) => Vertex k (SubTangleCrossing ct) 
 tangleInside = subTangle . crossingTypeInside
 
 
-{-# INLINE tangleInCrossing #-}
-tangleInCrossing :: (CrossingType ct) => CrossingState (SubTangleCrossing ct) -> Tangle ct
-tangleInCrossing = subTangle . crossingType
-
-
 {-# INLINE numberOfCrossingsInside #-}
 numberOfCrossingsInside :: (CrossingType ct, Knotted k) => Vertex k (SubTangleCrossing ct) -> Int
 numberOfCrossingsInside = numberOfVertices . tangleInside
-
-
-{-# INLINE isLoner #-}
-isLoner :: (CrossingType ct) => CrossingState (SubTangleCrossing ct) -> Bool
-isLoner = (== 1) . numberOfVertices . subTangle . crossingType
 
 
 {-# INLINE isLonerInside #-}

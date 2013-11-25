@@ -275,6 +275,24 @@ instance PlanarAlgebra Tangle where
 
 
 instance TangleLike Tangle where
+    zeroTangle =
+        Tangle
+            { loopsCount  = 0
+            , vertexCount = 0
+            , connsArray  = listArray (0, 3) [3, 2, 1, 0]
+            , stateArray  = listArray (0, -1) []
+            , legsCount   = 4
+            }
+
+    infinityTangle =
+        Tangle
+            { loopsCount  = 0
+            , vertexCount = 0
+            , connsArray  = listArray (0, 3) [1, 0, 3, 2]
+            , stateArray  = listArray (0, -1) []
+            , legsCount   = 4
+            }
+
     identityTangle =
         Tangle
             { loopsCount  = 0
@@ -282,6 +300,15 @@ instance TangleLike Tangle where
             , connsArray  = listArray (0, 1) [1, 0]
             , stateArray  = listArray (0, -1) []
             , legsCount   = 2
+            }
+
+    lonerTangle cr =
+        Tangle
+            { loopsCount  = 0
+            , vertexCount = 1
+            , connsArray  = listArray (0, 7) [4, 5, 6, 7, 0, 1, 2, 3]
+            , stateArray  = listArray (0, 0) [cr]
+            , legsCount   = 4
             }
 
     glueTangles legsToGlue legA legB = runST $ do
@@ -440,43 +467,6 @@ instance TangleLike Tangle where
                 }
 
         return $! nthVertex result newC 
-
-
-emptyTangle :: (CrossingType ct) => Tangle ct
-emptyTangle = emptyKnotted
-
-
-zeroTangle :: (CrossingType ct) => Tangle ct
-zeroTangle =
-    Tangle
-        { loopsCount  = 0
-        , vertexCount = 0
-        , connsArray  = listArray (0, 3) [3, 2, 1, 0]
-        , stateArray  = listArray (0, -1) []
-        , legsCount   = 4
-        }
-
-
-infinityTangle :: (CrossingType ct) => Tangle ct
-infinityTangle =
-    Tangle
-        { loopsCount  = 0
-        , vertexCount = 0
-        , connsArray  = listArray (0, 3) [1, 0, 3, 2]
-        , stateArray  = listArray (0, -1) []
-        , legsCount   = 4
-        }
-
-
-lonerTangle :: (CrossingType ct) => CrossingState ct -> Tangle ct
-lonerTangle !cr =
-    Tangle
-        { loopsCount  = 0
-        , vertexCount = 1
-        , connsArray  = listArray (0, 7) [4, 5, 6, 7, 0, 1, 2, 3]
-        , stateArray  = listArray (0, 0) [cr]
-        , legsCount   = 4
-        }
 
 
 produceShowDart ''Tangle ''Dart $ \ d -> [([| isLeg $d |], [| printf "(Leg %i)" $ legPlace $d |])]

@@ -18,15 +18,12 @@ module Math.Topology.KnotTh.Knotted.Definition
     , Knotted(..)
     , KnottedWithConnectivity(..)
     , SurfaceKnotted
-    , isEndpoint
     , numberOfEndpoints
     , crossingCode
     , crossingCodeWithGlobal
     , forMAdjacentDarts
     , foldMAdjacentDarts
     , foldMAdjacentDartsFrom
-
-    , orientation
     ) where
 
 import Data.Bits ((.&.))
@@ -157,27 +154,27 @@ mapCrossing :: (CrossingType a, CrossingType b) => (a -> b) -> CrossingState a -
 mapCrossing f x = makeCrossing (f $ crossingType x) (orientation x)
 
 
-class (PlanarDiagram knot) => Knotted knot where
-    numberOfFreeLoops       :: knot a -> Int
-    changeNumberOfFreeLoops :: Int -> knot a -> knot a
+class (PlanarDiagram k) => Knotted k where
+    numberOfFreeLoops       :: k a -> Int
+    changeNumberOfFreeLoops :: Int -> k a -> k a
 
-    emptyKnotted   :: knot a
-    isEmptyKnotted :: knot a -> Bool
+    emptyKnotted   :: k a
+    isEmptyKnotted :: k a -> Bool
 
     isEmptyKnotted k = (numberOfVertices k == 0) && (numberOfFreeLoops k == 0)
 
-    mapCrossings      :: (CrossingType b) => (CrossingState a -> CrossingState b) -> knot a -> knot b
-    crossingState     :: Vertex knot a -> CrossingState a
+    mapCrossings      :: (CrossingType b) => (CrossingState a -> CrossingState b) -> k a -> k b
+    crossingState     :: Vertex k a -> CrossingState a
 
-    homeomorphismInvariant :: (CrossingType a) => knot a -> UArray Int Int
+    homeomorphismInvariant :: (CrossingType a) => k a -> UArray Int Int
 
-    type ExplodeType knot a :: *
-    explode :: knot a -> ExplodeType knot a
-    implode :: (CrossingType a) => ExplodeType knot a -> knot a
+    type ExplodeType k a :: *
+    explode :: k a -> ExplodeType k a
+    implode :: (CrossingType a) => ExplodeType k a -> k a
 
-    forMIncidentDarts      :: (Monad m) => Vertex knot a -> (Dart knot a -> m ()) -> m ()
-    foldMIncidentDarts     :: (Monad m) => Vertex knot a -> (Dart knot a -> s -> m s) -> s -> m s
-    foldMIncidentDartsFrom :: (Monad m) => Dart knot a -> R.RotationDirection -> (Dart knot a -> s -> m s) -> s -> m s
+    forMIncidentDarts      :: (Monad m) => Vertex k a -> (Dart k a -> m ()) -> m ()
+    foldMIncidentDarts     :: (Monad m) => Vertex k a -> (Dart k a -> s -> m s) -> s -> m s
+    foldMIncidentDartsFrom :: (Monad m) => Dart k a -> R.RotationDirection -> (Dart k a -> s -> m s) -> s -> m s
 
     forMIncidentDarts c f =
         f (nthOutcomingDart c 0)
@@ -201,22 +198,17 @@ class (PlanarDiagram knot) => Knotted knot where
             >>= f (nthOutcomingDart c $ (p + 3 * d) .&. 3)
 
 
-class (Knotted knot) => KnottedWithConnectivity knot where
-    isConnected :: knot a -> Bool
-    isPrime     :: knot a -> Bool
+class (Knotted k) => KnottedWithConnectivity k where
+    isConnected :: k a -> Bool
+    isPrime     :: k a -> Bool
 
 
-class (Knotted knot, SurfaceDiagram knot) => SurfaceKnotted knot where
-
-
-{-# INLINE isEndpoint #-}
-isEndpoint :: (Knotted k) => Dart k ct -> Bool
-isEndpoint = not . isDart
+class (Knotted k, SurfaceDiagram k) => SurfaceKnotted k where
 
 
 {-# INLINE numberOfEndpoints #-}
 numberOfEndpoints :: (Knotted k) => k ct -> Int
-numberOfEndpoints knot = 2 * numberOfEdges knot - 4 * numberOfVertices knot
+numberOfEndpoints k = 2 * numberOfEdges k - 4 * numberOfVertices k
 
 
 {-# INLINE crossingCode #-}
