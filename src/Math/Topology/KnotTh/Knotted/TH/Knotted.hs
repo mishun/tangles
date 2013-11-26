@@ -136,7 +136,7 @@ produceKnotted knotPattern inst = execWriterT $ do
             [ (,,) loopsCount  Unpacked `fmap` [t| Int |]
             , (,,) vertexCount Unpacked `fmap` [t| Int |]
             , (,,) connsArray  Unpacked `fmap` [t| UArray Int Int |]
-            , (,,) stateArray  Unpacked `fmap` [t| Array Int (CrossingState $(varT crossType)) |]
+            , (,,) stateArray  Unpacked `fmap` [t| Array Int (Crossing $(varT crossType)) |]
             ] ++ map return knotFields
         ] []
 

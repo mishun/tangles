@@ -86,9 +86,9 @@ uniqueGlueSites' gl (tangle, symmetry) = uniqueGlueSites gl (tangle, (symmetry, 
 
 primeProjections, reducedProjections, templateProjections
     :: Int -> CanonicalConstructionPathI
-        (Tangle ProjectionCrossing, Dn.DnSubGroup)
-        (Int, Dart Tangle ProjectionCrossing, CrossingState ProjectionCrossing)
-        (Vertex Tangle ProjectionCrossing, Dn.DnSubGroup)
+        (TangleProj, Dn.DnSubGroup)
+        (Int, TangleProjDart, ProjectionCrossing)
+        (TangleProjVertex, Dn.DnSubGroup)
 
 primeProjections maxN =
     CanonicalConstructionPathClean
@@ -123,7 +123,7 @@ templateProjections maxN =
 primeIrreducibleDiagrams, primeIrreducibleDiagramsTriangle
     :: Int -> CanonicalConstructionPathI
         (TangleDiagram, (Dn.DnSubGroup, (D4.D4, D4.D4)))
-        (Int, TangleDiagramDart, DiagramCrossingState)
+        (Int, TangleDiagramDart, DiagramCrossing)
         (TangleDiagram, (Dn.DnSubGroup, (D4.D4, D4.D4)))
 
 primeIrreducibleDiagrams maxN =

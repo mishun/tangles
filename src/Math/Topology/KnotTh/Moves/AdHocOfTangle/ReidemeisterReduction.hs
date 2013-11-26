@@ -14,7 +14,7 @@ greedy1st2ndReduction :: TangleDiagram -> TangleDiagram
 greedy1st2ndReduction tangleC = move tangleC $ greedy [reduce1st, reduce2nd]
 
 
-reduce1st :: TangleDiagramDart -> MoveM s DiagramCrossing Bool
+reduce1st :: TangleDiagramDart -> MoveM s DiagramCrossingType Bool
 reduce1st aad = do
     aar <- oppositeC aad
     if aar /= nextCCW aad
@@ -37,7 +37,7 @@ reduce1st aad = do
 --     \a/
 --      \
 --     / \
-reduce2nd :: TangleDiagramDart -> MoveM s DiagramCrossing Bool
+reduce2nd :: TangleDiagramDart -> MoveM s DiagramCrossingType Bool
 reduce2nd abl = do
     let a = beginVertex abl
     bal <- oppositeC abl

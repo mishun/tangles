@@ -9,10 +9,10 @@ module Math.Topology.KnotTh.Tangle.Definition.Tangle
     , glueToBorder
     , glueTangles
     , TangleProj
-    , TangleProjCrossing
+    , TangleProjVertex
     , TangleProjDart
     , TangleDiagram
-    , TangleDiagramCrossing
+    , TangleDiagramVertex
     , TangleDiagramDart
     ) where
 
@@ -56,7 +56,7 @@ produceKnotted
             vertexCrossing = undefined
             implode = undefined
 
-            type ExplodeType Tangle ct = (Int, [(Int, Int)], [([(Int, Int)], CrossingState ct)])
+            type ExplodeType Tangle ct = (Int, [(Int, Int)], [([(Int, Int)], Crossing ct)])
 
             explode tangle =
                 ( numberOfFreeLoops tangle
@@ -536,11 +536,11 @@ instance KnottedWithConnectivity Tangle where
                         | otherwise  = let prev = opposite $ adjBackward d in walkBackward (prev, prev : path)
 
 
-type TangleProj = Tangle ProjectionCrossing
-type TangleProjCrossing = Vertex Tangle ProjectionCrossing
-type TangleProjDart = Dart Tangle ProjectionCrossing
+type TangleProj = Tangle ProjectionCrossingType
+type TangleProjVertex = Vertex Tangle ProjectionCrossingType
+type TangleProjDart = Dart Tangle ProjectionCrossingType
 
 
-type TangleDiagram = Tangle DiagramCrossing
-type TangleDiagramCrossing = Vertex Tangle DiagramCrossing
-type TangleDiagramDart = Dart Tangle DiagramCrossing
+type TangleDiagram = Tangle DiagramCrossingType
+type TangleDiagramVertex = Vertex Tangle DiagramCrossingType
+type TangleDiagramDart = Dart Tangle DiagramCrossingType

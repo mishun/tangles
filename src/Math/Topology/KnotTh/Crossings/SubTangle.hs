@@ -1,7 +1,8 @@
 module Math.Topology.KnotTh.Crossings.SubTangle
     ( DirectSumDecompositionType(..)
-    , SubTangleCrossing
+    , SubTangleCrossingType
     , subTangle
+    , SubTangleCrossing
     , SubTangleTangle
     , crossingFromTangle
     , crossingFromTangle'
@@ -33,7 +34,7 @@ changeSumType DirectSum01x23 = DirectSum12x30
 changeSumType DirectSum12x30 = DirectSum01x23
 
 
-data SubTangleCrossing ct =
+data SubTangleCrossingType ct =
     SubTangle
         { _code     :: {-# UNPACK #-} !Int
         , _symmetry :: !D4.D4SubGroup
@@ -42,20 +43,20 @@ data SubTangleCrossing ct =
         }
 
 
-instance Eq (SubTangleCrossing ct) where
+instance Eq (SubTangleCrossingType ct) where
     (==) a b = _code a == _code b
 
 
-instance (NFData ct) => NFData (SubTangleCrossing ct) where
+instance (NFData ct) => NFData (SubTangleCrossingType ct) where
     rnf x = rnf (subTangle x) `seq` x `seq` ()
 
 
-instance (CrossingType ct) => CrossingType (SubTangleCrossing ct) where
+instance (CrossingType ct) => CrossingType (SubTangleCrossingType ct) where
     crossingTypeCode = _code
     localCrossingSymmetry = _symmetry
 
 
-instance (CrossingType ct) => Show (SubTangleCrossing ct) where
+instance (CrossingType ct) => Show (SubTangleCrossingType ct) where
     show cr =
         printf "(SubTangle %i %s %s (%s))"
             (_code cr)
@@ -64,10 +65,12 @@ instance (CrossingType ct) => Show (SubTangleCrossing ct) where
             (show $ subTangle cr)
 
 
-type SubTangleTangle ct = Tangle (SubTangleCrossing ct)
+type SubTangleCrossing ct = Crossing (SubTangleCrossingType ct)
+
+type SubTangleTangle ct = Tangle (SubTangleCrossingType ct)
 
 
-crossingFromTangle :: (CrossingType ct) => Tangle ct -> Dn.DnSubGroup -> DirectSumDecompositionType -> Int -> SubTangleCrossing ct
+crossingFromTangle :: (CrossingType ct) => Tangle ct -> Dn.DnSubGroup -> DirectSumDecompositionType -> Int -> SubTangleCrossingType ct
 crossingFromTangle tangle symmetry sumType code
     | l /= 4     = error $ printf "crossingFromTangle: tangle must have 4 legs, %i found" l
     | l' /= 4    = error $ printf "crossingFromTangle: symmetry group must have 4 points, %i found" l'
@@ -85,35 +88,35 @@ crossingFromTangle tangle symmetry sumType code
         lp = numberOfFreeLoops tangle
 
 
-crossingFromTangle' :: (CrossingType ct) => Tangle (SubTangleCrossing ct) -> Dn.DnSubGroup -> DirectSumDecompositionType -> Int -> SubTangleCrossing ct
+crossingFromTangle' :: (CrossingType ct) => SubTangleTangle ct -> Dn.DnSubGroup -> DirectSumDecompositionType -> Int -> SubTangleCrossingType ct
 crossingFromTangle' tangle = crossingFromTangle (substituteTangle tangle)
 
 
 {-# INLINE tangleInside #-}
-tangleInside :: (CrossingType ct, Knotted k) => Vertex k (SubTangleCrossing ct) -> Tangle ct
+tangleInside :: (CrossingType ct, Knotted k) => Vertex k (SubTangleCrossingType ct) -> Tangle ct
 tangleInside = subTangle . vertexCrossingType
 
 
 {-# INLINE numberOfCrossingsInside #-}
-numberOfCrossingsInside :: (CrossingType ct, Knotted k) => Vertex k (SubTangleCrossing ct) -> Int
+numberOfCrossingsInside :: (CrossingType ct, Knotted k) => Vertex k (SubTangleCrossingType ct) -> Int
 numberOfCrossingsInside = numberOfVertices . tangleInside
 
 
 {-# INLINE isLonerInside #-}
-isLonerInside :: (CrossingType ct, Knotted k) => Vertex k (SubTangleCrossing ct) -> Bool
+isLonerInside :: (CrossingType ct, Knotted k) => Vertex k (SubTangleCrossingType ct) -> Bool
 isLonerInside = (== 1) . numberOfCrossingsInside
 
 
-numberOfCrossingsAfterSubstitution :: (CrossingType ct, Knotted k) => k (SubTangleCrossing ct) -> Int
+numberOfCrossingsAfterSubstitution :: (CrossingType ct, Knotted k) => k (SubTangleCrossingType ct) -> Int
 numberOfCrossingsAfterSubstitution = sum . map numberOfCrossingsInside . allVertices
 
 
 {-# INLINE subTangleLegFromDart #-}
-subTangleLegFromDart :: (CrossingType ct, Knotted k) => Dart k (SubTangleCrossing ct) -> Dart Tangle ct
+subTangleLegFromDart :: (CrossingType ct, Knotted k) => Dart k (SubTangleCrossingType ct) -> Dart Tangle ct
 subTangleLegFromDart d = nthLeg (tangleInside $ beginVertex d) $ crossingLegIdByDart d
 
 
-directSumDecompositionTypeInside :: (CrossingType ct, Knotted k) => Dart k (SubTangleCrossing ct) -> DirectSumDecompositionType
+directSumDecompositionTypeInside :: (CrossingType ct, Knotted k) => Dart k (SubTangleCrossingType ct) -> DirectSumDecompositionType
 directSumDecompositionTypeInside d
     | f          = changeSumType st
     | otherwise  = st
@@ -122,7 +125,7 @@ directSumDecompositionTypeInside d
         f = isVertexCrossingOrientationInverted (beginVertex d) /= odd (crossingLegIdByDart d)
 
 
-directSumDecompositionType :: (CrossingType ct) => CrossingState (SubTangleCrossing ct) -> DirectSumDecompositionType
+directSumDecompositionType :: (CrossingType ct) => Crossing (SubTangleCrossingType ct) -> DirectSumDecompositionType
 directSumDecompositionType c
     | f          = changeSumType st
     | otherwise  = st
@@ -131,7 +134,7 @@ directSumDecompositionType c
         f = isCrossingOrientationInverted c /= odd (crossingLegIdByDartId c 0)
 
 
-substituteTangle :: (CrossingType ct) => Tangle (SubTangleCrossing ct) -> Tangle ct
+substituteTangle :: (CrossingType ct) => SubTangleTangle ct -> Tangle ct
 substituteTangle tangle =
 {-    tensorSubst 1 (\ v ->
             let g = orientation $ crossingState v

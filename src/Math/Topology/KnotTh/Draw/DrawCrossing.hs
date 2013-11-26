@@ -78,13 +78,13 @@ class (ThreadedCrossing ct) => DrawableCrossingType ct where
                 -> [Either [(Double, Double)] [(Double, Double)]]
 
 
-instance DrawableCrossingType ProjectionCrossing where
+instance DrawableCrossingType ProjectionCrossingType where
     crossingDependentSegmentation _ knot embedding = do
         thread <- filter (not . null) $ allThreads knot
         cutThread thread embedding (const False) (const id)
 
 
-instance DrawableCrossingType DiagramCrossing where
+instance DrawableCrossingType DiagramCrossingType where
     crossingDependentSegmentation s knot embedding = do
         thread <- filter (not . null) $ allThreads knot
         cutThread thread embedding

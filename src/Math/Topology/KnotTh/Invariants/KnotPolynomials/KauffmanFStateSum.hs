@@ -158,7 +158,7 @@ data ThreadTag = BorderThread {-# UNPACK #-} !(Int, Int) {-# UNPACK #-} !Int
                | InternalThread {-# UNPACK #-} !Int {-# UNPACK #-} !Int
 
 
-irregularCrossings :: TangleDiagram -> [TangleDiagramCrossing]
+irregularCrossings :: TangleDiagram -> [TangleDiagramVertex]
 irregularCrossings tangle =
     let ((_, _, threads), _) = threadsWithLinkingNumbers tangle
 
@@ -191,7 +191,7 @@ irregularCrossings tangle =
        ) $ allVertices tangle
 
 
-decomposeTangle :: (KauffmanFArg a) => [(Int, [(Int, Int)], [([(Int, Int)], DiagramCrossingState)])] -> a -> TangleDiagram -> ChordDiagramsSum a
+decomposeTangle :: (KauffmanFArg a) => [(Int, [(Int, Int)], [([(Int, Int)], DiagramCrossing)])] -> a -> TangleDiagram -> ChordDiagramsSum a
 decomposeTangle path !initialFactor !tangle' =
     let splices [] toInvert factor inter =
             let tangle = move tangle' $ modifyC False invertCrossing toInvert

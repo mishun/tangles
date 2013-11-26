@@ -1,6 +1,6 @@
 module Math.Topology.KnotTh.Crossings.Diagram
-    ( DiagramCrossing
-    , DiagramCrossingState
+    ( DiagramCrossingType
+    , DiagramCrossing
     , overCrossing
     , underCrossing
     , isOverCrossing
@@ -30,13 +30,13 @@ import qualified Math.Algebra.Group.D4 as D4
 import Math.Topology.KnotTh.Knotted
 
 
-data DiagramCrossing = DiagramCrossing deriving (Eq)
+data DiagramCrossingType = DiagramCrossing deriving (Eq)
 
 
-instance NFData DiagramCrossing
+instance NFData DiagramCrossingType
 
 
-instance CrossingType DiagramCrossing where
+instance CrossingType DiagramCrossingType where
     localCrossingSymmetry _ = D4.subGroupDS
 
     globalTransformations _ = Just [D4.i, D4.ec]
@@ -50,93 +50,93 @@ instance CrossingType DiagramCrossing where
     mirrorReversingDartsOrder = invertCrossing
 
 
-instance ThreadedCrossing DiagramCrossing
+instance ThreadedCrossing DiagramCrossingType
 
 
-instance Show DiagramCrossing where
+instance Show DiagramCrossingType where
     show _ = "-|-"
 
 
-instance Read DiagramCrossing where
+instance Read DiagramCrossingType where
     readsPrec _ s =
         case dropWhile isSpace s of
             '-' : '|' : '-' : t -> [(DiagramCrossing, t)]
             _                   -> []
 
 
-type DiagramCrossingState = CrossingState DiagramCrossing
+type DiagramCrossing = Crossing DiagramCrossingType
 
 
-overCrossing :: DiagramCrossingState
+overCrossing :: DiagramCrossing
 overCrossing = makeCrossing DiagramCrossing D4.i
 
 
-underCrossing :: DiagramCrossingState
+underCrossing :: DiagramCrossing
 underCrossing = makeCrossing DiagramCrossing D4.c
 
 
-isOverCrossing :: DiagramCrossingState -> Bool
+isOverCrossing :: DiagramCrossing -> Bool
 isOverCrossing s = passOver' s 0
 
 
-isUnderCrossing :: DiagramCrossingState -> Bool
+isUnderCrossing :: DiagramCrossing -> Bool
 isUnderCrossing s = passUnder' s 0
 
 
-invertCrossing :: DiagramCrossingState -> DiagramCrossingState
+invertCrossing :: DiagramCrossing -> DiagramCrossing
 invertCrossing s | isOverCrossing s  = underCrossing
                  | otherwise         = overCrossing
 
 
-invertCrossings :: (Knotted k) => k DiagramCrossing -> k DiagramCrossing
+invertCrossings :: (Knotted k) => k DiagramCrossingType -> k DiagramCrossingType
 invertCrossings = mapCrossings invertCrossing
 
 
-bothDiagramCrossings :: [DiagramCrossingState]
+bothDiagramCrossings :: [DiagramCrossing]
 bothDiagramCrossings = [overCrossing, underCrossing]
 
 
-overCrossingOnly :: [DiagramCrossingState]
+overCrossingOnly :: [DiagramCrossing]
 overCrossingOnly = [overCrossing]
 
 
-passOver :: (Knotted k) => Dart k DiagramCrossing -> Bool
+passOver :: (Knotted k) => Dart k DiagramCrossingType -> Bool
 passOver = even . crossingLegIdByDart
 
 
-passUnder :: (Knotted k) => Dart k DiagramCrossing -> Bool
+passUnder :: (Knotted k) => Dart k DiagramCrossingType -> Bool
 passUnder = odd . crossingLegIdByDart
 
 
-passOver' :: DiagramCrossingState -> Int -> Bool
+passOver' :: DiagramCrossing -> Int -> Bool
 passOver' cr = even . crossingLegIdByDartId cr
 
 
-passUnder' :: DiagramCrossingState -> Int -> Bool
+passUnder' :: DiagramCrossing -> Int -> Bool
 passUnder' cr = odd . crossingLegIdByDartId cr
 
 
-alternatingDefect :: (Knotted k) => Dart k DiagramCrossing -> Int
+alternatingDefect :: (Knotted k) => Dart k DiagramCrossingType -> Int
 alternatingDefect a | isDart a && isDart b && passOver a == passUnder b  = 1
                     | otherwise                                          = 0
     where
         b = opposite a
 
 
-totalAlternatingDefect :: (Knotted k) => k DiagramCrossing -> Int
+totalAlternatingDefect :: (Knotted k) => k DiagramCrossingType -> Int
 totalAlternatingDefect = sum . map (alternatingDefect . fst) . allEdges
 
 
-isAlternating :: (Knotted k) => k DiagramCrossing -> Bool
+isAlternating :: (Knotted k) => k DiagramCrossingType -> Bool
 isAlternating = (== 0) . totalAlternatingDefect
 
 
-selfWrithe :: (Knotted k) => k DiagramCrossing -> Int
+selfWrithe :: (Knotted k) => k DiagramCrossingType -> Int
 selfWrithe knot | hasVertices knot  = sum $ elems $ selfWritheArray knot
                 | otherwise         = 0
 
 
-selfWritheByThread :: (Knotted k) => k DiagramCrossing -> UArray Int Int
+selfWritheByThread :: (Knotted k) => k DiagramCrossingType -> UArray Int Int
 selfWritheByThread knot =
     let (n, tag, _) = allThreadsWithMarks knot
     in accumArray (+) 0 (1, n) $ do
@@ -145,7 +145,7 @@ selfWritheByThread knot =
         [(a, w) | a == b]
 
 
-selfWritheArray :: (Knotted k) => k DiagramCrossing -> UArray (Vertex k DiagramCrossing) Int
+selfWritheArray :: (Knotted k) => k DiagramCrossingType -> UArray (Vertex k DiagramCrossingType) Int
 selfWritheArray knot =
     let (_, tag, _) = allThreadsWithMarks knot
     in listArray (verticesRange knot) $ do
@@ -155,8 +155,8 @@ selfWritheArray knot =
 
 
 threadsWithLinkingNumbers
-    :: (Knotted k) => k DiagramCrossing
-        -> ( (Int, UArray (Dart k DiagramCrossing) Int, [(Int, [(Dart k DiagramCrossing, Dart k DiagramCrossing)])])
+    :: (Knotted k) => k DiagramCrossingType
+        -> ( (Int, UArray (Dart k DiagramCrossingType) Int, [(Int, [(Dart k DiagramCrossingType, Dart k DiagramCrossingType)])])
            , UArray (Int, Int) Int
            )
 
@@ -172,7 +172,7 @@ threadsWithLinkingNumbers knot =
 
 
 {-# INLINE crossingWrithe #-}
-crossingWrithe :: (Knotted k) => UArray (Dart k DiagramCrossing) Int -> Vertex k DiagramCrossing -> ((Int, Int), Int)
+crossingWrithe :: (Knotted k) => UArray (Dart k DiagramCrossingType) Int -> Vertex k DiagramCrossingType -> ((Int, Int), Int)
 crossingWrithe t cross =
     let d0 = nthOutcomingDart cross 0
         t0 = t ! d0

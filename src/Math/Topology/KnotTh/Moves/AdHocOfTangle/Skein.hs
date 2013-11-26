@@ -7,7 +7,7 @@ import Math.Topology.KnotTh.Tangle
 import Math.Topology.KnotTh.Moves.AdHocOfTangle.Move
 
 
-smoothA :: TangleDiagramCrossing -> MoveM s DiagramCrossing ()
+smoothA :: TangleDiagramVertex -> MoveM s DiagramCrossingType ()
 smoothA cs = do
     let dn@[_, d1, d2, d3] = outcomingDarts cs
     [od0, od1, od2, od3] <- mapM oppositeC dn
@@ -20,7 +20,7 @@ smoothA cs = do
     maskC [cs]
 
 
-smoothB :: TangleDiagramCrossing -> MoveM s DiagramCrossing ()
+smoothB :: TangleDiagramVertex -> MoveM s DiagramCrossingType ()
 smoothB cs = do
     let dn@[_, d1, d2, d3] = outcomingDarts cs
     [od0, od1, od2, od3] <- mapM oppositeC dn

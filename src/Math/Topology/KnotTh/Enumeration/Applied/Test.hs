@@ -54,8 +54,8 @@ test = testGroup "Enumeration tests"
         , testCase "Jones polynomial of doubling satellite" $
             testInvariantness tangleClasses 4 (minimalJonesPolynomial . twistedDoubleSatellite)
 
-        , testCase "Kauffman F polynomial of triple satellite" $
-            testInvariantness tangleClasses 1 (minimalKauffmanFPolynomial . twistedTripleSatellite)
+        -- , testCase "Kauffman F polynomial of triple satellite" $
+        --    testInvariantness tangleClasses 1 (minimalKauffmanFPolynomial . twistedTripleSatellite)
         ]
 
     , testCase "Enumeration of tangles" $

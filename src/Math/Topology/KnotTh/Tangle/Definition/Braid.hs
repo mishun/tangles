@@ -38,7 +38,7 @@ identityBraidTangle n
         in implode (0, [(0, n' - i) | i <- [0 .. n']], [])
 
 
-braidGeneratorTangle :: (CrossingType ct) => Int -> (Int, CrossingState ct) -> Tangle ct
+braidGeneratorTangle :: (CrossingType ct) => Int -> (Int, Crossing ct) -> Tangle ct
 braidGeneratorTangle n (k, s)
     | n < 2               = error $ printf "braidGeneratorTangle: braid must have at least 2 strands, but %i requested" n
     | k < 0 || k > n - 2  = error $ printf "braidGeneratorTangle: generator offset %i is out of bounds (0, %i)" k (n - 2)
@@ -53,11 +53,11 @@ braidGeneratorTangle n (k, s)
             )
 
 
-braidTangle :: (CrossingType ct) => Int -> [(Int, CrossingState ct)] -> Tangle ct
+braidTangle :: (CrossingType ct) => Int -> [(Int, Crossing ct)] -> Tangle ct
 braidTangle n = foldl (\ braid -> (braid |=|) . braidGeneratorTangle n) (identityBraidTangle n)
 
 
-reversingBraidTangle :: (CrossingType ct) => Int -> CrossingState ct -> Tangle ct
+reversingBraidTangle :: (CrossingType ct) => Int -> Crossing ct -> Tangle ct
 reversingBraidTangle n s
     | n < 0      = error $ printf "flipBraidTangle: requested number of strands %i is negative" n
     | otherwise  = braidTangle n [ (i, s) | k <- [2 .. n], i <- [0 .. n - k] ]

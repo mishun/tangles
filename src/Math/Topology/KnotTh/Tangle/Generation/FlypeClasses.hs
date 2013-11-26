@@ -20,7 +20,11 @@ import Math.Topology.KnotTh.Tangle.Generation.BorderIncremental
 import Math.Topology.KnotTh.Tangle.Generation.FlypeClasses.Flypes
 
 
-templateDescendants :: Bool -> Int -> [SubTangleCrossing ProjectionCrossing] -> Int -> Int -> (SubTangleTangle ProjectionCrossing, Dn.DnSubGroup) -> [(SubTangleTangle ProjectionCrossing, Dn.DnSubGroup)]
+templateDescendants
+    :: Bool -> Int -> [SubTangleCrossingType ProjectionCrossingType]
+        -> Int -> Int -> (SubTangleTangle ProjectionCrossingType, Dn.DnSubGroup)
+            -> [(SubTangleTangle ProjectionCrossingType, Dn.DnSubGroup)]
+
 templateDescendants tri maxN crossings cn curN (tangle, symmetry) = do
     let l = numberOfLegs tangle
     guard $ numberOfVertices tangle == 1 || l > 4
@@ -37,7 +41,11 @@ templateDescendants tri maxN crossings cn curN (tangle, symmetry) = do
         return (vertexOwner root, sym)
 
 
-directSumDescendants :: [SubTangleCrossing ProjectionCrossing] -> (SubTangleTangle ProjectionCrossing, Dn.DnSubGroup) -> [(SubTangleTangle ProjectionCrossing, Dn.DnSubGroup)]
+directSumDescendants
+    :: [SubTangleCrossingType ProjectionCrossingType]
+        -> (SubTangleTangle ProjectionCrossingType, Dn.DnSubGroup)
+            -> [(SubTangleTangle ProjectionCrossingType, Dn.DnSubGroup)]
+
 directSumDescendants crossings (tangle, symmetry) = do
     let preTest cr leg =
             let t = dartOwner leg
@@ -91,7 +99,7 @@ directSumDescendants crossings (tangle, symmetry) = do
                 return (vertexOwner root, sym)
 
 
-generateFlypeEquivalentDecomposition' :: (Monad m) => Bool -> Int -> ((SubTangleTangle ProjectionCrossing, Dn.DnSubGroup) -> m ()) -> m ()
+generateFlypeEquivalentDecomposition' :: (Monad m) => Bool -> Int -> ((SubTangleTangle ProjectionCrossingType, Dn.DnSubGroup) -> m ()) -> m ()
 generateFlypeEquivalentDecomposition' triangle maxN yield = do
     let buildCrossingType template symmetry =
             let sumType
@@ -159,12 +167,12 @@ generateFlypeEquivalentDecomposition' triangle maxN yield = do
         glueDirectSums rootN root
 
 
-generateFlypeEquivalentDecomposition :: (Monad m) => Int -> ((SubTangleTangle ProjectionCrossing, Dn.DnSubGroup) -> m ()) -> m ()
+generateFlypeEquivalentDecomposition :: (Monad m) => Int -> ((SubTangleTangle ProjectionCrossingType, Dn.DnSubGroup) -> m ()) -> m ()
 generateFlypeEquivalentDecomposition =
     generateFlypeEquivalentDecomposition' False
 
 
-generateFlypeEquivalentDecompositionInTriangle :: (Monad m) => Int -> ((SubTangleTangle ProjectionCrossing, Dn.DnSubGroup) -> m ()) -> m ()
+generateFlypeEquivalentDecompositionInTriangle :: (Monad m) => Int -> ((SubTangleTangle ProjectionCrossingType, Dn.DnSubGroup) -> m ()) -> m ()
 generateFlypeEquivalentDecompositionInTriangle =
     generateFlypeEquivalentDecomposition' True
 

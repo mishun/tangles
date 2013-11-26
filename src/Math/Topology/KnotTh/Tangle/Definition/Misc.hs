@@ -8,7 +8,7 @@ import Math.Topology.KnotTh.Knotted
 import Math.Topology.KnotTh.Tangle.Definition.Tangle
 
 
-gridTangle :: (CrossingType ct) => (Int, Int) -> ((Int, Int) -> CrossingState ct) -> Tangle ct
+gridTangle :: (CrossingType ct) => (Int, Int) -> ((Int, Int) -> Crossing ct) -> Tangle ct
 gridTangle (n, m) f
     | n < 0      = error $ printf "gridTangle: first dimension %i is negative" n
     | m < 0      = error $ printf "gridTangle: second dimension %i is negative" m
@@ -30,7 +30,7 @@ gridTangle (n, m) f
         in implode (0, border, body)
 
 
-chainTangle :: (CrossingType ct) => [CrossingState ct] -> Tangle ct
+chainTangle :: (CrossingType ct) => [Crossing ct] -> Tangle ct
 chainTangle [] = zeroTangle
 chainTangle list =
     let n = length list

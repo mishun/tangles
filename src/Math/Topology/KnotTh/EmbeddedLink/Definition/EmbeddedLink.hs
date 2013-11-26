@@ -2,10 +2,10 @@
 module Math.Topology.KnotTh.EmbeddedLink.Definition.EmbeddedLink
     ( EmbeddedLink
     , EmbeddedLinkProj
-    , EmbeddedLinkProjCrossing
+    , EmbeddedLinkProjVertex
     , EmbeddedLinkProjDart
     , EmbeddedLinkDiagram
-    , EmbeddedLinkDiagramCrossing
+    , EmbeddedLinkDiagramVertex
     , EmbeddedLinkDiagramDart
     ) where
 
@@ -49,7 +49,7 @@ produceKnotted
             vertexCrossing = undefined
             implode = undefined
 
-            type ExplodeType EmbeddedLink ct = (Int, [([(Int, Int)], CrossingState ct)])
+            type ExplodeType EmbeddedLink ct = (Int, [([(Int, Int)], Crossing ct)])
 
             explode link =
                 ( numberOfFreeLoops link
@@ -221,11 +221,11 @@ instance SurfaceDiagram EmbeddedLink where
 instance SurfaceKnotted EmbeddedLink
 
 
-type EmbeddedLinkProj = EmbeddedLink ProjectionCrossing
-type EmbeddedLinkProjCrossing = Vertex EmbeddedLink ProjectionCrossing
-type EmbeddedLinkProjDart = Dart EmbeddedLink ProjectionCrossing
+type EmbeddedLinkProj = EmbeddedLink ProjectionCrossingType
+type EmbeddedLinkProjVertex = Vertex EmbeddedLink ProjectionCrossingType
+type EmbeddedLinkProjDart = Dart EmbeddedLink ProjectionCrossingType
 
 
 type EmbeddedLinkDiagram = EmbeddedLink DiagramCrossing
-type EmbeddedLinkDiagramCrossing = Vertex EmbeddedLink DiagramCrossing
+type EmbeddedLinkDiagramVertex = Vertex EmbeddedLink DiagramCrossing
 type EmbeddedLinkDiagramDart = Dart EmbeddedLink DiagramCrossing

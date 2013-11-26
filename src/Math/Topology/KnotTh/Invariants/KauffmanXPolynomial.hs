@@ -22,8 +22,8 @@ import Math.Topology.KnotTh.EmbeddedLink.TangleStarGlue
 
 class (Knotted k) => KnottedWithKauffmanXPolynomial k where
     type KauffmanXPolynomial k :: *
-    kauffmanXPolynomial        :: k DiagramCrossing -> KauffmanXPolynomial k
-    minimalKauffmanXPolynomial :: k DiagramCrossing -> KauffmanXPolynomial k
+    kauffmanXPolynomial        :: k DiagramCrossingType -> KauffmanXPolynomial k
+    minimalKauffmanXPolynomial :: k DiagramCrossingType -> KauffmanXPolynomial k
 
 
 instance KnottedWithKauffmanXPolynomial Tangle where

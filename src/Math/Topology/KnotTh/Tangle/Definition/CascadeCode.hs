@@ -1,8 +1,9 @@
+{-# LANGUAGE TypeFamilies #-}
 module Math.Topology.KnotTh.Tangle.Definition.CascadeCode
-    ( CascadeCodePattern(..)
+    ( ProjectionPattern(..)
+    , DiagramPattern(..)
+    , CascadeCodePattern(..)
     , decodeCascadeCode
-    , ProjPattern(..)
-    , DiagPattern(..)
     , decodeCascadeCodeFromPairs
     ) where
 
@@ -16,42 +17,13 @@ import Math.Topology.KnotTh.Tangle.Definition.Tangle
 import Math.Topology.KnotTh.Tangle.Definition.Transform
 
 
-data ProjPattern = W | X | M deriving (Eq, Enum, Show, Read)
+data ProjectionPattern = W | X | M deriving (Eq, Enum, Show, Read)
 
 
-class (Enum pattern, CrossingType ct) => CascadeCodePattern pattern ct | pattern -> ct where
-    cascadeCodeRoot :: [(pattern, Int)] -> Tangle ct
-    decodeCrossing  :: pattern -> (ProjPattern, Int, Int, CrossingState ct)
+data DiagramPattern = WO | WU | XO | XU | MO | MU deriving (Eq, Enum)
 
 
-decodeCascadeCode :: (CascadeCodePattern p ct) => [(p, Int)] -> Tangle ct
-decodeCascadeCode code =
-    foldl
-        (\ prev (pattern, offset) ->
-            let (gl, shift, rot, c) = decodeCrossing pattern
-                p | rot == 0   = id
-                  | otherwise  = rotateTangle rot
-            in p $ vertexOwner $ glueToBorder
-                (nthLeg prev $ offset + shift)
-                (case gl of { W -> 3 ; X -> 2 ; M -> 1 })
-                c
-        )
-        (cascadeCodeRoot code)
-        code
-
-
-instance CascadeCodePattern ProjPattern ProjectionCrossing where
-    cascadeCodeRoot _ = lonerTangle projectionCrossing
-
-    decodeCrossing W = (W, 1, 0, projectionCrossing)
-    decodeCrossing X = (X, 1, 0, projectionCrossing)
-    decodeCrossing M = (M, 0, -1, projectionCrossing)
-
-
-data DiagPattern = WO | WU | XO | XU | MO | MU deriving (Eq, Enum)
-
-
-instance Show DiagPattern where
+instance Show DiagramPattern where
     show p = case p of
         WO -> "W+"
         WU -> "W-"
@@ -61,7 +33,7 @@ instance Show DiagPattern where
         MU -> "M-"
 
 
-instance Read DiagPattern where
+instance Read DiagramPattern where
     readsPrec _ s = case dropWhile isSpace s of
         'W' : '+' : t -> [(WO, t)]
         'W' : '-' : t -> [(WU, t)]
@@ -72,8 +44,39 @@ instance Read DiagPattern where
         _             -> []
 
 
-instance CascadeCodePattern DiagPattern DiagramCrossing where
-    cascadeCodeRoot _ = lonerTangle overCrossing
+class (Enum (CascadePattern a), CrossingType a) => CascadeCodePattern a where
+    type CascadePattern a :: *
+    cascadeCodeRoot :: Tangle a
+    decodeCrossing  :: CascadePattern a -> (ProjectionPattern, Int, Int, Crossing a)
+
+
+decodeCascadeCode :: (CascadeCodePattern a) => [(CascadePattern a, Int)] -> Tangle a
+decodeCascadeCode =
+    foldl (\ prev (pattern, offset) ->
+            let (gl, shift, rot, c) = decodeCrossing pattern
+                p | rot == 0   = id
+                  | otherwise  = rotateTangle rot
+            in p $ vertexOwner $ glueToBorder
+                (nthLeg prev $ offset + shift)
+                (case gl of { W -> 3 ; X -> 2 ; M -> 1 })
+                c
+        ) cascadeCodeRoot
+
+
+instance CascadeCodePattern ProjectionCrossingType where
+    type CascadePattern ProjectionCrossingType = ProjectionPattern
+
+    cascadeCodeRoot = lonerTangle projectionCrossing
+
+    decodeCrossing W = (W, 1, 0, projectionCrossing)
+    decodeCrossing X = (X, 1, 0, projectionCrossing)
+    decodeCrossing M = (M, 0, -1, projectionCrossing)
+
+
+instance CascadeCodePattern DiagramCrossingType where
+    type CascadePattern DiagramCrossingType = DiagramPattern
+
+    cascadeCodeRoot = lonerTangle overCrossing
 
     decodeCrossing WO = (W, 1, 0, underCrossing)
     decodeCrossing WU = (W, 1, 0, overCrossing)
@@ -83,7 +86,7 @@ instance CascadeCodePattern DiagPattern DiagramCrossing where
     decodeCrossing MU = (M, 0, -1, underCrossing)
 
 
-decodeCascadeCodeFromPairs :: [(Int, Int)] -> Tangle ProjectionCrossing
+decodeCascadeCodeFromPairs :: [(Int, Int)] -> TangleProj
 decodeCascadeCodeFromPairs = (decodeCascadeCode .) $ map $ \ (p, off) ->
     flip (,) off $ case p of
         -1 -> W

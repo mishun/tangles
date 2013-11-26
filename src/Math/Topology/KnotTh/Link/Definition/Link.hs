@@ -5,10 +5,10 @@ module Math.Topology.KnotTh.Link.Definition.Link
     , linkToTangle
     , tangleToLink
     , LinkProj
-    , LinkProjCrossing
+    , LinkProjVertex
     , LinkProjDart
     , LinkDiagram
-    , LinkDiagramCrossing
+    , LinkDiagramVertex
     , LinkDiagramDart
     ) where
 
@@ -58,7 +58,7 @@ instance Knotted Link where
     mapCrossings f (L t) = L (mapCrossings f t)
     vertexCrossing (V v) = vertexCrossing v
 
-    type ExplodeType Link ct = (Int, [([(Int, Int)], CrossingState ct)])
+    type ExplodeType Link ct = (Int, [([(Int, Int)], Crossing ct)])
     explode (L t) = let (f, [], l) = explode t in (f, l)
     implode (f, l) = L (implode (f, [], l))
 
@@ -83,11 +83,11 @@ tangleToLink t | numberOfLegs t == 0  = L t
                | otherwise            = error "tangleToLink: tangle must have 0 legs"
 
 
-type LinkProj = Link ProjectionCrossing
-type LinkProjCrossing = Vertex Link ProjectionCrossing
-type LinkProjDart = Dart Link ProjectionCrossing
+type LinkProj = Link ProjectionCrossingType
+type LinkProjVertex = Vertex Link ProjectionCrossingType
+type LinkProjDart = Dart Link ProjectionCrossingType
 
 
-type LinkDiagram = Link DiagramCrossing
-type LinkDiagramCrossing = Vertex Link DiagramCrossing
-type LinkDiagramDart = Dart Link DiagramCrossing
+type LinkDiagram = Link DiagramCrossingType
+type LinkDiagramVertex = Vertex Link DiagramCrossingType
+type LinkDiagramDart = Dart Link DiagramCrossingType

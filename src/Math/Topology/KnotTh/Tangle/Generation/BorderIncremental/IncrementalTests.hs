@@ -23,7 +23,7 @@ testNoMultiEdges leg gl =
         ) ls $! tail ls
 
 
-testNo2ndReidemeisterReduction :: DiagramCrossingState -> TangleDiagramDart -> Int -> Bool
+testNo2ndReidemeisterReduction :: DiagramCrossing -> TangleDiagramDart -> Int -> Bool
 testNo2ndReidemeisterReduction cr leg gl =
     let legs = take gl $ iterate nextCW leg
         test (i, a, b)

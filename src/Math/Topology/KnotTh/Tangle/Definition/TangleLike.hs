@@ -25,7 +25,7 @@ class (Knotted t, PlanarAlgebra t) => TangleLike t where
     --   +-------+
     identityTangle :: t a
 
-    lonerTangle :: (CrossingType a) => CrossingState a -> t a
+    lonerTangle :: (CrossingType a) => Crossing a -> t a
 
     -- |           legsToGlue = 2
     --  ..............|
@@ -47,4 +47,4 @@ class (Knotted t, PlanarAlgebra t) => TangleLike t where
     -- ........|  |  1      |          ........|  +=========+                  |  |      2  |
     -- ........|  |   \-----|--0       ........|                       (leg-2)-|--|-----/   |
     -- ........|  +=========+          ........|                       ........|  +=========+
-    glueToBorder :: (CrossingType a) => Dart t a -> Int -> CrossingState a -> Vertex t a
+    glueToBorder :: (CrossingType a) => Dart t a -> Int -> Crossing a -> Vertex t a

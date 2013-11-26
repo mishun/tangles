@@ -116,7 +116,7 @@ decode (n, threads) = implode (length $ filter null threads, incidence)
 
         incidence = runST $ do
             conn <- newArray_ ((1, 0), (n, 3)) :: ST s (STArray s (Int, Int) (Int, Int))
-            state <- newArray_ (1, n) :: ST s (STArray s Int DiagramCrossingState)
+            state <- newArray_ (1, n) :: ST s (STArray s Int DiagramCrossing)
 
             let connect a b = writeArray conn a b >> writeArray conn b a
 

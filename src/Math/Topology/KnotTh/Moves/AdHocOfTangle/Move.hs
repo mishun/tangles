@@ -24,15 +24,18 @@ import Text.Printf
 import Math.Topology.KnotTh.Tangle
 
 
-data CrossingFlag ct = Direct !(CrossingState ct) | Flipped !(CrossingState ct) | Masked
+data CrossingFlag ct = Direct !(Crossing ct)
+                     | Flipped !(Crossing ct)
+                     | Masked
 
 
-data MoveState s ct = MoveState
-    { stateSource      :: !(Tangle ct)
-    , stateMask        :: !(STArray s Int (CrossingFlag ct))
-    , stateCircles     :: !(STRef s Int)
-    , stateConnections :: !(STArray s Int (Dart Tangle ct))
-    }
+data MoveState s ct =
+    MoveState
+        { stateSource      :: !(Tangle ct)
+        , stateMask        :: !(STArray s Int (CrossingFlag ct))
+        , stateCircles     :: !(STRef s Int)
+        , stateConnections :: !(STArray s Int (Dart Tangle ct))
+        }
 
 
 readMaskST :: MoveState s ct -> Vertex Tangle ct -> ST s (CrossingFlag ct)
@@ -136,7 +139,7 @@ oppositeC d = do
         readArray (stateConnections st) (dartIndex d)
 
 
-passOverC :: TangleDiagramDart -> MoveM s DiagramCrossing Bool
+passOverC :: TangleDiagramDart -> MoveM s DiagramCrossingType Bool
 passOverC d =
     ask >>= \ st -> lift $ do
         when (isLeg d) $ fail $ printf "passOverC: leg %s passed" (show d)
@@ -175,7 +178,7 @@ aliveCrossings = do
     filterM (fmap not . isMasked) $ allVertices $ stateSource st
 
 
-modifyC :: (CrossingType ct) => Bool -> (CrossingState ct -> CrossingState ct) -> [Vertex Tangle ct] -> MoveM s ct ()
+modifyC :: (CrossingType ct) => Bool -> (Crossing ct -> Crossing ct) -> [Vertex Tangle ct] -> MoveM s ct ()
 modifyC needFlip f crossings =
     ask >>= \ !st -> lift $
         forM_ crossings $ \ !c -> do

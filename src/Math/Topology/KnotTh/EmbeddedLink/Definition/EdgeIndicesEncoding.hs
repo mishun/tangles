@@ -9,22 +9,22 @@ import Math.Topology.KnotTh.Crossings.Diagram
 import Math.Topology.KnotTh.EmbeddedLink.Definition.EmbeddedLink
 
 
-class (CrossingType ct) => EdgeIndicesCrossing ct where
+class (CrossingType ct) => EdgeIndicesCrossingType ct where
     indexPlace :: Dart EmbeddedLink ct -> Int
 
 
-instance EdgeIndicesCrossing ProjectionCrossing where
+instance EdgeIndicesCrossingType ProjectionCrossingType where
     indexPlace = beginPlace
 
 
-instance EdgeIndicesCrossing DiagramCrossing where
+instance EdgeIndicesCrossingType DiagramCrossingType where
     indexPlace d | passOver (nthOutcomingDart c 0)  = p
                  | otherwise                        = (p - 1) `mod` 4
         where
             (c, p) = beginPair d
 
 
-encodeEdgeIndices :: (EdgeIndicesCrossing ct) => EmbeddedLink ct -> [Int]
+encodeEdgeIndices :: (EdgeIndicesCrossingType a) => EmbeddedLink a -> [Int]
 encodeEdgeIndices link =
     let offset d =
             let c = beginVertex d

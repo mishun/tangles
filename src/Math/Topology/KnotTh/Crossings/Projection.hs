@@ -1,6 +1,6 @@
 module Math.Topology.KnotTh.Crossings.Projection
-    ( ProjectionCrossing
-    , ProjectionCrossingState
+    ( ProjectionCrossingType
+    , ProjectionCrossing
     , projectionCrossing
     , projectionCrossings
     , projection
@@ -12,41 +12,41 @@ import qualified Math.Algebra.Group.D4 as D4
 import Math.Topology.KnotTh.Knotted
 
 
-data ProjectionCrossing = ProjectionCrossing deriving (Eq)
+data ProjectionCrossingType = ProjectionCrossing deriving (Eq)
 
 
-instance NFData ProjectionCrossing
+instance NFData ProjectionCrossingType
 
 
-instance CrossingType ProjectionCrossing where
+instance CrossingType ProjectionCrossingType where
     localCrossingSymmetry _ = D4.subGroupD4
     possibleOrientations _ _ = projectionCrossings
     mirrorReversingDartsOrder = id
 
 
-instance ThreadedCrossing ProjectionCrossing
+instance ThreadedCrossing ProjectionCrossingType
 
 
-instance Show ProjectionCrossing where
+instance Show ProjectionCrossingType where
     show _ = "+"
 
 
-instance Read ProjectionCrossing where
+instance Read ProjectionCrossingType where
     readsPrec _ s = case dropWhile isSpace s of
         '+' : t -> [(ProjectionCrossing, t)]
         _       -> []
 
 
-type ProjectionCrossingState = CrossingState ProjectionCrossing
+type ProjectionCrossing = Crossing ProjectionCrossingType
 
 
-projectionCrossing :: ProjectionCrossingState
+projectionCrossing :: ProjectionCrossing
 projectionCrossing = makeCrossing' ProjectionCrossing
 
 
-projectionCrossings :: [ProjectionCrossingState]
+projectionCrossings :: [ProjectionCrossing]
 projectionCrossings = [projectionCrossing]
 
 
-projection :: (CrossingType ct, Knotted k) => k ct -> k ProjectionCrossing
+projection :: (Knotted k) => k a -> k ProjectionCrossingType
 projection = mapCrossings (const projectionCrossing)
