@@ -1,4 +1,4 @@
-{-# LANGUAGE Rank2Types #-}
+{-# LANGUAGE RankNTypes #-}
 module Math.Topology.KnotTh.Enumeration.Applied.NonAlternatingTangles
     ( module X
     , tangleDiagrams

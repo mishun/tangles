@@ -14,7 +14,7 @@ import Math.Topology.KnotTh.Tangle.Definition.Tangle
 import Math.Topology.KnotTh.Tangle.Definition.Transform
 
 
-(|=|) :: (CrossingType ct, TangleLike tangle) => tangle ct -> tangle ct -> tangle ct
+(|=|) :: (TangleLike t) => t a -> t a -> t a
 (|=|) a b
     | al /= bl   = error $ printf "braidLikeGlue: different numbers of legs (%i and %i)" al bl
     | otherwise  = glueTangles n (nthLeg a n) (nthLeg b (n - 1))
@@ -24,13 +24,13 @@ import Math.Topology.KnotTh.Tangle.Definition.Transform
         n = al `div` 2
 
 
-(|~|) :: (CrossingType ct) => Tangle ct -> Tangle ct -> Tangle ct
+(|~|) :: (CrossingType t) => Tangle (Crossing t) -> Tangle (Crossing t) -> Tangle (Crossing t)
 (|~|) a b =
     let k = numberOfLegs a `div` 2
     in rotateTangle (-k) $ glueTangles 0 (nthLeg a k) (firstLeg b)
 
 
-identityBraidTangle :: (CrossingType ct) => Int -> Tangle ct
+identityBraidTangle :: Int -> Tangle a
 identityBraidTangle n
     | n < 0      = error $ printf "identityBraidTangle: requested number of strands %i is negative" n
     | otherwise  =
@@ -38,7 +38,7 @@ identityBraidTangle n
         in implode (0, [(0, n' - i) | i <- [0 .. n']], [])
 
 
-braidGeneratorTangle :: (CrossingType ct) => Int -> (Int, Crossing ct) -> Tangle ct
+braidGeneratorTangle :: Int -> (Int, a) -> Tangle a
 braidGeneratorTangle n (k, s)
     | n < 2               = error $ printf "braidGeneratorTangle: braid must have at least 2 strands, but %i requested" n
     | k < 0 || k > n - 2  = error $ printf "braidGeneratorTangle: generator offset %i is out of bounds (0, %i)" k (n - 2)
@@ -53,11 +53,11 @@ braidGeneratorTangle n (k, s)
             )
 
 
-braidTangle :: (CrossingType ct) => Int -> [(Int, Crossing ct)] -> Tangle ct
+braidTangle :: Int -> [(Int, a)] -> Tangle a
 braidTangle n = foldl (\ braid -> (braid |=|) . braidGeneratorTangle n) (identityBraidTangle n)
 
 
-reversingBraidTangle :: (CrossingType ct) => Int -> Crossing ct -> Tangle ct
+reversingBraidTangle :: Int -> a -> Tangle a
 reversingBraidTangle n s
     | n < 0      = error $ printf "flipBraidTangle: requested number of strands %i is negative" n
     | otherwise  = braidTangle n [ (i, s) | k <- [2 .. n], i <- [0 .. n - k] ]

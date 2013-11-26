@@ -11,8 +11,8 @@ import Math.Topology.KnotTh.Invariants.KnotPolynomials.KauffmanFStateSum
 
 class (Knotted k) => KnottedWithHomflyPolynomial k where
     type HomflyPolynomial k :: *
-    homflyPolynomial        :: k DiagramCrossingType -> HomflyPolynomial k
-    minimalHomflyPolynomial :: k DiagramCrossingType -> HomflyPolynomial k
+    homflyPolynomial        :: k DiagramCrossing -> HomflyPolynomial k
+    minimalHomflyPolynomial :: k DiagramCrossing -> HomflyPolynomial k
 
 
 instance KnottedWithHomflyPolynomial Tangle where

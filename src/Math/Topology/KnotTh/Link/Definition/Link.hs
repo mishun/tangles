@@ -51,14 +51,17 @@ instance PlanarDiagram Link where
     dartIndicesRange (L t) = dartIndicesRange t
 
 
+instance Functor Link where
+    fmap f (L t) = L (fmap f t)
+
+
 instance Knotted Link where
+    vertexCrossing (V v) = vertexCrossing v
     numberOfFreeLoops (L t) = numberOfFreeLoops t
     changeNumberOfFreeLoops n (L t) = L (changeNumberOfFreeLoops n t)
     emptyKnotted = L emptyKnotted
-    mapCrossings f (L t) = L (mapCrossings f t)
-    vertexCrossing (V v) = vertexCrossing v
 
-    type ExplodeType Link ct = (Int, [([(Int, Int)], Crossing ct)])
+    type ExplodeType Link a = (Int, [([(Int, Int)], a)])
     explode (L t) = let (f, [], l) = explode t in (f, l)
     implode (f, l) = L (implode (f, [], l))
 
@@ -67,29 +70,29 @@ instance Knotted Link where
     isConnected (L t) = isConnected t
 
 
-produceShowDart ''Link ''Dart (const [])
-produceShowCrossing ''Link ''Vertex
-produceShowKnot ''Link
+produceShowDart ''Link (const [])
+produceShowVertex ''Link
+produceShowKnotted ''Link
 
 
-emptyLink :: (CrossingType ct) => Link ct
+emptyLink :: Link a
 emptyLink = emptyKnotted
 
 
-linkToTangle :: Link ct -> Tangle ct
+linkToTangle :: Link a -> Tangle a
 linkToTangle (L t) = t
 
 
-tangleToLink :: Tangle ct -> Link ct
+tangleToLink :: Tangle a -> Link a
 tangleToLink t | numberOfLegs t == 0  = L t
                | otherwise            = error "tangleToLink: tangle must have 0 legs"
 
 
-type LinkProj = Link ProjectionCrossingType
-type LinkProjVertex = Vertex Link ProjectionCrossingType
-type LinkProjDart = Dart Link ProjectionCrossingType
+type LinkProj = Link ProjectionCrossing
+type LinkProjVertex = Vertex Link ProjectionCrossing
+type LinkProjDart = Dart Link ProjectionCrossing
 
 
-type LinkDiagram = Link DiagramCrossingType
-type LinkDiagramVertex = Vertex Link DiagramCrossingType
-type LinkDiagramDart = Dart Link DiagramCrossingType
+type LinkDiagram = Link DiagramCrossing
+type LinkDiagramVertex = Vertex Link DiagramCrossing
+type LinkDiagramDart = Dart Link DiagramCrossing

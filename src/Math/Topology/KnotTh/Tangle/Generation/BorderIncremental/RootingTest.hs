@@ -21,7 +21,7 @@ import qualified Math.Algebra.Group.D4 as D4
 import Math.Topology.KnotTh.Tangle
 
 
-rootingSymmetryTest :: (CrossingType ct) => Vertex Tangle ct -> Maybe (Dn.DnSubGroup, (D4.D4, D4.D4), UArray Int Int)
+rootingSymmetryTest :: (CrossingType t) => Vertex Tangle (Crossing t) -> Maybe (Dn.DnSubGroup, (D4.D4, D4.D4), UArray Int Int)
 rootingSymmetryTest lastCrossing = do
     let tangle = vertexOwner lastCrossing
     guard $ numberOfLegs tangle >= 4
@@ -29,7 +29,7 @@ rootingSymmetryTest lastCrossing = do
     analyseSymmetry lastCrossing (unsafeAt cp . vertexIndex)
 
 
-rootCodeLeg :: (CrossingType ct) => Dart Tangle ct -> R.RotationDirection -> (D4.D4, UArray Int Int)
+rootCodeLeg :: (CrossingType t) => Dart Tangle (Crossing t) -> R.RotationDirection -> (D4.D4, UArray Int Int)
 rootCodeLeg root dir
     | isDart root                     = error "rootCodeLeg: leg expected"
     | numberOfFreeLoops tangle /= 0   = error "rootCodeLeg: free loops present"
@@ -39,7 +39,7 @@ rootCodeLeg root dir
         tangle = dartOwner root
 
 
-investigateConnectivity :: Vertex Tangle ct -> Maybe (UArray Int Bool)
+investigateConnectivity :: Vertex Tangle a -> Maybe (UArray Int Bool)
 investigateConnectivity lastCrossing = runST $ do
     let tangle = vertexOwner lastCrossing
     let n = numberOfVertices tangle
@@ -79,7 +79,11 @@ investigateConnectivity lastCrossing = runST $ do
             (Just $!) `fmap` unsafeFreeze cp
 
 
-analyseSymmetry :: (CrossingType ct) => Vertex Tangle ct -> (Vertex Tangle ct -> Bool) -> Maybe (Dn.DnSubGroup, (D4.D4, D4.D4), UArray Int Int)
+analyseSymmetry
+    :: (CrossingType t) => Vertex Tangle (Crossing t)
+        -> (Vertex Tangle (Crossing t) -> Bool)
+            -> Maybe (Dn.DnSubGroup, (D4.D4, D4.D4), UArray Int Int)
+
 analyseSymmetry lastCrossing skipCrossing = do
     let tangle = vertexOwner lastCrossing
         l = numberOfLegs tangle
@@ -134,7 +138,7 @@ analyseSymmetry lastCrossing skipCrossing = do
         Nothing                 -> (Dn.fromPeriod l period, (periodG, D4.i), rootCode)
 
 
-compareRootCodeUnsafe :: (CrossingType ct) => Dart Tangle ct -> R.RotationDirection -> UArray Int Int -> (D4.D4, Ordering)
+compareRootCodeUnsafe :: (CrossingType t) => Dart Tangle (Crossing t) -> R.RotationDirection -> UArray Int Int -> (D4.D4, Ordering)
 compareRootCodeUnsafe root dir rootCode =
     case globalTransformations tangle of
         Nothing      -> (D4.i, rawCompare)
@@ -218,7 +222,7 @@ compareRootCodeUnsafe root dir rootCode =
             bfs 0
 
 
-rootCodeLegUnsafe :: (CrossingType ct) => Dart Tangle ct -> R.RotationDirection -> (D4.D4, UArray Int Int)
+rootCodeLegUnsafe :: (CrossingType t) => Dart Tangle (Crossing t) -> R.RotationDirection -> (D4.D4, UArray Int Int)
 rootCodeLegUnsafe root dir =
     case globalTransformations tangle of
         Nothing      -> (D4.i, code)

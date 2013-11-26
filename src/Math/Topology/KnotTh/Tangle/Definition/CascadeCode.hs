@@ -44,13 +44,13 @@ instance Read DiagramPattern where
         _             -> []
 
 
-class (Enum (CascadePattern a), CrossingType a) => CascadeCodePattern a where
+class (Enum (CascadePattern a)) => CascadeCodePattern a where
     type CascadePattern a :: *
     cascadeCodeRoot :: Tangle a
-    decodeCrossing  :: CascadePattern a -> (ProjectionPattern, Int, Int, Crossing a)
+    decodeCrossing  :: CascadePattern a -> (ProjectionPattern, Int, Int, a)
 
 
-decodeCascadeCode :: (CascadeCodePattern a) => [(CascadePattern a, Int)] -> Tangle a
+decodeCascadeCode :: (CrossingType t, CascadeCodePattern (Crossing t)) => [(CascadePattern (Crossing t), Int)] -> Tangle (Crossing t)
 decodeCascadeCode =
     foldl (\ prev (pattern, offset) ->
             let (gl, shift, rot, c) = decodeCrossing pattern
@@ -63,8 +63,8 @@ decodeCascadeCode =
         ) cascadeCodeRoot
 
 
-instance CascadeCodePattern ProjectionCrossingType where
-    type CascadePattern ProjectionCrossingType = ProjectionPattern
+instance CascadeCodePattern ProjectionCrossing where
+    type CascadePattern ProjectionCrossing = ProjectionPattern
 
     cascadeCodeRoot = lonerTangle projectionCrossing
 
@@ -73,8 +73,8 @@ instance CascadeCodePattern ProjectionCrossingType where
     decodeCrossing M = (M, 0, -1, projectionCrossing)
 
 
-instance CascadeCodePattern DiagramCrossingType where
-    type CascadePattern DiagramCrossingType = DiagramPattern
+instance CascadeCodePattern DiagramCrossing where
+    type CascadePattern DiagramCrossing = DiagramPattern
 
     cascadeCodeRoot = lonerTangle overCrossing
 

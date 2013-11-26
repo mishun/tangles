@@ -1,8 +1,8 @@
 {-# LANGUAGE TemplateHaskell #-}
 module Math.Topology.KnotTh.Knotted.TH.Show
     ( produceShowDart
-    , produceShowCrossing
-    , produceShowKnot
+    , produceShowVertex
+    , produceShowKnotted
     ) where
 
 import Language.Haskell.TH
@@ -10,10 +10,10 @@ import Text.Printf
 import Math.Topology.KnotTh.Knotted
 
 
-produceShowDart :: Name -> Name -> (ExpQ -> [(ExpQ, ExpQ)]) -> DecsQ
-produceShowDart knotN dartN extraGuards = (:[]) `fmap` do
-    ct <- varT `fmap` newName "ct"
-    instanceD (cxt []) (conT ''Show `appT` (conT dartN `appT` conT knotN `appT` ct))
+produceShowDart :: Name -> (ExpQ -> [(ExpQ, ExpQ)]) -> DecsQ
+produceShowDart knotType extraGuards = (:[]) `fmap` do
+    a <- newName "a"
+    instanceD (cxt []) [t| Show (Dart $(conT knotType) $(varT a)) |] -- (conT ''Show `appT` (conT dartN `appT` conT knotN `appT` ct))
         [ funD 'show $ (:[]) $ do
             d <- newName "d"
             clause [varP d] (guardedB $ map (uncurry normalGE) $ extraGuards (varE d) ++
@@ -26,31 +26,23 @@ produceShowDart knotN dartN extraGuards = (:[]) `fmap` do
         ]
 
 
-produceShowCrossing :: Name -> Name -> DecsQ
-produceShowCrossing knotN crosN = (:[]) `fmap` do
-    ct <- varT `fmap` newName "ct"
-    instanceD (cxt [classP ''Show [ct], classP ''CrossingType [ct]]) (conT ''Show `appT` (conT crosN `appT` conT knotN `appT` ct))
-        [ valD (varP 'show) (normalB
-                [| \ v ->
-                    printf "(Crossing %i %s [ %s ])"
-                        (vertexIndex v)
-                        (show $ vertexCrossing v)
-                        (unwords $ map (show . opposite) $ outcomingDarts v)
-                |]
-            ) []
-        ]
+produceShowVertex :: Name -> DecsQ
+produceShowVertex knotType =
+    [d| instance (Show a) => Show (Vertex $(conT knotType) a) where
+            show v =
+                printf "(Crossing %i %s [ %s ])"
+                    (vertexIndex v)
+                    (show $ vertexCrossing v)
+                    (unwords $ map (show . opposite) $ outcomingDarts v)
+    |]
 
 
-produceShowKnot :: Name -> DecsQ
-produceShowKnot knotN = (:[]) `fmap` do
-    ct <- varT `fmap` newName "ct"
-    instanceD (cxt [classP ''Show [ct], classP ''CrossingType [ct]]) (conT ''Show `appT` (conT knotN `appT` ct))
-        [ valD (varP 'show) (normalB
-                [| \ knot ->
-                    printf "(%s (%i O) %s)"
-                        $(litE $ stringL $ nameBase knotN)
-                        (numberOfFreeLoops knot)
-                        (unwords $ map show $ allVertices knot)
-                |]
-            ) []
-        ]
+produceShowKnotted :: Name -> DecsQ
+produceShowKnotted knotType =
+    [d| instance (Show a) => Show ($(conT knotType) a) where
+            show k =
+                printf "(%s (%i O) %s)"
+                    $(litE $ stringL $ nameBase knotType)
+                    (numberOfFreeLoops k)
+                    (unwords $ map show $ allVertices k)
+    |] 

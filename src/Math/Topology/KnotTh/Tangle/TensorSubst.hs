@@ -9,7 +9,7 @@ import Control.Monad (when)
 import Math.Topology.KnotTh.Tangle
 
 
-tensorSubst :: (CrossingType a, CrossingType b) => Int -> (Vertex Tangle a -> Tangle b) -> Tangle a -> Tangle b
+tensorSubst :: (Show b) => Int -> (Vertex Tangle a -> Tangle b) -> Tangle a -> Tangle b
 tensorSubst k crossF tangle = implode (k * numberOfFreeLoops tangle, border, body)
     where
         n = numberOfVertices tangle

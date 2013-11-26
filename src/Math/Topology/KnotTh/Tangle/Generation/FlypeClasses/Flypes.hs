@@ -15,7 +15,7 @@ import Math.Topology.KnotTh.Crossings.SubTangle
 import Math.Topology.KnotTh.Tangle
 
 
-flypeCodeLeg :: Dart Tangle (SubTangleCrossingType ProjectionCrossingType) -> R.RotationDirection -> UArray Int Int
+flypeCodeLeg :: Dart Tangle (SubTangleCrossing ProjectionCrossing) -> R.RotationDirection -> UArray Int Int
 flypeCodeLeg leg initialDirection
     | isDart leg  = error $ printf "flypeCodeLeg: leg expected, %s received" (show leg)
     | otherwise   = runSTUArray $ do
@@ -38,7 +38,7 @@ flypeCodeLeg leg initialDirection
         return code
 
 
-minimumFlypeCode :: SubTangleTangle ProjectionCrossingType -> UArray Int Int
+minimumFlypeCode :: SubTangleTangle ProjectionCrossing -> UArray Int Int
 minimumFlypeCode tangle
     | numberOfLegs tangle /= 4          = error $ printf "minimumFlypeCode: tangle with 4 legs expected, %i received" (numberOfLegs tangle)
     | (a == b) && (c == d) && (a /= c)  = minimum $ map (uncurry flypeCodeLeg) [(l0, R.cw), (l1, R.ccw), (l2, R.cw), (l3, R.ccw)]
@@ -49,7 +49,7 @@ minimumFlypeCode tangle
         [a, b, c, d] = map endVertex $ allLegs tangle
 
 
-additionalFlypeSymmetry :: SubTangleTangle ProjectionCrossingType -> Maybe Dn.Dn
+additionalFlypeSymmetry :: SubTangleTangle ProjectionCrossing -> Maybe Dn.Dn
 additionalFlypeSymmetry tangle
     | numberOfLegs tangle /= 4                 = error $ printf "additionalFlypeSymmetry: tangle with 4 legs expected, %i received" (numberOfLegs tangle)
     | x == flypeCodeLeg (nthLeg tangle 2) dir  = Just $! Dn.fromReflectionRotation 4 (False, 2)

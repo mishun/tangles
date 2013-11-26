@@ -1,6 +1,5 @@
 module Math.Topology.KnotTh.Crossings.Projection
-    ( ProjectionCrossingType
-    , ProjectionCrossing
+    ( ProjectionCrossing
     , projectionCrossing
     , projectionCrossings
     , projection
@@ -24,9 +23,6 @@ instance CrossingType ProjectionCrossingType where
     mirrorReversingDartsOrder = id
 
 
-instance ThreadedCrossing ProjectionCrossingType
-
-
 instance Show ProjectionCrossingType where
     show _ = "+"
 
@@ -40,6 +36,9 @@ instance Read ProjectionCrossingType where
 type ProjectionCrossing = Crossing ProjectionCrossingType
 
 
+instance ThreadedCrossing ProjectionCrossing
+
+
 projectionCrossing :: ProjectionCrossing
 projectionCrossing = makeCrossing' ProjectionCrossing
 
@@ -48,5 +47,5 @@ projectionCrossings :: [ProjectionCrossing]
 projectionCrossings = [projectionCrossing]
 
 
-projection :: (Knotted k) => k a -> k ProjectionCrossingType
-projection = mapCrossings (const projectionCrossing)
+projection :: (Knotted k) => k a -> k ProjectionCrossing
+projection = fmap (const projectionCrossing)

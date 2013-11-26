@@ -16,7 +16,7 @@ import Math.Topology.KnotTh.Tangle as X
 
 class (Functor f, PlanarStateSum (f p)) => SkeinRelation f p where
     skeinLPlus, skeinLMinus :: f p
-    finalNormalization      :: (Knotted k) => k DiagramCrossingType -> f p -> f p
+    finalNormalization      :: (Knotted k) => k DiagramCrossing -> f p -> f p
     invertCrossingsAction   :: f p -> f p
     takeAsScalar            :: f p -> p
 

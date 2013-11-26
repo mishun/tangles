@@ -20,32 +20,32 @@ import Math.Topology.KnotTh.Knotted.Definition
 type ThreadList d = (Int, UArray d Int, [(Int, [(d, d)])])
 
 
-class (CrossingType ct) => ThreadedCrossing ct where
-    threadContinuation :: (Knotted k) => Dart k ct -> Dart k ct
+class ThreadedCrossing a where
+    threadContinuation :: (Knotted k) => Dart k a -> Dart k a
 
     threadContinuation d | isDart d   = nextCCW $ nextCCW d
                          | otherwise  = error "continuation: from endpoint"
 
 
 {-# INLINE maybeThreadContinuation #-}
-maybeThreadContinuation :: (ThreadedCrossing ct, Knotted k) => Dart k ct -> Maybe (Dart k ct)
+maybeThreadContinuation :: (ThreadedCrossing a, Knotted k) => Dart k a -> Maybe (Dart k a)
 maybeThreadContinuation d | isDart d   = Just $! threadContinuation d
                           | otherwise  = Nothing
 
 
-allThreads :: (ThreadedCrossing ct, Knotted k) => k ct -> [[(Dart k ct, Dart k ct)]]
+allThreads :: (ThreadedCrossing a, Knotted k) => k a -> [[(Dart k a, Dart k a)]]
 allThreads knot =
     let (_, _, threads) = allThreadsWithMarks knot
     in map snd threads
 
 
-numberOfThreads :: (ThreadedCrossing ct, Knotted k) => k ct -> Int
+numberOfThreads :: (ThreadedCrossing a, Knotted k) => k a -> Int
 numberOfThreads knot =
     let (n, _, _) = allThreadsWithMarks knot
     in n
 
 
-allThreadsWithMarks :: (ThreadedCrossing ct, Knotted k) => k ct -> ThreadList (Dart k ct)
+allThreadsWithMarks :: (ThreadedCrossing a, Knotted k) => k a -> ThreadList (Dart k a)
 allThreadsWithMarks knot = runST $ do
     let lp = numberOfFreeLoops knot
     threads <- newSTRef $ replicate lp (0, [])

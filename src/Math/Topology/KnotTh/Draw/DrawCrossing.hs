@@ -1,5 +1,5 @@
 module Math.Topology.KnotTh.Draw.DrawCrossing
-    ( DrawableCrossingType(..)
+    ( DrawableCrossing(..)
     ) where
 
 import Data.Either (lefts)
@@ -13,10 +13,10 @@ import Math.Topology.KnotTh.Knotted
 import Math.Topology.KnotTh.Draw.Settings
 
 
-cutThread :: (Knotted k) => [(Dart k ct, Dart k ct)]
-    -> Array (Dart k ct) (Either [(Double, Double)] ([(Double, Double)], [(Double, Double)]))
-        -> (Dart k ct -> Bool) -> ((Maybe (Dart k ct), Maybe (Dart k ct)) -> [(Double, Double)] -> a)
-            -> [Either a [(Double, Double)]]
+cutThread :: (Knotted k) => [(Dart k a, Dart k a)]
+    -> Array (Dart k a) (Either [(Double, Double)] ([(Double, Double)], [(Double, Double)]))
+        -> (Dart k a -> Bool) -> ((Maybe (Dart k a), Maybe (Dart k a)) -> [(Double, Double)] -> x)
+            -> [Either x [(Double, Double)]]
 
 cutThread thread embedding isCut process
     | null thread                    = []
@@ -71,20 +71,20 @@ cutThread thread embedding isCut process
                 ) groups
 
 
-class (ThreadedCrossing ct) => DrawableCrossingType ct where
+class (ThreadedCrossing a) => DrawableCrossing a where
     crossingDependentSegmentation
-        :: (Knotted k) => DrawKnotSettings -> k ct
-            -> Array (Dart k ct) (Either [(Double, Double)] ([(Double, Double)], [(Double, Double)]))
+        :: (Knotted k) => DrawKnotSettings -> k a
+            -> Array (Dart k a) (Either [(Double, Double)] ([(Double, Double)], [(Double, Double)]))
                 -> [Either [(Double, Double)] [(Double, Double)]]
 
 
-instance DrawableCrossingType ProjectionCrossingType where
+instance DrawableCrossing ProjectionCrossing where
     crossingDependentSegmentation _ knot embedding = do
         thread <- filter (not . null) $ allThreads knot
         cutThread thread embedding (const False) (const id)
 
 
-instance DrawableCrossingType DiagramCrossingType where
+instance DrawableCrossing DiagramCrossing where
     crossingDependentSegmentation s knot embedding = do
         thread <- filter (not . null) $ allThreads knot
         cutThread thread embedding

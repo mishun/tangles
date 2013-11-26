@@ -14,8 +14,8 @@ import Math.Topology.KnotTh.Invariants.KauffmanXPolynomial
 
 class (Knotted k) => KnottedWithJonesPolynomial k where
     type JonesPolynomial k :: * 
-    jonesPolynomial        :: k DiagramCrossingType -> JonesPolynomial k
-    minimalJonesPolynomial :: k DiagramCrossingType -> JonesPolynomial k
+    jonesPolynomial        :: k DiagramCrossing -> JonesPolynomial k
+    minimalJonesPolynomial :: k DiagramCrossing -> JonesPolynomial k
 
 
 instance KnottedWithJonesPolynomial Tangle where

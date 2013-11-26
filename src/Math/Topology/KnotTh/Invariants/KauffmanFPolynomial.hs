@@ -13,8 +13,8 @@ import Math.Topology.KnotTh.Link
 
 class (Knotted k) => KnottedWithKauffmanFPolynomial k where
     type KauffmanFPolynomial k :: *
-    kauffmanFPolynomial        :: k DiagramCrossingType -> KauffmanFPolynomial k
-    minimalKauffmanFPolynomial :: k DiagramCrossingType -> KauffmanFPolynomial k
+    kauffmanFPolynomial        :: k DiagramCrossing -> KauffmanFPolynomial k
+    minimalKauffmanFPolynomial :: k DiagramCrossing -> KauffmanFPolynomial k
 
 
 instance KnottedWithKauffmanFPolynomial Tangle where

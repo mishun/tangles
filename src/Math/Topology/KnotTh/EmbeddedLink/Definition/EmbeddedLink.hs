@@ -42,14 +42,13 @@ produceKnotted
                 }
 
         instance Knotted EmbeddedLink where
+            vertexCrossing = undefined
             numberOfFreeLoops = undefined
             changeNumberOfFreeLoops = undefined
             emptyKnotted = undefined
-            mapCrossings = undefined
-            vertexCrossing = undefined
             implode = undefined
 
-            type ExplodeType EmbeddedLink ct = (Int, [([(Int, Int)], Crossing ct)])
+            type ExplodeType EmbeddedLink a = (Int, [([(Int, Int)], a)])
 
             explode link =
                 ( numberOfFreeLoops link
@@ -182,9 +181,10 @@ produceKnotted
             ]
         }
 
-produceShowDart ''EmbeddedLink ''Dart (const [])
-produceShowCrossing ''EmbeddedLink ''Vertex
-produceShowKnot ''EmbeddedLink
+
+produceShowDart ''EmbeddedLink (const [])
+produceShowVertex ''EmbeddedLink
+produceShowKnotted ''EmbeddedLink
 
 
 instance SurfaceDiagram EmbeddedLink where
@@ -223,9 +223,9 @@ instance SurfaceDiagram EmbeddedLink where
 instance SurfaceKnotted EmbeddedLink
 
 
-type EmbeddedLinkProj = EmbeddedLink ProjectionCrossingType
-type EmbeddedLinkProjVertex = Vertex EmbeddedLink ProjectionCrossingType
-type EmbeddedLinkProjDart = Dart EmbeddedLink ProjectionCrossingType
+type EmbeddedLinkProj = EmbeddedLink ProjectionCrossing
+type EmbeddedLinkProjVertex = Vertex EmbeddedLink ProjectionCrossing
+type EmbeddedLinkProjDart = Dart EmbeddedLink ProjectionCrossing
 
 
 type EmbeddedLinkDiagram = EmbeddedLink DiagramCrossing

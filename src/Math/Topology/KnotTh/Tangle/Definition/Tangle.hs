@@ -49,14 +49,13 @@ produceKnotted
                 }
 
         instance Knotted Tangle where
+            vertexCrossing = undefined
             numberOfFreeLoops = undefined
             changeNumberOfFreeLoops = undefined
             emptyKnotted = undefined
-            mapCrossings = undefined
-            vertexCrossing = undefined
             implode = undefined
 
-            type ExplodeType Tangle ct = (Int, [(Int, Int)], [([(Int, Int)], Crossing ct)])
+            type ExplodeType Tangle a = (Int, [(Int, Int)], [([(Int, Int)], a)])
 
             explode tangle =
                 ( numberOfFreeLoops tangle
@@ -482,13 +481,12 @@ instance TangleLike Tangle where
         return $! nthVertex result newC 
 
 
-produceShowDart ''Tangle ''Dart $ \ d -> [([| isLeg $d |], [| printf "(Leg %i)" $ legPlace $d |])]
-produceShowCrossing ''Tangle ''Vertex
+produceShowDart ''Tangle (\ d -> [([| isLeg $d |], [| printf "(Leg %i)" $ legPlace $d |])])
+produceShowVertex ''Tangle
 
-
-instance (CrossingType ct) => Show (Tangle ct) where
+instance (Show a) => Show (Tangle a) where
     show tangle =
-        let border = printf "(Border [ %s ])" $ unwords $ map (show . opposite) $ allLegs tangle
+        let border = printf "(Border [ %s ])" $ unwords $ map show $ allLegOpposites tangle
         in printf "(Tangle (%i O) %s)"
             (numberOfFreeLoops tangle)
             (unwords $ border : map show (allVertices tangle))
@@ -536,11 +534,11 @@ instance KnottedWithPrimeTest Tangle where
                         | otherwise  = let prev = opposite $ adjBackward d in walkBackward (prev, prev : path)
 
 
-type TangleProj = Tangle ProjectionCrossingType
-type TangleProjVertex = Vertex Tangle ProjectionCrossingType
-type TangleProjDart = Dart Tangle ProjectionCrossingType
+type TangleProj = Tangle ProjectionCrossing
+type TangleProjVertex = Vertex Tangle ProjectionCrossing
+type TangleProjDart = Dart Tangle ProjectionCrossing
 
 
-type TangleDiagram = Tangle DiagramCrossingType
-type TangleDiagramVertex = Vertex Tangle DiagramCrossingType
-type TangleDiagramDart = Dart Tangle DiagramCrossingType
+type TangleDiagram = Tangle DiagramCrossing
+type TangleDiagramVertex = Vertex Tangle DiagramCrossing
+type TangleDiagramDart = Dart Tangle DiagramCrossing

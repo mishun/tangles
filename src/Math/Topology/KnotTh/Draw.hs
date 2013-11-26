@@ -26,21 +26,21 @@ drawKnotDef :: (DrawableKnotted k, Renderable (Path R2) b) => k -> Diagram b R2
 drawKnotDef knot = drawKnot (defaultDrawSettings knot) knot
 
 
-instance (DrawableCrossingType ct) => DrawableKnotted (Tangle ct) where
+instance (DrawableCrossing a) => DrawableKnotted (Tangle a) where
     drawKnot s tangle =
         tangleImage s tangle $
             drawThreads s $ crossingDependentSegmentation s tangle $
                 tangleEmbedding tangle
 
 
-instance (DrawableCrossingType ct) => DrawableKnotted (Link ct) where
+instance (DrawableCrossing a) => DrawableKnotted (Link a) where
     drawKnot s link =
         linkImage s link $
             drawThreads s $ crossingDependentSegmentation s link $
                 linkEmbedding link
 
 
-instance (DrawableCrossingType ct) => DrawableKnotted (EmbeddedLink ct) where
+instance (DrawableCrossing a) => DrawableKnotted (EmbeddedLink a) where
     drawKnot s link =
         let (numberOfGroups, embedding) = surfaceLinkEmbedding link
         in surfaceLinkImage s link numberOfGroups $

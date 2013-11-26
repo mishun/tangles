@@ -1,4 +1,4 @@
-{-# LANGUAGE Rank2Types #-}
+{-# LANGUAGE RankNTypes #-}
 module Math.Topology.KnotTh.Enumeration.EquivalenceClasses
     ( equivalenceClasses
     ) where
@@ -22,9 +22,9 @@ data State k v = St
 
 equivalenceClasses ::
     (CrossingType ct, KnottedWithPrimeTest knot, DiagramInfo info)
-        => [knot ct -> [knot ct]]
-        -> (forall m. (Monad m) => (knot ct -> m ()) -> m ())
-        -> [info (knot ct)]
+        => [knot (Crossing ct) -> [knot (Crossing ct)]]
+        -> (forall m. (Monad m) => (knot (Crossing ct) -> m ()) -> m ())
+        -> [info (knot (Crossing ct))]
 
 equivalenceClasses moves enumerateDiagrams =
     IM.elems $ vals $ flip execState St{set = DS.empty, keys = M.empty, vals = IM.empty} $ do

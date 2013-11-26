@@ -51,12 +51,12 @@ instance (NFData a) => NFData (SubTangleCrossingType a) where
     rnf x = rnf (subTangle x) `seq` x `seq` ()
 
 
-instance (CrossingType a) => CrossingType (SubTangleCrossingType a) where
+instance (CrossingType t) => CrossingType (SubTangleCrossingType (Crossing t)) where
     crossingTypeCode = _code
     localCrossingSymmetry = _symmetry
 
 
-instance (CrossingType a) => Show (SubTangleCrossingType a) where
+instance (Show a) => Show (SubTangleCrossingType a) where
     show cr =
         printf "(SubTangle %i %s %s (%s))"
             (_code cr)
@@ -67,10 +67,13 @@ instance (CrossingType a) => Show (SubTangleCrossingType a) where
 
 type SubTangleCrossing a = Crossing (SubTangleCrossingType a)
 
-type SubTangleTangle a = Tangle (SubTangleCrossingType a)
+type SubTangleTangle a = Tangle (SubTangleCrossing a)
 
 
-crossingFromTangle :: (CrossingType a) => Tangle a -> Dn.DnSubGroup -> DirectSumDecompositionType -> Int -> SubTangleCrossingType a
+crossingFromTangle
+    :: (CrossingType t) => Tangle (Crossing t) -> Dn.DnSubGroup
+        -> DirectSumDecompositionType -> Int -> SubTangleCrossingType (Crossing t)
+
 crossingFromTangle tangle symmetry sumType code
     | l /= 4     = error $ printf "crossingFromTangle: tangle must have 4 legs, %i found" l
     | l' /= 4    = error $ printf "crossingFromTangle: symmetry group must have 4 points, %i found" l'
@@ -88,20 +91,23 @@ crossingFromTangle tangle symmetry sumType code
         lp = numberOfFreeLoops tangle
 
 
-crossingFromTangle' :: (CrossingType a) => SubTangleTangle a -> Dn.DnSubGroup -> DirectSumDecompositionType -> Int -> SubTangleCrossingType a
+crossingFromTangle'
+    :: (CrossingType t) => SubTangleTangle (Crossing t) -> Dn.DnSubGroup
+        -> DirectSumDecompositionType -> Int -> SubTangleCrossingType (Crossing t)
+
 crossingFromTangle' tangle = crossingFromTangle (substituteTangles tangle)
 
 
 {-# INLINE isLonerInVertex #-}
-isLonerInVertex :: (Knotted k) => Vertex k (SubTangleCrossingType a) -> Bool
+isLonerInVertex :: (Knotted k) => Vertex k (SubTangleCrossing a) -> Bool
 isLonerInVertex = (== 1) . numberOfVerticesInVertex
 
 
-numberOfVerticesAfterSubstitution :: (Knotted k) => k (SubTangleCrossingType a) -> Int
+numberOfVerticesAfterSubstitution :: (Knotted k) => k (SubTangleCrossing a) -> Int
 numberOfVerticesAfterSubstitution = sum . map numberOfVerticesInVertex . allVertices
 
 
-directSumDecompositionTypeInVertex :: (Knotted k) => Dart k (SubTangleCrossingType a) -> DirectSumDecompositionType
+directSumDecompositionTypeInVertex :: (Knotted k) => Dart k (SubTangleCrossing a) -> DirectSumDecompositionType
 directSumDecompositionTypeInVertex d
     | f          = changeSumType st
     | otherwise  = st
@@ -119,7 +125,7 @@ directSumDecompositionTypeOfCrossing c
         f = isCrossingOrientationInverted c /= odd (crossingLegIdByDartId c 0)
 
 
-substituteTangles :: (CrossingType a) => SubTangleTangle a -> Tangle a
+substituteTangles :: (CrossingType t) => SubTangleTangle (Crossing t) -> Tangle (Crossing t)
 substituteTangles tangle =
 {-    tensorSubst 1 (\ v ->
             let g = orientation $ crossingState v
@@ -129,14 +135,14 @@ substituteTangles tangle =
     implode
         ( numberOfFreeLoops tangle
         , map oppositeExt $ allLegs tangle
-        , let connections b = do
-                let rev = isVertexCrossingOrientationInverted b
-                c <- allVertices $ tangleInVertex b
-                let nb = map (oppositeInt b) $ outcomingDarts c
-                let st | rev        = mirrorReversingDartsOrder $ vertexCrossing c
-                       | otherwise  = vertexCrossing c
-                return (if rev then reverse nb else nb, st)
-          in concatMap connections $ allVertices tangle
+        , do
+            b <- allVertices tangle
+            let rev = isVertexCrossingOrientationInverted b
+            c <- allVertices $ tangleInVertex b
+            let nb = map (oppositeInt b) $ outcomingDarts c
+            let st | rev        = mirrorReversingDartsOrder $ vertexCrossing c
+                   | otherwise  = vertexCrossing c
+            return (if rev then reverse nb else nb, st)
         )
     where
         offset :: UArray Int Int
@@ -160,15 +166,15 @@ substituteTangles tangle =
 
 
 {-# INLINE tangleInVertex #-}
-tangleInVertex :: (Knotted k) => Vertex k (SubTangleCrossingType a) -> Tangle a
+tangleInVertex :: (Knotted k) => Vertex k (SubTangleCrossing a) -> Tangle a
 tangleInVertex = subTangle . vertexCrossingType
 
 
 {-# INLINE numberOfVerticesInVertex #-}
-numberOfVerticesInVertex :: (Knotted k) => Vertex k (SubTangleCrossingType a) -> Int
+numberOfVerticesInVertex :: (Knotted k) => Vertex k (SubTangleCrossing a) -> Int
 numberOfVerticesInVertex = numberOfVertices . tangleInVertex
 
 
 {-# INLINE subTangleLegFromDart #-}
-subTangleLegFromDart :: (Knotted k) => Dart k (SubTangleCrossingType a) -> Dart Tangle a
+subTangleLegFromDart :: (Knotted k) => Dart k (SubTangleCrossing a) -> Dart Tangle a
 subTangleLegFromDart d = nthLeg (tangleInVertex $ beginVertex d) $ crossingLegIdByDart d

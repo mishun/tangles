@@ -12,16 +12,16 @@ import Math.Topology.KnotTh.Tangle
 import Math.Topology.KnotTh.Link
 
 
-fromLink :: (CrossingType ct) => Link ct -> EmbeddedLink ct
+fromLink :: Link a -> EmbeddedLink a
 fromLink = implode . explode
 
 
-toLink :: (CrossingType ct) => EmbeddedLink ct -> Link ct
+toLink :: EmbeddedLink a -> Link a
 toLink sl | eulerChar sl == 2  = implode (explode sl)
           | otherwise          = error "toLink: euler char must be 2"
 
 
-fromTangleAndStar :: (CrossingType ct) => ChordDiagram -> Tangle ct -> EmbeddedLink ct
+fromTangleAndStar :: ChordDiagram -> Tangle a -> EmbeddedLink a
 fromTangleAndStar cd tangle
     | p /= l     = error "fromTangleAndStar: size conflict"
     | otherwise  = fromTangleAndStar' changeLeg tangle
@@ -37,7 +37,7 @@ fromTangleAndStar cd tangle
 
 
 {-# INLINE fromTangleAndStar' #-}
-fromTangleAndStar' :: (CrossingType ct) => (Dart Tangle ct -> Dart Tangle ct) -> Tangle ct -> EmbeddedLink ct
+fromTangleAndStar' :: (Dart Tangle a -> Dart Tangle a) -> Tangle a -> EmbeddedLink a
 fromTangleAndStar' withLeg tangle =
     let watch d | isDart d   = beginPair' d
                 | otherwise  = watch $ opposite $ withLeg d

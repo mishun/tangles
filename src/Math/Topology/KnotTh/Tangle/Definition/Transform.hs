@@ -11,7 +11,7 @@ import Math.Topology.KnotTh.Knotted
 import Math.Topology.KnotTh.Tangle.Definition.Tangle
 
 
-transformTangle :: (CrossingType ct) => Dn.Dn -> Tangle ct -> Tangle ct
+transformTangle :: (CrossingType t) => Dn.Dn -> Tangle (Crossing t) -> Tangle (Crossing t)
 transformTangle g tangle
     | l /= Dn.pointsUnderGroup g                   =
         error $ printf "transformTangle: order conflict: %i legs, %i order of group" l (Dn.pointsUnderGroup g)
@@ -38,20 +38,20 @@ transformTangle g tangle
                     in post ++ pre
 
 
-rotateTangle :: (CrossingType ct) => Int -> Tangle ct -> Tangle ct
+rotateTangle :: (CrossingType t) => Int -> Tangle (Crossing t) -> Tangle (Crossing t)
 rotateTangle rot tangle =
     case numberOfLegs tangle of
         0 -> tangle
         l -> transformTangle (Dn.fromRotation l rot) tangle
 
 
-mirrorTangle :: (CrossingType ct) => Tangle ct -> Tangle ct
+mirrorTangle :: (CrossingType t) => Tangle (Crossing t) -> Tangle (Crossing t)
 mirrorTangle tangle =
     let l = numberOfLegs tangle
     in transformTangle (Dn.fromReflectionRotation l (True, 0)) tangle
 
 
-allOrientationsOfTangle :: (CrossingType ct) => Tangle ct -> [Tangle ct]
+allOrientationsOfTangle :: (CrossingType t) => Tangle (Crossing t) -> [Tangle (Crossing t)]
 allOrientationsOfTangle tangle = do
     let l = numberOfLegs tangle
     if l == 0

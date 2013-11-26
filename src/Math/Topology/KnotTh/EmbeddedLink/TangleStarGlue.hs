@@ -1,4 +1,4 @@
-{-# LANGUAGE Rank2Types #-}
+{-# LANGUAGE RankNTypes #-}
 module Math.Topology.KnotTh.EmbeddedLink.TangleStarGlue
     ( StarType(..)
     , tangleStarGlue
@@ -21,10 +21,9 @@ data StarType = BicolourableStar | AnyStar
 
 
 tangleStarGlue
-    :: (Monad m, CrossingType ct)
-        => StarType
-            -> (forall m'. (Monad m') => ((Tangle ct, Dn.DnSubGroup) -> m' ()) -> m' ())
-                -> (EmbeddedLink ct -> m ()) -> m ()
+    :: (Monad m, CrossingType t) => StarType
+        -> (forall m'. (Monad m') => ((Tangle (Crossing t), Dn.DnSubGroup) -> m' ()) -> m' ())
+            -> (EmbeddedLink (Crossing t) -> m ()) -> m ()
 
 tangleStarGlue starType tangleGenerator yield =
     let generator =
@@ -51,7 +50,7 @@ tangleStarGlue starType tangleGenerator yield =
                         lift $ yield link
 
 
-splitIntoTangleAndStar :: (CrossingType ct) => EmbeddedLink ct -> (Tangle ct, Vertex SurfaceGraph a)
+splitIntoTangleAndStar :: EmbeddedLink a -> (Tangle a, Vertex SurfaceGraph a')
 splitIntoTangleAndStar link =
     let g = constructFromList $
             map (map (first (+ (-1)) . endPair') . outcomingDarts) $

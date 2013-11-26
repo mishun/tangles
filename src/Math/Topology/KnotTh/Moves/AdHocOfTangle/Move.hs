@@ -1,4 +1,4 @@
-{-# LANGUAGE Rank2Types #-}
+{-# LANGUAGE RankNTypes #-}
 module Math.Topology.KnotTh.Moves.AdHocOfTangle.Move
     ( MoveM
     , move
@@ -24,29 +24,29 @@ import Text.Printf
 import Math.Topology.KnotTh.Tangle
 
 
-data CrossingFlag ct = Direct !(Crossing ct)
-                     | Flipped !(Crossing ct)
-                     | Masked
+data CrossingFlag a = Direct !a
+                    | Flipped !a
+                    | Masked
 
 
-data MoveState s ct =
+data MoveState s a =
     MoveState
-        { stateSource      :: !(Tangle ct)
-        , stateMask        :: !(STArray s Int (CrossingFlag ct))
+        { stateSource      :: !(Tangle a)
+        , stateMask        :: !(STArray s Int (CrossingFlag a))
         , stateCircles     :: !(STRef s Int)
-        , stateConnections :: !(STArray s Int (Dart Tangle ct))
+        , stateConnections :: !(STArray s Int (Dart Tangle a))
         }
 
 
-readMaskST :: MoveState s ct -> Vertex Tangle ct -> ST s (CrossingFlag ct)
+readMaskST :: MoveState s a -> Vertex Tangle a -> ST s (CrossingFlag a)
 readMaskST st c = readArray (stateMask st) (vertexIndex c)
 
 
-writeMaskST :: MoveState s ct -> Vertex Tangle ct -> CrossingFlag ct -> ST s ()
+writeMaskST :: MoveState s a -> Vertex Tangle a -> CrossingFlag a -> ST s ()
 writeMaskST st c = writeArray (stateMask st) (vertexIndex c)
 
 
-reconnectST :: MoveState s ct -> [(Dart Tangle ct, Dart Tangle ct)] -> ST s ()
+reconnectST :: MoveState s a -> [(Dart Tangle a, Dart Tangle a)] -> ST s ()
 reconnectST st connections =
     forM_ connections $ \ (!a, !b) -> do
         when (a == b) $ fail $ printf "reconnect: %s connect to itself" (show a)
@@ -54,7 +54,7 @@ reconnectST st connections =
         writeArray (stateConnections st) (dartIndex b) a
 
 
-disassembleST :: (CrossingType ct) => Tangle ct -> ST s (MoveState s ct)
+disassembleST :: (CrossingType t) => Tangle (Crossing t) -> ST s (MoveState s (Crossing t))
 disassembleST tangle = do
     connections <- newArray_ (dartIndicesRange tangle)
     forM_ (allEdges tangle) $ \ (!a, !b) -> do
@@ -72,7 +72,7 @@ disassembleST tangle = do
         }
 
 
-assembleST :: (CrossingType ct) => MoveState s ct -> ST s (Tangle ct)
+assembleST :: (Show a) => MoveState s a -> ST s (Tangle a)
 assembleST st = do
     let source = stateSource st
 
@@ -116,18 +116,20 @@ assembleST st = do
     return $! implode (circles, border, connections)
 
 
-type MoveM s ct r = ReaderT (MoveState s ct) (ST s) r
+type MoveM s a r = ReaderT (MoveState s a) (ST s) r
 
 
-move :: (CrossingType ct) => Tangle ct -> (forall s. MoveM s ct ()) -> Tangle ct
+move :: (CrossingType t) => Tangle (Crossing t) -> (forall s. MoveM s (Crossing t) ()) -> Tangle (Crossing t)
 move initial modification = runST $ do
     st <- disassembleST initial
     runReaderT modification st
     assembleST st
 
 
-assemble :: (CrossingType ct) => MoveM s ct (Tangle ct)
-assemble = ask >>= \ st -> lift $ assembleST st
+assemble :: (Show a) => MoveM s a (Tangle a)
+assemble =
+    ask >>= \ st ->
+        lift $ assembleST st
 
 
 oppositeC :: Dart Tangle ct -> MoveM s ct (Dart Tangle ct)
@@ -139,7 +141,7 @@ oppositeC d = do
         readArray (stateConnections st) (dartIndex d)
 
 
-passOverC :: TangleDiagramDart -> MoveM s DiagramCrossingType Bool
+passOverC :: TangleDiagramDart -> MoveM s DiagramCrossing Bool
 passOverC d =
     ask >>= \ st -> lift $ do
         when (isLeg d) $ fail $ printf "passOverC: leg %s passed" (show d)
@@ -150,20 +152,20 @@ passOverC d =
             Flipped t -> return $! passOver' t (3 - beginPlace d)
 
 
-emitCircle :: Int -> MoveM s ct ()
+emitCircle :: Int -> MoveM s a ()
 emitCircle dn =
     ask >>= \ !st -> lift $
         modifySTRef' (stateCircles st) (+ dn)
 
 
-maskC :: [Vertex Tangle ct] -> MoveM s ct ()
+maskC :: [Vertex Tangle a] -> MoveM s a ()
 maskC crossings =
     ask >>= \ !st -> lift $
         forM_ crossings $ \ !c ->
             writeMaskST st c Masked
 
 
-isMasked :: Vertex Tangle ct -> MoveM s ct Bool
+isMasked :: Vertex Tangle a -> MoveM s a Bool
 isMasked c =
     ask >>= \ !st -> lift $ do
         msk <- readMaskST st c
@@ -172,13 +174,13 @@ isMasked c =
             _      -> False
 
 
-aliveCrossings :: MoveM s ct [Vertex Tangle ct]
+aliveCrossings :: MoveM s a [Vertex Tangle a]
 aliveCrossings = do
     st <- ask
     filterM (fmap not . isMasked) $ allVertices $ stateSource st
 
 
-modifyC :: (CrossingType ct) => Bool -> (Crossing ct -> Crossing ct) -> [Vertex Tangle ct] -> MoveM s ct ()
+modifyC :: (CrossingType t) => Bool -> (Crossing t -> Crossing t) -> [Vertex Tangle (Crossing t)] -> MoveM s (Crossing t) ()
 modifyC needFlip f crossings =
     ask >>= \ !st -> lift $
         forM_ crossings $ \ !c -> do
@@ -198,7 +200,7 @@ connectC connections =
         reconnectST st connections
 
 
-substituteC :: [(Dart Tangle ct, Dart Tangle ct)] -> MoveM s ct ()
+substituteC :: [(Dart Tangle a, Dart Tangle a)] -> MoveM s a ()
 substituteC substitutions = do
     reconnections <- mapM (\ (a, b) -> (,) a `fmap` oppositeC b) substitutions
     st <- ask
@@ -219,7 +221,7 @@ substituteC substitutions = do
             return (a, b')
 
 
-greedy :: [Dart Tangle ct -> MoveM s ct Bool] -> MoveM s ct ()
+greedy :: [Dart Tangle a -> MoveM s a Bool] -> MoveM s a ()
 greedy reductionsList = iteration
     where
         iteration = do
