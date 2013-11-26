@@ -63,7 +63,7 @@ splitIntoTangleAndStar link =
             let border = map endPair' $ outcomingDarts sp
                 body = do
                     v <- tail $ allVertices $ vertexOwner sp
-                    return (map endPair' $ outcomingDarts v, crossingState $ nthVertex link $ vertexIndex v)
+                    return (map endPair' $ outcomingDarts v, vertexCrossing $ nthVertex link $ vertexIndex v)
             in implode (numberOfFreeLoops link, border, body)
 
     in (tangle, star)

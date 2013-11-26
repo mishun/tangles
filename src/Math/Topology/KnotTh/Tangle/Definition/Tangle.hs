@@ -53,7 +53,7 @@ produceKnotted
             changeNumberOfFreeLoops = undefined
             emptyKnotted = undefined
             mapCrossings = undefined
-            crossingState = undefined
+            vertexCrossing = undefined
             implode = undefined
 
             type ExplodeType Tangle ct = (Int, [(Int, Int)], [([(Int, Int)], CrossingState ct)])
@@ -61,7 +61,7 @@ produceKnotted
             explode tangle =
                 ( numberOfFreeLoops tangle
                 , map endPair' $ allLegs tangle
-                , map (\ c -> (map endPair' $ outcomingDarts c, crossingState c)) $ allVertices tangle
+                , map (\ v -> (map endPair' $ outcomingDarts v, vertexCrossing v)) $ allVertices tangle
                 )
 
             homeomorphismInvariant tangle

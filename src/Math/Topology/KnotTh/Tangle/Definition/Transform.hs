@@ -27,8 +27,8 @@ transformTangle g tangle
                    let c = beginVertex d
                    in (vertexIndex c, if Dn.reflection g then 3 - beginPlace d else beginPlace d)
 
-        crossing c | Dn.reflection g  = (reverse $ map pair $ incomingDarts c, mirrorReversingDartsOrder $ crossingState c)
-                   | otherwise        = (map pair $ incomingDarts c, crossingState c)
+        crossing c | Dn.reflection g  = (reverse $ map pair $ incomingDarts c, mirrorReversingDartsOrder $ vertexCrossing c)
+                   | otherwise        = (map pair $ incomingDarts c, vertexCrossing c)
 
         border | Dn.reflection g  = head rotated : reverse (tail rotated)
                | otherwise        = rotated

@@ -91,7 +91,7 @@ crossingFromTangle' tangle = crossingFromTangle (substituteTangle tangle)
 
 {-# INLINE tangleInside #-}
 tangleInside :: (CrossingType ct, Knotted k) => Vertex k (SubTangleCrossing ct) -> Tangle ct
-tangleInside = subTangle . crossingTypeInside
+tangleInside = subTangle . vertexCrossingType
 
 
 {-# INLINE numberOfCrossingsInside #-}
@@ -118,8 +118,8 @@ directSumDecompositionTypeInside d
     | f          = changeSumType st
     | otherwise  = st
     where
-        st = _sumType $ crossingTypeInside $ beginVertex d
-        f = isCrossingOrientationInvertedInside (beginVertex d) /= odd (crossingLegIdByDart d)
+        st = _sumType $ vertexCrossingType $ beginVertex d
+        f = isVertexCrossingOrientationInverted (beginVertex d) /= odd (crossingLegIdByDart d)
 
 
 directSumDecompositionType :: (CrossingType ct) => CrossingState (SubTangleCrossing ct) -> DirectSumDecompositionType
@@ -142,11 +142,11 @@ substituteTangle tangle =
         ( numberOfFreeLoops tangle
         , map oppositeExt $ allLegs tangle
         , let connections b = do
-                let rev = isCrossingOrientationInvertedInside b
+                let rev = isVertexCrossingOrientationInverted b
                 c <- allVertices $ tangleInside b
                 let nb = map (oppositeInt b) $ outcomingDarts c
-                let st | rev        = mapOrientation (D4.ec D4.<*>) $ crossingState c
-                       | otherwise  = crossingState c
+                let st | rev        = mirrorReversingDartsOrder $ vertexCrossing c
+                       | otherwise  = vertexCrossing c
                 return (if rev then reverse nb else nb, st)
           in concatMap connections $ allVertices tangle
         )
@@ -157,7 +157,7 @@ substituteTangle tangle =
                 allVertices tangle
 
         oppositeInt b u | isLeg v                                = oppositeExt $ dartByCrossingLegId b (legPlace v)
-                        | isCrossingOrientationInvertedInside b  = (w, 3 - beginPlace v)
+                        | isVertexCrossingOrientationInverted b  = (w, 3 - beginPlace v)
                         | otherwise                              = (w, beginPlace v)
             where
                 v = opposite u

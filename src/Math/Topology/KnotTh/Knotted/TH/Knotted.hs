@@ -327,6 +327,18 @@ produceKnotted knotPattern inst = execWriterT $ do
                 |]) []
 
     appends' $ modifyInstance declarations ([t| Knotted |] `appT` conT knotType) $ execWriter $ do
+        appendF 'vertexCrossing $ do
+            k <- newName "k"
+            c <- newName "c"
+            clause [conP vertN [varP k, varP c]]
+                (normalB [| $(varE stateArray) $(varE k) `unsafeAt` $(varE c) |]) []
+
+        appendF 'mapCrossings $ do
+            f <- newName "f"
+            k <- newName "k"
+            clause [varP f, varP k] (normalB $ recUpdE (varE k) [(,) stateArray `fmap`
+                [| amap $(varE f) ($(varE stateArray) $(varE k)) |]]) []
+
         appendF 'numberOfFreeLoops $
             clause [] (normalB $ varE loopsCount) []
 
@@ -348,17 +360,6 @@ produceKnotted knotPattern inst = execWriterT $ do
                     ] ++ emptyExtraInitializers inst
                 ) []
 
-        appendF 'mapCrossings $ do
-            f <- newName "f"
-            k <- newName "k"
-            clause [varP f, varP k] (normalB $ recUpdE (varE k) [(,) stateArray `fmap`
-                [| amap $(varE f) ($(varE stateArray) $(varE k)) |]]) []
-
-        appendF 'crossingState $ do
-            k <- newName "k"
-            c <- newName "c"
-            clause [conP vertN [varP k, varP c]]
-                (normalB [| $(varE stateArray) $(varE k) `unsafeAt` $(varE c) |]) []
 {-
         appendF 'forMIncidentDarts $ do
             k <- newName "k"

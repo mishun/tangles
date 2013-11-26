@@ -46,14 +46,14 @@ produceKnotted
             changeNumberOfFreeLoops = undefined
             emptyKnotted = undefined
             mapCrossings = undefined
-            crossingState = undefined
+            vertexCrossing = undefined
             implode = undefined
 
             type ExplodeType EmbeddedLink ct = (Int, [([(Int, Int)], CrossingState ct)])
 
             explode link =
                 ( numberOfFreeLoops link
-                , map (\ c -> (map endPair' $ outcomingDarts c, crossingState c)) $ allVertices link
+                , map (\ v -> (map endPair' $ outcomingDarts v, vertexCrossing v)) $ allVertices link
                 )
 
             homeomorphismInvariant link =

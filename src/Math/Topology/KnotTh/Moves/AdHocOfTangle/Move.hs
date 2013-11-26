@@ -58,7 +58,8 @@ disassembleST tangle = do
         writeArray connections (dartIndex a) b
         writeArray connections (dartIndex b) a
 
-    mask <- newListArray (vertexIndicesRange tangle) $ map (Direct . crossingState) $ allVertices tangle
+    mask <- newListArray (vertexIndicesRange tangle) $
+        map (Direct . vertexCrossing) $ allVertices tangle
     circlesCounter <- newSTRef $ numberOfFreeLoops tangle
     return MoveState
         { stateSource      = tangle

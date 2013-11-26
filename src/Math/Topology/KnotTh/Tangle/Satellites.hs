@@ -25,7 +25,7 @@ twistedNSatellite n tangle
     where
         w = selfWritheArray tangle
 
-        wrap c | wc == 0    = cross
+        wrap v | wc == 0    = cross
                | otherwise  =
                    let r | wc > 0     = underCrossing
                          | otherwise  = overCrossing
@@ -35,6 +35,6 @@ twistedNSatellite n tangle
                            in half |=| half
                    in glueTangles n (nthLeg braid n) (nthLeg cross $ n - 1)
             where
-                wc = w ! c
-                s = crossingState c
+                wc = w ! v
+                s = vertexCrossing v
                 cross = gridTangle (n, n) (const s)

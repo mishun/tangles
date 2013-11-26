@@ -47,4 +47,4 @@ tensorSubst k crossF tangle = implode (k * numberOfFreeLoops tangle, border, bod
             c <- allVertices tangle
             let t = crossSubst ! vertexIndex c
             c' <- allVertices t
-            return (map (resolveInCrossing c) $ incomingDarts c', crossingState c')
+            return (map (resolveInCrossing c) $ incomingDarts c', vertexCrossing c')

@@ -31,11 +31,11 @@ produceShowCrossing knotN crosN = (:[]) `fmap` do
     ct <- varT `fmap` newName "ct"
     instanceD (cxt [classP ''Show [ct], classP ''CrossingType [ct]]) (conT ''Show `appT` (conT crosN `appT` conT knotN `appT` ct))
         [ valD (varP 'show) (normalB
-                [| \ c ->
+                [| \ v ->
                     printf "(Crossing %i %s [ %s ])"
-                        (vertexIndex c)
-                        (show $ crossingState c)
-                        (unwords $ map (show . opposite) $ outcomingDarts c)
+                        (vertexIndex v)
+                        (show $ vertexCrossing v)
+                        (unwords $ map (show . opposite) $ outcomingDarts v)
                 |]
             ) []
         ]
