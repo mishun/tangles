@@ -158,6 +158,19 @@ produceKnotted
 
                         return rc
 
+            isConnected tangle
+                | numberOfEdges tangle == 0 && numberOfFreeLoops tangle <= 1  = True
+                | numberOfFreeLoops tangle /= 0                               = False
+                | otherwise                                                   = all (\ (a, b) -> S.member a con && S.member b con) edges
+                where
+                    edges = allEdges tangle
+                    con = dfs S.empty $ fst $ head edges
+                    dfs vis c | S.member c vis  = vis
+                              | otherwise       = foldl' dfs (S.insert c vis) neigh
+                        where
+                            neigh | isLeg c    = [opposite c]
+                                  | otherwise  = [opposite c, nextCCW c, nextCW c]
+
     |] $
     let legsCount = varE $ mkName "legsCount"
         dart = conE $ mkName "Dart"
@@ -481,20 +494,7 @@ instance (CrossingType ct) => Show (Tangle ct) where
             (unwords $ border : map show (allVertices tangle))
 
 
-instance KnottedWithConnectivity Tangle where
-    isConnected tangle
-        | numberOfEdges tangle == 0 && numberOfFreeLoops tangle <= 1  = True
-        | numberOfFreeLoops tangle /= 0                               = False
-        | otherwise                                                   = all (\ (a, b) -> S.member a con && S.member b con) edges
-        where
-            edges = allEdges tangle
-            con = dfs S.empty $ fst $ head edges
-            dfs vis c | S.member c vis  = vis
-                      | otherwise       = foldl' dfs (S.insert c vis) neigh
-                where
-                    neigh | isLeg c    = [opposite c]
-                          | otherwise  = [opposite c, nextCCW c, nextCW c]
-
+instance KnottedWithPrimeTest Tangle where
     isPrime tangle = connections == nub connections
         where
             idm = let faces = directedPathsDecomposition (nextCW, nextCCW)

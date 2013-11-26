@@ -12,7 +12,7 @@ module Math.Topology.KnotTh.Knotted.Definition
     , makeCrossing'
     , mapCrossing
     , Knotted(..)
-    , KnottedWithConnectivity(..)
+    , KnottedWithPrimeTest(..)
     , SurfaceKnotted
     , vertexCrossingType
     , isVertexCrossingOrientationInverted
@@ -146,6 +146,8 @@ class (PlanarDiagram k) => Knotted k where
 
     homeomorphismInvariant :: (CrossingType a) => k a -> UArray Int Int
 
+    isConnected :: k a -> Bool
+
     type ExplodeType k a :: *
     explode :: k a -> ExplodeType k a
     implode :: (CrossingType a) => ExplodeType k a -> k a
@@ -176,31 +178,30 @@ class (PlanarDiagram k) => Knotted k where
             >>= f (nthOutcomingDart c $ (p + 3 * d) .&. 3)
 
 
-class (Knotted k) => KnottedWithConnectivity k where
-    isConnected :: k a -> Bool
-    isPrime     :: k a -> Bool
+class (Knotted k) => KnottedWithPrimeTest k where
+    isPrime :: k a -> Bool
 
 
 class (Knotted k, SurfaceDiagram k) => SurfaceKnotted k where
 
 
 {-# INLINE vertexCrossingType #-}
-vertexCrossingType :: (CrossingType a, Knotted k) => Vertex k a -> a
+vertexCrossingType :: (Knotted k) => Vertex k a -> a
 vertexCrossingType = crossingType . vertexCrossing
 
 
 {-# INLINE isVertexCrossingOrientationInverted #-}
-isVertexCrossingOrientationInverted :: (CrossingType a, Knotted k) => Vertex k a -> Bool
+isVertexCrossingOrientationInverted :: (Knotted k) => Vertex k a -> Bool
 isVertexCrossingOrientationInverted = isCrossingOrientationInverted . vertexCrossing
 
 
 {-# INLINE crossingLegIdByDart #-}
-crossingLegIdByDart :: (CrossingType a, Knotted k) => Dart k a -> Int
+crossingLegIdByDart :: (Knotted k) => Dart k a -> Int
 crossingLegIdByDart d = crossingLegIdByDartId (vertexCrossing $ beginVertex d) (beginPlace d)
 
 
 {-# INLINE dartByCrossingLegId #-}
-dartByCrossingLegId :: (CrossingType a, Knotted k) => Vertex k a -> Int -> Dart k a
+dartByCrossingLegId :: (Knotted k) => Vertex k a -> Int -> Dart k a
 dartByCrossingLegId c = nthOutcomingDart c . dartIdByCrossingLegId (vertexCrossing c)
 
 

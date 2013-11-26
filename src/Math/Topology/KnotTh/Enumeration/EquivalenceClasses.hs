@@ -21,7 +21,7 @@ data State k v = St
 
 
 equivalenceClasses ::
-    (CrossingType ct, KnottedWithConnectivity knot, DiagramInfo info)
+    (CrossingType ct, KnottedWithPrimeTest knot, DiagramInfo info)
         => [knot ct -> [knot ct]]
         -> (forall m. (Monad m) => (knot ct -> m ()) -> m ())
         -> [info (knot ct)]

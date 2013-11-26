@@ -25,9 +25,9 @@ flypeCodeLeg leg initialDirection
 
         let {-# INLINE go #-}
             go !i !d !dir
-                | i >= n || isLeg d              = return ()
-                | isLonerInside (beginVertex d)  = go i (opposite $ nextBy 2 d) (R.oppositeDirection dir)
-                | otherwise                      = do
+                | i >= n || isLeg d                = return ()
+                | isLonerInVertex (beginVertex d)  = go i (opposite $ nextBy 2 d) (R.oppositeDirection dir)
+                | otherwise                        = do
                     case crossingCode dir d of
                         (# be, le #) -> do
                             unsafeWrite code (2 * i) be
@@ -38,7 +38,7 @@ flypeCodeLeg leg initialDirection
         return code
 
 
-minimumFlypeCode :: Tangle (SubTangleCrossingType ProjectionCrossingType) -> UArray Int Int
+minimumFlypeCode :: SubTangleTangle ProjectionCrossingType -> UArray Int Int
 minimumFlypeCode tangle
     | numberOfLegs tangle /= 4          = error $ printf "minimumFlypeCode: tangle with 4 legs expected, %i received" (numberOfLegs tangle)
     | (a == b) && (c == d) && (a /= c)  = minimum $ map (uncurry flypeCodeLeg) [(l0, R.cw), (l1, R.ccw), (l2, R.cw), (l3, R.ccw)]
@@ -49,7 +49,7 @@ minimumFlypeCode tangle
         [a, b, c, d] = map endVertex $ allLegs tangle
 
 
-additionalFlypeSymmetry :: Tangle (SubTangleCrossingType ProjectionCrossingType) -> Maybe Dn.Dn
+additionalFlypeSymmetry :: SubTangleTangle ProjectionCrossingType -> Maybe Dn.Dn
 additionalFlypeSymmetry tangle
     | numberOfLegs tangle /= 4                 = error $ printf "additionalFlypeSymmetry: tangle with 4 legs expected, %i received" (numberOfLegs tangle)
     | x == flypeCodeLeg (nthLeg tangle 2) dir  = Just $! Dn.fromReflectionRotation 4 (False, 2)

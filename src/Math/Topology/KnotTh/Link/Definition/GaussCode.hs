@@ -47,8 +47,8 @@ fromDTCode code =
 
 toGaussCode :: LinkDiagram -> [[Int]]
 toGaussCode link =
-    flip map (allThreads link) $ map $ \ (_, d) ->
-        (vertexIndex $ beginVertex d) * (if passOver d then 1 else -1)
+    let encode d = vertexIndex (beginVertex d) * (if passOver d then 1 else -1)
+    in map (map (encode . snd)) $ allThreads link
 
 
 fromGaussCode :: [[Int]] -> LinkDiagram

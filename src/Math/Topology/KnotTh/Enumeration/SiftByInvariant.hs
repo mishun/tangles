@@ -13,10 +13,11 @@ import Math.Topology.KnotTh.Knotted
 import Math.Topology.KnotTh.Enumeration.DiagramInfo
 
 
-data (DiagramInfo info) => SiftResult info k = SiftResult
-    { singleRepresentativeClasses :: [info k]
-    , collisionClasses            :: [[info k]]
-    }
+data (DiagramInfo info) => SiftResult info k =
+    SiftResult
+        { singleRepresentativeClasses :: [info k]
+        , collisionClasses            :: [[info k]]
+        }
 
 
 hasCollisions :: (DiagramInfo info) => SiftResult info k -> Bool
@@ -24,10 +25,9 @@ hasCollisions = not . null . collisionClasses
 
 
 siftByInvariant ::
-    (Ord inv, DiagramInfo info, KnottedWithConnectivity k)
-        => (k ct -> inv)
-        -> [info (k ct)]
-        -> SiftResult info (k ct)
+    (Ord inv, DiagramInfo info, KnottedWithPrimeTest k)
+        => (k ct -> inv) -> [info (k ct)]
+            -> SiftResult info (k ct)
 
 siftByInvariant invariant input =
     let (cls, cols) =

@@ -49,8 +49,8 @@ directSumDescendants
 directSumDescendants crossings (tangle, symmetry) = do
     let preTest cr leg =
             let t = dartOwner leg
-                lp = directSumDecompositionType cr
-                rp = directSumDecompositionTypeInside (opposite leg)
+                lp = directSumDecompositionTypeOfCrossing cr
+                rp = directSumDecompositionTypeInVertex (opposite leg)
             in case () of
                 _ | numberOfLegs t /= 4     -> False
                   | testNoMultiEdges leg 2  -> False
@@ -64,7 +64,7 @@ directSumDescendants crossings (tangle, symmetry) = do
                     case additionalFlypeSymmetry (vertexOwner root) of
                         Just x  -> Dn.addSymmetryToSubGroup s x
                         Nothing -> s
-            in case (isLonerInside root, isLonerInside $ endVertex leg, isLonerInside $ endVertex coLeg) of
+            in case (isLonerInVertex root, isLonerInVertex $ endVertex leg, isLonerInVertex $ endVertex coLeg) of
                 (False, False, False) -> return $! s
                 (True , True , _    ) -> return $! flypeS
                 (True , False, False) ->
@@ -162,7 +162,7 @@ generateFlypeEquivalentDecomposition' triangle maxN yield = do
                         tree (curN + cn) child
                         glueDirectSums (curN + cn) child
 
-        let rootN = numberOfCrossingsAfterSubstitution $ fst root
+        let rootN = numberOfVerticesAfterSubstitution $ fst root
         glueTemplates rootN root
         glueDirectSums rootN root
 
@@ -179,9 +179,9 @@ generateFlypeEquivalentDecompositionInTriangle =
 
 generateFlypeEquivalent :: (Monad m) => Int -> ((TangleProj, Dn.DnSubGroup) -> m ()) -> m ()
 generateFlypeEquivalent maxN =
-    generateFlypeEquivalentDecomposition maxN . (. first substituteTangle)
+    generateFlypeEquivalentDecomposition maxN . (. first substituteTangles)
 
 
 generateFlypeEquivalentInTriangle :: (Monad m) => Int -> ((TangleProj, Dn.DnSubGroup) -> m ()) -> m ()
 generateFlypeEquivalentInTriangle maxN =
-    generateFlypeEquivalentDecompositionInTriangle maxN . (. first substituteTangle)
+    generateFlypeEquivalentDecompositionInTriangle maxN . (. first substituteTangles)

@@ -115,6 +115,8 @@ produceKnotted
 
                         return rc
 
+            isConnected _ = error "isConnected: not implemented"
+
     |] $
     let fcN = mkName "fc"
         fllookN = mkName "fllook"

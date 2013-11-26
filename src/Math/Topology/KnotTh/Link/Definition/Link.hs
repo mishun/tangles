@@ -64,6 +64,8 @@ instance Knotted Link where
 
     homeomorphismInvariant (L t) = homeomorphismInvariant t
 
+    isConnected (L t) = isConnected t
+
 
 produceShowDart ''Link ''Dart (const [])
 produceShowCrossing ''Link ''Vertex
