@@ -177,11 +177,11 @@ generateFlypeEquivalentDecompositionInTriangle =
     generateFlypeEquivalentDecomposition' True
 
 
-generateFlypeEquivalent :: (Monad m) => Int -> ((TangleProj, Dn.DnSubGroup) -> m ()) -> m ()
+generateFlypeEquivalent :: (Monad m) => Int -> ((TangleProjection, Dn.DnSubGroup) -> m ()) -> m ()
 generateFlypeEquivalent maxN =
     generateFlypeEquivalentDecomposition maxN . (. first substituteTangles)
 
 
-generateFlypeEquivalentInTriangle :: (Monad m) => Int -> ((TangleProj, Dn.DnSubGroup) -> m ()) -> m ()
+generateFlypeEquivalentInTriangle :: (Monad m) => Int -> ((TangleProjection, Dn.DnSubGroup) -> m ()) -> m ()
 generateFlypeEquivalentInTriangle maxN =
     generateFlypeEquivalentDecompositionInTriangle maxN . (. first substituteTangles)

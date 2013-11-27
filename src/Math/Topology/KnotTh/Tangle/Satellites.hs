@@ -5,7 +5,6 @@ module Math.Topology.KnotTh.Tangle.Satellites
 
 import Data.Array.IArray ((!))
 import Math.Topology.KnotTh.Tangle
-import Math.Topology.KnotTh.Tangle.TensorSubst
 
 
 twistedDoubleSatellite :: TangleDiagram -> TangleDiagram

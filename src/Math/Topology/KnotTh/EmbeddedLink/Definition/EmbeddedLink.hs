@@ -1,9 +1,9 @@
 {-# LANGUAGE TemplateHaskell, TypeFamilies, UnboxedTuples #-}
 module Math.Topology.KnotTh.EmbeddedLink.Definition.EmbeddedLink
     ( EmbeddedLink
-    , EmbeddedLinkProj
-    , EmbeddedLinkProjVertex
-    , EmbeddedLinkProjDart
+    , EmbeddedLinkProjection
+    , EmbeddedLinkProjectionVertex
+    , EmbeddedLinkProjectionDart
     , EmbeddedLinkDiagram
     , EmbeddedLinkDiagramVertex
     , EmbeddedLinkDiagramDart
@@ -223,9 +223,9 @@ instance SurfaceDiagram EmbeddedLink where
 instance SurfaceKnotted EmbeddedLink
 
 
-type EmbeddedLinkProj = EmbeddedLink ProjectionCrossing
-type EmbeddedLinkProjVertex = Vertex EmbeddedLink ProjectionCrossing
-type EmbeddedLinkProjDart = Dart EmbeddedLink ProjectionCrossing
+type EmbeddedLinkProjection = EmbeddedLink ProjectionCrossing
+type EmbeddedLinkProjectionVertex = Vertex EmbeddedLink ProjectionCrossing
+type EmbeddedLinkProjectionDart = Dart EmbeddedLink ProjectionCrossing
 
 
 type EmbeddedLinkDiagram = EmbeddedLink DiagramCrossing

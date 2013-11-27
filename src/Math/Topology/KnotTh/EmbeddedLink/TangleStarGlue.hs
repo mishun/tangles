@@ -22,7 +22,7 @@ data StarType = BicolourableStar | AnyStar
 
 tangleStarGlue
     :: (Monad m, CrossingType t) => StarType
-        -> (forall m'. (Monad m') => ((Tangle (Crossing t), Dn.DnSubGroup) -> m' ()) -> m' ())
+        -> (forall m'. (Monad m') => ((Tangle (Crossing t), (Dn.DnSubGroup, x)) -> m' ()) -> m' ())
             -> (EmbeddedLink (Crossing t) -> m ()) -> m ()
 
 tangleStarGlue starType tangleGenerator yield =
@@ -31,7 +31,7 @@ tangleStarGlue starType tangleGenerator yield =
                 BicolourableStar -> generateBicolourableNonPlanarRaw
                 AnyStar          -> generateNonPlanarRaw
     in flip evalStateT S.empty $
-        tangleGenerator $ \ (!tangle, !tangleSymmetry) ->
+        tangleGenerator $ \ (!tangle, (!tangleSymmetry, _)) ->
             let l = numberOfLegs tangle
             in forM_ (listChordDiagrams $ generator (l `div` 2)) $ \ (!star, (!starMirror, !starPeriod)) ->
                 let variants = do

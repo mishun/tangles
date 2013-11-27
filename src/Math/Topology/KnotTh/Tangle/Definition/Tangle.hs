@@ -1,16 +1,9 @@
 {-# LANGUAGE TemplateHaskell, TypeFamilies, UnboxedTuples #-}
 module Math.Topology.KnotTh.Tangle.Definition.Tangle
     ( Tangle
-    , emptyTangle
-    , identityTangle
-    , zeroTangle
-    , infinityTangle
-    , lonerTangle
-    , glueToBorder
-    , glueTangles
-    , TangleProj
-    , TangleProjVertex
-    , TangleProjDart
+    , TangleProjection
+    , TangleProjectionVertex
+    , TangleProjectionDart
     , TangleDiagram
     , TangleDiagramVertex
     , TangleDiagramDart
@@ -19,13 +12,15 @@ module Math.Topology.KnotTh.Tangle.Definition.Tangle
 import Language.Haskell.TH
 import Data.Function (fix)
 import Data.Maybe (fromMaybe)
-import Data.Bits (shiftL)
+import Data.Bits ((.&.), complement, shiftL)
 import Data.List (nub, sort, foldl')
 import qualified Data.Set as S
 import qualified Data.Map as M
-import Data.Array.IArray (listArray)
+import Data.Array.IArray ((!), listArray, amap)
 import Data.Array.MArray (newArray, newArray_)
 import Data.Array.Base (unsafeAt, unsafeRead, unsafeWrite)
+import Data.Array (Array)
+import Data.Array.Unboxed (UArray)
 import Data.Array.ST (STArray, STUArray, runSTArray, runSTUArray)
 import Data.Array.Unsafe (unsafeFreeze)
 import Data.STRef (newSTRef, readSTRef, writeSTRef)
@@ -323,6 +318,40 @@ instance TangleLike Tangle where
             , legsCount   = 4
             }
 
+    rotateTangle !rot tangle
+        | l == 0 || rot == 0  = tangle
+        | otherwise           =
+            tangle
+                { connsArray = runSTUArray $ do
+                    let n = 4 * numberOfVertices tangle
+                        a = connsArray tangle
+                        modify i | i < n      = i
+                                 | otherwise  = n + mod (i - n + rot) l
+                    a' <- newArray_ (0, n + l - 1)
+                    forM_ [0 .. n - 1] $ \ !i ->
+                        unsafeWrite a' i $ modify (a `unsafeAt` i)
+                    forM_ [0 .. l - 1] $ \ !i ->
+                        unsafeWrite a' (n + mod (i + rot) l) $ modify (a `unsafeAt` (n + i))
+                    return a'
+                }
+        where
+            l = numberOfLegs tangle
+
+    mirrorTangleWith f tangle =
+        tangle
+            { connsArray = runSTUArray $ do
+                let l = numberOfLegs tangle
+                    n = 4 * numberOfVertices tangle
+                    a = connsArray tangle
+                    modify i | i < n      = (i .&. complement 3) + 3 - (i .&. 3)
+                             | otherwise  = n + mod (n - i) l
+                a' <- newArray_ (0, n + l - 1)
+                forM_ [0 .. n + l - 1] $ \ !i ->
+                    unsafeWrite a' (modify i) $ modify (a `unsafeAt` i)
+                return a'
+            , stateArray = amap f $ stateArray tangle
+            }
+
     glueTangles legsToGlue legA legB = runST $ do
         unless (isLeg legA) $
             fail $ printf "glueTangles: first leg parameter %s is not a leg" (show legA)
@@ -480,6 +509,45 @@ instance TangleLike Tangle where
 
         return $! nthVertex result newC 
 
+    tensorSubst k crossF tangle = implode (k * numberOfFreeLoops tangle, border, body)
+        where
+            n = numberOfVertices tangle
+
+            crossSubst = (listArray (1, n) :: [a] -> Array Int a) $ do
+                c <- allVertices tangle
+                let t = crossF c
+                when (numberOfLegs t /= 4 * k) $
+                    fail "bad number of legs"
+                return $! t
+
+            crossOffset = (listArray (1, n) :: [Int] -> UArray Int Int) $
+                scanl (\ !p !i -> p + numberOfVertices (crossSubst ! i)) 0 [1 .. n]
+
+            resolveInCrossing !v !d
+                | isLeg d    =
+                    let p = legPlace d
+                    in resolveOutside (opposite $ nthOutcomingDart v $ p `div` k) (p `mod` k)
+                | otherwise  =
+                    let (c, p) = beginPair' d
+                    in ((crossOffset ! vertexIndex v) + c, p)
+
+            resolveOutside !d !i
+                | isLeg d    = (0, k * legPlace d + i)
+                | otherwise  =
+                    let (c, p) = beginPair d
+                    in resolveInCrossing c $ opposite $ nthLeg (crossSubst ! vertexIndex c) (k * p + k - 1 - i)
+
+            border = do
+                d <- allLegOpposites tangle
+                i <- [0 .. k - 1]
+                return $! resolveOutside d $ k - 1 - i
+
+            body = do
+                c <- allVertices tangle
+                let t = crossSubst ! vertexIndex c
+                c' <- allVertices t
+                return (map (resolveInCrossing c) $ incomingDarts c', vertexCrossing c')
+
 
 produceShowDart ''Tangle (\ d -> [([| isLeg $d |], [| printf "(Leg %i)" $ legPlace $d |])])
 produceShowVertex ''Tangle
@@ -534,9 +602,9 @@ instance KnottedWithPrimeTest Tangle where
                         | otherwise  = let prev = opposite $ adjBackward d in walkBackward (prev, prev : path)
 
 
-type TangleProj = Tangle ProjectionCrossing
-type TangleProjVertex = Vertex Tangle ProjectionCrossing
-type TangleProjDart = Dart Tangle ProjectionCrossing
+type TangleProjection = Tangle ProjectionCrossing
+type TangleProjectionVertex = Vertex Tangle ProjectionCrossing
+type TangleProjectionDart = Dart Tangle ProjectionCrossing
 
 
 type TangleDiagram = Tangle DiagramCrossing

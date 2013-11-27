@@ -70,10 +70,7 @@ type SubTangleCrossing a = Crossing (SubTangleCrossingType a)
 type SubTangleTangle a = Tangle (SubTangleCrossing a)
 
 
-crossingFromTangle
-    :: (CrossingType t) => Tangle (Crossing t) -> Dn.DnSubGroup
-        -> DirectSumDecompositionType -> Int -> SubTangleCrossingType (Crossing t)
-
+crossingFromTangle :: Tangle a -> Dn.DnSubGroup -> DirectSumDecompositionType -> Int -> SubTangleCrossingType a
 crossingFromTangle tangle symmetry sumType code
     | l /= 4     = error $ printf "crossingFromTangle: tangle must have 4 legs, %i found" l
     | l' /= 4    = error $ printf "crossingFromTangle: symmetry group must have 4 points, %i found" l'

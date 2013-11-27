@@ -86,7 +86,6 @@ library
         Math.Topology.KnotTh.Tangle.Generation.FlypeClasses,
         Math.Topology.KnotTh.Tangle.Generation.FlypeClasses.Flypes,
         Math.Topology.KnotTh.Tangle.Satellites,
-        Math.Topology.KnotTh.Tangle.TensorSubst,
         Math.Topology.Manifolds.SurfaceGraph
     other-modules:
         Math.Algebra.PlanarAlgebra.Definition,
@@ -133,7 +132,6 @@ library
         Math.Topology.KnotTh.Tangle.Definition.Misc,
         Math.Topology.KnotTh.Tangle.Definition.Tangle,
         Math.Topology.KnotTh.Tangle.Definition.TangleLike,
-        Math.Topology.KnotTh.Tangle.Definition.Transform,
         Math.Topology.KnotTh.Tangle.Generation.BorderIncremental.IncrementalTests,
         Math.Topology.KnotTh.Tangle.Generation.BorderIncremental.RootingTest,
         Math.Topology.Manifolds.SurfaceGraph.Barycentric,

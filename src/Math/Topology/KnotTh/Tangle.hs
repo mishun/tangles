@@ -10,14 +10,13 @@ import Math.Topology.KnotTh.Knotted as X
 import Math.Topology.KnotTh.Tangle.Definition.TangleLike as X
 import Math.Topology.KnotTh.Tangle.Definition.Tangle as X
 import Math.Topology.KnotTh.Tangle.Definition.Braid as X
-import Math.Topology.KnotTh.Tangle.Definition.Transform as X
 import Math.Topology.KnotTh.Tangle.Definition.Misc as X
 import Math.Topology.KnotTh.Tangle.Definition.CascadeCode as X
 import Math.Topology.KnotTh.Crossings.Projection as X
 import Math.Topology.KnotTh.Crossings.Diagram as X
 
 
-lonerProjection :: TangleProj
+lonerProjection :: TangleProjection
 lonerProjection = lonerTangle projectionCrossing
 
 

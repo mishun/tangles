@@ -11,15 +11,16 @@ module Math.Topology.KnotTh.Knotted.Definition
     , makeCrossing
     , makeCrossing'
     , mapCrossing
-    , Knotted(..)
-    , KnottedWithPrimeTest(..)
-    , SurfaceKnotted
     , vertexCrossingType
     , isVertexCrossingOrientationInverted
     , crossingLegIdByDart
     , dartByCrossingLegId
     , crossingCode
     , crossingCodeWithGlobal
+    , Knotted(..)
+    , KnottedWithPrimeTest(..)
+    , SurfaceKnotted
+    , nthCrossing
     , forMAdjacentDarts
     , foldMAdjacentDarts
     , foldMAdjacentDartsFrom
@@ -133,6 +134,44 @@ mapCrossing :: (CrossingType b) => (a -> b) -> Crossing a -> Crossing b
 mapCrossing f x = makeCrossing (f $ crossingType x) (orientation x)
 
 
+{-# INLINE vertexCrossingType #-}
+vertexCrossingType :: (Knotted k) => Vertex k (Crossing t) -> t
+vertexCrossingType = crossingType . vertexCrossing
+
+
+{-# INLINE isVertexCrossingOrientationInverted #-}
+isVertexCrossingOrientationInverted :: (Knotted k) => Vertex k (Crossing t) -> Bool
+isVertexCrossingOrientationInverted = isCrossingOrientationInverted . vertexCrossing
+
+
+{-# INLINE crossingLegIdByDart #-}
+crossingLegIdByDart :: (Knotted k) => Dart k (Crossing t) -> Int
+crossingLegIdByDart d = crossingLegIdByDartId (vertexCrossing $ beginVertex d) (beginPlace d)
+
+
+{-# INLINE dartByCrossingLegId #-}
+dartByCrossingLegId :: (Knotted k) => Vertex k (Crossing t) -> Int -> Dart k (Crossing t)
+dartByCrossingLegId c = nthOutcomingDart c . dartIdByCrossingLegId (vertexCrossing c)
+
+
+{-# INLINE crossingCode #-}
+crossingCode :: (CrossingType t, Knotted k) => R.RotationDirection -> Dart k (Crossing t) -> (# Int, Int #)
+crossingCode dir d =
+    let p = beginPlace d
+        cr = vertexCrossing $ beginVertex d
+        t = D4.fromReflectionRotation (R.isClockwise dir) (-p) D4.<*> orientation cr
+    in (# code cr, D4.equivalenceClassId (symmetry cr) t #)
+
+
+{-# INLINE crossingCodeWithGlobal #-}
+crossingCodeWithGlobal :: (CrossingType t, Knotted k) => D4.D4 -> R.RotationDirection -> Dart k (Crossing t) -> (# Int, Int #)
+crossingCodeWithGlobal global dir d =
+    let p = beginPlace d
+        cr = vertexCrossing $ beginVertex d
+        t = D4.fromReflectionRotation (R.isClockwise dir) (-p) D4.<*> (orientation cr D4.<*> global)
+    in (# code cr, D4.equivalenceClassId (symmetry cr) t #)
+
+
 class (Functor k, PlanarDiagram k) => Knotted k where
     vertexCrossing :: Vertex k a -> a
 
@@ -184,42 +223,9 @@ class (Knotted k) => KnottedWithPrimeTest k where
 class (Knotted k, SurfaceDiagram k) => SurfaceKnotted k where
 
 
-{-# INLINE vertexCrossingType #-}
-vertexCrossingType :: (Knotted k) => Vertex k (Crossing t) -> t
-vertexCrossingType = crossingType . vertexCrossing
-
-
-{-# INLINE isVertexCrossingOrientationInverted #-}
-isVertexCrossingOrientationInverted :: (Knotted k) => Vertex k (Crossing t) -> Bool
-isVertexCrossingOrientationInverted = isCrossingOrientationInverted . vertexCrossing
-
-
-{-# INLINE crossingLegIdByDart #-}
-crossingLegIdByDart :: (Knotted k) => Dart k (Crossing t) -> Int
-crossingLegIdByDart d = crossingLegIdByDartId (vertexCrossing $ beginVertex d) (beginPlace d)
-
-
-{-# INLINE dartByCrossingLegId #-}
-dartByCrossingLegId :: (Knotted k) => Vertex k (Crossing t) -> Int -> Dart k (Crossing t)
-dartByCrossingLegId c = nthOutcomingDart c . dartIdByCrossingLegId (vertexCrossing c)
-
-
-{-# INLINE crossingCode #-}
-crossingCode :: (CrossingType t, Knotted k) => R.RotationDirection -> Dart k (Crossing t) -> (# Int, Int #)
-crossingCode dir d =
-    let p = beginPlace d
-        cr = vertexCrossing $ beginVertex d
-        t = D4.fromReflectionRotation (R.isClockwise dir) (-p) D4.<*> orientation cr
-    in (# code cr, D4.equivalenceClassId (symmetry cr) t #)
-
-
-{-# INLINE crossingCodeWithGlobal #-}
-crossingCodeWithGlobal :: (CrossingType t, Knotted k) => D4.D4 -> R.RotationDirection -> Dart k (Crossing t) -> (# Int, Int #)
-crossingCodeWithGlobal global dir d =
-    let p = beginPlace d
-        cr = vertexCrossing $ beginVertex d
-        t = D4.fromReflectionRotation (R.isClockwise dir) (-p) D4.<*> (orientation cr D4.<*> global)
-    in (# code cr, D4.equivalenceClassId (symmetry cr) t #)
+{-# INLINE nthCrossing #-}
+nthCrossing :: (Knotted k) => k a -> Int -> a
+nthCrossing k = vertexCrossing . nthVertex k
 
 
 {-# INLINE forMAdjacentDarts #-}

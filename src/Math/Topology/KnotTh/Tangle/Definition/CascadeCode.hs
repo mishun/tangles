@@ -14,7 +14,6 @@ import Math.Topology.KnotTh.Crossings.Diagram
 import Math.Topology.KnotTh.Knotted
 import Math.Topology.KnotTh.Tangle.Definition.TangleLike
 import Math.Topology.KnotTh.Tangle.Definition.Tangle
-import Math.Topology.KnotTh.Tangle.Definition.Transform
 
 
 data ProjectionPattern = W | X | M deriving (Eq, Enum, Show, Read)
@@ -50,7 +49,7 @@ class (Enum (CascadePattern a)) => CascadeCodePattern a where
     decodeCrossing  :: CascadePattern a -> (ProjectionPattern, Int, Int, a)
 
 
-decodeCascadeCode :: (CrossingType t, CascadeCodePattern (Crossing t)) => [(CascadePattern (Crossing t), Int)] -> Tangle (Crossing t)
+decodeCascadeCode :: (CascadeCodePattern a) => [(CascadePattern a, Int)] -> Tangle a
 decodeCascadeCode =
     foldl (\ prev (pattern, offset) ->
             let (gl, shift, rot, c) = decodeCrossing pattern
@@ -86,7 +85,7 @@ instance CascadeCodePattern DiagramCrossing where
     decodeCrossing MU = (M, 0, -1, underCrossing)
 
 
-decodeCascadeCodeFromPairs :: [(Int, Int)] -> TangleProj
+decodeCascadeCodeFromPairs :: [(Int, Int)] -> TangleProjection
 decodeCascadeCodeFromPairs = (decodeCascadeCode .) $ map $ \ (p, off) ->
     flip (,) off $ case p of
         -1 -> W

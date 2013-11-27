@@ -13,21 +13,22 @@ import Math.Topology.KnotTh.Knotted
 import Math.Topology.KnotTh.Enumeration.DiagramInfo
 
 
-data State k v = St
-    { set  :: !DS.IntDisjointSet
-    , keys :: !(M.Map k Int)
-    , vals :: !(IM.IntMap v)
-    }
+data State k v =
+    St
+        { set  :: !DS.IntDisjointSet
+        , keys :: !(M.Map k Int)
+        , vals :: !(IM.IntMap v)
+        }
 
 
-equivalenceClasses ::
-    (CrossingType ct, KnottedWithPrimeTest knot, DiagramInfo info)
-        => [knot (Crossing ct) -> [knot (Crossing ct)]]
-        -> (forall m. (Monad m) => (knot (Crossing ct) -> m ()) -> m ())
-        -> [info (knot (Crossing ct))]
+equivalenceClasses
+    :: (CrossingType t, KnottedWithPrimeTest knot, DiagramInfo info)
+        => [knot (Crossing t) -> [knot (Crossing t)]]
+            -> (forall m. (Monad m) => (knot (Crossing t) -> m ()) -> m ())
+                -> [info (knot (Crossing t))]
 
 equivalenceClasses moves enumerateDiagrams =
-    IM.elems $ vals $ flip execState St{set = DS.empty, keys = M.empty, vals = IM.empty} $ do
+    IM.elems $ vals $ flip execState St {set = DS.empty, keys = M.empty, vals = IM.empty} $ do
         let declareEquivalent !a !b = do
                 eq <- do
                     !st <- get

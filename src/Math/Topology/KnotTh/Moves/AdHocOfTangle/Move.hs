@@ -54,7 +54,7 @@ reconnectST st connections =
         writeArray (stateConnections st) (dartIndex b) a
 
 
-disassembleST :: (CrossingType t) => Tangle (Crossing t) -> ST s (MoveState s (Crossing t))
+disassembleST :: Tangle a -> ST s (MoveState s a)
 disassembleST tangle = do
     connections <- newArray_ (dartIndicesRange tangle)
     forM_ (allEdges tangle) $ \ (!a, !b) -> do
@@ -119,7 +119,7 @@ assembleST st = do
 type MoveM s a r = ReaderT (MoveState s a) (ST s) r
 
 
-move :: (CrossingType t) => Tangle (Crossing t) -> (forall s. MoveM s (Crossing t) ()) -> Tangle (Crossing t)
+move :: (Show a) => Tangle a -> (forall s. MoveM s a ()) -> Tangle a
 move initial modification = runST $ do
     st <- disassembleST initial
     runReaderT modification st
@@ -180,7 +180,7 @@ aliveCrossings = do
     filterM (fmap not . isMasked) $ allVertices $ stateSource st
 
 
-modifyC :: (CrossingType t) => Bool -> (Crossing t -> Crossing t) -> [Vertex Tangle (Crossing t)] -> MoveM s (Crossing t) ()
+modifyC :: (Show a) => Bool -> (a -> a) -> [Vertex Tangle a] -> MoveM s a ()
 modifyC needFlip f crossings =
     ask >>= \ !st -> lift $
         forM_ crossings $ \ !c -> do

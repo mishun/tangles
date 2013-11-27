@@ -48,7 +48,7 @@ generateVirtualKnots maxN = do
     let diagrams = flip execState [] $
             tangleStarGlue
                 AnyStar
-                (\ yield -> forCCP_ (primeIrreducibleDiagrams maxN) $ \ (t, (s, _)) -> yield (t, s))
+                (forCCP_ $ primeIrreducibleDiagrams maxN)
                 (\ !link ->
                     when (eulerChar link == 0 && not (is1stOr2ndReidemeisterReducible link) && numberOfThreads link == 1 && testPrime link && heuristic link) $
                         modify (link :)

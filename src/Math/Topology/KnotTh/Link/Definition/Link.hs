@@ -4,9 +4,9 @@ module Math.Topology.KnotTh.Link.Definition.Link
     , emptyLink
     , linkToTangle
     , tangleToLink
-    , LinkProj
-    , LinkProjVertex
-    , LinkProjDart
+    , LinkProjection
+    , LinkProjectionVertex
+    , LinkProjectionDart
     , LinkDiagram
     , LinkDiagramVertex
     , LinkDiagramDart
@@ -88,9 +88,9 @@ tangleToLink t | numberOfLegs t == 0  = L t
                | otherwise            = error "tangleToLink: tangle must have 0 legs"
 
 
-type LinkProj = Link ProjectionCrossing
-type LinkProjVertex = Vertex Link ProjectionCrossing
-type LinkProjDart = Dart Link ProjectionCrossing
+type LinkProjection = Link ProjectionCrossing
+type LinkProjectionVertex = Vertex Link ProjectionCrossing
+type LinkProjectionDart = Dart Link ProjectionCrossing
 
 
 type LinkDiagram = Link DiagramCrossing

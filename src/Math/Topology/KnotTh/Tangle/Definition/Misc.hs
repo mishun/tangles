@@ -1,11 +1,40 @@
 module Math.Topology.KnotTh.Tangle.Definition.Misc
-    ( gridTangle
+    ( mirrorTangle
+    , transformTangle
+    , allOrientationsOfTangle
+    , gridTangle
     , chainTangle
     ) where
 
 import Text.Printf
+import qualified Math.Algebra.Group.Dn as Dn
 import Math.Topology.KnotTh.Knotted
+import Math.Topology.KnotTh.Tangle.Definition.TangleLike
 import Math.Topology.KnotTh.Tangle.Definition.Tangle
+
+
+mirrorTangle :: (CrossingType t) => Tangle (Crossing t) -> Tangle (Crossing t)
+mirrorTangle = mirrorTangleWith mirrorReversingDartsOrder
+
+
+transformTangle :: (CrossingType t) => Dn.Dn -> Tangle (Crossing t) -> Tangle (Crossing t)
+transformTangle g tangle
+    | l /= l'          = error $ printf "transformTangle: order conflict: %i legs, %i order of group" l l'
+    | Dn.reflection g  = mirrorTangle $ rotateTangle r tangle
+    | otherwise        = rotateTangle r tangle
+    where
+        l = numberOfLegs tangle
+        l' = Dn.pointsUnderGroup g
+        r = Dn.rotation g
+
+
+allOrientationsOfTangle :: (CrossingType t) => Tangle (Crossing t) -> [Tangle (Crossing t)]
+allOrientationsOfTangle tangle = do
+    t <- let l = numberOfLegs tangle
+         in if l == 0
+             then [tangle]
+             else map (flip rotateTangle tangle) [0 .. l]
+    [t, mirrorTangle t]
 
 
 gridTangle :: (Int, Int) -> ((Int, Int) -> a) -> Tangle a

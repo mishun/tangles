@@ -27,6 +27,9 @@ class (Knotted t, PlanarAlgebra t) => TangleLike t where
 
     lonerTangle :: a -> t a
 
+    rotateTangle :: Int -> t a -> t a
+    mirrorTangleWith :: (a -> a) -> t a -> t a
+
     -- |           legsToGlue = 2
     --  ..............|
     --  (legA + 2) ---|- 0
@@ -48,3 +51,5 @@ class (Knotted t, PlanarAlgebra t) => TangleLike t where
     -- ........|  |   \-----|--0       ........|                       (leg-2)-|--|-----/   |
     -- ........|  +=========+          ........|                       ........|  +=========+
     glueToBorder :: Dart t a -> Int -> a -> Vertex t a
+
+    tensorSubst :: Int -> (Vertex t a -> t b) -> t a -> t b

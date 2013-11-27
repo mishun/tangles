@@ -11,7 +11,6 @@ import Text.Printf
 import Math.Topology.KnotTh.Knotted
 import Math.Topology.KnotTh.Tangle.Definition.TangleLike
 import Math.Topology.KnotTh.Tangle.Definition.Tangle
-import Math.Topology.KnotTh.Tangle.Definition.Transform
 
 
 (|=|) :: (TangleLike t) => t a -> t a -> t a
@@ -24,7 +23,7 @@ import Math.Topology.KnotTh.Tangle.Definition.Transform
         n = al `div` 2
 
 
-(|~|) :: (CrossingType t) => Tangle (Crossing t) -> Tangle (Crossing t) -> Tangle (Crossing t)
+(|~|) :: (TangleLike t) => t a -> t a -> t a
 (|~|) a b =
     let k = numberOfLegs a `div` 2
     in rotateTangle (-k) $ glueTangles 0 (nthLeg a k) (firstLeg b)
