@@ -16,11 +16,11 @@ import Math.Topology.KnotTh.Tangle
 testNoMultiEdges :: Dart Tangle ct -> Int -> Bool
 testNoMultiEdges leg gl =
     let ls = take gl $! iterate nextCW leg
-    in and $! zipWith (\ !a !b ->
+    in and $ zipWith (\ !a !b ->
             let a' = opposite a
                 b' = opposite b
             in isLeg a' || isLeg b' || beginVertex a' /= beginVertex b' 
-        ) ls $! tail ls
+        ) ls $ tail ls
 
 
 testNo2ndReidemeisterReduction :: DiagramCrossing -> TangleDiagramDart -> Int -> Bool

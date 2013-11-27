@@ -26,7 +26,7 @@ rootingSymmetryTest lastCrossing = do
     let tangle = vertexOwner lastCrossing
     guard $ numberOfLegs tangle >= 4
     cp <- investigateConnectivity lastCrossing
-    analyseSymmetry lastCrossing (unsafeAt cp . vertexIndex)
+    analyseSymmetry lastCrossing cp
 
 
 rootCodeLeg :: (CrossingType t) => Dart Tangle (Crossing t) -> R.RotationDirection -> (D4.D4, UArray Int Int)
@@ -81,7 +81,7 @@ investigateConnectivity lastCrossing = runST $ do
 
 analyseSymmetry
     :: (CrossingType t) => Vertex Tangle (Crossing t)
-        -> (Vertex Tangle (Crossing t) -> Bool)
+        -> (UArray Int Bool)
             -> Maybe (Dn.DnSubGroup, (D4.D4, D4.D4), UArray Int Int)
 
 analyseSymmetry lastCrossing skipCrossing = do
@@ -103,9 +103,9 @@ analyseSymmetry lastCrossing skipCrossing = do
         rootDir' = R.oppositeDirection rootDir
 
     let skip dir leg =
-            let c = beginVertex $ opposite leg
-                c' = beginVertex $ opposite $ nextDir dir leg
-            in skipCrossing c || (c == c')
+            let v = endVertex leg
+                v' = endVertex $ nextDir dir leg
+            in (skipCrossing `unsafeAt` vertexIndex v) || (v == v')
 
     (period, periodG) <- fix (\ loop !li !leg ->
             case () of
