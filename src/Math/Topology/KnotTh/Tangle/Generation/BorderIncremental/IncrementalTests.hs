@@ -57,7 +57,7 @@ testFlow4 finish = runST $ do
             tl <- newSTRef 0
 
             let touch !d = do
-                    let ci = vertexIndex $ beginVertex d
+                    let ci = beginVertexIndex d
                     visited <- unsafeRead v ci
                     unless visited $ do
                         unsafeWrite v ci True
@@ -97,7 +97,7 @@ testFlow4 finish = runST $ do
                             let b = opposite a
                             when (isDart b) $ do
                                 unsafeRead flow (dartIndex b) >>= \ !f -> unsafeWrite flow (dartIndex b) $! f + 1
-                                unsafeRead p (vertexIndex $ beginVertex b) >>= update
+                                unsafeRead p (beginVertexIndex b) >>= update
 
                     unsafeRead p (vertexIndex finish) >>= update
                     modifySTRef' total (+ 1)
@@ -107,7 +107,7 @@ testFlow4 finish = runST $ do
                     foldMIncidentDarts finish (\ !a !ok -> do
                             let b = opposite a
                             if isDart b
-                                then unsafeRead v (vertexIndex $ beginVertex b) >>= \ !ok' -> return $! ok' && ok
+                                then unsafeRead v (beginVertexIndex b) >>= \ !ok' -> return $! ok' && ok
                                 else return $! ok
                         ) (final == 4)
 

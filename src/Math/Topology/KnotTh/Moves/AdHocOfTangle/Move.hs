@@ -86,7 +86,7 @@ assembleST st = do
 
     let pair d | isLeg d    = return $! (,) 0 $! legPlace d
                | otherwise  = do
-                   let i = vertexIndex $ beginVertex d
+                   let i = beginVertexIndex d
                    msk <- readArray (stateMask st) i
                    off <- readArray offset i
                    case msk of

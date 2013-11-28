@@ -93,11 +93,11 @@ appendF :: (MonadWriter [Q Dec] m) => Name -> Q Clause -> m ()
 appendF name body = tell $ (:[]) $ funD name [body]
 
 
-loopsCount, vertexCount, stateArray, connsArray :: Name
+loopsCount, vertexCount, crossingsArray, involutionArray :: Name
 loopsCount = mkName "loopsCount"
 vertexCount = mkName "vertexCount"
-stateArray = mkName "stateArray"
-connsArray = mkName "connsArray"
+crossingsArray = mkName "crossingsArray"
+involutionArray = mkName "involutionArray"
 
 
 removeUndefined :: [Dec] -> Q [Dec]
@@ -123,7 +123,7 @@ modifyInstance decs targetHeaderQ addMembersQ = do
         ) decs
 
 
-produceKnotted :: DecsQ -> KnottedSettings -> DecsQ
+produceKnotted :: Q [Dec] -> KnottedSettings -> Q [Dec]
 produceKnotted knotPattern inst = execWriterT $ do
     DataD [] knotType [PlainTV crossType] [RecC knotConstr knotFields] [] : declarations <- lift knotPattern
 
@@ -133,26 +133,23 @@ produceKnotted knotPattern inst = execWriterT $ do
 
     append' $ dataD (cxt []) knotType [PlainTV crossType]
         [ recC knotConstr $
-            [ (,,) loopsCount  Unpacked `fmap` [t| Int |]
+            [ (,,) loopsCount Unpacked `fmap` [t| Int |]
             , (,,) vertexCount Unpacked `fmap` [t| Int |]
-            , (,,) connsArray  Unpacked `fmap` [t| UArray Int Int |]
-            , (,,) stateArray  Unpacked `fmap` [t| Array Int $(varT crossType) |]
+            , (,,) involutionArray Unpacked `fmap` [t| UArray Int Int |]
+            , (,,) crossingsArray Unpacked `fmap` [t| Array Int $(varT crossType) |]
             ] ++ map return knotFields
         ] []
 
     appends'
         [d| instance (NFData a) => NFData ($(conT knotType) a) where
-                rnf k = rnf ($(varE stateArray) k) `seq` k `seq` ()
+                rnf k = rnf ($(varE crossingsArray) k) `seq` k `seq` ()
 
             instance (NFData a) => NFData (Vertex $(conT knotType) a)
 
             instance (NFData a) => NFData (Dart $(conT knotType) a)
 
             instance Functor $(conT knotType) where
-                fmap f k =
-                    $(recUpdE [| k |] [(,) stateArray `fmap`
-                        [| amap f ($(varE stateArray) k) |]
-                    ])
+                fmap f k = $(recUpdE [| k |] [(,) crossingsArray `fmap` [| amap f ($(varE crossingsArray) k) |] ])
         |]
 
     append' $ instanceD (cxt []) ([t| PlanarDiagram |] `appT` conT knotType) $ execWriter $ do
@@ -196,18 +193,18 @@ produceKnotted knotPattern inst = execWriterT $ do
         appendF 'allHalfEdges $ do
             k <- newName "k"
             clause [varP k] (normalB [|
-                    map ($(conE dartN) $(varE k)) [0 :: Int .. snd $ bounds $ $(varE connsArray) $(varE k)]
+                    map ($(conE dartN) $(varE k)) [0 :: Int .. snd $ bounds $ $(varE involutionArray) $(varE k)]
                 |]) []
 
         appendF 'allEdges $ do
             k <- newName "k"
             clause [varP k] (normalB [|
                     foldl' (\ !es !i ->
-                            let j = $(varE connsArray) $(varE k) `unsafeAt` i
+                            let j = $(varE involutionArray) $(varE k) `unsafeAt` i
                             in if i < j
                                 then ($(conE dartN) $(varE k) i, $(conE dartN) $(varE k) j) : es
                                 else es
-                        ) [] [0 .. snd $ bounds $ $(varE connsArray) $(varE k)]
+                        ) [] [0 .. snd $ bounds $ $(varE involutionArray) $(varE k)]
                 |]) []
 
         append $ do
@@ -286,7 +283,7 @@ produceKnotted knotPattern inst = execWriterT $ do
             k <- newName "k"
             d <- newName "d"
             clause [conP dartN [varP k, varP d]] (normalB
-                    [| $(conE dartN) $(varE k) ($(varE connsArray) $(varE k) `unsafeAt` $(varE d)) |]
+                    [| $(conE dartN) $(varE k) ($(varE involutionArray) $(varE k) `unsafeAt` $(varE d)) |]
                 ) []
 
         appendF 'nextCCW $ do
@@ -329,7 +326,7 @@ produceKnotted knotPattern inst = execWriterT $ do
             k <- newName "k"
             c <- newName "c"
             clause [conP vertN [varP k, varP c]]
-                (normalB [| $(varE stateArray) $(varE k) `unsafeAt` $(varE c) |]) []
+                (normalB [| $(varE crossingsArray) $(varE k) `unsafeAt` $(varE c) |]) []
 
         appendF 'numberOfFreeLoops $
             clause [] (normalB $ varE loopsCount) []
@@ -346,9 +343,9 @@ produceKnotted knotPattern inst = execWriterT $ do
         appendF 'emptyKnotted $
             clause [] (normalB $ recConE knotConstr $
                     [ (,) vertexCount `fmap` [| 0 :: Int |]
-                    , (,) connsArray  `fmap` [| listArray (0 :: Int, -1 :: Int) [] |]
-                    , (,) stateArray  `fmap` [| listArray (0 :: Int, -1 :: Int) [] |]
-                    , (,) loopsCount  `fmap` [| 0 :: Int |]
+                    , (,) involutionArray `fmap` [| listArray (0 :: Int, -1 :: Int) [] |]
+                    , (,) crossingsArray `fmap` [| listArray (0 :: Int, -1 :: Int) [] |]
+                    , (,) loopsCount `fmap` [| 0 :: Int |]
                     ] ++ emptyExtraInitializers inst
                 ) []
 
@@ -463,9 +460,9 @@ produceKnotted knotPattern inst = execWriterT $ do
                         append $ noBindS
                             [|  return $! $(recConE knotConstr $
                                     [ (,) vertexCount `fmap` varE n
-                                    , (,) connsArray  `fmap` varE cr'
-                                    , (,) stateArray  `fmap` varE st'
-                                    , (,) loopsCount  `fmap` varE loops
+                                    , (,) involutionArray `fmap` varE cr'
+                                    , (,) crossingsArray `fmap` varE st'
+                                    , (,) loopsCount `fmap` varE loops
                                     ] ++ implodeInitializers ies)
                             |]
                 ) []

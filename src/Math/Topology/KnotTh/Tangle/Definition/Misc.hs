@@ -33,7 +33,7 @@ allOrientationsOfTangle tangle = do
     t <- let l = numberOfLegs tangle
          in if l == 0
              then [tangle]
-             else map (flip rotateTangle tangle) [0 .. l]
+             else map (`rotateTangle` tangle) [0 .. l]
     [t, mirrorTangle t]
 
 
@@ -55,7 +55,6 @@ gridTangle (n, m) f
                     , if j < m then (n * j + i          , 0) else (0, 2 * n + m - i    )
                     , if i > 1 then (n * (j - 1) + i - 1, 1) else (0, 2 * m + 2 * n - j)
                     ], f (i, j))
-
         in implode (0, border, body)
 
 
@@ -66,12 +65,12 @@ chainTangle list =
     in implode
         ( 0
         , [(1, 0), (1, 1), (n, 2), (n, 3)]
-        , flip map ([1 .. n] `zip` list) $ \ (i, s) ->
+        , map (\ (i, s) ->
             (   [ if i > 1 then (i - 1, 3) else (0, 0)
                 , if i > 1 then (i - 1, 2) else (0, 1)
                 , if i < n then (i + 1, 1) else (0, 2)
                 , if i < n then (i + 1, 0) else (0, 3)
                 ]
             , s
-            )
+            )) ([1 .. n] `zip` list)
         )

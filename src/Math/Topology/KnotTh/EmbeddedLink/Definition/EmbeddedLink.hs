@@ -73,7 +73,7 @@ produceKnotted
 
                         let {-# INLINE look #-}
                             look !d = do
-                                let u = vertexIndex $ beginVertex d
+                                let u = beginVertexIndex d
                                 ux <- unsafeRead index u
                                 if ux > 0
                                     then do
@@ -154,9 +154,9 @@ produceKnotted
                         cur <- readArray foff fid
                         writeArray foff fid $! cur + 1
                     foldM_ (\ !offset !i -> do
-                        cur <- readArray foff i
-                        writeArray foff i offset
-                        return $! offset + cur
+                            cur <- readArray foff i
+                            writeArray foff i offset
+                            return $! offset + cur
                         ) 0 [0 .. fc]
 
                     fccwd' <- unsafeFreeze fccwd

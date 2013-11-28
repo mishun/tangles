@@ -5,6 +5,7 @@ module Math.Algebra.PlanarAlgebra.Definition
     , numberOfDarts
     , nextDir
     , endVertex
+    , endVertexIndex
     , endPlace
     , endVertexM
     , endPair
@@ -62,12 +63,14 @@ class PlanarDiagram a where
     isDart _ = True
 
     beginVertex        :: Dart a t -> Vertex a t
+    beginVertexIndex   :: Dart a t -> Int
     beginPlace         :: Dart a t -> Int
     beginPair          :: Dart a t -> (Vertex a t, Int)
     beginPair'         :: Dart a t -> (Int, Int)
     beginVertexM       :: Dart a t -> Maybe (Vertex a t)
 
     beginVertex = fst . beginPair
+    beginVertexIndex = vertexIndex . beginVertex
     beginPlace  = snd . beginPair
     beginPair d = (beginVertex d, beginPlace d)
     beginPair' = first vertexIndex . beginPair
@@ -140,6 +143,11 @@ nextDir dir | R.isClockwise dir  = nextCW
 {-# INLINE endVertex #-}
 endVertex :: (PlanarDiagram a) => Dart a t -> Vertex a t
 endVertex = beginVertex . opposite
+
+
+{-# INLINE endVertexIndex #-}
+endVertexIndex :: (PlanarDiagram a) => Dart a t -> Int
+endVertexIndex = beginVertexIndex . opposite
 
 
 {-# INLINE endPlace #-}

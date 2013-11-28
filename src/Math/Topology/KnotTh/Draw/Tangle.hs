@@ -23,7 +23,7 @@ tangleEmbedding tangle =
         embedding = embeddingInCircleWithVertexRooting 2 (nthVertex g 0)
 
         toGraphDart d | isLeg d    = nthOutcomingDart (nthVertex g 0) $ (-legPlace d) `mod` numberOfLegs tangle
-                      | otherwise  = nthOutcomingDart (nthVertex g $ vertexIndex $ beginVertex d) (beginPlace d)
+                      | otherwise  = nthOutcomingDart (nthVertex g $ beginVertexIndex d) (beginPlace d)
 
     in array (dartsRange tangle) $ do
         d <- allHalfEdges tangle

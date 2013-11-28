@@ -284,47 +284,47 @@ instance PlanarAlgebra Tangle where
 instance TangleLike Tangle where
     zeroTangle =
         Tangle
-            { loopsCount  = 0
-            , vertexCount = 0
-            , connsArray  = listArray (0, 3) [3, 2, 1, 0]
-            , stateArray  = listArray (0, -1) []
-            , legsCount   = 4
+            { loopsCount      = 0
+            , vertexCount     = 0
+            , involutionArray = listArray (0, 3) [3, 2, 1, 0]
+            , crossingsArray  = listArray (0, -1) []
+            , legsCount       = 4
             }
 
     infinityTangle =
         Tangle
-            { loopsCount  = 0
-            , vertexCount = 0
-            , connsArray  = listArray (0, 3) [1, 0, 3, 2]
-            , stateArray  = listArray (0, -1) []
-            , legsCount   = 4
+            { loopsCount      = 0
+            , vertexCount     = 0
+            , involutionArray = listArray (0, 3) [1, 0, 3, 2]
+            , crossingsArray  = listArray (0, -1) []
+            , legsCount       = 4
             }
 
     identityTangle =
         Tangle
-            { loopsCount  = 0
-            , vertexCount = 0
-            , connsArray  = listArray (0, 1) [1, 0]
-            , stateArray  = listArray (0, -1) []
-            , legsCount   = 2
+            { loopsCount      = 0
+            , vertexCount     = 0
+            , involutionArray = listArray (0, 1) [1, 0]
+            , crossingsArray  = listArray (0, -1) []
+            , legsCount       = 2
             }
 
     lonerTangle cr =
         Tangle
-            { loopsCount  = 0
-            , vertexCount = 1
-            , connsArray  = listArray (0, 7) [4, 5, 6, 7, 0, 1, 2, 3]
-            , stateArray  = listArray (0, 0) [cr]
-            , legsCount   = 4
+            { loopsCount      = 0
+            , vertexCount     = 1
+            , involutionArray = listArray (0, 7) [4, 5, 6, 7, 0, 1, 2, 3]
+            , crossingsArray  = listArray (0, 0) [cr]
+            , legsCount       = 4
             }
 
     rotateTangle !rot tangle
         | l == 0 || rot == 0  = tangle
         | otherwise           =
             tangle
-                { connsArray = runSTUArray $ do
+                { involutionArray = runSTUArray $ do
                     let n = 4 * numberOfVertices tangle
-                        a = connsArray tangle
+                        a = involutionArray tangle
                         modify i | i < n      = i
                                  | otherwise  = n + mod (i - n + rot) l
                     a' <- newArray_ (0, n + l - 1)
@@ -339,17 +339,17 @@ instance TangleLike Tangle where
 
     mirrorTangleWith f tangle =
         tangle
-            { connsArray = runSTUArray $ do
+            { involutionArray = runSTUArray $ do
                 let l = numberOfLegs tangle
                     n = 4 * numberOfVertices tangle
-                    a = connsArray tangle
+                    a = involutionArray tangle
                     modify i | i < n      = (i .&. complement 3) + 3 - (i .&. 3)
                              | otherwise  = n + mod (n - i) l
                 a' <- newArray_ (0, n + l - 1)
                 forM_ [0 .. n + l - 1] $ \ !i ->
                     unsafeWrite a' (modify i) $ modify (a `unsafeAt` i)
                 return a'
-            , stateArray = amap f $ stateArray tangle
+            , crossingsArray = amap f $ crossingsArray tangle
             }
 
     glueTangles legsToGlue legA legB = runST $ do
@@ -383,7 +383,7 @@ instance TangleLike Tangle where
                     | ml >= legsToGlue  = return $! 4 * newC + ml - legsToGlue
                     | otherwise         = do
                         unsafeWrite visited ml True
-                        convertB (connsArray tangleB `unsafeAt` (4 * nB + (lpB - ml) `mod` lB))
+                        convertB (involutionArray tangleB `unsafeAt` (4 * nB + (lpB - ml) `mod` lB))
                     where
                         ml = (x - 4 * nA - lpA) `mod` lA
 
@@ -393,36 +393,34 @@ instance TangleLike Tangle where
                     | ml < lB - legsToGlue  = return $! 4 * newC + ml + lA - legsToGlue
                     | otherwise             = do
                         unsafeWrite visited (lB - ml - 1) True
-                        convertA (connsArray tangleA `unsafeAt` (4 * nA + (lpA + lB - ml - 1) `mod` lA))
+                        convertA (involutionArray tangleA `unsafeAt` (4 * nA + (lpA + lB - ml - 1) `mod` lA))
                     where
                         ml = (x - 4 * nB - lpB - 1) `mod` lB
 
             cr <- newArray_ (0, 4 * newC + newL - 1) :: ST s (STUArray s Int Int)
             forM_ [0 .. 4 * nA - 1] $ \ !i ->
-                convertA (connsArray tangleA `unsafeAt` i)
-                    >>= unsafeWrite cr i
+                convertA (involutionArray tangleA `unsafeAt` i) >>= unsafeWrite cr i
             forM_ [0 .. 4 * nB - 1] $ \ !i ->
-                convertB (connsArray tangleB `unsafeAt` i)
-                    >>= unsafeWrite cr (4 * nA + i)
+                convertB (involutionArray tangleB `unsafeAt` i) >>= unsafeWrite cr (4 * nA + i)
             forM_ [0 .. lA - legsToGlue - 1] $ \ !i ->
-                convertA (connsArray tangleA `unsafeAt` (4 * nA + (lpA + legsToGlue + i) `mod` lA))
+                convertA (involutionArray tangleA `unsafeAt` (4 * nA + (lpA + legsToGlue + i) `mod` lA))
                     >>= unsafeWrite cr (4 * newC + i)
             forM_ [0 .. lB - legsToGlue - 1] $ \ !i ->
-                convertB (connsArray tangleB `unsafeAt` (4 * nB + (lpB + 1 + i) `mod` lB))
+                convertB (involutionArray tangleB `unsafeAt` (4 * nB + (lpB + 1 + i) `mod` lB))
                     >>= unsafeWrite cr (4 * newC + lA - legsToGlue + i) 
             unsafeFreeze cr
 
         extraLoops <- do
             let markA a = do
                     let ai = 4 * nA + (lpA + a) `mod` lA
-                        bi = connsArray tangleA `unsafeAt` ai
+                        bi = involutionArray tangleA `unsafeAt` ai
                         b = (bi - 4 * nA - lpA) `mod` lA
                     v <- unsafeRead visited b
                     unless v $ unsafeWrite visited b True >> markB b
 
                 markB a = do
                     let ai = 4 * nB + (lpB - a) `mod` lB
-                        bi = connsArray tangleB `unsafeAt` ai
+                        bi = involutionArray tangleB `unsafeAt` ai
                         b = (lpB - (bi - 4 * nB)) `mod` lB
                     v <- unsafeRead visited b
                     unless v $ unsafeWrite visited b True >> markA b
@@ -435,17 +433,17 @@ instance TangleLike Tangle where
                 ) 0 [0 .. legsToGlue - 1]
 
         return Tangle
-            { loopsCount  = numberOfFreeLoops tangleA + numberOfFreeLoops tangleB + extraLoops
-            , vertexCount = newC
-            , connsArray  = cr
-            , stateArray  = runSTArray $ do
+            { loopsCount      = numberOfFreeLoops tangleA + numberOfFreeLoops tangleB + extraLoops
+            , vertexCount     = newC
+            , involutionArray = cr
+            , crossingsArray  = runSTArray $ do
                 st <- newArray_ (0, newC - 1)
                 forM_ [0 .. nA - 1] $ \ !i ->
-                    unsafeWrite st i $ stateArray tangleA `unsafeAt` i
+                    unsafeWrite st i $ crossingsArray tangleA `unsafeAt` i
                 forM_ [0 .. nB - 1] $ \ !i ->
-                    unsafeWrite st (i + nA) $ stateArray tangleB `unsafeAt` i
+                    unsafeWrite st (i + nA) $ crossingsArray tangleB `unsafeAt` i
                 return st
-            , legsCount   = newL
+            , legsCount       = newL
             }
 
     glueToBorder leg legsToGlue !crossingToGlue = runST $ do
@@ -474,7 +472,7 @@ instance TangleLike Tangle where
                           | ml < oldL - legsToGlue  = 4 * newC + 4 - legsToGlue + ml
                           | otherwise               = 4 * newC - 5 + oldL - ml
                           where
-                              x = connsArray tangle `unsafeAt` index'
+                              x = involutionArray tangle `unsafeAt` index'
                               ml = (x - 4 * oldC - lp - 1) `mod` oldL
                     in unsafeWrite cr index y
 
@@ -495,16 +493,16 @@ instance TangleLike Tangle where
             unsafeFreeze cr
 
         let result = Tangle
-                { loopsCount  = numberOfFreeLoops tangle
-                , vertexCount = newC
-                , connsArray  = cr
-                , stateArray  = runSTArray $ do
+                { loopsCount      = numberOfFreeLoops tangle
+                , vertexCount     = newC
+                , involutionArray = cr
+                , crossingsArray  = runSTArray $ do
                     st <- newArray_ (0, newC - 1)
                     forM_ [0 .. oldC - 1] $ \ !i ->
-                        unsafeWrite st i $ stateArray tangle `unsafeAt` i
+                        unsafeWrite st i $ crossingsArray tangle `unsafeAt` i
                     unsafeWrite st (newC - 1) crossingToGlue
                     return st
-                , legsCount   = newL
+                , legsCount       = newL
                 }
 
         return $! nthVertex result newC 
