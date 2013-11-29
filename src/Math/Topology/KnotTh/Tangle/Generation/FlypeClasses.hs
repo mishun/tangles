@@ -21,7 +21,7 @@ import Math.Topology.KnotTh.Tangle.Generation.FlypeClasses.Flypes
 
 
 templateDescendants
-    :: Bool -> Int -> [SubTangleCrossingType ProjectionCrossing]
+    :: Bool -> Int -> [SubTangleCrossing ProjectionCrossing]
         -> Int -> Int -> (SubTangleTangle ProjectionCrossing, Dn.DnSubGroup)
             -> [(SubTangleTangle ProjectionCrossing, Dn.DnSubGroup)]
 
@@ -42,7 +42,7 @@ templateDescendants tri maxN crossings cn curN (tangle, symmetry) = do
 
 
 directSumDescendants
-    :: [SubTangleCrossingType ProjectionCrossing]
+    :: [SubTangleCrossing ProjectionCrossing]
         -> (SubTangleTangle ProjectionCrossing, Dn.DnSubGroup)
             -> [(SubTangleTangle ProjectionCrossing, Dn.DnSubGroup)]
 
@@ -78,7 +78,7 @@ directSumDescendants crossings (tangle, symmetry) = do
                 _                     -> Nothing
 
     cr <- crossings
-    if numberOfVertices (subTangle cr) == 1
+    if isLonerCrossing cr
         then map snd $ nubBy (on (==) fst) $ do
             leg <- allLegs tangle
             st <- possibleSubTangleOrientations cr Nothing
@@ -108,20 +108,20 @@ generateFlypeEquivalentDecomposition' triangle maxN yield = do
                     | otherwise                         = NonDirectSumDecomposable
                     where
                         [a, b, c, d] = map endVertex $ allLegs template
-            in crossingFromTangle' template symmetry sumType
+            in makeSubTangle' template symmetry sumType
 
     let halfN = maxN `div` 2
 
     (finalFree, finalCrossings, rootList) <-
         flip execStateT (0, listArray (1, halfN) $ repeat [], []) $
             let lonerSymmetry = Dn.maximumSubGroup 4
-                loner = makeCrossingCache' (crossingFromTangle lonerProjection lonerSymmetry NonDirectSumDecomposable 0)
+                loner = makeSubTangle lonerProjection lonerSymmetry NonDirectSumDecomposable 0
             in flip fix (lonerTangle loner, lonerSymmetry) $ \ growTree (rootTemplate, rootSymmetry) -> do
                 (!free, !prevCrossings, !prevList) <- get
                 let rootCrossing = buildCrossingType rootTemplate rootSymmetry free
-                let rootN = numberOfVertices $ subTangle rootCrossing
+                let rootN = numberOfCrossingVertices rootCrossing
                 let crossings = prevCrossings // [(rootN, rootCrossing : (prevCrossings ! rootN))]
-                let root = lonerTangle $ makeCrossingCache' rootCrossing
+                let root = lonerTangle rootCrossing
                 put (free + 1, crossings, ((root, rootSymmetry), crossings) : prevList)
 
                 let glueTemplates curN ancestor =
@@ -147,7 +147,7 @@ generateFlypeEquivalentDecomposition' triangle maxN yield = do
                     free <- get
                     put $! free + 1
                     lift $ yield (rootTemplate, rootSymmetry)
-                    grow ((lonerTangle $ makeCrossingCache' $ buildCrossingType rootTemplate rootSymmetry free, rootSymmetry), finalCrossings)
+                    grow ((lonerTangle $ buildCrossingType rootTemplate rootSymmetry free, rootSymmetry), finalCrossings)
 
         let glueTemplates curN ancestor =
                 forM_ [1 .. min halfN (maxN - curN)] $ \ cn ->
