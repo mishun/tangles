@@ -43,7 +43,7 @@ cutThread thread embedding isCut process
 
         circleThread = isDart $ fst $ head thread
         hasBreaks = any (\ (a, b) -> isBreak a || isBreak b) thread
-        hasCuts = any (\ (a, b) -> isCut a || isCut b) thread
+        hasCuts = not (isDart $ fst $ head thread) || any (\ (a, b) -> isCut a || isCut b) thread
 
         matchBreaks chunks chunk ((a, b) : rest) =
             case embedding ! a of
