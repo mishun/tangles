@@ -1,22 +1,7 @@
-{-# LANGUAGE UnboxedTuples, TypeFamilies #-}
+{-# LANGUAGE TypeFamilies, UnboxedTuples #-}
 module Math.Topology.KnotTh.Knotted.Definition
     ( module X
-    , CrossingType(..)
-    , Crossing
-    , crossingType
-    , isCrossingOrientationInverted
-    , crossingLegIdByDartId
-    , dartIdByCrossingLegId
-    , mapOrientation
-    , makeCrossing
-    , makeCrossing'
-    , mapCrossing
-    , vertexCrossingType
-    , isVertexCrossingOrientationInverted
-    , crossingLegIdByDart
-    , dartByCrossingLegId
-    , crossingCode
-    , crossingCodeWithGlobal
+    , Crossing(..)
     , Knotted(..)
     , KnottedWithPrimeTest(..)
     , SurfaceKnotted
@@ -28,148 +13,16 @@ module Math.Topology.KnotTh.Knotted.Definition
 
 import Data.Bits ((.&.))
 import Data.Array.Unboxed (UArray)
-import Control.DeepSeq
-import Control.Monad (guard)
-import Text.Printf
 import qualified Math.Algebra.RotationDirection as R
 import qualified Math.Algebra.Group.D4 as D4
 import Math.Algebra.PlanarAlgebra as X
 
 
-class (Eq t, Show t) => CrossingType t where
-    crossingTypeCode :: t -> Int
-    crossingTypeCode _ = 1
-
-    localCrossingSymmetry :: t -> D4.D4SubGroup
-
-    globalTransformations :: (Knotted k) => k (Crossing t) -> Maybe [D4.D4]
-    globalTransformations _ = Nothing
-
-    possibleOrientations :: t -> Maybe D4.D4 -> [Crossing t]
-    possibleOrientations ct extra =
-        let s = localCrossingSymmetry ct
-            orient = D4.equvalenceClassRepresentatives s
-        in map (makeCrossing ct) $
-            case extra of
-                Nothing -> orient
-                Just h  -> filter (\ g -> D4.equivalenceClassId s g <= D4.equivalenceClassId s (h D4.<*> g)) orient
-
-    mirrorReversingDartsOrder :: Crossing t -> Crossing t
-    mirrorReversingDartsOrder = mapOrientation (D4.ec D4.<*>)
-
-
-data Crossing t =
-    Crossing
-        { code         :: {-# UNPACK #-} !Int
-        , orientation  :: {-# UNPACK #-} !D4.D4
-        , symmetry     :: !D4.D4SubGroup
-        , crossingType :: !t
-        }
-
-
-instance (Eq t) => Eq (Crossing t) where
-    (==) a b = symmetry a == symmetry b
-        && D4.equivalenceClassId (symmetry a) (orientation a) == D4.equivalenceClassId (symmetry b) (orientation b)
-        && crossingType a == crossingType b
-
-
-instance (NFData t) => NFData (Crossing t) where
-    rnf cr = rnf (crossingType cr) `seq` cr `seq` ()
-
-
-instance (Show t) => Show (Crossing t) where
-    show c = printf "(%s / %s | %s)"
-            (show $ orientation c)
-            (show $ symmetry c)
-            (show $ crossingType c)
-
-
-instance (CrossingType t, Read t) => Read (Crossing t) where
-    readsPrec _ =
-        readParen True $ \ s0 -> do
-            (g, s1) <- reads s0
-            ("/", s2) <- lex s1
-            (sym, s3) <- reads s2
-            ("|", s4) <- lex s3
-            (ct, s5) <- reads s4
-            let cs = makeCrossing ct g
-            guard $ symmetry cs == sym
-            return (cs, s5)
-
-
-{-# INLINE isCrossingOrientationInverted #-}
-isCrossingOrientationInverted :: Crossing t -> Bool
-isCrossingOrientationInverted = D4.hasReflection . orientation
-
-
-{-# INLINE crossingLegIdByDartId #-}
-crossingLegIdByDartId :: Crossing t -> Int -> Int
-crossingLegIdByDartId cr = D4.permute (D4.inverse $ orientation cr)
-
-
-{-# INLINE dartIdByCrossingLegId #-}
-dartIdByCrossingLegId :: Crossing t -> Int -> Int
-dartIdByCrossingLegId cr = D4.permute (orientation cr)
-
-
-mapOrientation :: (D4.D4 -> D4.D4) -> Crossing t -> Crossing t
-mapOrientation f crossing = crossing { orientation = f $ orientation crossing }
-
-
-makeCrossing :: (CrossingType t) => t -> D4.D4 -> Crossing t
-makeCrossing ct g =
-    Crossing
-        { code         = crossingTypeCode ct
-        , orientation  = g
-        , symmetry     = localCrossingSymmetry ct
-        , crossingType = ct
-        }
-
-
-makeCrossing' :: (CrossingType t) => t -> Crossing t
-makeCrossing' = flip makeCrossing D4.i
-
-
-mapCrossing :: (CrossingType b) => (a -> b) -> Crossing a -> Crossing b
-mapCrossing f x = makeCrossing (f $ crossingType x) (orientation x)
-
-
-{-# INLINE vertexCrossingType #-}
-vertexCrossingType :: (Knotted k) => Vertex k (Crossing t) -> t
-vertexCrossingType = crossingType . vertexCrossing
-
-
-{-# INLINE isVertexCrossingOrientationInverted #-}
-isVertexCrossingOrientationInverted :: (Knotted k) => Vertex k (Crossing t) -> Bool
-isVertexCrossingOrientationInverted = isCrossingOrientationInverted . vertexCrossing
-
-
-{-# INLINE crossingLegIdByDart #-}
-crossingLegIdByDart :: (Knotted k) => Dart k (Crossing t) -> Int
-crossingLegIdByDart d = crossingLegIdByDartId (vertexCrossing $ beginVertex d) (beginPlace d)
-
-
-{-# INLINE dartByCrossingLegId #-}
-dartByCrossingLegId :: (Knotted k) => Vertex k (Crossing t) -> Int -> Dart k (Crossing t)
-dartByCrossingLegId c = nthOutcomingDart c . dartIdByCrossingLegId (vertexCrossing c)
-
-
-{-# INLINE crossingCode #-}
-crossingCode :: (CrossingType t, Knotted k) => R.RotationDirection -> Dart k (Crossing t) -> (# Int, Int #)
-crossingCode dir d =
-    let p = beginPlace d
-        cr = vertexCrossing $ beginVertex d
-        t = D4.fromReflectionRotation (R.isClockwise dir) (-p) D4.<*> orientation cr
-    in (# code cr, D4.equivalenceClassId (symmetry cr) t #)
-
-
-{-# INLINE crossingCodeWithGlobal #-}
-crossingCodeWithGlobal :: (CrossingType t, Knotted k) => D4.D4 -> R.RotationDirection -> Dart k (Crossing t) -> (# Int, Int #)
-crossingCodeWithGlobal global dir d =
-    let p = beginPlace d
-        cr = vertexCrossing $ beginVertex d
-        t = D4.fromReflectionRotation (R.isClockwise dir) (-p) D4.<*> (orientation cr D4.<*> global)
-    in (# code cr, D4.equivalenceClassId (symmetry cr) t #)
+class Crossing a where
+    mirrorCrossing         :: a -> a
+    globalTransformations  :: (Knotted k) => k a -> Maybe [D4.D4]
+    crossingCode           :: (Knotted k) => R.RotationDirection -> Dart k a -> (# Int, Int #)
+    crossingCodeWithGlobal :: (Knotted k) => D4.D4 -> R.RotationDirection -> Dart k a -> (# Int, Int #)
 
 
 class (Functor k, PlanarDiagram k) => Knotted k where
@@ -182,7 +35,7 @@ class (Functor k, PlanarDiagram k) => Knotted k where
     isEmptyKnotted :: k a -> Bool
     isEmptyKnotted k = (numberOfVertices k == 0) && (numberOfFreeLoops k == 0)
 
-    homeomorphismInvariant :: (CrossingType t) => k (Crossing t) -> UArray Int Int
+    homeomorphismInvariant :: (Crossing a) => k a -> UArray Int Int
 
     isConnected :: k a -> Bool
 

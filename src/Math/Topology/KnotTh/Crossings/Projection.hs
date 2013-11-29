@@ -1,3 +1,4 @@
+{-# LANGUAGE UnboxedTuples #-}
 module Math.Topology.KnotTh.Crossings.Projection
     ( ProjectionCrossing
     , projectionCrossing
@@ -7,40 +8,37 @@ module Math.Topology.KnotTh.Crossings.Projection
 
 import Data.Char (isSpace)
 import Control.DeepSeq
-import qualified Math.Algebra.Group.D4 as D4
 import Math.Topology.KnotTh.Knotted
 
 
-data ProjectionCrossingType = ProjectionCrossing deriving (Eq)
+data ProjectionCrossing = ProjectionCrossing deriving (Eq)
 
 
-instance NFData ProjectionCrossingType
+instance Show ProjectionCrossing where
+    show = const "+"
 
 
-instance CrossingType ProjectionCrossingType where
-    localCrossingSymmetry _ = D4.subGroupD4
-    possibleOrientations _ _ = projectionCrossings
-    mirrorReversingDartsOrder = id
-
-
-instance Show ProjectionCrossingType where
-    show _ = "+"
-
-
-instance Read ProjectionCrossingType where
+instance Read ProjectionCrossing where
     readsPrec _ s = case dropWhile isSpace s of
         '+' : t -> [(ProjectionCrossing, t)]
         _       -> []
 
 
-type ProjectionCrossing = Crossing ProjectionCrossingType
+instance NFData ProjectionCrossing
+
+
+instance Crossing ProjectionCrossing where
+    mirrorCrossing = id
+    globalTransformations _ = Nothing
+    crossingCode _ _ = (# 0, 0 #)
+    crossingCodeWithGlobal _ _ _ = (# 0, 0 #)
 
 
 instance ThreadedCrossing ProjectionCrossing
 
 
 projectionCrossing :: ProjectionCrossing
-projectionCrossing = makeCrossing' ProjectionCrossing
+projectionCrossing = ProjectionCrossing
 
 
 projectionCrossings :: [ProjectionCrossing]

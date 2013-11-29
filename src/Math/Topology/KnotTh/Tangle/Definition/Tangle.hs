@@ -352,6 +352,8 @@ instance TangleLike Tangle where
             , crossingsArray = amap f $ crossingsArray tangle
             }
 
+    mirrorTangle = mirrorTangleWith mirrorCrossing
+
     glueTangles legsToGlue legA legB = runST $ do
         unless (isLeg legA) $
             fail $ printf "glueTangles: first leg parameter %s is not a leg" (show legA)

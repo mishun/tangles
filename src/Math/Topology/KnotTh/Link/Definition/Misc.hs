@@ -7,7 +7,7 @@ import Math.Topology.KnotTh.Link.Definition.Link
 import Math.Topology.KnotTh.Tangle
 
 
-tangleDoubling :: (CrossingType t) => (Crossing t -> Crossing t) -> Tangle (Crossing t) -> Link (Crossing t)
+tangleDoubling :: (Crossing a) => (a -> a) -> Tangle a -> Link a
 tangleDoubling f t =
     let l = numberOfLegs t
         t' = mirrorTangle $ fmap f t

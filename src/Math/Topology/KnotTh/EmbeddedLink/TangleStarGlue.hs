@@ -21,9 +21,9 @@ data StarType = BicolourableStar | AnyStar
 
 
 tangleStarGlue
-    :: (Monad m, CrossingType t) => StarType
-        -> (forall m'. (Monad m') => ((Tangle (Crossing t), (Dn.DnSubGroup, x)) -> m' ()) -> m' ())
-            -> (EmbeddedLink (Crossing t) -> m ()) -> m ()
+    :: (Monad m, Crossing a) => StarType
+        -> (forall m'. (Monad m') => ((Tangle a, (Dn.DnSubGroup, x)) -> m' ()) -> m' ())
+            -> (EmbeddedLink a -> m ()) -> m ()
 
 tangleStarGlue starType tangleGenerator yield =
     let generator =

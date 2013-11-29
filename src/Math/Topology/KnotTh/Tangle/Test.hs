@@ -38,10 +38,10 @@ test = testGroup "Basic tangle tests"
         assertEqual "infinity tangle" "(Tangle (0 O) (Border [ (Leg 1) (Leg 0) (Leg 3) (Leg 2) ]))" $
             show (infinityTangle :: TangleProjection)
 
-        assertEqual "loner tangle" "(Tangle (0 O) (Border [ (Dart 1 0) (Dart 1 1) (Dart 1 2) (Dart 1 3) ]) (Crossing 1 (I / D4 | +) [ (Leg 0) (Leg 1) (Leg 2) (Leg 3) ]))" $
+        assertEqual "loner tangle" "(Tangle (0 O) (Border [ (Dart 1 0) (Dart 1 1) (Dart 1 2) (Dart 1 3) ]) (Crossing 1 + [ (Leg 0) (Leg 1) (Leg 2) (Leg 3) ]))" $
             show lonerProjection
 
-        assertEqual "implode" "(Tangle (0 O) (Border [ (Dart 1 0) (Dart 1 1) (Dart 1 2) (Dart 1 3) ]) (Crossing 1 (I / D4 | +) [ (Leg 0) (Leg 1) (Leg 2) (Leg 3) ]))" $
+        assertEqual "implode" "(Tangle (0 O) (Border [ (Dart 1 0) (Dart 1 1) (Dart 1 2) (Dart 1 3) ]) (Crossing 1 + [ (Leg 0) (Leg 1) (Leg 2) (Leg 3) ]))" $
             show (implode (0, [(1, 0), (1, 1), (1, 2), (1, 3)], [([(0, 0), (0, 1), (0, 2), (0, 3)], projectionCrossing)]) :: TangleProjection)
 
     , testCase "Cascade code" $

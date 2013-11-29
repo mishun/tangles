@@ -13,11 +13,7 @@ import Math.Topology.KnotTh.Tangle.Definition.TangleLike
 import Math.Topology.KnotTh.Tangle.Definition.Tangle
 
 
-mirrorTangle :: (CrossingType t) => Tangle (Crossing t) -> Tangle (Crossing t)
-mirrorTangle = mirrorTangleWith mirrorReversingDartsOrder
-
-
-transformTangle :: (CrossingType t) => Dn.Dn -> Tangle (Crossing t) -> Tangle (Crossing t)
+transformTangle :: (Crossing a, TangleLike t) => Dn.Dn -> t a -> t a
 transformTangle g tangle
     | l /= l'          = error $ printf "transformTangle: order conflict: %i legs, %i order of group" l l'
     | Dn.reflection g  = mirrorTangle $ rotateTangle r tangle
@@ -28,7 +24,7 @@ transformTangle g tangle
         r = Dn.rotation g
 
 
-allOrientationsOfTangle :: (CrossingType t) => Tangle (Crossing t) -> [Tangle (Crossing t)]
+allOrientationsOfTangle :: (Crossing a, TangleLike t) => t a -> [t a]
 allOrientationsOfTangle tangle = do
     t <- let l = numberOfLegs tangle
          in if l == 0

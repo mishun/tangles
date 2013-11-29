@@ -18,10 +18,14 @@ import Control.Monad (when, guard)
 import qualified Math.Algebra.RotationDirection as R
 import qualified Math.Algebra.Group.Dn as Dn
 import qualified Math.Algebra.Group.D4 as D4
+import Math.Topology.KnotTh.Crossings.SubTangle
 import Math.Topology.KnotTh.Tangle
 
 
-rootingSymmetryTest :: (CrossingType t) => Vertex Tangle (Crossing t) -> Maybe (Dn.DnSubGroup, (D4.D4, D4.D4), UArray Int Int)
+{-# SPECIALIZE rootingSymmetryTest :: Vertex Tangle ProjectionCrossing -> Maybe (Dn.DnSubGroup, (D4.D4, D4.D4), UArray Int Int) #-}
+{-# SPECIALIZE rootingSymmetryTest :: Vertex Tangle DiagramCrossing -> Maybe (Dn.DnSubGroup, (D4.D4, D4.D4), UArray Int Int) #-}
+{-# SPECIALIZE rootingSymmetryTest :: Vertex Tangle (SubTangleCrossing a) -> Maybe (Dn.DnSubGroup, (D4.D4, D4.D4), UArray Int Int) #-}
+rootingSymmetryTest :: (Crossing a) => Vertex Tangle a -> Maybe (Dn.DnSubGroup, (D4.D4, D4.D4), UArray Int Int)
 rootingSymmetryTest lastCrossing = do
     let tangle = vertexOwner lastCrossing
     guard $ numberOfLegs tangle >= 4
@@ -29,7 +33,7 @@ rootingSymmetryTest lastCrossing = do
     analyseSymmetry lastCrossing cp
 
 
-rootCodeLeg :: (CrossingType t) => Dart Tangle (Crossing t) -> R.RotationDirection -> (D4.D4, UArray Int Int)
+rootCodeLeg :: (Crossing a) => Dart Tangle a -> R.RotationDirection -> (D4.D4, UArray Int Int)
 rootCodeLeg root dir
     | isDart root                     = error "rootCodeLeg: leg expected"
     | numberOfFreeLoops tangle /= 0   = error "rootCodeLeg: free loops present"
@@ -79,11 +83,10 @@ investigateConnectivity lastCrossing = runST $ do
             (Just $!) `fmap` unsafeFreeze cp
 
 
-analyseSymmetry
-    :: (CrossingType t) => Vertex Tangle (Crossing t)
-        -> (UArray Int Bool)
-            -> Maybe (Dn.DnSubGroup, (D4.D4, D4.D4), UArray Int Int)
-
+{-# SPECIALIZE analyseSymmetry :: Vertex Tangle ProjectionCrossing -> UArray Int Bool -> Maybe (Dn.DnSubGroup, (D4.D4, D4.D4), UArray Int Int) #-}
+{-# SPECIALIZE analyseSymmetry :: Vertex Tangle DiagramCrossing -> UArray Int Bool -> Maybe (Dn.DnSubGroup, (D4.D4, D4.D4), UArray Int Int) #-}
+{-# SPECIALIZE analyseSymmetry :: Vertex Tangle (SubTangleCrossing a) -> UArray Int Bool -> Maybe (Dn.DnSubGroup, (D4.D4, D4.D4), UArray Int Int) #-}
+analyseSymmetry :: (Crossing a) => Vertex Tangle a -> UArray Int Bool -> Maybe (Dn.DnSubGroup, (D4.D4, D4.D4), UArray Int Int)
 analyseSymmetry lastCrossing skipCrossing = do
     let tangle = vertexOwner lastCrossing
         l = numberOfLegs tangle
@@ -138,7 +141,10 @@ analyseSymmetry lastCrossing skipCrossing = do
         Nothing                 -> (Dn.fromPeriod l period, (periodG, D4.i), rootCode)
 
 
-compareRootCodeUnsafe :: (CrossingType t) => Dart Tangle (Crossing t) -> R.RotationDirection -> UArray Int Int -> (D4.D4, Ordering)
+{-# SPECIALIZE compareRootCodeUnsafe :: Dart Tangle ProjectionCrossing -> R.RotationDirection -> UArray Int Int -> (D4.D4, Ordering) #-}
+{-# SPECIALIZE compareRootCodeUnsafe :: Dart Tangle DiagramCrossing -> R.RotationDirection -> UArray Int Int -> (D4.D4, Ordering) #-}
+{-# SPECIALIZE compareRootCodeUnsafe :: Dart Tangle (SubTangleCrossing a) -> R.RotationDirection -> UArray Int Int -> (D4.D4, Ordering) #-}
+compareRootCodeUnsafe :: (Crossing a) => Dart Tangle a -> R.RotationDirection -> UArray Int Int -> (D4.D4, Ordering)
 compareRootCodeUnsafe root dir rootCode =
     case globalTransformations tangle of
         Nothing      -> (D4.i, rawCompare)
@@ -222,7 +228,10 @@ compareRootCodeUnsafe root dir rootCode =
             bfs 0
 
 
-rootCodeLegUnsafe :: (CrossingType t) => Dart Tangle (Crossing t) -> R.RotationDirection -> (D4.D4, UArray Int Int)
+{-# SPECIALIZE rootCodeLegUnsafe :: Dart Tangle ProjectionCrossing -> R.RotationDirection -> (D4.D4, UArray Int Int) #-}
+{-# SPECIALIZE rootCodeLegUnsafe :: Dart Tangle DiagramCrossing -> R.RotationDirection -> (D4.D4, UArray Int Int) #-}
+{-# SPECIALIZE rootCodeLegUnsafe :: Dart Tangle (SubTangleCrossing a) -> R.RotationDirection -> (D4.D4, UArray Int Int) #-}
+rootCodeLegUnsafe :: (Crossing a) => Dart Tangle a -> R.RotationDirection -> (D4.D4, UArray Int Int)
 rootCodeLegUnsafe root dir =
     case globalTransformations tangle of
         Nothing      -> (D4.i, code)

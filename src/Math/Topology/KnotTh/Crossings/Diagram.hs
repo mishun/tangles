@@ -1,3 +1,4 @@
+{-# LANGUAGE UnboxedTuples #-}
 module Math.Topology.KnotTh.Crossings.Diagram
     ( DiagramCrossing
     , overCrossing
@@ -12,6 +13,7 @@ module Math.Topology.KnotTh.Crossings.Diagram
     , passUnder
     , passOver'
     , passUnder'
+    , possibleDiagramOrientations
     , alternatingDefect
     , totalAlternatingDefect
     , isAlternating
@@ -29,62 +31,71 @@ import qualified Math.Algebra.Group.D4 as D4
 import Math.Topology.KnotTh.Knotted
 
 
-data DiagramCrossingType = DiagramCrossing deriving (Eq)
+data DiagramCrossing = OverCrossing | UnderCrossing deriving (Eq)
 
 
-instance NFData DiagramCrossingType
+instance Show DiagramCrossing where
+    show OverCrossing = "+O"
+    show UnderCrossing = "+U"
 
 
-instance CrossingType DiagramCrossingType where
-    localCrossingSymmetry _ = D4.subGroupDS
-
-    globalTransformations _ = Just [D4.i, D4.ec]
-
-    possibleOrientations _ bound =
-        case bound of
-            Nothing                                             -> bothDiagramCrossings
-            Just g | D4.equivalenceClassId D4.subGroupDS g == 0 -> bothDiagramCrossings
-                   | otherwise                                  -> overCrossingOnly
-
-    mirrorReversingDartsOrder = invertCrossing
-
-
-instance Show DiagramCrossingType where
-    show _ = "-|-"
-
-
-instance Read DiagramCrossingType where
+instance Read DiagramCrossing where
     readsPrec _ s =
         case dropWhile isSpace s of
-            '-' : '|' : '-' : t -> [(DiagramCrossing, t)]
-            _                   -> []
+            '+' : 'O' : t -> [(OverCrossing, t)]
+            '+' : 'U' : t -> [(UnderCrossing, t)]
+            _             -> []
 
 
-type DiagramCrossing = Crossing DiagramCrossingType
+instance NFData DiagramCrossing
+
+
+instance Crossing DiagramCrossing where
+    {-# INLINE mirrorCrossing #-}
+    mirrorCrossing = invertCrossing
+
+    {-# INLINE globalTransformations #-}
+    globalTransformations _ = Just [D4.i, D4.ec]
+
+    {-# INLINE crossingCode #-}
+    crossingCode !_ !d = (# 1, if passOver d then 0 else 1 #)
+
+    {-# INLINE crossingCodeWithGlobal #-}
+    crossingCodeWithGlobal !g !_ !d =
+        let t = D4.equivalenceClassId D4.subGroupDS g
+        in (# 1, if passOver d then t else 1 - t #)
 
 
 instance ThreadedCrossing DiagramCrossing
 
 
 overCrossing :: DiagramCrossing
-overCrossing = makeCrossing DiagramCrossing D4.i
+overCrossing = OverCrossing
 
 
 underCrossing :: DiagramCrossing
-underCrossing = makeCrossing DiagramCrossing D4.c
+underCrossing = UnderCrossing
 
 
 isOverCrossing :: DiagramCrossing -> Bool
-isOverCrossing s = passOver' s 0
+isOverCrossing s =
+    case s of
+        OverCrossing  -> True
+        UnderCrossing -> False
 
 
 isUnderCrossing :: DiagramCrossing -> Bool
-isUnderCrossing s = passUnder' s 0
+isUnderCrossing s =
+    case s of
+        UnderCrossing -> True
+        OverCrossing  -> False
 
 
 invertCrossing :: DiagramCrossing -> DiagramCrossing
-invertCrossing s | isOverCrossing s  = underCrossing
-                 | otherwise         = overCrossing
+invertCrossing s =
+    case s of
+        OverCrossing  -> UnderCrossing
+        UnderCrossing -> OverCrossing
 
 
 invertCrossings :: (Knotted k) => k DiagramCrossing -> k DiagramCrossing
@@ -99,20 +110,39 @@ overCrossingOnly :: [DiagramCrossing]
 overCrossingOnly = [overCrossing]
 
 
+
+{-# INLINE passOver #-}
 passOver :: (Knotted k) => Dart k DiagramCrossing -> Bool
-passOver = even . crossingLegIdByDart
+passOver d = passOver' (vertexCrossing $ beginVertex d) (beginPlace d)
 
 
+{-# INLINE passUnder #-}
 passUnder :: (Knotted k) => Dart k DiagramCrossing -> Bool
-passUnder = odd . crossingLegIdByDart
+passUnder d = passUnder' (vertexCrossing $ beginVertex d) (beginPlace d)
 
 
+{-# INLINE passOver' #-}
 passOver' :: DiagramCrossing -> Int -> Bool
-passOver' cr = even . crossingLegIdByDartId cr
+passOver' s =
+    case s of
+        OverCrossing  -> even
+        UnderCrossing -> odd
 
 
+{-# INLINE  passUnder' #-}
 passUnder' :: DiagramCrossing -> Int -> Bool
-passUnder' cr = odd . crossingLegIdByDartId cr
+passUnder' s =
+    case s of
+        OverCrossing  -> odd
+        UnderCrossing -> even
+
+
+possibleDiagramOrientations :: Maybe D4.D4 -> [DiagramCrossing]
+possibleDiagramOrientations induced =
+    case induced of
+        Nothing                                             -> bothDiagramCrossings
+        Just g | D4.equivalenceClassId D4.subGroupDS g == 0 -> bothDiagramCrossings
+               | otherwise                                  -> overCrossingOnly
 
 
 alternatingDefect :: (Knotted k) => Dart k DiagramCrossing -> Int

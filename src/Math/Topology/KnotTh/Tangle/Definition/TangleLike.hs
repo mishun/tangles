@@ -27,8 +27,9 @@ class (Knotted t, PlanarAlgebra t) => TangleLike t where
 
     lonerTangle :: a -> t a
 
-    rotateTangle :: Int -> t a -> t a
+    rotateTangle     :: Int -> t a -> t a
     mirrorTangleWith :: (a -> a) -> t a -> t a
+    mirrorTangle     :: (Crossing a) => t a -> t a
 
     -- |           legsToGlue = 2
     --  ..............|

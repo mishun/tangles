@@ -22,10 +22,8 @@ data State k v =
 
 
 equivalenceClasses
-    :: (CrossingType t, KnottedWithPrimeTest knot, DiagramInfo info)
-        => [knot (Crossing t) -> [knot (Crossing t)]]
-            -> (forall m. (Monad m) => (knot (Crossing t) -> m ()) -> m ())
-                -> [info (knot (Crossing t))]
+    :: (KnottedWithPrimeTest k, Crossing a, DiagramInfo info)
+        => [k a -> [k a]] -> (forall m. (Monad m) => (k a -> m ()) -> m ()) -> [info (k a)]
 
 equivalenceClasses moves enumerateDiagrams =
     IM.elems $ vals $ flip execState St {set = DS.empty, keys = M.empty, vals = IM.empty} $ do
