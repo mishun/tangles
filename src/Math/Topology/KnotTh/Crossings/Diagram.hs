@@ -24,6 +24,7 @@ module Math.Topology.KnotTh.Crossings.Diagram
     ) where
 
 import Data.Char (isSpace)
+import Data.Bits ((.&.), xor)
 import Data.Array.IArray (listArray, accumArray, (!), elems)
 import Data.Array.Unboxed (UArray)
 import Control.DeepSeq
@@ -31,19 +32,19 @@ import qualified Math.Algebra.Group.D4 as D4
 import Math.Topology.KnotTh.Knotted
 
 
-data DiagramCrossing = OverCrossing | UnderCrossing deriving (Eq)
+newtype DiagramCrossing = DC Int deriving (Eq)
 
 
 instance Show DiagramCrossing where
-    show OverCrossing = "+O"
-    show UnderCrossing = "+U"
+    show s | isOverCrossing s  = "+O"
+           | otherwise         = "+U"
 
 
 instance Read DiagramCrossing where
     readsPrec _ s =
         case dropWhile isSpace s of
-            '+' : 'O' : t -> [(OverCrossing, t)]
-            '+' : 'U' : t -> [(UnderCrossing, t)]
+            '+' : 'O' : t -> [(overCrossing, t)]
+            '+' : 'U' : t -> [(underCrossing, t)]
             _             -> []
 
 
@@ -58,44 +59,43 @@ instance Crossing DiagramCrossing where
     globalTransformations _ = Just [D4.i, D4.ec]
 
     {-# INLINE crossingCode #-}
-    crossingCode !_ !d = (# 1, if passOver d then 0 else 1 #)
+    crossingCode !_ !d =
+        let DC x = vertexCrossing $ beginVertex d
+            p = beginPlace d
+        in (# 1, x `xor` (p .&. 1) #)
 
     {-# INLINE crossingCodeWithGlobal #-}
     crossingCodeWithGlobal !g !_ !d =
         let t = D4.equivalenceClassId D4.subGroupDS g
-        in (# 1, if passOver d then t else 1 - t #)
+            DC x = vertexCrossing $ beginVertex d
+            p = beginPlace d
+        in (# 1, (x `xor` t) `xor` (p .&. 1) #)
 
 
 instance ThreadedCrossing DiagramCrossing
 
 
 overCrossing :: DiagramCrossing
-overCrossing = OverCrossing
+overCrossing = DC 0
 
 
 underCrossing :: DiagramCrossing
-underCrossing = UnderCrossing
+underCrossing = DC 1
 
 
+{-# INLINE isOverCrossing #-}
 isOverCrossing :: DiagramCrossing -> Bool
-isOverCrossing s =
-    case s of
-        OverCrossing  -> True
-        UnderCrossing -> False
+isOverCrossing (DC x) = x == 0
 
 
+{-# INLINE isUnderCrossing #-}
 isUnderCrossing :: DiagramCrossing -> Bool
-isUnderCrossing s =
-    case s of
-        UnderCrossing -> True
-        OverCrossing  -> False
+isUnderCrossing (DC x) = x == 1
 
 
+{-# INLINE invertCrossing #-}
 invertCrossing :: DiagramCrossing -> DiagramCrossing
-invertCrossing s =
-    case s of
-        OverCrossing  -> UnderCrossing
-        UnderCrossing -> OverCrossing
+invertCrossing (DC x) = DC (x `xor` 1)
 
 
 invertCrossings :: (Knotted k) => k DiagramCrossing -> k DiagramCrossing
@@ -110,7 +110,6 @@ overCrossingOnly :: [DiagramCrossing]
 overCrossingOnly = [overCrossing]
 
 
-
 {-# INLINE passOver #-}
 passOver :: (Knotted k) => Dart k DiagramCrossing -> Bool
 passOver d = passOver' (vertexCrossing $ beginVertex d) (beginPlace d)
@@ -123,18 +122,12 @@ passUnder d = passUnder' (vertexCrossing $ beginVertex d) (beginPlace d)
 
 {-# INLINE passOver' #-}
 passOver' :: DiagramCrossing -> Int -> Bool
-passOver' s =
-    case s of
-        OverCrossing  -> even
-        UnderCrossing -> odd
+passOver' (DC x) p = (x `xor` (p .&. 1)) == 0
 
 
 {-# INLINE  passUnder' #-}
 passUnder' :: DiagramCrossing -> Int -> Bool
-passUnder' s =
-    case s of
-        OverCrossing  -> odd
-        UnderCrossing -> even
+passUnder' (DC x) p = (x `xor` (p .&. 1)) == 1
 
 
 possibleDiagramOrientations :: Maybe D4.D4 -> [DiagramCrossing]

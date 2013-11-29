@@ -13,16 +13,14 @@ newtype RotationDirection = RD Int deriving (Eq, Ord)
 
 
 instance Show RotationDirection where
-    show (RD dir) | dir > 0    = "CCW"
-                  | otherwise  = "CW"
+    show d | isCounterClockwise d  = "CCW"
+           | otherwise             = "CW"
 
 
-{-# INLINE cw #-}
 cw :: RotationDirection
 cw = RD (-1)
 
 
-{-# INLINE ccw #-}
 ccw :: RotationDirection
 ccw = RD 1
 
@@ -44,9 +42,9 @@ bothDirections = [cw, ccw]
 
 {-# INLINE directionSign #-}
 directionSign :: RotationDirection -> Int
-directionSign (RD !d) = d
+directionSign (RD d) = d
 
 
 {-# INLINE oppositeDirection #-}
 oppositeDirection :: RotationDirection -> RotationDirection
-oppositeDirection (RD !d) = RD (-d)
+oppositeDirection (RD d) = RD (-d)
