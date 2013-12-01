@@ -46,9 +46,10 @@ produceKnotted
             numberOfFreeLoops = undefined
             changeNumberOfFreeLoops = undefined
             emptyKnotted = undefined
-            implode = undefined
 
             type ExplodeType EmbeddedLink a = (Int, [([(Int, Int)], a)])
+
+            implode = undefined
 
             explode link =
                 ( numberOfFreeLoops link

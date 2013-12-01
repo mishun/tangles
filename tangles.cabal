@@ -88,6 +88,7 @@ library
         Math.Topology.KnotTh.Tangle.Satellites,
         Math.Topology.Manifolds.SurfaceGraph
     other-modules:
+        Internal.Macro,
         Math.Algebra.PlanarAlgebra.Definition,
         Math.Algebra.PlanarAlgebra.Reduction,
         Math.Combinatorics.ChordDiagram.Definition,
