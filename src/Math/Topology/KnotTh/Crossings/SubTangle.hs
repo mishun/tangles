@@ -65,7 +65,7 @@ instance (Show a) => Show (SubTangleCrossing a) where
 
 instance Crossing (SubTangleCrossing a) where
     {-# INLINE mirrorCrossing #-}
-    mirrorCrossing s = s { orientation = D4.ec D4.<*> orientation s }
+    mirrorCrossing s = s { orientation = D4.e D4.<*> orientation s }
 
     {-# INLINE globalTransformations #-}
     globalTransformations _ = Nothing
@@ -124,9 +124,9 @@ substituteTangles tangle =
             let rev = isVertexCrossingOrientationInverted b
             c <- allVertices $ tangleInVertex b
             let nb = map (oppositeInt b) $ outcomingDarts c
-            let st | rev        = mirrorCrossing $ vertexCrossing c
-                   | otherwise  = vertexCrossing c
-            return (if rev then reverse nb else nb, st)
+            return $ if rev
+                then (head nb : reverse (tail nb), mirrorCrossing $ vertexCrossing c)
+                else (nb, vertexCrossing c)
         )
     where
         offset :: UArray Int Int
@@ -135,7 +135,7 @@ substituteTangles tangle =
                 allVertices tangle
 
         oppositeInt b u | isLeg v                                = oppositeExt $ dartByCrossingLegId b (legPlace v)
-                        | isVertexCrossingOrientationInverted b  = (w, 3 - beginPlace v)
+                        | isVertexCrossingOrientationInverted b  = (w, (4 - beginPlace v) `mod` 4)
                         | otherwise                              = (w, beginPlace v)
             where
                 v = opposite u

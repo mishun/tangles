@@ -53,7 +53,7 @@ instance NFData DiagramCrossing
 
 instance Crossing DiagramCrossing where
     {-# INLINE mirrorCrossing #-}
-    mirrorCrossing = invertCrossing
+    mirrorCrossing = id
 
     {-# INLINE globalTransformations #-}
     globalTransformations _ = Just [D4.i, D4.ec]

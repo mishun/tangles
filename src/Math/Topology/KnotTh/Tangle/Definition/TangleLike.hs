@@ -31,6 +31,8 @@ class (Knotted t, PlanarAlgebra t) => TangleLike t where
     mirrorTangleWith :: (a -> a) -> t a -> t a
     mirrorTangle     :: (Crossing a) => t a -> t a
 
+    mirrorTangle = mirrorTangleWith mirrorCrossing
+
     -- |           legsToGlue = 2
     --  ..............|
     --  (legA + 2) ---|- 0

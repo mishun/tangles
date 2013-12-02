@@ -343,7 +343,7 @@ instance TangleLike Tangle where
                 let l = numberOfLegs tangle
                     n = 4 * numberOfVertices tangle
                     a = involutionArray tangle
-                    modify i | i < n      = (i .&. complement 3) + 3 - (i .&. 3)
+                    modify i | i < n      = (i .&. complement 3) + ((-i) .&. 3)
                              | otherwise  = n + mod (n - i) l
                 a' <- newArray_ (0, n + l - 1)
                 forM_ [0 .. n + l - 1] $ \ !i ->
@@ -351,8 +351,6 @@ instance TangleLike Tangle where
                 return a'
             , crossingsArray = amap f $ crossingsArray tangle
             }
-
-    mirrorTangle = mirrorTangleWith mirrorCrossing
 
     glueTangles legsToGlue legA legB = runST $ do
         unless (isLeg legA) $
