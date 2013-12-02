@@ -17,7 +17,8 @@ main = do
     printTable "Prime projections"    $ generateTable $ forCCP_ (primeProjections 8)
     printTable "Template projections" $ generateTable $ forCCP_ (templateProjections 9)
     printTable "Alternating tangles"  $ generateTable $ generateFlypeEquivalent 8
-    printTable "Prime diagrams"       $ generateTable $ forCCP_ (primeIrreducibleDiagrams 6)
+    printTable "Prime diagrams"       $ generateTable $ forCCP_ (primeDiagrams 6)
+    printTable "Prime irr. diagrams"  $ generateTable $ forCCP_ (primeIrreducibleDiagrams 6)
 
     writeSVGImage "tangles.svg" (Width 250) $ pad 1.05 $ flip execState mempty $
         forCCP_ (primeIrreducibleDiagrams 3) $ \ (tangle, _) ->

@@ -7,6 +7,7 @@ module Math.Topology.KnotTh.Tangle.Generation.BorderIncremental
     , primeProjections
     , reducedProjections
     , templateProjections
+    , primeDiagrams
     , primeIrreducibleDiagrams
     , primeIrreducibleDiagramsTriangle
     ) where
@@ -123,13 +124,13 @@ templateProjections maxN =
             primeProjections maxN
 
 
-primeIrreducibleDiagrams, primeIrreducibleDiagramsTriangle
+primeDiagrams, primeIrreducibleDiagrams, primeIrreducibleDiagramsTriangle
     :: Int -> CanonicalConstructionPathI
         (TangleDiagram, (Dn.DnSubGroup, (D4.D4, D4.D4)))
         (Int, TangleDiagramDart, DiagramCrossing)
         (TangleDiagramVertex, (Dn.DnSubGroup, (D4.D4, D4.D4)))
 
-primeIrreducibleDiagrams maxN =
+primeDiagrams maxN =
     CanonicalConstructionPathClean
         { independentUpper = \ ts@(tangle, _) -> do
             guard $ numberOfVertices tangle < maxN
@@ -139,13 +140,16 @@ primeIrreducibleDiagrams maxN =
             st <- possibleDiagramOrientations inducedSymmetry
             return (gl, leg, st)
         , tryAscent = \ (gl, leg, st) -> do
-            guard $ testNo2ndReidemeisterReduction st leg gl
             let root = glueToBorder leg gl st
             (sym, adj, _) <- rootingSymmetryTest root
             return (root, (sym, adj))
         , lowerProjection  = first vertexOwner
         , roots = [(lonerOverCrossing, (Dn.fromPeriodAndMirroredZero 4 1 0, (D4.ec, D4.e)))]
         }
+
+primeIrreducibleDiagrams maxN =
+    filterUpper (\ _ (gl, leg, st) -> testNo2ndReidemeisterReduction st leg gl)
+        $ primeDiagrams maxN
 
 primeIrreducibleDiagramsTriangle maxN =
     filterUpper (const $ cutInTriangle maxN) $ primeIrreducibleDiagrams maxN
