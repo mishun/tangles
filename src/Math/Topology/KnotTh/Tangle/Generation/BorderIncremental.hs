@@ -1,4 +1,3 @@
-{-# LANGUAGE UnboxedTuples, TypeFamilies #-}
 module Math.Topology.KnotTh.Tangle.Generation.BorderIncremental
     ( module X
     , nextNumberOfLegs
