@@ -81,6 +81,7 @@ library
         Math.Topology.KnotTh.Knotted,
         Math.Topology.KnotTh.Link,
         Math.Topology.KnotTh.Link.Table,
+        Math.Topology.KnotTh.Moves.PatternMatching,
         Math.Topology.KnotTh.Tangle,
         Math.Topology.KnotTh.Tangle.Generation.BorderIncremental,
         Math.Topology.KnotTh.Tangle.Generation.FlypeClasses,
@@ -160,7 +161,7 @@ library
             Math.Topology.KnotTh.EmbeddedLink.Test,
             Math.Topology.KnotTh.Enumeration.Applied.Test,
             Math.Topology.KnotTh.Invariants.Test,
-            Math.Topology.KnotTh.Moves.AdHocOfTangle.Test,
+            Math.Topology.KnotTh.Moves.Test,
             Math.Topology.KnotTh.Tangle.Generation.Test,
             Math.Topology.KnotTh.Tangle.Test
             TestUtil.Drawing
@@ -278,3 +279,12 @@ test-suite TestTangles
     main-is:            TestTangles.hs
     hs-source-dirs:     test
 
+
+executable TestMoves
+    if !flag(enable-test-modules)
+        buildable: False
+    default-language:   Haskell2010
+    ghc-options:        -threaded
+    build-depends:      base, diagrams-lib, tangles
+    main-is:            TestMoves.hs
+    hs-source-dirs:     test
