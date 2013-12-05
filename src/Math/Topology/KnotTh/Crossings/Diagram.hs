@@ -139,8 +139,8 @@ possibleDiagramOrientations induced =
 
 
 alternatingDefect :: (Knotted k) => Dart k DiagramCrossing -> Int
-alternatingDefect a | isDart a && isDart b && passOver a == passUnder b  = 1
-                    | otherwise                                          = 0
+alternatingDefect a | isDart a && isDart b && passOver a == passOver b  = 1
+                    | otherwise                                         = 0
     where
         b = opposite a
 
