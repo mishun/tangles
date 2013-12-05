@@ -57,6 +57,10 @@ test = testGroup "Basic tangle tests"
                 ]
             )
 
+    , testCase "Alternating defect" $ do
+        totalAlternatingDefect (decodeCascadeCode [(WU, 0), (MO, 0)]) @?= 0
+        totalAlternatingDefect (decodeCascadeCode [(XO, 0), (XO, 0), (XO, 1)]) @?= 2
+
     , testGroup "Glue crossing"
         [ testCase "With 0 legs" $
             explode (vertexOwner $ glueToBorder (nthLeg lonerProjection 0) 0 projectionCrossing) @?=

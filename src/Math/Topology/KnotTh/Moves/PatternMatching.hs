@@ -4,7 +4,13 @@ module Math.Topology.KnotTh.Moves.PatternMatching
     , passPattern
     ) where
 
-import Control.Monad (MonadPlus(..), guard)
+import Data.Maybe (mapMaybe)
+import Data.List ((\\), subsequences)
+import qualified Data.Set as S
+import Data.Array.IArray ((!), (//), listArray)
+import Data.Array.Unboxed (UArray)
+import Control.Monad.State (execState, gets, modify)
+import Control.Monad (MonadPlus(..), unless, guard)
 import Math.Topology.KnotTh.Tangle
 import Math.Topology.KnotTh.Moves.AdHocOfTangle.Move
 
@@ -30,8 +36,45 @@ instance MonadPlus (PatternM a) where
     mplus a b = PatternM (\ s -> runPatternMatching a s ++ runPatternMatching b s)
 
 
-subTangleP :: Int -> PatternM a [Dart Tangle a]
-subTangleP _ = undefined
+subTangleP :: Int -> PatternM a ([Dart Tangle a], [Vertex Tangle a])
+subTangleP legs =
+    PatternM $ \ (PatternS tangle cs) -> do
+        subList <- subsequences cs
+        guard $ not $ null subList
+
+        let sub :: UArray Int Bool
+            sub = listArray (vertexIndicesRange tangle) (repeat False)
+                    // map (\ d -> (vertexIndex d, True)) subList
+
+        guard $
+            let mask = execState (dfs $ head subList) S.empty
+                dfs c = do
+                    visited <- gets $ S.member c
+                    unless visited $ do
+                        modify $ S.insert c
+                        mapM_ dfs $ filter ((sub !) . vertexIndex) $ mapMaybe endVertexM $ outcomingDarts c
+            in all (`S.member` mask) subList
+
+        let onBorder xy =
+                let yx = opposite xy
+                    x = beginVertex xy
+                    y = beginVertex yx
+                in isDart xy && (sub ! vertexIndex x) && (isLeg yx || not (sub ! vertexIndex y))
+
+        let border = filter onBorder $ concatMap outcomingDarts cs
+        guard $ legs == length border
+
+        let borderCCW =
+                let traverseNext = nextCW . opposite
+                    restoreOutcoming out d | d == head border  = d : out
+                                           | onBorder d        = restoreOutcoming (d : out) (opposite d)
+                                           | otherwise         = restoreOutcoming out (traverseNext d)
+                in restoreOutcoming [] (opposite $ head border)
+
+        guard $ legs == length borderCCW
+
+        i <- [0 .. legs - 1]
+        return (PatternS tangle (cs \\ subList), (drop i borderCCW ++ take i borderCCW, subList))
 
 
 crossingP :: PatternM a [Dart Tangle a]
@@ -54,11 +97,18 @@ getTangleP :: PatternM a (Tangle a)
 getTangleP = PatternM (\ s@(PatternS t _) -> [(s, t)])
 
 
-flypePattern :: PatternM DiagramCrossing ()
+flypePattern :: PatternM DiagramCrossing TangleDiagram
 flypePattern = do
-    [c, d, _, _] <- subTangleP 4
-    [a, b, _, _] <- crossingP
-    connectionP [(b, c), (a, d)]
+    [ab, ac, ae, ad] <- crossingP
+    ([ca, ba, rp, sq], sub) <- subTangleP 4
+    guard $ length sub > 1
+    connectionP [(ac, ca), (ab, ba)]
+
+    tangle <- getTangleP
+    return $ move tangle $ do
+        substituteC [(ba, ae), (ca, ad), (ab, rp), (ac, sq)]
+        connectC [(rp, ae), (sq, ad)]
+        modifyC True id sub
 
 
 passPattern :: PatternM DiagramCrossing TangleDiagram
@@ -68,7 +118,7 @@ passPattern = do
     connectionP [(a0, b0)]
     guard $ alternatingDefect a0 > 0
 
-    [c0, c1, c2, c3] <- crossingP
+    ([c0, c1, c2, c3], _) <- subTangleP 4
     connectionP [(c0, b1), (c1, a3)]
 
     tangle <- getTangleP

@@ -50,7 +50,7 @@ testMovesPictures =
                         ))
                 ])
 
-        ,  ("PatternMatchingPass",
+        , ("PatternMatchingPass",
             vcat' with { sep = 0.5 } $ map (uncurry illustratedMove)
                 [ (patternMatching passPattern, decodeCascadeCode [(WU, 0), (MO, 0)])
                 , (patternMatching passPattern, decodeCascadeCode [(XO, 0), (XO, 0), (XO, 1)])
@@ -80,5 +80,10 @@ testMovesPictures =
                             , ([(0, 1), (0, 2), (1, 0), (5, 1)], underCrossing)
                             ]
                         ))
+                ])
+
+        , ("PatternMatchingFlype",
+            vcat' with { sep = 0.5 } $ map (uncurry illustratedMove)
+                [ (patternMatching flypePattern, decodeCascadeCode [(XO, 0), (XU, 1)])
                 ])
         ]
