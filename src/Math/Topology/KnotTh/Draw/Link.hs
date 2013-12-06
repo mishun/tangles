@@ -13,24 +13,27 @@ import Math.Topology.KnotTh.Link
 import Math.Topology.KnotTh.Draw.Settings
 
 
-linkEmbedding :: (ThreadedCrossing ct) => Link ct -> Array (Dart Link ct) (Either [(Double, Double)] ([(Double, Double)], [(Double, Double)]))
+linkEmbedding :: (ThreadedCrossing a) => Link a -> Array (Dart Link a) (Either [(Double, Double)] ([(Double, Double)], [(Double, Double)]))
 linkEmbedding link =
-    let g = constructFromList $
-            let (_, r) = explode link
-            in map fst r
+    let g = constructFromList $ do
+                v <- allVertices link
+                return $ do
+                    d <- outcomingDarts v
+                    let (index, p) = endPair' d
+                    return (index - 1, p)
 
-        embedding = embeddingInCircleWithVertexRooting 2 (nthVertex g 0)
+        embedding = embeddingInCircleWithFaceRooting 2 (nthFace g 0)
 
         toGraphDart d =
             let (c, p) = beginPair d
-            in nthOutcomingDart (nthVertex g $ vertexIndex c) p
+            in nthOutcomingDart (nthVertex g $ vertexIndex c - 1) p
 
     in array (dartsRange link) $ do
         d <- allHalfEdges link
         return (d, Left $ embedding ! toGraphDart d)
 
 
-linkImage :: (Renderable (Path R2) b) => DrawKnotSettings -> Link ct -> Diagram b R2 -> Diagram b R2
+linkImage :: (Renderable (Path R2) b) => DrawKnotSettings -> Link a -> Diagram b R2 -> Diagram b R2
 linkImage s _ img =
     execWriter $ do
         when (borderWidth s > 0.0) $
