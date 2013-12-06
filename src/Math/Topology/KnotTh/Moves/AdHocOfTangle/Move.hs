@@ -136,7 +136,8 @@ oppositeC :: Dart Tangle ct -> MoveM s ct (Dart Tangle ct)
 oppositeC d = do
     when (isDart d) $ do
         masked <- isMasked $ beginVertex d
-        when masked $ fail $ printf "oppositeC: touching masked crossing when taking from %s" (show d)
+        when masked $
+            fail $ printf "oppositeC: touching masked crossing when taking from %s" (show d)
     ask >>= \ st -> lift $
         readArray (stateConnections st) (dartIndex d)
 
@@ -212,13 +213,13 @@ substituteC substitutions = do
             writeArray arr (dartIndex a) a
             writeArray arr (dartIndex b) b
 
-        forM_ substitutions $ \ (a, b) -> if a == b
-            then modifySTRef' (stateCircles st) (+ 1)
-            else writeArray arr (dartIndex b) a
+        forM_ substitutions $ \ (a, b) ->
+            if a == b
+                then modifySTRef' (stateCircles st) (+ 1)
+                else writeArray arr (dartIndex b) a
 
-        (reconnectST st =<<) $ forM reconnections $ \ (a, b) -> do
-            b' <- readArray arr (dartIndex b)
-            return (a, b')
+        (reconnectST st =<<) $ forM reconnections $ \ (a, b) ->
+            (,) a `fmap` readArray arr (dartIndex b)
 
 
 greedy :: [Dart Tangle a -> MoveM s a Bool] -> MoveM s a ()

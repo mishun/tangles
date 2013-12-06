@@ -1,7 +1,11 @@
+{-# LANGUAGE RankNTypes #-}
 module Math.Topology.KnotTh.Moves.PatternMatching
-    ( patternMatching
-    , flypePattern
-    , passPattern
+    ( PatternM
+    , subTangleP
+    , crossingP
+    , connectionP
+    , reconnectP
+    , patternMatching
     ) where
 
 import Data.Maybe (mapMaybe)
@@ -17,26 +21,26 @@ import Math.Topology.KnotTh.Moves.AdHocOfTangle.Move
 
 data PatternS a = PatternS (Tangle a) [Vertex Tangle a]
 
-newtype PatternM a x = PatternM { runPatternMatching :: PatternS a -> [(PatternS a, x)] }
+newtype PatternM s a x = PatternM { runPatternMatching :: PatternS a -> [(PatternS a, x)] }
 
 
-instance Functor (PatternM a) where
+instance Functor (PatternM s a) where
     fmap f x = PatternM (map (fmap f) . runPatternMatching x)
 
 
-instance Monad (PatternM a) where
+instance Monad (PatternM s a) where
     return x = PatternM (\ s -> [(s, x)])
 
     (>>=) val act = PatternM (concatMap (\ (s', x) -> runPatternMatching (act x) s') . runPatternMatching val)
 
 
-instance MonadPlus (PatternM a) where
+instance MonadPlus (PatternM s a) where
     mzero = PatternM (const [])
 
     mplus a b = PatternM (\ s -> runPatternMatching a s ++ runPatternMatching b s)
 
 
-subTangleP :: Int -> PatternM a ([Dart Tangle a], [Vertex Tangle a])
+subTangleP :: Int -> PatternM s a ([Dart Tangle a], [Vertex Tangle a])
 subTangleP legs =
     PatternM $ \ (PatternS tangle cs) -> do
         subList <- subsequences cs
@@ -52,7 +56,9 @@ subTangleP legs =
                     visited <- gets $ S.member c
                     unless visited $ do
                         modify $ S.insert c
-                        mapM_ dfs $ filter ((sub !) . vertexIndex) $ mapMaybe endVertexM $ outcomingDarts c
+                        mapM_ dfs $
+                            filter ((sub !) . vertexIndex) $
+                                mapMaybe endVertexM $ outcomingDarts c
             in all (`S.member` mask) subList
 
         let onBorder xy =
@@ -77,7 +83,7 @@ subTangleP legs =
         return (PatternS tangle (cs \\ subList), (drop i borderCCW ++ take i borderCCW, subList))
 
 
-crossingP :: PatternM a [Dart Tangle a]
+crossingP :: PatternM s a ([Dart Tangle a], Vertex Tangle a)
 crossingP =
     PatternM $ \ (PatternS tangle cs) ->
         let try res _ [] = res
@@ -85,51 +91,23 @@ crossingP =
                 let next = PatternS tangle (skipped ++ rest)
                     sh i = let od = outcomingDarts cur
                            in drop i od ++ take i od
-                in try ((next, sh 0) : (next, sh 1) : (next, sh 2) : (next, sh 3) : res) (cur : skipped) rest
+                in try ((next, (sh 0, cur)) : (next, (sh 1, cur)) : (next, (sh 2, cur)) : (next, (sh 3, cur)) : res) (cur : skipped) rest
         in try [] [] cs
 
 
-connectionP :: [(Dart Tangle a, Dart Tangle a)] -> PatternM a ()
+connectionP :: [(Dart Tangle a, Dart Tangle a)] -> PatternM s a ()
 connectionP = mapM_ (\ (a, b) -> guard (opposite a == b))
 
 
-getTangleP :: PatternM a (Tangle a)
-getTangleP = PatternM (\ s@(PatternS t _) -> [(s, t)])
+reconnectP :: (Show a) => (forall s. MoveM s a ()) -> PatternM s' a (Tangle a)
+reconnectP m =
+    PatternM $ \ s@(PatternS tangle _) ->
+        [(s, move tangle m)]
 
 
-flypePattern :: PatternM DiagramCrossing TangleDiagram
-flypePattern = do
-    [ab, ac, ae, ad] <- crossingP
-    ([ca, ba, rp, sq], sub) <- subTangleP 4
-    guard $ length sub > 1
-    connectionP [(ac, ca), (ab, ba)]
-
-    tangle <- getTangleP
-    return $ move tangle $ do
-        substituteC [(ba, ae), (ca, ad), (ab, rp), (ac, sq)]
-        connectC [(rp, ae), (sq, ad)]
-        modifyC True id sub
-
-
-passPattern :: PatternM DiagramCrossing TangleDiagram
-passPattern = do
-    [a0, _, _, a3] <- crossingP
-    [b0, b1, _, _] <- crossingP
-    connectionP [(a0, b0)]
-    guard $ alternatingDefect a0 > 0
-
-    ([c0, c1, c2, c3], _) <- subTangleP 4
-    connectionP [(c0, b1), (c1, a3)]
-
-    tangle <- getTangleP
-
-    let pass incoming outcoming = move tangle $ do
-            substituteC $ map (\ d -> (d, threadContinuation $ opposite d)) incoming ++ zip (map opposite incoming) outcoming
-            connectC $ zip outcoming $ map (threadContinuation . opposite) incoming
-
-    return $ pass [c1, c0] [c2, c3]
-
-
-patternMatching :: PatternM a (Tangle a) -> Tangle a -> [Tangle a]
-patternMatching pat tangle =
-    map snd $ runPatternMatching pat $ PatternS tangle (allVertices tangle)
+patternMatching :: (forall s. [PatternM s a (Tangle a)]) -> Tangle a -> [Tangle a]
+patternMatching patterns tangle = do
+    let initial = PatternS tangle (allVertices tangle)
+    pattern <- patterns
+    (_, res) <- runPatternMatching pattern initial
+    return res
