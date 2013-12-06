@@ -3,6 +3,8 @@ module Math.Topology.KnotTh.Draw.Link
     , linkImage
     ) where
 
+import Data.Ord (comparing)
+import Data.List (maximumBy)
 import Data.Array.IArray (array, (!))
 import Data.Array (Array)
 import Control.Monad.Writer (tell, execWriter)
@@ -22,7 +24,9 @@ linkEmbedding link =
                     let (index, p) = endPair' d
                     return (index - 1, p)
 
-        embedding = embeddingInCircleWithFaceRooting 2 (nthFace g 0)
+        embedding =
+            let rootFace = maximumBy (comparing faceDegree) $ allFaces g
+            in embeddingInCircleWithFaceRooting 3 rootFace
 
         toGraphDart d =
             let (c, p) = beginPair d

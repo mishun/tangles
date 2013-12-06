@@ -27,10 +27,13 @@ drawKnotDef knot = drawKnot (defaultDrawSettings knot) knot
 
 
 instance (DrawableCrossing a) => DrawableKnotted (Tangle a) where
-    drawKnot s tangle =
-        tangleImage s tangle $
-            drawThreads s $ crossingDependentSegmentation s tangle $
-                tangleEmbedding tangle
+    drawKnot s tangle
+        | numberOfLegs tangle > 0  =
+            tangleImage s tangle $
+                drawThreads s $ crossingDependentSegmentation s tangle $
+                    tangleEmbedding tangle
+        | otherwise                =
+            drawKnot s $ tangleToLink tangle
 
 
 instance (DrawableCrossing a) => DrawableKnotted (Link a) where
