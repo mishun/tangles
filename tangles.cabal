@@ -111,7 +111,6 @@ library
         Math.Topology.KnotTh.Invariants.Util.Poly,
         Math.Topology.KnotTh.Knotted.Definition,
         Math.Topology.KnotTh.Knotted.TH.Knotted,
-        Math.Topology.KnotTh.Knotted.TH.Show,
         Math.Topology.KnotTh.Knotted.Threads,
         Math.Topology.KnotTh.Link.Definition.GaussCode,
         Math.Topology.KnotTh.Link.Definition.Link,

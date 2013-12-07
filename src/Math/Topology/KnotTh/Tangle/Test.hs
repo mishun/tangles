@@ -29,19 +29,19 @@ test = testGroup "Basic tangle tests"
         foldMIncidentDartsFrom (nthOutcomingDart c1 2) R.ccw (\ _ s -> return $! s + 1) (0 :: Int) >>= (@?= 4)
 
     , testCase "Show tangle" $ do
-        assertEqual "empty tangle" "(Tangle (0 O) (Border [  ]))" $
+        assertEqual "empty tangle" "implode (0,[],[])" $
             show (emptyTangle :: TangleProjection)
 
-        assertEqual "zero tangle" "(Tangle (0 O) (Border [ (Leg 3) (Leg 2) (Leg 1) (Leg 0) ]))" $
+        assertEqual "zero tangle" "implode (0,[(0,3),(0,2),(0,1),(0,0)],[])" $
             show (zeroTangle :: TangleProjection)
 
-        assertEqual "infinity tangle" "(Tangle (0 O) (Border [ (Leg 1) (Leg 0) (Leg 3) (Leg 2) ]))" $
+        assertEqual "infinity tangle" "implode (0,[(0,1),(0,0),(0,3),(0,2)],[])" $
             show (infinityTangle :: TangleProjection)
 
-        assertEqual "loner tangle" "(Tangle (0 O) (Border [ (Dart 1 0) (Dart 1 1) (Dart 1 2) (Dart 1 3) ]) (Crossing 1 + [ (Leg 0) (Leg 1) (Leg 2) (Leg 3) ]))" $
+        assertEqual "loner tangle" "implode (0,[(1,0),(1,1),(1,2),(1,3)],[([(0,0),(0,1),(0,2),(0,3)],projectionCrossing)])" $
             show lonerProjection
 
-        assertEqual "implode" "(Tangle (0 O) (Border [ (Dart 1 0) (Dart 1 1) (Dart 1 2) (Dart 1 3) ]) (Crossing 1 + [ (Leg 0) (Leg 1) (Leg 2) (Leg 3) ]))" $
+        assertEqual "implode" "implode (0,[(1,0),(1,1),(1,2),(1,3)],[([(0,0),(0,1),(0,2),(0,3)],projectionCrossing)])" $
             show (implode (0, [(1, 0), (1, 1), (1, 2), (1, 3)], [([(0, 0), (0, 1), (0, 2), (0, 3)], projectionCrossing)]) :: TangleProjection)
 
     , testCase "Cascade code" $

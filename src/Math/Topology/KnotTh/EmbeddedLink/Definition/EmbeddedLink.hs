@@ -29,7 +29,6 @@ import Math.Topology.KnotTh.Knotted
 import Math.Topology.KnotTh.Crossings.Projection
 import Math.Topology.KnotTh.Crossings.Diagram
 import Math.Topology.KnotTh.Knotted.TH.Knotted
-import Math.Topology.KnotTh.Knotted.TH.Show
 
 
 produceKnotted
@@ -183,9 +182,9 @@ produceKnotted
         }
 
 
-produceShowDart ''EmbeddedLink (const [])
-produceShowVertex ''EmbeddedLink
-produceShowKnotted ''EmbeddedLink
+instance Show (Dart EmbeddedLink a) where
+    show d = let (c, p) = beginPair' d
+             in printf "(Dart %i %i)" c p
 
 
 instance SurfaceDiagram EmbeddedLink where

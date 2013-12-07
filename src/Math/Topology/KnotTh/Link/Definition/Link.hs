@@ -1,4 +1,4 @@
-{-# LANGUAGE TemplateHaskell, TypeFamilies #-}
+{-# LANGUAGE TypeFamilies #-}
 module Math.Topology.KnotTh.Link.Definition.Link
     ( Link
     , emptyLink
@@ -13,8 +13,8 @@ module Math.Topology.KnotTh.Link.Definition.Link
     ) where
 
 import Control.Arrow ((***))
+import Text.Printf
 import Math.Topology.KnotTh.Knotted
-import Math.Topology.KnotTh.Knotted.TH.Show
 import Math.Topology.KnotTh.Tangle
 
 
@@ -70,9 +70,9 @@ instance Knotted Link where
     isConnected (L t) = isConnected t
 
 
-produceShowDart ''Link (const [])
-produceShowVertex ''Link
-produceShowKnotted ''Link
+instance Show (Dart Link a) where
+    show d = let (c, p) = beginPair' d
+             in printf "(Dart %i %i)" c p
 
 
 emptyLink :: Link a

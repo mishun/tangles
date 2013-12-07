@@ -30,7 +30,6 @@ import Text.Printf
 import qualified Math.Algebra.Group.D4 as D4
 import qualified Math.Algebra.RotationDirection as R
 import Math.Topology.KnotTh.Knotted.TH.Knotted
-import Math.Topology.KnotTh.Knotted.TH.Show
 import Math.Topology.KnotTh.Knotted
 import Math.Topology.KnotTh.Crossings.Projection
 import Math.Topology.KnotTh.Crossings.Diagram
@@ -547,15 +546,10 @@ instance TangleLike Tangle where
                 return (map (resolveInCrossing c) $ incomingDarts c', vertexCrossing c')
 
 
-produceShowDart ''Tangle (\ d -> [([| isLeg $d |], [| printf "(Leg %i)" $ legPlace $d |])])
-produceShowVertex ''Tangle
-
-instance (Show a) => Show (Tangle a) where
-    show tangle =
-        let border = printf "(Border [ %s ])" $ unwords $ map show $ allLegOpposites tangle
-        in printf "(Tangle (%i O) %s)"
-            (numberOfFreeLoops tangle)
-            (unwords $ border : map show (allVertices tangle))
+instance Show (Dart Tangle a) where
+    show d | isLeg d    = printf "(Leg %i)" $ legPlace d
+           | otherwise  = let (c, p) = beginPair' d
+                          in printf "(Dart %i %i)" c p
 
 
 instance KnottedWithPrimeTest Tangle where

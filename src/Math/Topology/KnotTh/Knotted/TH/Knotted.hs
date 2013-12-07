@@ -229,6 +229,16 @@ produceKnotted knotPattern inst = do
                     explode = undefined
                     implode = undefined
 
+                instance (Show a) => Show ($(conT knotType) a) where
+                    show = printf "implode %s" . show . explode
+
+                instance (Show a) => Show (Vertex $(conT knotType) a) where
+                    show v =
+                        printf "(Crossing %i %s [ %s ])"
+                            (vertexIndex v)
+                            (show $ vertexCrossing v)
+                            (unwords $ map (show . opposite) $ outcomingDarts v)
+
             |]
 
         append' $ instanceD (cxt []) ([t| PlanarDiagram |] `appT` conT knotType) $ execWriter $ do

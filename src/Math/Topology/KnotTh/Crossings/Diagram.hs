@@ -23,7 +23,6 @@ module Math.Topology.KnotTh.Crossings.Diagram
     , threadsWithLinkingNumbers
     ) where
 
-import Data.Char (isSpace)
 import Data.Bits ((.&.), xor)
 import Data.Array.IArray (listArray, accumArray, (!), elems)
 import Data.Array.Unboxed (UArray)
@@ -36,16 +35,17 @@ newtype DiagramCrossing = DC Int deriving (Eq)
 
 
 instance Show DiagramCrossing where
-    show s | isOverCrossing s  = "+O"
-           | otherwise         = "+U"
+    show s | isOverCrossing s  = "overCrossing"
+           | otherwise         = "underCrossing"
 
 
 instance Read DiagramCrossing where
-    readsPrec _ s =
-        case dropWhile isSpace s of
-            '+' : 'O' : t -> [(overCrossing, t)]
-            '+' : 'U' : t -> [(underCrossing, t)]
-            _             -> []
+    readsPrec _ s = do
+        (token, t) <- lex s
+        case token of
+            "overCrossing"  -> [(overCrossing, t)]
+            "underCrossing" -> [(underCrossing, t)]
+            _               -> []
 
 
 instance NFData DiagramCrossing

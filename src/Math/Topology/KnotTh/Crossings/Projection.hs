@@ -6,7 +6,6 @@ module Math.Topology.KnotTh.Crossings.Projection
     , projection
     ) where
 
-import Data.Char (isSpace)
 import Control.DeepSeq
 import Math.Topology.KnotTh.Knotted
 
@@ -15,13 +14,13 @@ data ProjectionCrossing = ProjectionCrossing deriving (Eq)
 
 
 instance Show ProjectionCrossing where
-    show = const "+"
+    show _ = "projectionCrossing"
 
 
 instance Read ProjectionCrossing where
-    readsPrec _ s = case dropWhile isSpace s of
-        '+' : t -> [(ProjectionCrossing, t)]
-        _       -> []
+    readsPrec _ s = do
+        ("projectionCrossing", t) <- lex s
+        return (projectionCrossing, t)
 
 
 instance NFData ProjectionCrossing
