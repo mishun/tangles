@@ -8,7 +8,7 @@ module Math.Topology.KnotTh.Moves.Moves
     , doublePass
     ) where
 
-import Control.Monad (mplus, guard, when)
+import Control.Monad (mplus, guard)
 import Debug.Trace
 import Math.Topology.KnotTh.Tangle
 import Math.Topology.KnotTh.Moves.PatternMatching
@@ -16,7 +16,7 @@ import Math.Topology.KnotTh.Moves.Modify
 
 
 flype :: Pattern DiagramCrossing TangleDiagram
-flype = makePattern $ do
+flype = makePattern False $ do
     ([ab, ac, ae, ad], _) <- crossingP
     ([ca, ba, rp, sq], sub) <- subTangleP 4
     guard $ length sub > 1
@@ -29,7 +29,7 @@ flype = makePattern $ do
 
 
 pass1 :: Pattern DiagramCrossing TangleDiagram
-pass1 = makePattern $ do
+pass1 = makePattern False $ do
     ([a0, a1, a2, a3], _) <- crossingP
     mplus
         (do
@@ -49,7 +49,7 @@ pass1 = makePattern $ do
 
 
 pass2 :: Pattern DiagramCrossing TangleDiagram
-pass2 = makePattern $ do
+pass2 = makePattern False $ do
     ([a0, a1, a2, a3], _) <- crossingP
     ([b0, b1, b2, b3], _) <- crossingP
     connectionP [(a3, b1)]
@@ -73,7 +73,7 @@ pass2 = makePattern $ do
 
 
 pass3 :: Pattern DiagramCrossing TangleDiagram
-pass3 = makePattern $ do
+pass3 = makePattern False $ do
     ([a0, a1, a2, a3], _) <- crossingP
     ([b0, b1, b2, b3], _) <- crossingP
     connectionP [(a3, b1)]
@@ -102,7 +102,7 @@ pass3 = makePattern $ do
 
 
 perko :: Pattern DiagramCrossing TangleDiagram
-perko = makePattern $ do
+perko = makePattern True $ do
     ([a0, a1, a2, a3], a) <- crossingP
     ([b0, b1, b2, b3], b) <- crossingP
     ([c0, c1, c2, c3], c) <- crossingP
@@ -125,7 +125,7 @@ perko = makePattern $ do
 
 
 doublePass :: Pattern DiagramCrossing TangleDiagram
-doublePass = makePattern $ do
+doublePass = makePattern True $ do
     ([a0, a1, a2, a3], a) <- crossingP
     ([b0, b1, b2, b3], b) <- crossingP
     connectionP [(a0, b0)]

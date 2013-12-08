@@ -21,11 +21,19 @@ import Math.Topology.KnotTh.Tangle
 import Math.Topology.KnotTh.Moves.Modify
 
 
-data PatternS a = PatternS (Tangle a) [Vertex Tangle a]
+data PatternS a =
+    PatternS ([Dart Tangle a] -> [Dart Tangle a]) (Tangle a) [Vertex Tangle a]
 
-newtype PatternM s a x = PatternM { runPatternMatching :: PatternS a -> [(PatternS a, x)] }
 
-newtype Pattern a x = Pattern { patternMatching :: Tangle a -> [x] }
+newtype PatternM s a x =
+    PatternM
+        { runPatternMatching :: PatternS a -> [(PatternS a, x)]
+        }
+
+newtype Pattern a x =
+    Pattern
+        { patternMatching :: Tangle a -> [x]
+        }
 
 
 instance Functor (PatternM s a) where
@@ -46,7 +54,7 @@ instance MonadPlus (PatternM s a) where
 
 subTangleP :: Int -> PatternM s a ([Dart Tangle a], [Vertex Tangle a])
 subTangleP legs =
-    PatternM $ \ (PatternS tangle cs) -> do
+    PatternM $ \ (PatternS reorder tangle cs) -> do
         subList <- subsequences cs
         guard $ not $ null subList
 
@@ -84,17 +92,17 @@ subTangleP legs =
         guard $ legs == length borderCCW
 
         i <- [0 .. legs - 1]
-        return (PatternS tangle (cs \\ subList), (drop i borderCCW ++ take i borderCCW, subList))
+        return (PatternS reorder tangle (cs \\ subList), (reorder $ drop i borderCCW ++ take i borderCCW, subList))
 
 
 crossingP :: PatternM s a ([Dart Tangle a], Vertex Tangle a)
 crossingP =
-    PatternM $ \ (PatternS tangle cs) ->
+    PatternM $ \ (PatternS reorder tangle cs) ->
         let try res _ [] = res
             try res skipped (cur : rest) =
-                let next = PatternS tangle (skipped ++ rest)
+                let next = PatternS reorder tangle (skipped ++ rest)
                     sh i = let od = outcomingDarts cur
-                           in drop i od ++ take i od
+                           in reorder $ drop i od ++ take i od
                 in try ((next, (sh 0, cur)) : (next, (sh 1, cur)) : (next, (sh 2, cur)) : (next, (sh 3, cur)) : res) (cur : skipped) rest
         in try [] [] cs
 
@@ -105,14 +113,17 @@ connectionP = mapM_ (\ (a, b) -> guard (opposite a == b))
 
 reconnectP :: (Show a) => (forall s. MoveM s a ()) -> PatternM s' a (Tangle a)
 reconnectP m =
-    PatternM $ \ s@(PatternS tangle _) ->
+    PatternM $ \ s@(PatternS _ tangle _) ->
         [(s, move tangle m)]
 
 
-makePattern :: (forall s. PatternM s a x) -> Pattern a x
-makePattern pattern =
+makePattern :: Bool -> (forall s. PatternM s a x) -> Pattern a x
+makePattern mirror pattern =
     Pattern $ \ tangle -> do
-        let initial = PatternS tangle (allVertices tangle)
+        reorder <- if mirror
+                       then [id, reverse]
+                       else [id]
+        let initial = PatternS reorder tangle (allVertices tangle)
         (_, res) <- runPatternMatching pattern initial
         return res
 
