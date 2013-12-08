@@ -21,11 +21,7 @@ import Math.Topology.KnotTh.Tangle.Satellites
 import Math.Topology.KnotTh.Tangle.Generation.BorderIncremental
 import Math.Topology.KnotTh.Link (tangleDoubling)
 import Math.Topology.KnotTh.Invariants
-import qualified Math.Topology.KnotTh.Moves.AdHocOfTangle.Flype as Flype
-import qualified Math.Topology.KnotTh.Moves.AdHocOfTangle.Pass as Pass
-import qualified Math.Topology.KnotTh.Moves.AdHocOfTangle.ReidemeisterIII as ReidemeisterIII
-import qualified Math.Topology.KnotTh.Moves.AdHocOfTangle.ReidemeisterReduction as ReidemeisterReduction
-import qualified Math.Topology.KnotTh.Moves.AdHocOfTangle.Weak as Weak
+import qualified Math.Topology.KnotTh.Moves.AdHocOfTangle as AdHoc
 
 
 tangleDiagrams :: (Monad m) => Bool -> Int -> Int -> (TangleDiagram -> m ()) -> m ()
@@ -40,21 +36,21 @@ tangleDiagrams triangle legsLimit maxN yield =
 tangleClasses :: (DiagramInfo info) => (forall m. (Monad m) => (TangleDiagram -> m ()) -> m ()) -> [info TangleDiagram]
 tangleClasses =
     equivalenceClasses
-        (map (map ReidemeisterReduction.greedy1st2ndReduction .)
-            [ ReidemeisterIII.neighbours
-            , Flype.neighbours
-            , Pass.neighbours
+        (map (map AdHoc.greedyReidemeisterReduction .)
+            [ AdHoc.reidemeisterIII
+            , AdHoc.flype
+            , AdHoc.pass
             ])
 
 
 weakTangleClasses :: (DiagramInfo info) => (forall m. (Monad m) => (TangleDiagram -> m ()) -> m ()) -> [info TangleDiagram]
 weakTangleClasses =
     equivalenceClasses
-        (map (map ReidemeisterReduction.greedy1st2ndReduction .)
-            [ Weak.neighbours
-            , ReidemeisterIII.neighbours
-            , Flype.neighbours
-            , Pass.neighbours
+        (map (map AdHoc.greedyReidemeisterReduction .)
+            [ AdHoc.weak
+            , AdHoc.reidemeisterIII
+            , AdHoc.flype
+            , AdHoc.pass
             ])
 
 

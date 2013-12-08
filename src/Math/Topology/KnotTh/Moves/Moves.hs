@@ -9,12 +9,10 @@ module Math.Topology.KnotTh.Moves.Moves
     ) where
 
 import Control.Monad (mplus, guard, when)
-import Text.Printf
 import Debug.Trace
 import Math.Topology.KnotTh.Tangle
 import Math.Topology.KnotTh.Moves.PatternMatching
-import Math.Topology.KnotTh.Moves.AdHocOfTangle.Move
-import Math.Topology.KnotTh.Invariants
+import Math.Topology.KnotTh.Moves.Modify
 
 
 flype :: Pattern DiagramCrossing TangleDiagram

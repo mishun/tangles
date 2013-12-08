@@ -18,7 +18,7 @@ import Data.Array.Unboxed (UArray)
 import Control.Monad.State (execState, gets, modify)
 import Control.Monad (MonadPlus(..), unless, guard)
 import Math.Topology.KnotTh.Tangle
-import Math.Topology.KnotTh.Moves.AdHocOfTangle.Move
+import Math.Topology.KnotTh.Moves.Modify
 
 
 data PatternS a = PatternS (Tangle a) [Vertex Tangle a]
