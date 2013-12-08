@@ -1,11 +1,13 @@
 {-# LANGUAGE RankNTypes #-}
 module Math.Topology.KnotTh.Moves.PatternMatching
-    ( PatternM
+    ( Pattern
+    , PatternM
     , subTangleP
     , crossingP
     , connectionP
     , reconnectP
-    , patternMatching
+    , makePattern
+    , searchMoves
     ) where
 
 import Data.Maybe (mapMaybe)
@@ -22,6 +24,8 @@ import Math.Topology.KnotTh.Moves.AdHocOfTangle.Move
 data PatternS a = PatternS (Tangle a) [Vertex Tangle a]
 
 newtype PatternM s a x = PatternM { runPatternMatching :: PatternS a -> [(PatternS a, x)] }
+
+newtype Pattern a x = Pattern { patternMatching :: Tangle a -> [x] }
 
 
 instance Functor (PatternM s a) where
@@ -105,9 +109,15 @@ reconnectP m =
         [(s, move tangle m)]
 
 
-patternMatching :: (forall s. [PatternM s a (Tangle a)]) -> Tangle a -> [Tangle a]
-patternMatching patterns tangle = do
-    let initial = PatternS tangle (allVertices tangle)
+makePattern :: (forall s. PatternM s a x) -> Pattern a x
+makePattern pattern =
+    Pattern $ \ tangle -> do
+        let initial = PatternS tangle (allVertices tangle)
+        (_, res) <- runPatternMatching pattern initial
+        return res
+
+
+searchMoves :: [Pattern a (Tangle a)] -> Tangle a -> [Tangle a]
+searchMoves patterns tangle = do
     pattern <- patterns
-    (_, res) <- runPatternMatching pattern initial
-    return res
+    patternMatching pattern tangle
