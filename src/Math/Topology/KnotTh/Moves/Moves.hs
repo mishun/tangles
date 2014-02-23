@@ -103,17 +103,17 @@ pass3 = makePattern False $ do
 
 perko :: Pattern DiagramCrossing TangleDiagram
 perko = makePattern True $ do
-    ([a0, a1, a2, a3], a) <- crossingP
-    ([b0, b1, b2, b3], b) <- crossingP
-    ([c0, c1, c2, c3], c) <- crossingP
+    ([a0, a1, _, a3], a) <- crossingP
+    ([b0, b1, b2, b3], _) <- crossingP
+    ([c0, c1, _, c3], c) <- crossingP
     connectionP [(a0, b0), (b1, c0)]
     guard $ (passOver a0 == passOver b0) && (passOver b1 == passOver c0)
 
     ([x0, x1, x2, x3, x4, x5], x) <- subTangleP 6
     connectionP [(a1, x0), (b3, x1), (b2, x2), (c3, x3)]
 
-    ([y0, y1, y2, y3], y) <- subTangleP 4
-    ([d0, d1, d2, d3], d) <- crossingP
+    ([y0, y1, y2, y3], _) <- subTangleP 4
+    ([d0, d1, d2, d3], _) <- crossingP
     connectionP [(d2, x4), (y3, x5), (y0, d1), (y1, d0)]
     guard $ passOver d0 == passOver a0
 
@@ -126,21 +126,21 @@ perko = makePattern True $ do
 
 doublePass :: Pattern DiagramCrossing TangleDiagram
 doublePass = makePattern True $ do
-    ([a0, a1, a2, a3], a) <- crossingP
-    ([b0, b1, b2, b3], b) <- crossingP
+    ([a0, a1, a2, a3], _) <- crossingP
+    ([b0, b1, b2, b3], _) <- crossingP
     connectionP [(a0, b0)]
     guard $ passOver a0 == passOver b0
-    ([c0, c1, c2, c3], c) <- crossingP
+    ([c0, c1, c2, c3], _) <- crossingP
     connectionP [(b1, c1)]
     guard $ passOver b1 /= passOver c1
-    ([d0, d1, d2, d3], d) <- crossingP
+    ([d0, d1, d2, d3], _) <- crossingP
     connectionP [(c0, d0)]
     guard $ passOver c0 == passOver d0
 
-    ([x0, x1, x2, x3, x4, x5], x) <- subTangleP 6
+    ([x0, x1, x2, x3, x4, x5], _) <- subTangleP 6
     connectionP [(x0, c3), (x1, c2), (x2, a3), (x3, a2)]
 
-    ([y0, y1, y2, y3, y4, y5], y) <- subTangleP 6
+    ([y0, y1, y2, y3, y4, y5], _) <- subTangleP 6
     connectionP [(y0, b3), (y1, b2), (y2, d3), (y3, d2)]
 
     reconnectP $ do
