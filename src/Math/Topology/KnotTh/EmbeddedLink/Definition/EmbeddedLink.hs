@@ -13,11 +13,9 @@ import Language.Haskell.TH
 import Data.Function (fix)
 import Data.Maybe (fromMaybe)
 import Data.Bits ((.&.), shiftL, complement)
+import qualified Data.Vector.Mutable as MV
 import qualified Data.Vector.Primitive as PV
 import qualified Data.Vector.Primitive.Mutable as PMV
-import Data.Array.MArray (newArray, newArray_)
-import Data.Array.Base (unsafeRead, unsafeWrite)
-import Data.Array.ST (STArray, STUArray, runSTUArray)
 import Data.STRef (newSTRef, readSTRef, writeSTRef)
 import Control.Monad.ST (ST)
 import Control.Monad (void, when, forM_, foldM, foldM_)
@@ -62,48 +60,48 @@ produceKnotted
                     return $! codeWithDirection globalG dir dart
 
                 where
-                    codeWithDirection !globalG !dir !start = runSTUArray $ do
+                    codeWithDirection !globalG !dir !start = PV.create $ do
                         let n = numberOfVertices link
 
-                        index <- newArray (0, n) 0 :: ST s (STUArray s Int Int)
-                        incoming <- newArray (0, n) 0 :: ST s (STUArray s Int Int)
-                        queue <- newArray_ (0, n - 1) :: ST s (STArray s Int (Dart EmbeddedLink ct))
+                        index <- PMV.replicate (n + 1) 0 --newArray (0, n) 0 :: ST s (STUArray s Int Int)
+                        incoming <- PMV.replicate (n + 1) 0 --newArray (0, n) 0 :: ST s (STUArray s Int Int)
+                        queue <- MV.new n --newArray_ (0, n - 1) :: ST s (STArray s Int (Dart EmbeddedLink ct))
                         free <- newSTRef 1
 
                         let {-# INLINE look #-}
                             look !d = do
                                 let u = beginVertexIndex d
-                                ux <- unsafeRead index u
+                                ux <- PMV.unsafeRead index u
                                 if ux > 0
                                     then do
-                                        up <- unsafeRead incoming u
+                                        up <- PMV.unsafeRead incoming u
                                         return $! (ux `shiftL` 2) + (((beginPlace d - up) * R.directionSign dir) .&. 3)
                                     else do
                                         nf <- readSTRef free
                                         writeSTRef free $! nf + 1
-                                        unsafeWrite index u nf
-                                        unsafeWrite incoming u (beginPlace d)
-                                        unsafeWrite queue (nf - 1) d
+                                        PMV.unsafeWrite index u nf
+                                        PMV.unsafeWrite incoming u (beginPlace d)
+                                        MV.unsafeWrite queue (nf - 1) d
                                         return $! nf `shiftL` 2
 
-                        rc <- newArray (0, 6 * n) 0 :: ST s (STUArray s Int Int)
-                        unsafeWrite rc 0 $! numberOfFreeLoops link
+                        rc <- PMV.replicate (6 * n + 1) 0 --newArray (0, 6 * n) 0 :: ST s (STUArray s Int Int)
+                        PMV.unsafeWrite rc 0 $! numberOfFreeLoops link
 
                         let {-# INLINE lookAndWrite #-}
                             lookAndWrite !d !offset = do
-                                look d >>= unsafeWrite rc offset
+                                look d >>= PMV.unsafeWrite rc offset
                                 return $! offset + 1
 
                         void $ look start
                         flip fix 0 $ \ bfs !headI -> do
                             tailI <- readSTRef free
                             when (headI < tailI - 1) $ do
-                                input <- unsafeRead queue headI
+                                input <- MV.unsafeRead queue headI
                                 void $ foldMAdjacentDartsFrom input dir lookAndWrite (6 * headI + 3)
                                 case crossingCodeWithGlobal globalG dir input of
                                     (# be, le #) -> do
-                                        unsafeWrite rc (6 * headI + 1) be
-                                        unsafeWrite rc (6 * headI + 2) le
+                                        PMV.unsafeWrite rc (6 * headI + 1) be
+                                        PMV.unsafeWrite rc (6 * headI + 2) le
                                 bfs $! headI + 1
 
                         fix $ \ _ -> do

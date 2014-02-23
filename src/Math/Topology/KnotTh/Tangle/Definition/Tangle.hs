@@ -17,14 +17,12 @@ import Data.List (nub, sort, foldl')
 import qualified Data.Set as S
 import qualified Data.Map as M
 import qualified Data.Vector as V
+import qualified Data.Vector.Mutable as MV
 import qualified Data.Vector.Primitive as PV
 import qualified Data.Vector.Primitive.Mutable as PMV
 import Data.Array.IArray ((!), listArray)
-import Data.Array.MArray (newArray, newArray_)
-import Data.Array.Base (unsafeRead, unsafeWrite)
 import Data.Array (Array)
 import Data.Array.Unboxed (UArray)
-import Data.Array.ST (STArray, STUArray, runSTUArray)
 import Data.STRef (newSTRef, readSTRef, writeSTRef)
 import Control.Monad.ST (ST, runST)
 import Control.Monad (void, forM_, when, unless, foldM_, foldM, filterM)
@@ -70,9 +68,9 @@ produceKnotted
                     n = numberOfVertices tangle
                     l = numberOfLegs tangle
 
-                    code globalG dir leg = runSTUArray $ do
-                        index <- newArray (0, n) 0 :: ST s (STUArray s Int Int)
-                        queue <- newArray_ (0, n - 1) :: ST s (STArray s Int (Dart Tangle ct))
+                    code globalG dir leg = PV.create $ do
+                        index <- PMV.replicate (n + 1) 0
+                        queue <- MV.new n
                         free <- newSTRef 1
 
                         let {-# INLINE look #-}
@@ -80,14 +78,14 @@ produceKnotted
                                 | isLeg d    = return 0
                                 | otherwise  = do
                                     let u = beginVertex d
-                                    ux <- unsafeRead index $! vertexIndex u
+                                    ux <- PMV.unsafeRead index $! vertexIndex u
                                     if ux > 0
                                         then return $! ux
                                         else do
                                             nf <- readSTRef free
                                             writeSTRef free $! nf + 1
-                                            unsafeWrite index (vertexIndex u) nf
-                                            unsafeWrite queue (nf - 1) d
+                                            PMV.unsafeWrite index (vertexIndex u) nf
+                                            MV.unsafeWrite queue (nf - 1) d
                                             return $! nf
 
                             {-# INLINE lookAndAdd #-}
@@ -95,17 +93,17 @@ produceKnotted
                                 !c <- look d
                                 return $! c + s `shiftL` 7
 
-                        rc <- newArray_ (0, l + 2 * n) :: ST s (STUArray s Int Int)
-                        unsafeWrite rc 0 $! numberOfFreeLoops tangle
+                        rc <- PMV.new (l + 2 * n + 1)
+                        PMV.unsafeWrite rc 0 $! numberOfFreeLoops tangle
                         foldM_ (\ !d !i -> do
-                                look (opposite d) >>= unsafeWrite rc i
+                                look (opposite d) >>= PMV.unsafeWrite rc i
                                 return $! nextDir dir d
                             ) leg [1 .. l]
 
                         let bfs !st !headI = do
                                 tailI <- readSTRef free
                                 if headI >= tailI - 1 then return $! st else do
-                                    input <- unsafeRead queue headI
+                                    input <- MV.unsafeRead queue headI
                                     !nb <- foldMAdjacentDartsFrom input dir lookAndAdd 0
                                     case crossingCodeWithGlobal globalG dir input of
                                         (# be, le'' #) -> do
@@ -113,15 +111,15 @@ produceKnotted
                                                 bi = l + 1 + 2 * headI
                                                 li = bi + 1
                                             case st of
-                                                LT -> unsafeWrite rc bi be >> unsafeWrite rc li le >> bfs LT (headI + 1)
+                                                LT -> PMV.unsafeWrite rc bi be >> PMV.unsafeWrite rc li le >> bfs LT (headI + 1)
                                                 EQ -> do
-                                                    be' <- unsafeRead rc bi
+                                                    be' <- PMV.unsafeRead rc bi
                                                     case compare be be' of
-                                                        LT -> unsafeWrite rc bi be >> unsafeWrite rc li le >> bfs LT (headI + 1)
+                                                        LT -> PMV.unsafeWrite rc bi be >> PMV.unsafeWrite rc li le >> bfs LT (headI + 1)
                                                         EQ -> do
-                                                            le' <- unsafeRead rc li
+                                                            le' <- PMV.unsafeRead rc li
                                                             case compare le le' of
-                                                                LT -> unsafeWrite rc li le >> bfs LT (headI + 1)
+                                                                LT -> PMV.unsafeWrite rc li le >> bfs LT (headI + 1)
                                                                 EQ -> bfs EQ (headI + 1)
                                                                 GT -> return GT
                                                         GT -> return GT
@@ -131,11 +129,11 @@ produceKnotted
                         fix $ \ recheck -> do
                             tailI <- readSTRef free
                             when (tailI <= n) $ do
-                                notVisited <- filterM (\ !i -> (== 0) `fmap` unsafeRead index i) [1 .. n]
+                                notVisited <- filterM (\ !i -> (== 0) `fmap` PMV.unsafeRead index i) [1 .. n]
 
                                 (d, _) <- foldM (\ (pd, !st) !d -> do
                                         writeSTRef free tailI
-                                        forM_ notVisited $ \ !i -> unsafeWrite index i 0
+                                        forM_ notVisited $ \ !i -> PMV.unsafeWrite index i 0
                                         void $ look d
                                         r <- bfs st (tailI - 1)
                                         return $! case r of
@@ -146,7 +144,7 @@ produceKnotted
                                     [d | i <- notVisited, d <- outcomingDarts (nthVertex tangle i)]
 
                                 writeSTRef free tailI
-                                forM_ notVisited $ \ !i -> unsafeWrite index i 0
+                                forM_ notVisited $ \ !i -> PMV.unsafeWrite index i 0
                                 void $ look d
                                 LT <- bfs LT (tailI - 1)
                                 recheck
@@ -375,7 +373,7 @@ instance TangleLike Tangle where
         let newL = lA + lB - 2 * legsToGlue
             newC = nA + nB
 
-        visited <- newArray (0, legsToGlue - 1) False :: ST s (STUArray s Int Bool)
+        visited <- MV.replicate legsToGlue False
 
         cr <- do
             let {-# INLINE convertA #-}
@@ -383,7 +381,7 @@ instance TangleLike Tangle where
                     | x < 4 * nA        = return $! x
                     | ml >= legsToGlue  = return $! 4 * newC + ml - legsToGlue
                     | otherwise         = do
-                        unsafeWrite visited ml True
+                        MV.unsafeWrite visited ml True
                         convertB (involutionArray tangleB `PV.unsafeIndex` (4 * nB + (lpB - ml) `mod` lB))
                     where
                         ml = (x - 4 * nA - lpA) `mod` lA
@@ -393,7 +391,7 @@ instance TangleLike Tangle where
                     | x < 4 * nB            = return $! 4 * nA + x
                     | ml < lB - legsToGlue  = return $! 4 * newC + ml + lA - legsToGlue
                     | otherwise             = do
-                        unsafeWrite visited (lB - ml - 1) True
+                        MV.unsafeWrite visited (lB - ml - 1) True
                         convertA (involutionArray tangleA `PV.unsafeIndex` (4 * nA + (lpA + lB - ml - 1) `mod` lA))
                     where
                         ml = (x - 4 * nB - lpB - 1) `mod` lB
@@ -421,18 +419,18 @@ instance TangleLike Tangle where
                     let ai = 4 * nA + (lpA + a) `mod` lA
                         bi = involutionArray tangleA `PV.unsafeIndex` ai
                         b = (bi - 4 * nA - lpA) `mod` lA
-                    v <- unsafeRead visited b
-                    unless v $ unsafeWrite visited b True >> markB b
+                    v <- MV.unsafeRead visited b
+                    unless v $ MV.unsafeWrite visited b True >> markB b
 
                 markB a = do
                     let ai = 4 * nB + (lpB - a) `mod` lB
                         bi = involutionArray tangleB `PV.unsafeIndex` ai
                         b = (lpB - (bi - 4 * nB)) `mod` lB
-                    v <- unsafeRead visited b
-                    unless v $ unsafeWrite visited b True >> markA b
+                    v <- MV.unsafeRead visited b
+                    unless v $ MV.unsafeWrite visited b True >> markA b
 
             foldM (\ !s !i -> do
-                    v <- unsafeRead visited i
+                    v <- MV.unsafeRead visited i
                     if v
                         then return $! s
                         else markA i >> (return $! s + 1)
