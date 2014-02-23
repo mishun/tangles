@@ -13,6 +13,8 @@ import Language.Haskell.TH
 import Data.Function (fix)
 import Data.Maybe (fromMaybe)
 import Data.Bits ((.&.), shiftL, complement)
+import qualified Data.Vector.Primitive as PV
+import qualified Data.Vector.Primitive.Mutable as PMV
 import Data.Array.IArray (listArray)
 import Data.Array.MArray (newArray, newArray_, readArray, writeArray)
 import Data.Array.Base (unsafeAt, unsafeRead, unsafeWrite)
@@ -34,10 +36,10 @@ import Math.Topology.KnotTh.Knotted.TH.Knotted
 produceKnotted
     [d| data EmbeddedLink ct =
             EmbeddedLink
-                { faceCount      :: !Int
-                , faceDataOffset :: !(UArray Int Int)
-                , faceCCWBrdDart :: !(UArray Int Int)
-                , faceLLookup    :: !(UArray Int Int)
+                { faceCount      :: {-# UNPACK #-} !Int
+                , faceDataOffset :: {-# UNPACK #-} !(UArray Int Int)
+                , faceCCWBrdDart :: {-# UNPACK #-} !(UArray Int Int)
+                , faceLLookup    :: {-# UNPACK #-} !(UArray Int Int)
                 }
 
         instance Knotted EmbeddedLink where
@@ -138,7 +140,7 @@ produceKnotted
                                     writeArray fllook (2 * i + 1) offset
                                     writeArray fccwd (base + offset) i
 
-                                    i' <- readArray $cr i
+                                    i' <- PMV.unsafeRead $cr i
                                     let j = (i' .&. complement 3) + ((i' - 1) .&. 3)
                                     mj <- readArray fllook (2 * j)
                                     if mj >= 0
@@ -148,7 +150,7 @@ produceKnotted
                                 return (fid + 1, base + sz)
                         ) (0, 0) [0 .. 4 * $n - 1]
 
-                    foff <- newArray (0, fc) 0 :: ST s (STUArray s Int Int)
+                    foff <- newArray_ (0, fc) :: ST s (STUArray s Int Int)
                     forM_ [0 .. 4 * $n - 1] $ \ !i -> do
                         fid <- readArray fllook (2 * i)
                         cur <- readArray foff fid

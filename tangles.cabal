@@ -37,6 +37,7 @@ library
     cc-options:         -Wall -std=c++11
     build-depends:
         base >=4.6,
+        vector >=0.10,
         array,
         deepseq,
         parallel,

@@ -10,13 +10,10 @@ module Math.Topology.KnotTh.Knotted.TH.Knotted
 import Language.Haskell.TH
 import Data.List (foldl')
 import Data.Bits ((.&.), shiftL, shiftR, complement)
-import Data.Array.IArray (listArray, bounds, amap)
-import Data.Array.MArray (newArray_)
-import Data.Array.Base (unsafeAt, unsafeRead, unsafeWrite)
-import Data.Array (Array)
-import Data.Array.Unboxed (UArray)
-import Data.Array.Unsafe (unsafeFreeze)
-import Data.Array.ST (STArray, STUArray)
+import qualified Data.Vector as V
+import qualified Data.Vector.Mutable as MV
+import qualified Data.Vector.Primitive as PV
+import qualified Data.Vector.Primitive.Mutable as PMV
 import Control.Arrow (first)
 import Control.Monad.ST (ST, runST)
 import Control.Monad.Writer (MonadWriter, WriterT, execWriter, execWriterT, tell)
@@ -110,8 +107,8 @@ produceKnotted knotPattern inst = do
             [ recC knotConstr $
                 [ (,,) loopsCount Unpacked `fmap` [t| Int |]
                 , (,,) vertexCount Unpacked `fmap` [t| Int |]
-                , (,,) involutionArray Unpacked `fmap` [t| UArray Int Int |]
-                , (,,) crossingsArray Unpacked `fmap` [t| Array Int $(varT crossType) |]
+                , (,,) involutionArray Unpacked `fmap` [t| PV.Vector Int |]
+                , (,,) crossingsArray Unpacked `fmap` [t| V.Vector $(varT crossType) |]
                 ]
             ] []
 
@@ -126,7 +123,7 @@ produceKnotted knotPattern inst = do
                 instance (NFData a) => NFData (Dart $(conT knotType) a)
 
                 instance Functor $(conT knotType) where
-                    fmap f k = $(recUpdE [| k |] [(,) crossingsArray `fmap` [| amap f ($(varE crossingsArray) k) |] ])
+                    fmap f k = $(recUpdE [| k |] [(,) crossingsArray `fmap` [| fmap f ($(varE crossingsArray) k) |] ])
 
                 instance PlanarDiagram $(conT knotType) where
                     numberOfVertices = $(varE vertexCount)
@@ -150,15 +147,17 @@ produceKnotted knotPattern inst = do
                         in map (Vertex k) [0 .. n - 1]
 
                     allHalfEdges k =
-                        map (Dart k) [0 :: Int .. snd $ bounds $ $(varE involutionArray) k]
+                        let n = PV.length $ $(varE involutionArray) k
+                        in map (Dart k) [0 .. n - 1]
 
                     allEdges k =
-                        foldl' (\ !es !i ->
-                                let j = $(varE involutionArray) k `unsafeAt` i
+                        let n = PV.length $ $(varE involutionArray) k
+                        in foldl' (\ !es !i ->
+                                let j = $(varE involutionArray) k `PV.unsafeIndex` i
                                 in if i < j
                                     then (Dart k i, Dart k j) : es
                                     else es
-                            ) [] [0 .. snd $ bounds $ $(varE involutionArray) k]
+                            ) [] [0 .. n - 1]
 
                     data Vertex $(conT knotType) a = Vertex !($(conT knotType) a) {-# UNPACK #-} !Int
 
@@ -175,7 +174,7 @@ produceKnotted knotPattern inst = do
                     dartOwner (Dart k _) = k
                     dartIndex (Dart _ i) = i
 
-                    opposite (Dart k d) = Dart k ($(varE involutionArray) k `unsafeAt` d)
+                    opposite (Dart k d) = Dart k ($(varE involutionArray) k `PV.unsafeIndex` d)
 
                     beginVertex (Dart k d) =
                         $(maybe id ($ ([| k |], [| d |])) (modifyIncidentCrossing inst)
@@ -204,7 +203,7 @@ produceKnotted knotPattern inst = do
                     dartIndicesRange k = (0, numberOfDarts k - 1)
 
                 instance Knotted $(conT knotType) where
-                    vertexCrossing (Vertex k c) = $(varE crossingsArray) k `unsafeAt` c
+                    vertexCrossing (Vertex k c) = $(varE crossingsArray) k `V.unsafeIndex` c
 
                     numberOfFreeLoops = $(varE loopsCount)
 
@@ -216,8 +215,8 @@ produceKnotted knotPattern inst = do
                     emptyKnotted =
                         $(recConE knotConstr $
                             [ (,) vertexCount `fmap` [| 0 :: Int |]
-                            , (,) involutionArray `fmap` [| listArray (0 :: Int, -1 :: Int) [] |]
-                            , (,) crossingsArray `fmap` [| listArray (0 :: Int, -1 :: Int) [] |]
+                            , (,) involutionArray `fmap` [| PV.empty |]
+                            , (,) crossingsArray `fmap` [| V.empty |]
                             , (,) loopsCount `fmap` [| 0 :: Int |]
                             ] ++ emptyExtraInitializers inst
                         )
@@ -225,7 +224,7 @@ produceKnotted knotPattern inst = do
                     homeomorphismInvariant = undefined
                     isConnected = undefined
 
-                    type ExplodeType $(conT knotType) a = (Int, [([(Int, Int)], a)])
+                    --type ExplodeType $(conT knotType) a = (Int, [([(Int, Int)], a)])
                     explode = undefined
                     implode = undefined
 
@@ -276,10 +275,10 @@ produceKnotted knotPattern inst = do
                             append $ letS $ (:[]) $ valD (varP n) (normalB [| length $(varE list) |]) []
                             append $ bindS (varP cr)
                                 [|  let border = $(maybe id ($ varE n) (modifyImplodeLimit ies) [| 4 * $(varE n) - 1 :: Int |]) 
-                                    in newArray_ (0, border) :: ST s (STUArray s Int Int)
+                                    in PMV.new (border + 1) :: ST s (PMV.STVector s Int)
                                 |]
 
-                            append $ bindS (varP st) [| newArray_ (0, $(varE n) - 1) :: ST s (STArray s Int a) |]
+                            append $ bindS (varP st) [| MV.new $(varE n) :: ST s (MV.STVector s a) |]
 
                             let spliceFill a (c, p) =
                                     let guards = map (\ f -> f spliceError (varE n) c p) (extraImplodePairCases ies) ++
@@ -292,16 +291,16 @@ produceKnotted knotPattern inst = do
                                             when ($a == b) $
                                                 $(spliceError "(%i, %i) connected to itself" [c, p])
 
-                                            unsafeWrite $(varE cr) $a b
+                                            PMV.unsafeWrite $(varE cr) $a b
                                             when (b < $a) $ do
-                                                x <- unsafeRead $(varE cr) b
+                                                x <- PMV.unsafeRead $(varE cr) b
                                                 when (x /= $a) $
                                                     $(spliceError "(%i, %i) points to unconsistent position" [c, p])
                                     |]
 
                             append $ noBindS
                                     [|  forM_ (zip $(varE list) [0 ..]) $ \ ((!ns, !cs), !i) -> do
-                                            unsafeWrite $(varE st) i cs
+                                            MV.unsafeWrite $(varE st) i cs
                                             case ns of
                                                 [p0, p1, p2, p3] ->
                                                     forM_ [(p0, 0), (p1, 1), (p2, 2), (p3, 3)] $ \ ((!c, !p), !j) ->
@@ -314,8 +313,8 @@ produceKnotted knotPattern inst = do
 
                             tell $ implodePostExtra ies (varE n) (varE cr) spliceFill
 
-                            append $ bindS (varP cr') [| unsafeFreeze $(varE cr) |]
-                            append $ bindS (varP st') [| unsafeFreeze $(varE st) |]
+                            append $ bindS (varP cr') [| PV.unsafeFreeze $(varE cr) |]
+                            append $ bindS (varP st') [| V.unsafeFreeze $(varE st) |]
                             append $ noBindS
                                 [|  return $! $(recConE knotConstr $
                                         [ (,) vertexCount `fmap` varE n

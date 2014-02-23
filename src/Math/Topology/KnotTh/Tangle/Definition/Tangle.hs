@@ -16,13 +16,15 @@ import Data.Bits ((.&.), complement, shiftL)
 import Data.List (nub, sort, foldl')
 import qualified Data.Set as S
 import qualified Data.Map as M
-import Data.Array.IArray ((!), listArray, amap)
+import qualified Data.Vector as V
+import qualified Data.Vector.Primitive as PV
+import qualified Data.Vector.Primitive.Mutable as PMV
+import Data.Array.IArray ((!), listArray)
 import Data.Array.MArray (newArray, newArray_)
-import Data.Array.Base (unsafeAt, unsafeRead, unsafeWrite)
+import Data.Array.Base (unsafeRead, unsafeWrite)
 import Data.Array (Array)
 import Data.Array.Unboxed (UArray)
-import Data.Array.ST (STArray, STUArray, runSTArray, runSTUArray)
-import Data.Array.Unsafe (unsafeFreeze)
+import Data.Array.ST (STArray, STUArray, runSTUArray)
 import Data.STRef (newSTRef, readSTRef, writeSTRef)
 import Control.Monad.ST (ST, runST)
 import Control.Monad (void, forM_, when, unless, foldM_, foldM, filterM)
@@ -285,8 +287,8 @@ instance TangleLike Tangle where
         Tangle
             { loopsCount      = 0
             , vertexCount     = 0
-            , involutionArray = listArray (0, 3) [3, 2, 1, 0]
-            , crossingsArray  = listArray (0, -1) []
+            , involutionArray = PV.fromList [3, 2, 1, 0]
+            , crossingsArray  = V.empty
             , legsCount       = 4
             }
 
@@ -294,8 +296,8 @@ instance TangleLike Tangle where
         Tangle
             { loopsCount      = 0
             , vertexCount     = 0
-            , involutionArray = listArray (0, 3) [1, 0, 3, 2]
-            , crossingsArray  = listArray (0, -1) []
+            , involutionArray = PV.fromList [1, 0, 3, 2]
+            , crossingsArray  = V.empty
             , legsCount       = 4
             }
 
@@ -303,8 +305,8 @@ instance TangleLike Tangle where
         Tangle
             { loopsCount      = 0
             , vertexCount     = 0
-            , involutionArray = listArray (0, 1) [1, 0]
-            , crossingsArray  = listArray (0, -1) []
+            , involutionArray = PV.fromList [1, 0]
+            , crossingsArray  = V.empty
             , legsCount       = 2
             }
 
@@ -312,8 +314,8 @@ instance TangleLike Tangle where
         Tangle
             { loopsCount      = 0
             , vertexCount     = 1
-            , involutionArray = listArray (0, 7) [4, 5, 6, 7, 0, 1, 2, 3]
-            , crossingsArray  = listArray (0, 0) [cr]
+            , involutionArray = PV.fromList [4, 5, 6, 7, 0, 1, 2, 3]
+            , crossingsArray  = V.singleton cr
             , legsCount       = 4
             }
 
@@ -321,16 +323,16 @@ instance TangleLike Tangle where
         | l == 0 || rot == 0  = tangle
         | otherwise           =
             tangle
-                { involutionArray = runSTUArray $ do
+                { involutionArray = PV.create $ do
                     let n = 4 * numberOfVertices tangle
                         a = involutionArray tangle
                         modify i | i < n      = i
                                  | otherwise  = n + mod (i - n + rot) l
-                    a' <- newArray_ (0, n + l - 1)
+                    a' <- PMV.new (n + l)
                     forM_ [0 .. n - 1] $ \ !i ->
-                        unsafeWrite a' i $ modify (a `unsafeAt` i)
+                        PMV.unsafeWrite a' i $ modify (a `PV.unsafeIndex` i)
                     forM_ [0 .. l - 1] $ \ !i ->
-                        unsafeWrite a' (n + mod (i + rot) l) $ modify (a `unsafeAt` (n + i))
+                        PMV.unsafeWrite a' (n + mod (i + rot) l) $ modify (a `PV.unsafeIndex` (n + i))
                     return a'
                 }
         where
@@ -338,17 +340,17 @@ instance TangleLike Tangle where
 
     mirrorTangleWith f tangle =
         tangle
-            { involutionArray = runSTUArray $ do
+            { involutionArray = PV.create $ do
                 let l = numberOfLegs tangle
                     n = 4 * numberOfVertices tangle
                     a = involutionArray tangle
                     modify i | i < n      = (i .&. complement 3) + ((-i) .&. 3)
                              | otherwise  = n + mod (n - i) l
-                a' <- newArray_ (0, n + l - 1)
+                a' <- PMV.new (n + l)
                 forM_ [0 .. n + l - 1] $ \ !i ->
-                    unsafeWrite a' (modify i) $ modify (a `unsafeAt` i)
+                    PMV.unsafeWrite a' (modify i) $ modify (a `PV.unsafeIndex` i)
                 return a'
-            , crossingsArray = amap f $ crossingsArray tangle
+            , crossingsArray = fmap f $ crossingsArray tangle
             }
 
     glueTangles legsToGlue legA legB = runST $ do
@@ -382,7 +384,7 @@ instance TangleLike Tangle where
                     | ml >= legsToGlue  = return $! 4 * newC + ml - legsToGlue
                     | otherwise         = do
                         unsafeWrite visited ml True
-                        convertB (involutionArray tangleB `unsafeAt` (4 * nB + (lpB - ml) `mod` lB))
+                        convertB (involutionArray tangleB `PV.unsafeIndex` (4 * nB + (lpB - ml) `mod` lB))
                     where
                         ml = (x - 4 * nA - lpA) `mod` lA
 
@@ -392,34 +394,39 @@ instance TangleLike Tangle where
                     | ml < lB - legsToGlue  = return $! 4 * newC + ml + lA - legsToGlue
                     | otherwise             = do
                         unsafeWrite visited (lB - ml - 1) True
-                        convertA (involutionArray tangleA `unsafeAt` (4 * nA + (lpA + lB - ml - 1) `mod` lA))
+                        convertA (involutionArray tangleA `PV.unsafeIndex` (4 * nA + (lpA + lB - ml - 1) `mod` lA))
                     where
                         ml = (x - 4 * nB - lpB - 1) `mod` lB
 
-            cr <- newArray_ (0, 4 * newC + newL - 1) :: ST s (STUArray s Int Int)
+            cr <- PMV.new (4 * newC + newL) :: ST s (PMV.STVector s Int)
             forM_ [0 .. 4 * nA - 1] $ \ !i ->
-                convertA (involutionArray tangleA `unsafeAt` i) >>= unsafeWrite cr i
+                convertA (involutionArray tangleA `PV.unsafeIndex` i)
+                    >>= PMV.unsafeWrite cr i
+
             forM_ [0 .. 4 * nB - 1] $ \ !i ->
-                convertB (involutionArray tangleB `unsafeAt` i) >>= unsafeWrite cr (4 * nA + i)
+                convertB (involutionArray tangleB `PV.unsafeIndex` i)
+                    >>= PMV.unsafeWrite cr (4 * nA + i)
+
             forM_ [0 .. lA - legsToGlue - 1] $ \ !i ->
-                convertA (involutionArray tangleA `unsafeAt` (4 * nA + (lpA + legsToGlue + i) `mod` lA))
-                    >>= unsafeWrite cr (4 * newC + i)
+                convertA (involutionArray tangleA `PV.unsafeIndex` (4 * nA + (lpA + legsToGlue + i) `mod` lA))
+                    >>= PMV.unsafeWrite cr (4 * newC + i)
+
             forM_ [0 .. lB - legsToGlue - 1] $ \ !i ->
-                convertB (involutionArray tangleB `unsafeAt` (4 * nB + (lpB + 1 + i) `mod` lB))
-                    >>= unsafeWrite cr (4 * newC + lA - legsToGlue + i) 
-            unsafeFreeze cr
+                convertB (involutionArray tangleB `PV.unsafeIndex` (4 * nB + (lpB + 1 + i) `mod` lB))
+                    >>= PMV.unsafeWrite cr (4 * newC + lA - legsToGlue + i) 
+            PV.unsafeFreeze cr
 
         extraLoops <- do
             let markA a = do
                     let ai = 4 * nA + (lpA + a) `mod` lA
-                        bi = involutionArray tangleA `unsafeAt` ai
+                        bi = involutionArray tangleA `PV.unsafeIndex` ai
                         b = (bi - 4 * nA - lpA) `mod` lA
                     v <- unsafeRead visited b
                     unless v $ unsafeWrite visited b True >> markB b
 
                 markB a = do
                     let ai = 4 * nB + (lpB - a) `mod` lB
-                        bi = involutionArray tangleB `unsafeAt` ai
+                        bi = involutionArray tangleB `PV.unsafeIndex` ai
                         b = (lpB - (bi - 4 * nB)) `mod` lB
                     v <- unsafeRead visited b
                     unless v $ unsafeWrite visited b True >> markA b
@@ -435,13 +442,7 @@ instance TangleLike Tangle where
             { loopsCount      = numberOfFreeLoops tangleA + numberOfFreeLoops tangleB + extraLoops
             , vertexCount     = newC
             , involutionArray = cr
-            , crossingsArray  = runSTArray $ do
-                st <- newArray_ (0, newC - 1)
-                forM_ [0 .. nA - 1] $ \ !i ->
-                    unsafeWrite st i $ crossingsArray tangleA `unsafeAt` i
-                forM_ [0 .. nB - 1] $ \ !i ->
-                    unsafeWrite st (i + nA) $ crossingsArray tangleB `unsafeAt` i
-                return st
+            , crossingsArray  = crossingsArray tangleA V.++ crossingsArray tangleB
             , legsCount       = newL
             }
 
@@ -460,47 +461,42 @@ instance TangleLike Tangle where
         let oldC = numberOfVertices tangle
             newC = oldC + 1
             newL = oldL + 4 - 2 * legsToGlue
-            lp = legPlace leg
-
-        cr <- do
-            cr <- newArray_ (0, 4 * newC + newL - 1) :: ST s (STUArray s Int Int)
-
-            let {-# INLINE copyModified #-}
-                copyModified !index !index' =
-                    let y | x < 4 * oldC            = x
-                          | ml < oldL - legsToGlue  = 4 * newC + 4 - legsToGlue + ml
-                          | otherwise               = 4 * newC - 5 + oldL - ml
-                          where
-                              x = involutionArray tangle `unsafeAt` index'
-                              ml = (x - 4 * oldC - lp - 1) `mod` oldL
-                    in unsafeWrite cr index y
-
-            forM_ [0 .. 4 * oldC - 1] $ \ !i ->
-                copyModified i i
-
-            forM_ [0 .. legsToGlue - 1] $ \ !i ->
-                copyModified (4 * (newC - 1) + i) (4 * oldC + ((lp - i) `mod` oldL))
-
-            forM_ [0 .. 3 - legsToGlue] $ \ !i ->
-                let a = 4 * (newC - 1) + legsToGlue + i
-                    b = 4 * newC + i
-                in unsafeWrite cr a b >> unsafeWrite cr b a
-
-            forM_ [0 .. oldL - 1 - legsToGlue] $ \ !i ->
-                copyModified (4 * newC + i + 4 - legsToGlue) (4 * oldC + ((lp + 1 + i) `mod` oldL))
-
-            unsafeFreeze cr
+            lp = legPlace leg 
 
         let result = Tangle
                 { loopsCount      = numberOfFreeLoops tangle
                 , vertexCount     = newC
-                , involutionArray = cr
-                , crossingsArray  = runSTArray $ do
-                    st <- newArray_ (0, newC - 1)
-                    forM_ [0 .. oldC - 1] $ \ !i ->
-                        unsafeWrite st i $ crossingsArray tangle `unsafeAt` i
-                    unsafeWrite st (newC - 1) crossingToGlue
-                    return st
+                , involutionArray = PV.create $ do
+                    cr <- PMV.new (4 * newC + newL) :: ST s (PMV.STVector s Int)
+
+                    let {-# INLINE copyModified #-}
+                        copyModified !index !index' =
+                            let y | x < 4 * oldC            = x
+                                  | ml < oldL - legsToGlue  = 4 * newC + 4 - legsToGlue + ml
+                                  | otherwise               = 4 * newC - 5 + oldL - ml
+                                  where
+                                      x = involutionArray tangle `PV.unsafeIndex` index'
+                                      ml = (x - 4 * oldC - lp - 1) `mod` oldL
+                            in PMV.unsafeWrite cr index y
+
+                    forM_ [0 .. 4 * oldC - 1] $ \ !i ->
+                        copyModified i i
+
+                    forM_ [0 .. legsToGlue - 1] $ \ !i ->
+                        copyModified (4 * (newC - 1) + i) (4 * oldC + ((lp - i) `mod` oldL))
+
+                    forM_ [0 .. 3 - legsToGlue] $ \ !i -> do
+                        let a = 4 * (newC - 1) + legsToGlue + i
+                            b = 4 * newC + i
+                        PMV.unsafeWrite cr a b
+                        PMV.unsafeWrite cr b a
+
+                    forM_ [0 .. oldL - 1 - legsToGlue] $ \ !i ->
+                        copyModified (4 * newC + i + 4 - legsToGlue) (4 * oldC + ((lp + 1 + i) `mod` oldL))
+
+                    return $! cr
+
+                , crossingsArray  = V.snoc (crossingsArray tangle) crossingToGlue
                 , legsCount       = newL
                 }
 
