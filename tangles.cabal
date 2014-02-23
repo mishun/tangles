@@ -36,7 +36,7 @@ library
     ghc-prof-options:   -prof -auto-all -caf-all
     cc-options:         -Wall -std=c++11
     build-depends:
-        base >=4.6.0.1,
+        base >=4.6,
         array,
         deepseq,
         parallel,
@@ -47,7 +47,7 @@ library
         disjoint-set,
         IfElse,
         HaskellForMaths,
-        diagrams-lib
+        diagrams-lib >=1.0
     hs-source-dirs:     src
     c-sources:
         src/Math/Topology/Manifolds/SurfaceGraph/Embedding/Optimization.cpp
@@ -146,8 +146,8 @@ library
             test-framework,
             test-framework-hunit,
             test-framework-quickcheck2,
-            diagrams-svg,
-            diagrams-postscript,
+            diagrams-svg >= 1.0,
+            diagrams-postscript >= 1.0,
             blaze-svg
         exposed-modules:
             Math.Combinatorics.ChordDiagram.Test,
@@ -176,7 +176,12 @@ benchmark GraphDrawingBenchmark
     default-extensions: BangPatterns
     ghc-options:        -threaded
     ghc-prof-options:   -rtsopts -prof -auto-all -caf-all
-    build-depends:      base, array, mtl, diagrams-lib, tangles
+    build-depends:
+        base >=4.6,
+        array,
+        mtl,
+        diagrams-lib >=1.0,
+        tangles
     main-is:            GraphDrawingBenchmark.hs
     hs-source-dirs:     test
 
@@ -192,7 +197,12 @@ benchmark TangleGeneratorBenchmark
     default-extensions: BangPatterns
     ghc-options:        -threaded
     ghc-prof-options:   -rtsopts -prof -auto-all -caf-all
-    build-depends:      base, mtl, containers, diagrams-lib, tangles
+    build-depends:
+        base >=4.6,
+        mtl,
+        containers,
+        diagrams-lib >=1.0,
+        tangles
     main-is:            TangleGeneratorBenchmark.hs
     hs-source-dirs:     test
 
@@ -208,7 +218,13 @@ benchmark NonAlternatingBenchmark
     default-extensions: BangPatterns
     ghc-options:        -threaded
     ghc-prof-options:   -rtsopts -prof -auto-all -caf-all
-    build-depends:      base, array, mtl, containers, diagrams-lib, tangles
+    build-depends:
+        base >=4.6,
+        array,
+        mtl,
+        containers,
+        diagrams-lib >=1.0,
+        tangles
     main-is:            NonAlternatingBenchmark.hs
     hs-source-dirs:     test
 
@@ -224,7 +240,13 @@ benchmark KnotPolynomialsBenchmark
     default-extensions: BangPatterns
     ghc-options:        -threaded
     ghc-prof-options:   -rtsopts -prof -auto-all -caf-all
-    build-depends:      base, array, mtl, containers, criterion, tangles
+    build-depends:
+        base >=4.6,
+        array,
+        mtl,
+        containers,
+        criterion,
+        tangles
     main-is:            KnotPolynomialsBenchmark.hs
     hs-source-dirs:     test
 
@@ -240,7 +262,14 @@ benchmark VirtualBenchmark
     default-extensions: BangPatterns
     ghc-options:        -threaded
     ghc-prof-options:   -rtsopts -prof -auto-all -caf-all
-    build-depends:      base, array, mtl, containers, criterion, diagrams-lib, tangles
+    build-depends:
+        base >=4.6,
+        array,
+        mtl,
+        containers,
+        criterion,
+        diagrams-lib >=1.0,
+        tangles
     main-is:            VirtualBenchmark.hs
     hs-source-dirs:     test
 
@@ -256,7 +285,14 @@ benchmark ChordDiagramsBenchmark
     default-extensions: BangPatterns
     ghc-options:        -threaded
     ghc-prof-options:   -rtsopts -prof -auto-all -caf-all
-    build-depends:      base, array, mtl, containers, criterion, diagrams-lib, tangles
+    build-depends:
+        base >=4.6,
+        array,
+        mtl,
+        containers,
+        criterion,
+        diagrams-lib >=1.0,
+        tangles
     main-is:            ChordDiagramsBenchmark.hs
     hs-source-dirs:     test
 
@@ -269,7 +305,10 @@ test-suite TestTangles
     default-extensions: BangPatterns
     ghc-options:        -O -threaded
     ghc-prof-options:   -rtsopts -prof -auto-all -caf-all
-    build-depends:      base, test-framework, tangles
+    build-depends:
+        base >=4.6,
+        test-framework,
+        tangles
     main-is:            TestTangles.hs
     hs-source-dirs:     test
 
@@ -279,6 +318,10 @@ executable TestMoves
         buildable: False
     default-language:   Haskell2010
     ghc-options:        -threaded
-    build-depends:      base, diagrams-lib, tangles
+    build-depends:
+        base >=4.6,
+        diagrams-lib >=1.0,
+        tangles
     main-is:            TestMoves.hs
     hs-source-dirs:     test
+

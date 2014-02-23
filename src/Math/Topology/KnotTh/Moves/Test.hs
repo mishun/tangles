@@ -14,12 +14,11 @@ testMovesPictures :: (Renderable (Path R2) b, Renderable Text b, Backend b R2) =
 testMovesPictures =
     let illustratedMove move knot =
             let draw = scale 4 . freeze . drawKnotDef
-                right = hcat' with { sep = 0.5 } $ map draw $ move knot
-                arrow = strutX 8 <> text "->"
-            in draw knot ||| arrow ||| right
+                right = hcat' with { _sep = 0.5 } $ map draw $ move knot
+            in draw knot ||| (strutX 8 <> text "->") ||| right
 
     in  [ ("PatternMatchingPass",
-            vcat' with { sep = 0.5 } $ map (uncurry illustratedMove)
+            vcat' with { _sep = 0.5 } $ map (uncurry illustratedMove)
                 [ (searchMoves [pass1, pass2],
                     decodeCascadeCode [(WU, 0), (MO, 0)])
 
@@ -54,12 +53,12 @@ testMovesPictures =
                 ])
 
         , ("PatternMatchingFlype",
-            vcat' with { sep = 0.5 } $ map (uncurry illustratedMove)
+            vcat' with { _sep = 0.5 } $ map (uncurry illustratedMove)
                 [ (searchMoves [flype], decodeCascadeCode [(XO, 0), (XU, 1)])
                 ])
 
         , ("PatternMatchingPerko",
-            vcat' with { sep = 0.5 } $ map (uncurry illustratedMove)
+            vcat' with { _sep = 0.5 } $ map (uncurry illustratedMove)
                 [ (searchMoves [perko],
                     linkToTangle $ fromGaussCode [[-1, 2, 3, -4, 5, -6, -2, 7, -8, 9, 4, -3, -7, 1, 6, -5, -10, 8, -9, 10]])
 
@@ -96,7 +95,7 @@ testMovesPictures =
                 ])
 
         , ("PatternMatchingDoublePass",
-            vcat' with { sep = 0.5 } $ map (uncurry illustratedMove)
+            vcat' with { _sep = 0.5 } $ map (uncurry illustratedMove)
                 [ (searchMoves [doublePass],
                     implode
                         ( 0
@@ -129,7 +128,7 @@ testMovesPictures =
                 ])
 
         , ("NewMove",
-            vcat' with { sep = 0.5 } $ map (uncurry illustratedMove)
+            vcat' with { _sep = 0.5 } $ map (uncurry illustratedMove)
                 [ (searchMoves [flype, pass1, pass2, pass3, perko, doublePass],
                     implode
                         ( 0

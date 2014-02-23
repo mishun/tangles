@@ -54,6 +54,10 @@ surfaceLinkImage :: (Renderable (Path R2) b) => DrawKnotSettings -> EmbeddedLink
 surfaceLinkImage s _ numberOfGroups img =
     execWriter $ do
         when (borderWidth s > 0.0) $
-            tell $ styleBorder s $ polygon with { polyType = PolyRegular numberOfGroups 1, polyOrient = OrientV }
+            tell $ styleBorder s $
+                polygon with
+                    { _polyType   = PolyRegular numberOfGroups 1
+                    , _polyOrient = OrientV
+                    }
 
         tell img
