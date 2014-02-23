@@ -15,11 +15,8 @@ import Data.Maybe (fromMaybe)
 import Data.Bits ((.&.), shiftL, complement)
 import qualified Data.Vector.Primitive as PV
 import qualified Data.Vector.Primitive.Mutable as PMV
-import Data.Array.IArray (listArray)
-import Data.Array.MArray (newArray, newArray_, readArray, writeArray)
-import Data.Array.Base (unsafeAt, unsafeRead, unsafeWrite)
-import Data.Array.Unboxed (UArray)
-import Data.Array.Unsafe (unsafeFreeze)
+import Data.Array.MArray (newArray, newArray_)
+import Data.Array.Base (unsafeRead, unsafeWrite)
 import Data.Array.ST (STArray, STUArray, runSTUArray)
 import Data.STRef (newSTRef, readSTRef, writeSTRef)
 import Control.Monad.ST (ST)
@@ -37,9 +34,9 @@ produceKnotted
     [d| data EmbeddedLink ct =
             EmbeddedLink
                 { faceCount      :: {-# UNPACK #-} !Int
-                , faceDataOffset :: {-# UNPACK #-} !(UArray Int Int)
-                , faceCCWBrdDart :: {-# UNPACK #-} !(UArray Int Int)
-                , faceLLookup    :: {-# UNPACK #-} !(UArray Int Int)
+                , faceDataOffset :: {-# UNPACK #-} !(PV.Vector Int)
+                , faceCCWBrdDart :: {-# UNPACK #-} !(PV.Vector Int)
+                , faceLLookup    :: {-# UNPACK #-} !(PV.Vector Int)
                 }
 
         instance Knotted EmbeddedLink where
@@ -127,22 +124,22 @@ produceKnotted
         { implodeExplodeSettings = defaultImplodeExplode
             { implodePostExtra = \ n cr spliceFill -> (:[]) $
                 bindS (tupP [varP fcN, varP fllookN, varP foffN, varP fccwdN]) [| do
-                    fccwd <- newArray_ (0, 4 * $n - 1) :: ST s (STUArray s Int Int)
-                    fllook <- newArray (0, 8 * $n - 1) (-1) :: ST s (STUArray s Int Int)
+                    fccwd <- PMV.new (4 * $n) :: ST s (PMV.STVector s Int)
+                    fllook <- PMV.replicate (8 * $n) (-1) :: ST s (PMV.STVector s Int)
 
                     (fc, _) <- foldM (\ (!fid, !base) !start -> do
-                        mi <- readArray fllook (2 * start)
+                        mi <- PMV.read fllook (2 * start)
                         if mi >= 0
                             then return (fid, base)
                             else do
                                 sz <- fix (\ mark !offset !i -> do
-                                    writeArray fllook (2 * i) fid
-                                    writeArray fllook (2 * i + 1) offset
-                                    writeArray fccwd (base + offset) i
+                                    PMV.write fllook (2 * i) fid
+                                    PMV.write fllook (2 * i + 1) offset
+                                    PMV.write fccwd (base + offset) i
 
                                     i' <- PMV.unsafeRead $cr i
                                     let j = (i' .&. complement 3) + ((i' - 1) .&. 3)
-                                    mj <- readArray fllook (2 * j)
+                                    mj <- PMV.read fllook (2 * j)
                                     if mj >= 0
                                         then return $! offset + 1
                                         else mark (offset + 1) j
@@ -150,20 +147,20 @@ produceKnotted
                                 return (fid + 1, base + sz)
                         ) (0, 0) [0 .. 4 * $n - 1]
 
-                    foff <- newArray_ (0, fc) :: ST s (STUArray s Int Int)
+                    foff <- PMV.replicate (fc + 1) 0 :: ST s (PMV.STVector s Int)
                     forM_ [0 .. 4 * $n - 1] $ \ !i -> do
-                        fid <- readArray fllook (2 * i)
-                        cur <- readArray foff fid
-                        writeArray foff fid $! cur + 1
+                        fid <- PMV.read fllook (2 * i)
+                        cur <- PMV.read foff fid
+                        PMV.write foff fid $! cur + 1
                     foldM_ (\ !offset !i -> do
-                            cur <- readArray foff i
-                            writeArray foff i offset
+                            cur <- PMV.read foff i
+                            PMV.write foff i offset
                             return $! offset + cur
                         ) 0 [0 .. fc]
 
-                    fccwd' <- unsafeFreeze fccwd
-                    fllook' <- unsafeFreeze fllook
-                    foff' <- unsafeFreeze foff
+                    fccwd' <- PV.unsafeFreeze fccwd
+                    fllook' <- PV.unsafeFreeze fllook
+                    foff' <- PV.unsafeFreeze foff
                     return (fc, fllook', foff', fccwd')
                     |]
 
@@ -177,9 +174,9 @@ produceKnotted
 
         , emptyExtraInitializers =
             [ (,) (mkName "faceCount")      `fmap` [| 1 :: Int |]
-            , (,) (mkName "faceDataOffset") `fmap` [| listArray (0 :: Int, 1) [0, 0] |]
-            , (,) (mkName "faceCCWBrdDart") `fmap` [| listArray (0 :: Int, -1) [] |]
-            , (,) (mkName "faceLLookup")    `fmap` [| listArray (0 :: Int, -1) [] |]
+            , (,) (mkName "faceDataOffset") `fmap` [| PV.replicate 2 0 |]
+            , (,) (mkName "faceCCWBrdDart") `fmap` [| PV.empty |]
+            , (,) (mkName "faceLLookup")    `fmap` [| PV.empty |]
             ]
         }
 
@@ -202,22 +199,22 @@ instance SurfaceDiagram EmbeddedLink where
     data Face EmbeddedLink ct = Face !(EmbeddedLink ct) {-# UNPACK #-} !Int
 
     faceDegree (Face l i) =
-        let cur = faceDataOffset l `unsafeAt` i
-            nxt = faceDataOffset l `unsafeAt` (i + 1)
+        let cur = faceDataOffset l `PV.unsafeIndex` i
+            nxt = faceDataOffset l `PV.unsafeIndex` (i + 1)
         in nxt - cur
 
     faceOwner (Face l _) = l
 
     faceIndex (Face _ i) = i + 1
 
-    leftFace (Dart l i) = Face l $ faceLLookup l `unsafeAt` (2 * i)
+    leftFace (Dart l i) = Face l $ faceLLookup l `PV.unsafeIndex` (2 * i)
 
-    leftPlace (Dart l i) = faceLLookup l `unsafeAt` (2 * i + 1)
+    leftPlace (Dart l i) = faceLLookup l `PV.unsafeIndex` (2 * i + 1)
 
     nthDartInCCWTraverse (Face l i) p =
-        let cur = faceDataOffset l `unsafeAt` i
-            nxt = faceDataOffset l `unsafeAt` (i + 1)
-        in Dart l $ faceCCWBrdDart l `unsafeAt` (cur + p `mod` (nxt - cur))
+        let cur = faceDataOffset l `PV.unsafeIndex` i
+            nxt = faceDataOffset l `PV.unsafeIndex` (i + 1)
+        in Dart l $ faceCCWBrdDart l `PV.unsafeIndex` (cur + p `mod` (nxt - cur))
 
     faceIndicesRange l = (1, numberOfFaces l)
 
