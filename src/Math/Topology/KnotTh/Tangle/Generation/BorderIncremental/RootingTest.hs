@@ -8,12 +8,11 @@ import Data.Function (fix)
 import Data.Ord (comparing)
 import Data.List (minimumBy)
 import Data.Bits (shiftL)
-import Data.Array.Base (unsafeRead, unsafeWrite, unsafeAt)
-import Data.Array.Unboxed (UArray)
-import Data.Array.ST (STArray, STUArray, runSTUArray, newArray, newArray_)
-import Data.Array.Unsafe (unsafeFreeze)
+import qualified Data.Vector.Mutable as MV
+import qualified Data.Vector.Unboxed as UV
+import qualified Data.Vector.Unboxed.Mutable as UMV
 import Data.STRef (newSTRef, readSTRef, writeSTRef)
-import Control.Monad.ST (ST, runST)
+import Control.Monad.ST (runST)
 import Control.Monad (when, guard)
 import qualified Math.Algebra.RotationDirection as R
 import qualified Math.Algebra.Group.Dn as Dn
@@ -22,10 +21,10 @@ import Math.Topology.KnotTh.Crossings.SubTangle
 import Math.Topology.KnotTh.Tangle
 
 
-{-# SPECIALIZE rootingSymmetryTest :: Vertex Tangle ProjectionCrossing -> Maybe (Dn.DnSubGroup, (D4.D4, D4.D4), UArray Int Int) #-}
-{-# SPECIALIZE rootingSymmetryTest :: Vertex Tangle DiagramCrossing -> Maybe (Dn.DnSubGroup, (D4.D4, D4.D4), UArray Int Int) #-}
-{-# SPECIALIZE rootingSymmetryTest :: Vertex Tangle (SubTangleCrossing a) -> Maybe (Dn.DnSubGroup, (D4.D4, D4.D4), UArray Int Int) #-}
-rootingSymmetryTest :: (Crossing a) => Vertex Tangle a -> Maybe (Dn.DnSubGroup, (D4.D4, D4.D4), UArray Int Int)
+{-# SPECIALIZE rootingSymmetryTest :: Vertex Tangle ProjectionCrossing -> Maybe (Dn.DnSubGroup, (D4.D4, D4.D4), UV.Vector Int) #-}
+{-# SPECIALIZE rootingSymmetryTest :: Vertex Tangle DiagramCrossing -> Maybe (Dn.DnSubGroup, (D4.D4, D4.D4), UV.Vector Int) #-}
+{-# SPECIALIZE rootingSymmetryTest :: Vertex Tangle (SubTangleCrossing a) -> Maybe (Dn.DnSubGroup, (D4.D4, D4.D4), UV.Vector Int) #-}
+rootingSymmetryTest :: (Crossing a) => Vertex Tangle a -> Maybe (Dn.DnSubGroup, (D4.D4, D4.D4), UV.Vector Int)
 rootingSymmetryTest lastCrossing = do
     let tangle = vertexOwner lastCrossing
     guard $ numberOfLegs tangle >= 4
@@ -33,7 +32,7 @@ rootingSymmetryTest lastCrossing = do
     analyseSymmetry lastCrossing cp
 
 
-rootCodeLeg :: (Crossing a) => Dart Tangle a -> R.RotationDirection -> (D4.D4, UArray Int Int)
+rootCodeLeg :: (Crossing a) => Dart Tangle a -> R.RotationDirection -> (D4.D4, UV.Vector Int)
 rootCodeLeg root dir
     | isDart root                     = error "rootCodeLeg: leg expected"
     | numberOfFreeLoops tangle /= 0   = error "rootCodeLeg: free loops present"
@@ -43,32 +42,32 @@ rootCodeLeg root dir
         tangle = dartOwner root
 
 
-investigateConnectivity :: Vertex Tangle a -> Maybe (UArray Int Bool)
+investigateConnectivity :: Vertex Tangle a -> Maybe (UV.Vector Bool)
 investigateConnectivity lastCrossing = runST $ do
     let tangle = vertexOwner lastCrossing
     let n = numberOfVertices tangle
 
-    tins <- newArray (0, n) (-1) :: ST s (STUArray s Int Int)
-    cp <- newArray (0, n) False :: ST s (STUArray s Int Bool)
-    timer <- newSTRef 1
+    tins <- UMV.replicate (n + 1) (-1)
+    cp <- UMV.replicate (n + 1) False
+    timer <- newSTRef (1 :: Int)
 
     let {-# INLINE dfs #-}
         dfs !v !from = do
             tin <- readSTRef timer
             writeSTRef timer $! tin + 1
-            unsafeWrite tins (vertexIndex v) tin
+            UMV.unsafeWrite tins (vertexIndex v) tin
 
             let {-# INLINE walk #-}
                 walk !d (!fup, !border)
                     | isLeg d    = return (fup, border + 1)
                     | u == from  = return (fup, border)
                     | otherwise  = do
-                        utin <- unsafeRead tins (vertexIndex u)
+                        utin <- UMV.unsafeRead tins (vertexIndex u)
                         if utin > 0
                             then return (min fup utin, border)
                             else do
                                 (!thatFup, !thatBorder) <- dfs u v
-                                when (thatFup >= tin) (unsafeWrite cp (vertexIndex v) True)
+                                when (thatFup >= tin) (UMV.unsafeWrite cp (vertexIndex v) True)
                                 return (min fup thatFup, border + if thatFup <= tin then thatBorder else 1)
                     where
                         u = beginVertex d
@@ -79,14 +78,14 @@ investigateConnectivity lastCrossing = runST $ do
     if borderCut <= 2
         then return Nothing
         else do
-            unsafeWrite cp (vertexIndex lastCrossing) False
-            (Just $!) `fmap` unsafeFreeze cp
+            UMV.unsafeWrite cp (vertexIndex lastCrossing) False
+            (Just $!) `fmap` UV.unsafeFreeze cp
 
 
-{-# SPECIALIZE analyseSymmetry :: Vertex Tangle ProjectionCrossing -> UArray Int Bool -> Maybe (Dn.DnSubGroup, (D4.D4, D4.D4), UArray Int Int) #-}
-{-# SPECIALIZE analyseSymmetry :: Vertex Tangle DiagramCrossing -> UArray Int Bool -> Maybe (Dn.DnSubGroup, (D4.D4, D4.D4), UArray Int Int) #-}
-{-# SPECIALIZE analyseSymmetry :: Vertex Tangle (SubTangleCrossing a) -> UArray Int Bool -> Maybe (Dn.DnSubGroup, (D4.D4, D4.D4), UArray Int Int) #-}
-analyseSymmetry :: (Crossing a) => Vertex Tangle a -> UArray Int Bool -> Maybe (Dn.DnSubGroup, (D4.D4, D4.D4), UArray Int Int)
+{-# SPECIALIZE analyseSymmetry :: Vertex Tangle ProjectionCrossing -> UV.Vector Bool -> Maybe (Dn.DnSubGroup, (D4.D4, D4.D4), UV.Vector Int) #-}
+{-# SPECIALIZE analyseSymmetry :: Vertex Tangle DiagramCrossing -> UV.Vector Bool -> Maybe (Dn.DnSubGroup, (D4.D4, D4.D4), UV.Vector Int) #-}
+{-# SPECIALIZE analyseSymmetry :: Vertex Tangle (SubTangleCrossing a) -> UV.Vector Bool -> Maybe (Dn.DnSubGroup, (D4.D4, D4.D4), UV.Vector Int) #-}
+analyseSymmetry :: (Crossing a) => Vertex Tangle a -> UV.Vector Bool -> Maybe (Dn.DnSubGroup, (D4.D4, D4.D4), UV.Vector Int)
 analyseSymmetry lastCrossing skipCrossing = do
     let tangle = vertexOwner lastCrossing
         l = numberOfLegs tangle
@@ -108,7 +107,7 @@ analyseSymmetry lastCrossing skipCrossing = do
     let skip dir leg =
             let v = endVertex leg
                 v' = endVertex $ nextDir dir leg
-            in (skipCrossing `unsafeAt` vertexIndex v) || (v == v')
+            in (skipCrossing `UV.unsafeIndex` vertexIndex v) || (v == v')
 
     (period, periodG) <- fix (\ loop !li !leg ->
             case () of
@@ -141,10 +140,10 @@ analyseSymmetry lastCrossing skipCrossing = do
         Nothing                 -> (Dn.fromPeriod l period, (periodG, D4.i), rootCode)
 
 
-{-# SPECIALIZE compareRootCodeUnsafe :: Dart Tangle ProjectionCrossing -> R.RotationDirection -> UArray Int Int -> (D4.D4, Ordering) #-}
-{-# SPECIALIZE compareRootCodeUnsafe :: Dart Tangle DiagramCrossing -> R.RotationDirection -> UArray Int Int -> (D4.D4, Ordering) #-}
-{-# SPECIALIZE compareRootCodeUnsafe :: Dart Tangle (SubTangleCrossing a) -> R.RotationDirection -> UArray Int Int -> (D4.D4, Ordering) #-}
-compareRootCodeUnsafe :: (Crossing a) => Dart Tangle a -> R.RotationDirection -> UArray Int Int -> (D4.D4, Ordering)
+{-# SPECIALIZE compareRootCodeUnsafe :: Dart Tangle ProjectionCrossing -> R.RotationDirection -> UV.Vector Int -> (D4.D4, Ordering) #-}
+{-# SPECIALIZE compareRootCodeUnsafe :: Dart Tangle DiagramCrossing -> R.RotationDirection -> UV.Vector Int -> (D4.D4, Ordering) #-}
+{-# SPECIALIZE compareRootCodeUnsafe :: Dart Tangle (SubTangleCrossing a) -> R.RotationDirection -> UV.Vector Int -> (D4.D4, Ordering) #-}
+compareRootCodeUnsafe :: (Crossing a) => Dart Tangle a -> R.RotationDirection -> UV.Vector Int -> (D4.D4, Ordering)
 compareRootCodeUnsafe root dir rootCode =
     case globalTransformations tangle of
         Nothing      -> (D4.i, rawCompare)
@@ -154,10 +153,10 @@ compareRootCodeUnsafe root dir rootCode =
         n = numberOfVertices tangle
 
         rawCompareWithGlobal global = runST $ do
-            x <- newArray (0, n) 0 :: ST s (STUArray s Int Int)
-            unsafeWrite x (vertexIndex $ endVertex root) 1
-            q <- newArray_ (0, n - 1) :: ST s (STArray s Int (Dart Tangle ct))
-            unsafeWrite q 0 (opposite root)
+            x <- UMV.replicate (n + 1) 0
+            UMV.unsafeWrite x (vertexIndex $ endVertex root) 1
+            q <- MV.new n
+            MV.unsafeWrite q 0 (opposite root)
             free <- newSTRef 2
 
             let {-# INLINE look #-}
@@ -165,25 +164,25 @@ compareRootCodeUnsafe root dir rootCode =
                     | isLeg d    = return $! s `shiftL` 7
                     | otherwise  = do
                         let u = beginVertex d
-                        ux <- unsafeRead x (vertexIndex u)
+                        ux <- UMV.unsafeRead x (vertexIndex u)
                         if ux > 0
                             then return $! ux + (s `shiftL` 7)
                             else do
                                 nf <- readSTRef free
                                 writeSTRef free $! nf + 1
-                                unsafeWrite x (vertexIndex u) nf
-                                unsafeWrite q (nf - 1) d
+                                UMV.unsafeWrite x (vertexIndex u) nf
+                                MV.unsafeWrite q (nf - 1) d
                                 return $! nf + (s `shiftL` 7)
 
             let {-# INLINE bfs #-}
                 bfs !h | h >= n     = return EQ
                        | otherwise  = do
-                    d <- unsafeRead q h
+                    d <- MV.unsafeRead q h
                     nb <- foldMAdjacentDartsFrom d dir look 0
                     case crossingCodeWithGlobal global dir d of
                         (# be, le #) ->
-                            case compare be (rootCode `unsafeAt` (2 * h)) of
-                                EQ -> case compare (le + nb `shiftL` 3) (rootCode `unsafeAt` (2 * h + 1)) of
+                            case compare be (rootCode `UV.unsafeIndex` (2 * h)) of
+                                EQ -> case compare (le + nb `shiftL` 3) (rootCode `UV.unsafeIndex` (2 * h + 1)) of
                                         EQ -> bfs $! h + 1
                                         cp -> return cp
                                 cp -> return cp
@@ -191,10 +190,10 @@ compareRootCodeUnsafe root dir rootCode =
             bfs 0
 
         rawCompare = runST $ do
-            x <- newArray (0, n) 0 :: ST s (STUArray s Int Int)
-            unsafeWrite x (vertexIndex $ endVertex root) 1
-            q <- newArray_ (0, n - 1) :: ST s (STArray s Int (Dart Tangle ct))
-            unsafeWrite q 0 (opposite root)
+            x <- UMV.replicate (n + 1) 0
+            UMV.unsafeWrite x (vertexIndex $ endVertex root) 1
+            q <- MV.new n
+            MV.unsafeWrite q 0 (opposite root)
             free <- newSTRef 2
 
             let {-# INLINE look #-}
@@ -202,25 +201,25 @@ compareRootCodeUnsafe root dir rootCode =
                     | isLeg d    = return $! s `shiftL` 7
                     | otherwise  = do
                         let u = beginVertex d
-                        ux <- unsafeRead x (vertexIndex u)
+                        ux <- UMV.unsafeRead x (vertexIndex u)
                         if ux > 0
                             then return $! ux + (s `shiftL` 7)
                             else do
                                 nf <- readSTRef free
                                 writeSTRef free $! nf + 1
-                                unsafeWrite x (vertexIndex u) nf
-                                unsafeWrite q (nf - 1) d
+                                UMV.unsafeWrite x (vertexIndex u) nf
+                                MV.unsafeWrite q (nf - 1) d
                                 return $! nf + (s `shiftL` 7)
 
             let {-# INLINE bfs #-}
                 bfs !h | h >= n     = return EQ
                        | otherwise  = do
-                    d <- unsafeRead q h
+                    d <- MV.unsafeRead q h
                     nb <- foldMAdjacentDartsFrom d dir look 0
                     case crossingCode dir d of
                         (# be, le #) ->
-                            case compare be (rootCode `unsafeAt` (2 * h)) of
-                                EQ -> case compare (le + nb `shiftL` 3) (rootCode `unsafeAt` (2 * h + 1)) of
+                            case compare be (rootCode `UV.unsafeIndex` (2 * h)) of
+                                EQ -> case compare (le + nb `shiftL` 3) (rootCode `UV.unsafeIndex` (2 * h + 1)) of
                                         EQ -> bfs $! h + 1
                                         cp -> return cp
                                 cp -> return cp
@@ -228,10 +227,10 @@ compareRootCodeUnsafe root dir rootCode =
             bfs 0
 
 
-{-# SPECIALIZE rootCodeLegUnsafe :: Dart Tangle ProjectionCrossing -> R.RotationDirection -> (D4.D4, UArray Int Int) #-}
-{-# SPECIALIZE rootCodeLegUnsafe :: Dart Tangle DiagramCrossing -> R.RotationDirection -> (D4.D4, UArray Int Int) #-}
-{-# SPECIALIZE rootCodeLegUnsafe :: Dart Tangle (SubTangleCrossing a) -> R.RotationDirection -> (D4.D4, UArray Int Int) #-}
-rootCodeLegUnsafe :: (Crossing a) => Dart Tangle a -> R.RotationDirection -> (D4.D4, UArray Int Int)
+{-# SPECIALIZE rootCodeLegUnsafe :: Dart Tangle ProjectionCrossing -> R.RotationDirection -> (D4.D4, UV.Vector Int) #-}
+{-# SPECIALIZE rootCodeLegUnsafe :: Dart Tangle DiagramCrossing -> R.RotationDirection -> (D4.D4, UV.Vector Int) #-}
+{-# SPECIALIZE rootCodeLegUnsafe :: Dart Tangle (SubTangleCrossing a) -> R.RotationDirection -> (D4.D4, UV.Vector Int) #-}
+rootCodeLegUnsafe :: (Crossing a) => Dart Tangle a -> R.RotationDirection -> (D4.D4, UV.Vector Int)
 rootCodeLegUnsafe root dir =
     case globalTransformations tangle of
         Nothing      -> (D4.i, code)
@@ -240,11 +239,11 @@ rootCodeLegUnsafe root dir =
         tangle = dartOwner root
         n = numberOfVertices tangle
 
-        codeWithGlobal global = runSTUArray $ do
-            x <- newArray (0, n) 0 :: ST s (STUArray s Int Int)
-            unsafeWrite x (vertexIndex $ endVertex root) 1
-            q <- newArray_ (0, n - 1) :: ST s (STArray s Int (Dart Tangle ct))
-            unsafeWrite q 0 (opposite root)
+        codeWithGlobal global = UV.create $ do
+            x <- UMV.replicate (n + 1) 0
+            UMV.unsafeWrite x (vertexIndex $ endVertex root) 1
+            q <- MV.new n
+            MV.unsafeWrite q 0 (opposite root)
             free <- newSTRef 2
 
             let {-# INLINE look #-}
@@ -252,36 +251,36 @@ rootCodeLegUnsafe root dir =
                     | isLeg d    = return $! s `shiftL` 7
                     | otherwise  = do
                         let u = beginVertex d
-                        ux <- unsafeRead x (vertexIndex u)
+                        ux <- UMV.unsafeRead x (vertexIndex u)
                         if ux > 0
                             then return $! ux + (s `shiftL` 7)
                             else do
                                 nf <- readSTRef free
                                 writeSTRef free $! nf + 1
-                                unsafeWrite x (vertexIndex u) nf
-                                unsafeWrite q (nf - 1) d
+                                UMV.unsafeWrite x (vertexIndex u) nf
+                                MV.unsafeWrite q (nf - 1) d
                                 return $! nf + (s `shiftL` 7)
 
-            rc <- newArray (0, 2 * n - 1) 0 :: ST s (STUArray s Int Int)
+            rc <- UMV.replicate (2 * n) 0
 
             let {-# INLINE bfs #-}
                 bfs !h = when (h < n) $ do
-                    d <- unsafeRead q h
+                    d <- MV.unsafeRead q h
                     nb <- foldMAdjacentDartsFrom d dir look 0
                     case crossingCodeWithGlobal global dir d of
                         (# be, le #) -> do
-                            unsafeWrite rc (2 * h) be
-                            unsafeWrite rc (2 * h + 1) $! le + nb `shiftL` 3
+                            UMV.unsafeWrite rc (2 * h) be
+                            UMV.unsafeWrite rc (2 * h + 1) $! le + nb `shiftL` 3
                     bfs $! h + 1
 
             bfs 0
             return rc
 
-        code = runSTUArray $ do
-            x <- newArray (0, n) 0 :: ST s (STUArray s Int Int)
-            unsafeWrite x (vertexIndex $ endVertex root) 1
-            q <- newArray_ (0, n - 1) :: ST s (STArray s Int (Dart Tangle ct))
-            unsafeWrite q 0 (opposite root)
+        code = UV.create $ do
+            x <- UMV.replicate (n + 1) 0
+            UMV.unsafeWrite x (vertexIndex $ endVertex root) 1
+            q <- MV.new n
+            MV.unsafeWrite q 0 (opposite root)
             free <- newSTRef 2
 
             let {-# INLINE look #-}
@@ -289,26 +288,26 @@ rootCodeLegUnsafe root dir =
                     | isLeg d    = return $! s `shiftL` 7
                     | otherwise  = do
                         let u = beginVertex d
-                        ux <- unsafeRead x (vertexIndex u)
+                        ux <- UMV.unsafeRead x (vertexIndex u)
                         if ux > 0
                             then return $! ux + (s `shiftL` 7)
                             else do
                                 nf <- readSTRef free
                                 writeSTRef free $! nf + 1
-                                unsafeWrite x (vertexIndex u) nf
-                                unsafeWrite q (nf - 1) d
+                                UMV.unsafeWrite x (vertexIndex u) nf
+                                MV.unsafeWrite q (nf - 1) d
                                 return $! nf + (s `shiftL` 7)
 
-            rc <- newArray (0, 2 * n - 1) 0 :: ST s (STUArray s Int Int)
+            rc <- UMV.replicate (2 * n) 0
 
             let {-# INLINE bfs #-}
                 bfs !h = when (h < n) $ do
-                    d <- unsafeRead q h
+                    d <- MV.unsafeRead q h
                     nb <- foldMAdjacentDartsFrom d dir look 0
                     case crossingCode dir d of
                         (# be, le #) -> do
-                            unsafeWrite rc (2 * h) be
-                            unsafeWrite rc (2 * h + 1) $! le + nb `shiftL` 3
+                            UMV.unsafeWrite rc (2 * h) be
+                            UMV.unsafeWrite rc (2 * h + 1) $! le + nb `shiftL` 3
                     bfs $! h + 1
 
             bfs 0

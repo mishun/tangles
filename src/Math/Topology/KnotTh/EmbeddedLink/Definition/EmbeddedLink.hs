@@ -63,9 +63,9 @@ produceKnotted
                     codeWithDirection !globalG !dir !start = PV.create $ do
                         let n = numberOfVertices link
 
-                        index <- PMV.replicate (n + 1) 0 --newArray (0, n) 0 :: ST s (STUArray s Int Int)
-                        incoming <- PMV.replicate (n + 1) 0 --newArray (0, n) 0 :: ST s (STUArray s Int Int)
-                        queue <- MV.new n --newArray_ (0, n - 1) :: ST s (STArray s Int (Dart EmbeddedLink ct))
+                        index <- PMV.replicate (n + 1) 0
+                        incoming <- PMV.replicate (n + 1) 0
+                        queue <- MV.new n
                         free <- newSTRef 1
 
                         let {-# INLINE look #-}
@@ -84,7 +84,7 @@ produceKnotted
                                         MV.unsafeWrite queue (nf - 1) d
                                         return $! nf `shiftL` 2
 
-                        rc <- PMV.replicate (6 * n + 1) 0 --newArray (0, 6 * n) 0 :: ST s (STUArray s Int Int)
+                        rc <- PMV.replicate (6 * n + 1) 0
                         PMV.unsafeWrite rc 0 $! numberOfFreeLoops link
 
                         let {-# INLINE lookAndWrite #-}
