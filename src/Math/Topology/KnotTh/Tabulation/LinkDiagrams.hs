@@ -1,9 +1,18 @@
+{-# LANGUAGE UnboxedTuples #-}
 module Math.Topology.KnotTh.Tabulation.LinkDiagrams
     ( nextGeneration
     ) where
 
-import Data.Maybe (mapMaybe)
-import qualified Data.Vector.Unboxed as V
+import Data.Function (on)
+import Data.Bits (shiftL)
+import Data.List (nubBy)
+import qualified Data.Vector.Mutable as MV
+import qualified Data.Vector.Unboxed as UV
+import qualified Data.Vector.Unboxed.Mutable as UMV
+import Data.STRef (newSTRef, readSTRef, writeSTRef)
+import Control.Monad (when, guard)
+import qualified Math.Algebra.RotationDirection as R
+import qualified Math.Algebra.Group.D4 as D4
 import Math.Topology.KnotTh.Link
 
 
@@ -57,19 +66,75 @@ p1 cross ab =
         (beginPlace ab)
 
 
-tryDescent :: [a] -> Link a -> [Dart Link a]
-tryDescent cross link = do
-    c <- cross
-    d <- allHalfEdges link
-    p0 c d : [p1 c d | opposite (nextCCW d) /= nextCW (opposite d)]
-
-
-tryAscent :: Dart Link a -> Maybe (Link a, V.Vector Int)
-tryAscent a = do
-    let b = nextCCW a
-    return (dartOwner a, undefined)
-
-
-nextGeneration :: [a] -> Link a -> [Link a]
+nextGeneration :: (Crossing a) => [a] -> Link a -> [Link a]
 nextGeneration cross link =
-    map fst $ mapMaybe tryAscent $ tryDescent cross link
+    map snd $ nubBy ((==) `on` fst) $ do
+        child <- do
+            c <- cross
+            d <- allHalfEdges link
+            p0 c d : [p1 c d | opposite (nextCCW d) /= nextCW (opposite d)]
+
+        let rc = minimum $ map (rootCode child) R.bothDirections
+            rc' = minimum $ do
+                r <- allHalfEdges $ dartOwner child
+                dir <- R.bothDirections
+                return $ rootCode r dir
+
+        guard $ rc <= rc'
+        return (rc, dartOwner child)
+
+
+rootCode :: (Crossing a) => Dart Link a -> R.RotationDirection -> (Int, UV.Vector Int)
+rootCode ab d | ac == opposite bd                       = (2, rootCode' ab d)
+              | nextDir d (opposite ac) == opposite bd  = (3, rootCode' ab d)
+              | otherwise                               = (4, UV.empty)
+    where
+        ba = opposite ab
+        ac = nextDir d ab
+        bd = nextDir (R.oppositeDirection d) ba
+
+
+rootCode' :: (Crossing a) => Dart Link a -> R.RotationDirection -> UV.Vector Int
+rootCode' root dir =
+    case globalTransformations link of
+        Nothing      -> codeWithGlobal D4.i
+        Just globals -> minimum $ map codeWithGlobal globals
+    where 
+        link = dartOwner root
+        n = numberOfVertices link
+
+        codeWithGlobal global = UV.create $ do
+            x <- UMV.replicate (n + 1) 0
+            UMV.unsafeWrite x (vertexIndex $ endVertex root) 1
+            q <- MV.new n
+            MV.unsafeWrite q 0 (opposite root)
+            free <- newSTRef 2
+
+            let {-# INLINE look #-}
+                look !d !s = do
+                    let u = beginVertex d
+                    ux <- UMV.unsafeRead x (vertexIndex u)
+                    if ux > 0
+                        then return $! ux + (s `shiftL` 7)
+                        else do
+                            nf <- readSTRef free
+                            writeSTRef free $! nf + 1
+                            UMV.unsafeWrite x (vertexIndex u) nf
+                            MV.unsafeWrite q (nf - 1) d
+                            return $! nf + (s `shiftL` 7)
+
+            rc <- UMV.replicate (2 * n) 0
+
+            let {-# INLINE bfs #-}
+                bfs !h = when (h < n) $ do
+                    d <- MV.unsafeRead q h
+                    nb <- foldMAdjacentDartsFrom d dir look 0
+                    case crossingCodeWithGlobal global dir d of
+                        (# be, le #) -> do
+                            UMV.unsafeWrite rc (2 * h) be
+                            UMV.unsafeWrite rc (2 * h + 1) $! le + nb `shiftL` 3
+                    bfs $! h + 1
+
+            bfs 0
+            return rc
+

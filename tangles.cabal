@@ -82,6 +82,7 @@ library
         Math.Topology.KnotTh.Knotted,
         Math.Topology.KnotTh.Link,
         Math.Topology.KnotTh.Link.Table,
+        Math.Topology.KnotTh.Tabulation.LinkDiagrams,
         Math.Topology.KnotTh.Tangle,
         Math.Topology.KnotTh.Tangle.Generation.BorderIncremental,
         Math.Topology.KnotTh.Tangle.Generation.FlypeClasses,
@@ -124,7 +125,6 @@ library
         Math.Topology.KnotTh.Moves.Modify,
         Math.Topology.KnotTh.Moves.Moves,
         Math.Topology.KnotTh.Moves.PatternMatching,
-        Math.Topology.KnotTh.Tabulation.LinkDiagrams,
         Math.Topology.KnotTh.Tangle.Definition.Braid,
         Math.Topology.KnotTh.Tangle.Definition.CascadeCode,
         Math.Topology.KnotTh.Tangle.Definition.Misc,
@@ -296,6 +296,29 @@ benchmark ChordDiagramsBenchmark
         diagrams-lib >=1.0,
         tangles
     main-is:            ChordDiagramsBenchmark.hs
+    hs-source-dirs:     test
+
+
+flag enable-LinkGeneratorBenchmark
+    default: False
+
+benchmark LinkGeneratorBenchmark
+    if !(flag(enable-test-modules) && flag(enable-LinkGeneratorBenchmark))
+        buildable: False
+    type:               exitcode-stdio-1.0
+    default-language:   Haskell2010
+    default-extensions: BangPatterns
+    ghc-options:        -threaded
+    ghc-prof-options:   -rtsopts -prof -auto-all -caf-all
+    build-depends:
+        base >=4.6,
+        array,
+        mtl,
+        containers,
+        criterion,
+        diagrams-lib >=1.0,
+        tangles
+    main-is:            LinkGeneratorBenchmark.hs
     hs-source-dirs:     test
 
 
