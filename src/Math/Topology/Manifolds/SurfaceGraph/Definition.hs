@@ -6,14 +6,11 @@ module Math.Topology.Manifolds.SurfaceGraph.Definition
     , constructFromList
     ) where
 
-import Data.Ix (Ix(..))
 import Data.List (intercalate)
-import Data.Array.IArray ((!), bounds, listArray, assocs, indices)
-import Data.Array.MArray (newArray, newArray_, readArray, writeArray, freeze)
-import Data.Array (Array)
-import Data.Array.Unboxed (UArray)
-import Data.Array.ST (STArray)
-import Control.Monad.ST (ST, runST)
+import qualified Data.Vector as V
+import qualified Data.Vector.Unboxed as UV
+import qualified Data.Vector.Unboxed.Mutable as UMV
+import Control.Monad.ST (runST)
 import Control.Monad (forM_, foldM)
 import Text.Printf
 import Math.Algebra.PlanarAlgebra as X
@@ -21,36 +18,36 @@ import Math.Algebra.PlanarAlgebra as X
 
 data SurfaceGraph a =
     Graph
-        { _opposite   :: {-# UNPACK #-} !(UArray Int Int)
-        , _vertices   :: {-# UNPACK #-} !(Array Int (UArray Int Int))
-        , _connToVert :: {-# UNPACK #-} !(Array Int (Int, Int))
-        , _faces      :: {-# UNPACK #-} !(Array Int (UArray Int Int))
-        , _connToFace :: {-# UNPACK #-} !(Array Int (Int, Int))
+        { _opposite   :: !(UV.Vector Int)
+        , _vertices   :: !(V.Vector (UV.Vector Int))
+        , _connToVert :: !(UV.Vector (Int, Int))
+        , _faces      :: !(V.Vector (UV.Vector Int))
+        , _connToFace :: !(UV.Vector (Int, Int))
         }
 
 
 instance PlanarDiagram SurfaceGraph where
-    numberOfVertices g = (+ 1) $ snd $ bounds $ _vertices g
+    numberOfVertices g = V.length (_vertices g)
 
-    numberOfEdges g = (`div` 2) $ (+ 1) $ snd $ bounds $ _opposite g
+    numberOfEdges g = UV.length (_opposite g) `div` 2
 
-    nthVertex g i | inRange b i  = Vertex g i
-                  | otherwise    = error $ printf "nthVertex: index %i is out of bounds %s" i (show b)
+    nthVertex g i | i >= 0 && i < l  = Vertex g i
+                  | otherwise        = error $ printf "nthVertex: index %i is out of bounds [0, %i)" i l
         where
-            b = bounds (_vertices g)
+            l = V.length (_vertices g)
 
-    nthDart g i | inRange b i  = Dart g i
-                | otherwise    = error $ printf "nthDart: index %i is out of bounds %s" i (show b)
+    nthDart g i | i >= 0 && i < l  = Dart g i
+                | otherwise        = error $ printf "nthDart: index %i is out of bounds [0, %i)" i l
         where
-            b = bounds (_opposite g)
+            l = UV.length (_opposite g)
 
-    allVertices g = map (Vertex g) $ range $ bounds $ _vertices g
+    allVertices g = map (Vertex g) [0 .. numberOfVertices g - 1]
 
-    allHalfEdges g = map (nthDart g) [0 .. numberOfDarts g - 1]
+    allHalfEdges g = map (Dart g) [0 .. numberOfDarts g - 1]
 
     data Vertex SurfaceGraph a = Vertex !(SurfaceGraph a) {-# UNPACK #-} !Int
 
-    vertexDegree (Vertex g i) = (+ 1) $ snd $ bounds (_vertices g ! i)
+    vertexDegree (Vertex g i) = UV.length (_vertices g V.! i)
 
     vertexOwner (Vertex g _) = g
 
@@ -58,7 +55,7 @@ instance PlanarDiagram SurfaceGraph where
 
     nthOutcomingDart v@(Vertex g i) j =
         let jj = j `mod` vertexDegree v
-        in Dart g $ (_vertices g ! i) ! jj
+        in Dart g $ (_vertices g V.! i) UV.! jj
 
     outcomingDarts v = map (nthOutcomingDart v) [0 .. vertexDegree v - 1]
 
@@ -69,10 +66,10 @@ instance PlanarDiagram SurfaceGraph where
     dartIndex (Dart _ i) = i
 
     beginPair (Dart g i) =
-        let (vi, p) = _connToVert g ! i
+        let (vi, p) = _connToVert g UV.! i
         in (Vertex g vi, p)
 
-    opposite (Dart g i) = Dart g (_opposite g ! i)
+    opposite (Dart g i) = Dart g (_opposite g `UV.unsafeIndex` i)
 
     isDart _ = True
 
@@ -82,30 +79,30 @@ instance PlanarDiagram SurfaceGraph where
 
 
 instance SurfaceDiagram SurfaceGraph where
-    numberOfFaces g = (+ 1) $ snd $ bounds $ _faces g
+    numberOfFaces g = V.length (_faces g)
 
-    nthFace g i | inRange b i  = Face g i
-                | otherwise    = error $ printf "nthFace: index %i is out of bounds %s" i (show b)
+    nthFace g i | i >= 0 && i < l  = Face g i
+                | otherwise        = error $ printf "nthFace: index %i is out of bounds [0, %i)" i l
         where
-            b = bounds (_faces g)
+            l = V.length (_faces g)
 
-    allFaces g = map (Face g) $ range $ bounds $ _faces g
+    allFaces g = map (Face g) [0 .. numberOfFaces g - 1]
 
     data Face SurfaceGraph a = Face !(SurfaceGraph a) {-# UNPACK #-} !Int
 
-    faceDegree (Face g i) = (+ 1) $ snd $ bounds (_faces g ! i)
+    faceDegree (Face g i) = UV.length (_faces g V.! i)
 
     faceOwner (Face g _) = g
 
     faceIndex (Face _ i) = i
 
     leftPair (Dart g i) =
-        let (fi, p) = _connToFace g ! i
+        let (fi, p) = _connToFace g UV.! i
         in (Face g fi, p)
 
     nthDartInCCWTraverse f@(Face g i) j =
         let jj = j `mod` faceDegree f
-        in Dart g $ (_faces g ! i) ! jj
+        in Dart g $ (_faces g V.! i) UV.! jj
 
     faceIndicesRange g = (0, numberOfFaces g - 1)
 
@@ -134,62 +131,70 @@ constructFromList g
     | not idempotent  = error "constructFromList: bad connections"
     | otherwise       = completeDefinition opp vert
     where
-        n = length g
-        s = listArray (0, n - 1) $ map length g :: UArray Int Int
-        offset = listArray (0, n) $ scanl (\ k i -> k + s ! i) 0 [0 .. n - 1] :: UArray Int Int
+        s = UV.fromList $ map length g
+        n = UV.length s
+
+        offset = UV.fromList $ scanl (\ k i -> k + (s UV.! i)) 0 [0 .. n - 1]
 
         indexD (v, p)
-            | v < 0 || v >= n        = error $ printf "constructFromList: vertex index %i is out of bound" v
-            | p < 0 || p >= (s ! v)  = error $ printf "constructFromList: dart index %i is out of bound" p
-            | otherwise              = (offset ! v) + p
+            | v < 0 || v >= n           = error $ printf "constructFromList: vertex index %i is out of bound" v
+            | p < 0 || p >= (s UV.! v)  = error $ printf "constructFromList: dart index %i is out of bound" p
+            | otherwise                 = (offset UV.! v) + p
 
-        opp = listArray (0, (offset ! n) - 1) $ map indexD $ concat g
+        opp = UV.fromList $ map indexD $ concat g
 
-        idempotent = all (\ (i, j) -> (i /= j) && (i == opp ! j)) $ assocs opp
+        idempotent =
+            all (\ !i ->
+                    let j = opp UV.! i
+                    in (i /= j) && (i == opp UV.! j)
+                ) [0 .. n - 1]
 
-        vert = listArray (0, n - 1) $ map (\ i ->
-                let m = s ! i
-                    o = offset ! i
-                in listArray (0, m - 1) $ map (+ o) [0 .. m - 1]
-            ) [0 .. n - 1]
+        vert = V.generate n $ \ i ->
+                   let m = s UV.! i
+                       o = offset UV.! i
+                   in UV.generate m (+ o)
 
 
-completeDefinition :: UArray Int Int -> Array Int (UArray Int Int) -> SurfaceGraph a
-completeDefinition opp vert = runST $ do
-    connV <- do
-        connV <- newArray_ (bounds opp) :: ST s (STArray s Int e)
-        forM_ (assocs vert) $ \ (!vertex, !incident) ->
-            forM_ (assocs incident) $ \ (!place, !dart) ->
-                writeArray connV dart (vertex, place)
-        freeze connV
+completeDefinition :: UV.Vector Int -> V.Vector (UV.Vector Int) -> SurfaceGraph a
+completeDefinition opp vert =
+    let connV = UV.create $ do
+            cv <- UMV.new (UV.length opp)
+            forM_ [0 .. V.length vert - 1] $ \ !vertex -> do
+                let incident = vert V.! vertex
+                forM_ [0 .. UV.length incident - 1] $ \ !place -> do
+                    let dart = incident UV.! place
+                    UMV.write cv dart (vertex, place) 
+            return cv
 
-    faces <- do
-        visited <- newArray (bounds opp) False :: ST s (STArray s Int Bool)
-        let walk start cur !l !path = do
-                writeArray visited cur True
-                let next =
-                        let (v, p) = connV ! (opp ! cur)
-                            s = vert ! v
-                        in s ! (if p > 0 then p - 1 else snd $ bounds s)
-                if next == start
-                    then return $! listArray (0, l) $ reverse $ cur : path
-                    else walk start next (l + 1) $ cur : path
+        faces = runST $ do
+            visited <- UMV.replicate (UV.length opp) False
+            let walk start cur !l !path = do
+                    UMV.write visited cur True
+                    let next =
+                            let (v, p) = connV UV.! (opp UV.! cur)
+                                s = vert V.! v
+                            in s UV.! (if p > 0 then p - 1 else UV.length s - 1)
+                    if next == start
+                        then return $! UV.fromList $ reverse $ cur : path
+                        else walk start next (l + 1) $ cur : path
 
-        r <- foldM (\ !l !i -> do
-                v <- readArray visited i
-                if v then return l else walk i i 0 [] >>= (return $!) . (: l)
-            ) [] (indices opp)
+            r <- foldM (\ !l !i -> do
+                    v <- UMV.read visited i
+                    if v then return l else walk i i (0 :: Int) [] >>= (return $!) . (: l)
+                ) [] [0 .. UV.length opp - 1]
 
-        return $! listArray (0, length r - 1) $ reverse r
+            return $! V.fromList $ reverse r
 
-    connF <- do
-        connF <- newArray_ (bounds opp) :: ST s (STArray s Int e)
-        forM_ (assocs faces) $ \ (!face, !incident) ->
-            forM_ (assocs incident) $ \ (!place, !dart) ->
-                writeArray connF dart (face, place)
-        freeze connF
+        connF = UV.create $ do
+            cf <- UMV.new (UV.length opp)
+            forM_ [0 .. V.length faces - 1] $ \ !face -> do
+                let incident = faces V.! face 
+                forM_ [0 .. UV.length incident - 1] $ \ !place -> do
+                    let dart = incident UV.! place
+                    UMV.write cf dart (face, place)
+            return cf
 
-    return Graph
+    in Graph
         { _opposite   = opp
         , _vertices   = vert
         , _connToVert = connV
