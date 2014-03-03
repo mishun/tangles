@@ -124,6 +124,7 @@ library
         Math.Topology.KnotTh.Moves.Modify,
         Math.Topology.KnotTh.Moves.Moves,
         Math.Topology.KnotTh.Moves.PatternMatching,
+        Math.Topology.KnotTh.Tabulation.LinkDiagrams,
         Math.Topology.KnotTh.Tangle.Definition.Braid,
         Math.Topology.KnotTh.Tangle.Definition.CascadeCode,
         Math.Topology.KnotTh.Tangle.Definition.Misc,
