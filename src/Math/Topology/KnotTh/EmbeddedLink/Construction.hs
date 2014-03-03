@@ -4,7 +4,7 @@ module Math.Topology.KnotTh.EmbeddedLink.Construction
     , fromTangleAndStar
     ) where
 
-import Data.Array.IArray ((!))
+import qualified Data.Vector.Unboxed as UV
 import Math.Combinatorics.ChordDiagram
 import Math.Topology.KnotTh.Knotted
 import Math.Topology.KnotTh.EmbeddedLink
@@ -32,7 +32,7 @@ fromTangleAndStar cd tangle
 
         changeLeg d =
             let i = legPlace d
-                j = (i + a ! i) `mod` l
+                j = (i + a UV.! i) `mod` l
             in nthLeg tangle j
 
 

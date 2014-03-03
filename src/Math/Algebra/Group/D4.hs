@@ -18,10 +18,9 @@ module Math.Algebra.Group.D4
 
 import Data.Char (isSpace)
 import Data.Bits ((.&.), xor, shiftL, shiftR)
-import Data.Array.Base (unsafeAt)
-import Data.Array.Unboxed (UArray, listArray)
+import qualified Data.Vector.Primitive as PV
 import Text.Printf
-import qualified Math.Algebra.Group.Dn as Dn -- (DnSubGroup, pointsUnderSubGroup, rotationPeriod, hasReflectionPart, mirroredZero, fromPeriod, fromPeriodAndMirroredZero)
+import qualified Math.Algebra.Group.Dn as Dn
 
 
 -- Element = (E^mirror) * (C^rotation)
@@ -111,7 +110,7 @@ permute (D4 x) p
     | otherwise       = (-p - x `shiftR` 1) .&. 3
 
 
-data D4SubGroup = SubGroup {-# UNPACK #-} !Int {-# UNPACK #-} !(UArray Int Int) ![D4]
+data D4SubGroup = SubGroup {-# UNPACK #-} !Int {-# UNPACK #-} !(PV.Vector Int) ![D4]
 
 
 instance Eq D4SubGroup where
@@ -141,48 +140,48 @@ subGroupD4, subGroupC4, subGroupGS, subGroupDS, subGroupC2, subGroupES, subGroup
 
 -- D4 = {I, E, C, EC, CC, ECC, CCC, ECCC}
 -- D4 / D4 = { {I, E, C, EC, CC, ECC, CCC, ECCC} }
-subGroupD4 = SubGroup 0 (listArray (0, 7) [0, 0, 0, 0, 0, 0, 0, 0]) [i]
+subGroupD4 = SubGroup 0 (PV.fromList [0, 0, 0, 0, 0, 0, 0, 0]) [i]
 
 -- C4 = {I, C, CC, CCC}
 -- D4 / C4 = { {I, C, CC, CCC}, {E, EC, ECC, ECCC} }
-subGroupC4 = SubGroup 1 (listArray (0, 7) [0, 1, 0, 1, 0, 1, 0, 1]) [i, e]
+subGroupC4 = SubGroup 1 (PV.fromList [0, 1, 0, 1, 0, 1, 0, 1]) [i, e]
 
 -- GS = {I, CC, EC, ECCC}
 -- D4 / GS = { {I, CC, EC, ECCC}, {C, CCC, E, ECC} }
-subGroupGS = SubGroup 2 (listArray (0, 7) [0, 1, 1, 0, 0, 1, 1, 0]) [i, c]
+subGroupGS = SubGroup 2 (PV.fromList [0, 1, 1, 0, 0, 1, 1, 0]) [i, c]
 
 -- DS = {I, CC, E, ECC}
 -- D4 / DS = { {I, CC, E, ECC}, {C, CCC, EC, ECCC} }
-subGroupDS = SubGroup 3 (listArray (0, 7) [0, 0, 1, 1, 0, 0, 1, 1]) [i, c]
+subGroupDS = SubGroup 3 (PV.fromList [0, 0, 1, 1, 0, 0, 1, 1]) [i, c]
 
 -- C2 = {I, CC}
 -- D4 / C2 = { {I, CC}, {C, CCC}, {E, ECC}, {EC, ECCC} }
-subGroupC2 = SubGroup 4 (listArray (0, 7) [0, 2, 1, 3, 0, 2, 1, 3]) [i, c, e, ec]
+subGroupC2 = SubGroup 4 (PV.fromList [0, 2, 1, 3, 0, 2, 1, 3]) [i, c, e, ec]
 
 -- ES = {I, E}
 -- D4 / ES = { {I, E}, {C, ECCC}, {CC, ECC}, {CCC, EC} }
-subGroupES = SubGroup 5 (listArray (0, 7) [0, 0, 1, 3, 2, 2, 3, 1]) [i, c, c2, c3]
+subGroupES = SubGroup 5 (PV.fromList [0, 0, 1, 3, 2, 2, 3, 1]) [i, c, c2, c3]
 
 -- ECS = {I, EC}
 -- D4 / ECS = { {I, EC}, {C, E}, {CC, ECCC}, {CCC, ECC} }
-subGroupECS = SubGroup 6 (listArray (0, 7) [0, 1, 1, 0, 2, 3, 3, 2]) [i, c, c2, c3]
+subGroupECS = SubGroup 6 (PV.fromList [0, 1, 1, 0, 2, 3, 3, 2]) [i, c, c2, c3]
 
 -- EC2S = {I, ECC}
 -- D4 / EC2S = { {I, ECC}, {CC, E}, {C, EC}, {CCC, ECCC} }
-subGroupEC2S = SubGroup 7 (listArray (0, 7) [0, 1, 2, 2, 1, 0, 3, 3]) [i, c, c2, c3]
+subGroupEC2S = SubGroup 7 (PV.fromList [0, 1, 2, 2, 1, 0, 3, 3]) [i, c, c2, c3]
 
 -- EC3S = {I, ECCC}
 -- D4 / EC3S = { {I, ECCC}, {E, CCC}, {C, ECC}, {CC, EC} }
-subGroupEC3S = SubGroup 8 (listArray (0, 7) [0, 1, 2, 3, 3, 2, 1, 0]) [i, c, c2, c3]
+subGroupEC3S = SubGroup 8 (PV.fromList [0, 1, 2, 3, 3, 2, 1, 0]) [i, c, c2, c3]
 
 -- ID = {I}
 -- D4 / ID = { {I}, {E}, {C}, {EC}, {CC}, {ECC}, {CCC}, {ECCC} }
-subGroupID = SubGroup 9 (listArray (0, 7) [0, 1, 2, 3, 4, 5, 6, 7]) [i, e, c, ec, c2, ec2, c3, ec3]
+subGroupID = SubGroup 9 (PV.fromList [0, 1, 2, 3, 4, 5, 6, 7]) [i, e, c, ec, c2, ec2, c3, ec3]
 
 
 {-# INLINE equivalenceClassId #-}
 equivalenceClassId :: D4SubGroup -> D4 -> Int
-equivalenceClassId (SubGroup _ a _) (D4 x) = a `unsafeAt` x
+equivalenceClassId (SubGroup _ a _) (D4 x) = a `PV.unsafeIndex` x
 
 
 {-# INLINE equvalenceClassRepresentatives #-}

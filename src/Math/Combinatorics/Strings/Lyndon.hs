@@ -2,7 +2,7 @@ module Math.Combinatorics.Strings.Lyndon
     ( minimumCyclicShift
     ) where
 
-import Data.Array (listArray, (!))
+import qualified Data.Vector as V
 
 
 minimumCyclicShift :: (Ord a) => [a] -> (Int, [a])
@@ -10,9 +10,9 @@ minimumCyclicShift list = shift `seq` (shift, drop shift list ++ take shift list
     where
         n = length list
 
-        a = listArray (0, n - 1) list
+        a = V.fromListN n list
 
-        get i = a ! mod i n
+        get i = a V.! mod i n
 
         grow i j !lyn
             | i + j >= 2 * n || cp == LT  =

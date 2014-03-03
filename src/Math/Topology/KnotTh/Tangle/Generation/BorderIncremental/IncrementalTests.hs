@@ -4,11 +4,10 @@ module Math.Topology.KnotTh.Tangle.Generation.BorderIncremental.IncrementalTests
     , testFlow4
     ) where
 
-import Data.Array.MArray (newArray, newArray_)
-import Data.Array.Base (unsafeRead, unsafeWrite)
-import Data.Array.ST (STArray, STUArray)
+import qualified Data.Vector.Mutable as MV
+import qualified Data.Vector.Unboxed.Mutable as UMV
 import Data.STRef (newSTRef, readSTRef, writeSTRef, modifySTRef')
-import Control.Monad.ST (ST, runST)
+import Control.Monad.ST (runST)
 import Control.Monad (when, unless, forM_)
 import Math.Topology.KnotTh.Tangle
 
@@ -42,34 +41,34 @@ testFlow4 finish = runST $ do
         n = numberOfVertices tangle
         l = numberOfLegs tangle
 
-    flow <- newArray (0, 4 * n - 1) 0 :: ST s (STUArray s Int Int)
+    flow <- UMV.replicate (4 * n) (0 :: Int)
     total <- newSTRef =<<
         foldMIncidentDarts finish (\ !d !f ->
             if isLeg (opposite d)
-                then unsafeWrite flow (dartIndex d) (-1) >> (return $! f + 1)
+                then UMV.unsafeWrite flow (dartIndex d) (-1) >> (return $! f + 1)
                 else return $! f
         ) (0 :: Int)
 
     let push = do
-            v <- newArray (0, n) False :: ST s (STUArray s Int Bool)
-            p <- newArray_ (0, n)  :: ST s (STArray s Int (Dart Tangle ct))
-            q <- newArray (0, n) 0 :: ST s (STUArray s Int Int)
+            v <- UMV.replicate (n + 1) False
+            p <- MV.new (n + 1)
+            q <- UMV.replicate (n + 1) 0
             tl <- newSTRef 0
 
             let touch !d = do
                     let ci = beginVertexIndex d
-                    visited <- unsafeRead v ci
+                    visited <- UMV.unsafeRead v ci
                     unless visited $ do
-                        unsafeWrite v ci True
-                        unsafeWrite p ci d
+                        UMV.unsafeWrite v ci True
+                        MV.unsafeWrite p ci d
                         i <- readSTRef tl
-                        unsafeWrite q i ci
+                        UMV.unsafeWrite q i ci
                         writeSTRef tl $! i + 1
 
             forM_ (allLegs tangle) $ \ !a -> do
                 let b = opposite a
                 when (isDart b) $ do
-                    f <- unsafeRead flow $! dartIndex b
+                    f <- UMV.unsafeRead flow $! dartIndex b
                     when (f > -1) (touch b)
 
             when (l == 4) $ do
@@ -79,27 +78,29 @@ testFlow4 finish = runST $ do
             let loop !h = do
                     cont <- readSTRef tl >>= \ !t -> return $! (t > h)
                     when cont $ do
-                        ci <- unsafeRead q h
+                        ci <- UMV.unsafeRead q h
                         forMIncidentDarts (nthVertex tangle ci) $ \ !a -> do
                             let b = opposite a
                             when (isDart b) $ do
-                                f <- unsafeRead flow $! dartIndex b
+                                f <- UMV.unsafeRead flow $! dartIndex b
                                 when (f > -1) (touch b)
                         loop $! h + 1
 
             loop 0
 
-            pathFound <- unsafeRead v $ vertexIndex finish
+            pathFound <- UMV.unsafeRead v $ vertexIndex finish
             if pathFound
                 then do
                     let update !a = do
-                            unsafeRead flow (dartIndex a) >>= \ !f -> unsafeWrite flow (dartIndex a) $! f - 1
+                            UMV.unsafeRead flow (dartIndex a) >>= \ !f ->
+                                UMV.unsafeWrite flow (dartIndex a) $! f - 1
                             let b = opposite a
                             when (isDart b) $ do
-                                unsafeRead flow (dartIndex b) >>= \ !f -> unsafeWrite flow (dartIndex b) $! f + 1
-                                unsafeRead p (beginVertexIndex b) >>= update
+                                UMV.unsafeRead flow (dartIndex b) >>= \ !f ->
+                                    UMV.unsafeWrite flow (dartIndex b) $! f + 1
+                                MV.unsafeRead p (beginVertexIndex b) >>= update
 
-                    unsafeRead p (vertexIndex finish) >>= update
+                    MV.unsafeRead p (vertexIndex finish) >>= update
                     modifySTRef' total (+ 1)
                     push
                 else do
@@ -107,7 +108,8 @@ testFlow4 finish = runST $ do
                     foldMIncidentDarts finish (\ !a !ok -> do
                             let b = opposite a
                             if isDart b
-                                then unsafeRead v (beginVertexIndex b) >>= \ !ok' -> return $! ok' && ok
+                                then UMV.unsafeRead v (beginVertexIndex b) >>= \ !ok' ->
+                                    return $! ok' && ok
                                 else return $! ok
                         ) (final == 4)
 

@@ -6,7 +6,7 @@ module Math.Combinatorics.ChordDiagram.Draw
 
 import Control.Monad.Writer (execWriter, tell)
 import Control.Monad (when, forM_)
-import Diagrams.Prelude hiding (tan)
+import Diagrams.Prelude
 import Math.Combinatorics.ChordDiagram
 
 

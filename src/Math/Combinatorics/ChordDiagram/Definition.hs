@@ -14,37 +14,31 @@ module Math.Combinatorics.ChordDiagram.Definition
     ) where
 
 import Data.Function (fix)
-import Data.Array.IArray (listArray, (!), bounds)
-import Data.Array.MArray (newArray, readArray, writeArray)
-import Data.Array.Unboxed (UArray)
-import Data.Array.ST (STUArray)
-import Control.Monad.ST (ST, runST)
+import qualified Data.Vector.Unboxed as UV
+import qualified Data.Vector.Unboxed.Mutable as UMV
+import Control.Monad.ST (runST)
 import Control.Monad (unless, foldM)
 
 
-newtype ChordDiagram = ChordDiagram (UArray Int Int) deriving (Eq, Ord, Show)
+newtype ChordDiagram = ChordDiagram (UV.Vector Int) deriving (Eq, Ord, Show)
 
 
 numberOfPoints :: ChordDiagram -> Int
-numberOfPoints (ChordDiagram a) =
-    let (_, n) = bounds a
-    in n + 1
+numberOfPoints (ChordDiagram a) = UV.length a
 
 
 numberOfChords :: ChordDiagram -> Int
-numberOfChords (ChordDiagram a) =
-    let (_, n) = bounds a
-    in (n + 1) `div` 2
+numberOfChords (ChordDiagram a) = UV.length a `div` 2
 
 
-chordOffsetArray :: ChordDiagram -> UArray Int Int
+chordOffsetArray :: ChordDiagram -> UV.Vector Int
 chordOffsetArray (ChordDiagram a) = a
 
 
 chordSpan :: ChordDiagram -> Int -> Int
 chordSpan cd@(ChordDiagram a) x =
     let p = numberOfPoints cd
-    in a ! (x `mod` p)
+    in a UV.! (x `mod` p)
 
 
 chordEnd :: ChordDiagram -> Int -> Int
@@ -61,11 +55,9 @@ rotateChordDiagram :: Int -> ChordDiagram -> ChordDiagram
 rotateChordDiagram rot cd
     | (rot == 0) || (p == 0)  = cd
     | otherwise               =
-        ChordDiagram $ listArray (0, p - 1) $
-            map (\ !i ->
-                    let i' = (i - rot) `mod` p
-                    in a ! i'
-                ) [0 .. p - 1]
+        ChordDiagram $ UV.generate p $ \ !i ->
+            let i' = (i - rot) `mod` p
+            in a UV.! i'
     where
         p = numberOfPoints cd
         a = chordOffsetArray cd
@@ -75,28 +67,26 @@ mirrorChordDiagram :: ChordDiagram -> ChordDiagram
 mirrorChordDiagram cd =
     let p = numberOfPoints cd
         a = chordOffsetArray cd
-    in ChordDiagram $ listArray (0, p - 1) $
-        map (\ !i ->
-            let i' = (-i) `mod` p
-            in p - (a ! i')
-        ) [0 .. p - 1]
+    in ChordDiagram $ UV.generate p $ \ !i ->
+        let i' = (-i) `mod` p
+        in p - (a UV.! i')
 
 
 numberOfCopoints :: ChordDiagram -> Int
 numberOfCopoints cd = runST $ do
     let p = numberOfPoints cd
         a = chordOffsetArray cd
-    ok <- newArray (0, p - 1) False :: ST s (STUArray s Int Bool)
+    ok <- UMV.replicate p False
     foldM (\ !v !i -> do
-            oki <- readArray ok i
+            oki <- UMV.read ok i
             if oki
                 then return $! v
                 else do
                     fix (\ loop !j -> do
-                            okj <- readArray ok j
+                            okj <- UMV.read ok j
                             unless okj $ do
-                                writeArray ok j True
-                                loop $ (1 + j + a ! j) `mod` p
+                                UMV.write ok j True
+                                loop $ (1 + j + a UV.! j) `mod` p
                         ) i
                     return $! v + 1
         ) 0 [0 .. p - 1]

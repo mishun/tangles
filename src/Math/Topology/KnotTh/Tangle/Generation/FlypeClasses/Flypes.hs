@@ -4,9 +4,8 @@ module Math.Topology.KnotTh.Tangle.Generation.FlypeClasses.Flypes
     , additionalFlypeSymmetry
     ) where
 
-import Data.Array.Base (unsafeWrite)
-import Data.Array.Unboxed (UArray)
-import Data.Array.ST (runSTUArray, newArray)
+import qualified Data.Vector.Unboxed as UV
+import qualified Data.Vector.Unboxed.Mutable as UMV
 import Text.Printf
 import qualified Math.Algebra.RotationDirection as R
 import qualified Math.Algebra.Group.Dn as Dn
@@ -15,13 +14,13 @@ import Math.Topology.KnotTh.Crossings.SubTangle
 import Math.Topology.KnotTh.Tangle
 
 
-flypeCodeLeg :: Dart Tangle (SubTangleCrossing ProjectionCrossing) -> R.RotationDirection -> UArray Int Int
+flypeCodeLeg :: Dart Tangle (SubTangleCrossing ProjectionCrossing) -> R.RotationDirection -> UV.Vector Int
 flypeCodeLeg leg initialDirection
     | isDart leg  = error $ printf "flypeCodeLeg: leg expected, %s received" (show leg)
-    | otherwise   = runSTUArray $ do
+    | otherwise   = UV.create $ do
         let tangle = dartOwner leg
         let n = numberOfVertices tangle
-        code <- newArray (0, 2 * n - 1) 0
+        code <- UMV.replicate (2 * n) 0
 
         let {-# INLINE go #-}
             go !i !d !dir
@@ -30,15 +29,15 @@ flypeCodeLeg leg initialDirection
                 | otherwise                        = do
                     case crossingCode dir d of
                         (# be, le #) -> do
-                            unsafeWrite code (2 * i) be
-                            unsafeWrite code (2 * i + 1) le
+                            UMV.unsafeWrite code (2 * i) be
+                            UMV.unsafeWrite code (2 * i + 1) le
                     go (i + 1) (opposite $ nextDir dir d) dir
 
         go 0 (opposite leg) initialDirection
         return code
 
 
-minimumFlypeCode :: SubTangleTangle ProjectionCrossing -> UArray Int Int
+minimumFlypeCode :: SubTangleTangle ProjectionCrossing -> UV.Vector Int
 minimumFlypeCode tangle
     | numberOfLegs tangle /= 4          = error $ printf "minimumFlypeCode: tangle with 4 legs expected, %i received" (numberOfLegs tangle)
     | (a == b) && (c == d) && (a /= c)  = minimum $ map (uncurry flypeCodeLeg) [(l0, R.cw), (l1, R.ccw), (l2, R.cw), (l3, R.ccw)]
