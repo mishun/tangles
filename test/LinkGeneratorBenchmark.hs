@@ -13,6 +13,7 @@ import TestUtil.Drawing
 
 main :: IO ()
 main = do
+{-
     let walk n l | numberOfVertices l >= n  = [l]
                  | otherwise                =
             l : concatMap (walk n) (nextGeneration projectionCrossings l)
@@ -24,4 +25,11 @@ main = do
         forM_ (M.elems t `zip` [0 ..]) $ \ (cc, j) ->
             forM_ (cc `zip` [0 ..]) $ \ (link, i) ->
                 tell $ translate (r2 (2.2 * i, -2.2 * j)) $ drawKnotDef link
+-}
 
+    writeSVGImage "links-tree.svg" (Width 500) $ pad 1.05 $
+        let walk 0 link = drawKnotDef link
+            walk depth link =
+                let next = nextGeneration projectionCrossings link
+                in drawKnotDef link === pad 1.1 (hcat' with { _sep = 0.1 } $ map (walk $ depth - 1) next)
+        in walk 4 $ projection hopfLink
