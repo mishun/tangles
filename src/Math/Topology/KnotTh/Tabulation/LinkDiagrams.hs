@@ -16,7 +16,7 @@ import qualified Math.Algebra.Group.D4 as D4
 import Math.Topology.KnotTh.Link
 
 
-p0 :: a -> Dart Link a -> Dart Link a
+p0 :: (Crossing a) => a -> Dart Link a -> ((Int, UV.Vector Int), Link a)
 p0 cross ab =
     let link = dartOwner ab
         ba = opposite ab
@@ -35,12 +35,14 @@ p0 cross ab =
                      ++ [(map beginPair' [ab, ba, dc, cd], cross)]
             )
 
-    in nthOutcomingDart
-        (nthVertex res $ beginVertexIndex ab)
-        (beginPlace ab)
+        rc = let v = nthVertex res n
+             in min (rootCode' (nthOutcomingDart v 3) R.ccw)
+                    (rootCode' (nthOutcomingDart v 0) R.cw)
+
+    in ((2, rc), res)
 
 
-p1 :: a -> Dart Link a -> Dart Link a
+p1 :: (Crossing a) => a -> Dart Link a -> ((Int, UV.Vector Int), Link a)
 p1 cross ab =
     let link = dartOwner ab
         ba = opposite ab
@@ -61,37 +63,34 @@ p1 cross ab =
                      ++ [(map beginPair' [ac, bd, db, ca], cross)]
             )
 
-    in nthOutcomingDart
-        (nthVertex res $ beginVertexIndex ab)
-        (beginPlace ab)
+        rc = let v = nthVertex res n
+             in min (rootCode' (nthOutcomingDart v 0) R.ccw)
+                    (rootCode' (nthOutcomingDart v 1) R.cw)
+
+    in ((3, rc), res)
 
 
 nextGeneration :: (Crossing a) => [a] -> Link a -> [Link a]
 nextGeneration cross link =
     map snd $ nubBy ((==) `on` fst) $ do
-        child <- do
+        (rc, child) <- do
             c <- cross
             d <- allHalfEdges link
             p0 c d : [p1 c d | opposite (nextCCW d) /= nextCW (opposite d)]
 
-        let rc = minimum $ map (rootCode child) R.bothDirections
-            rc' = minimum $ do
-                r <- allHalfEdges $ dartOwner child
-                dir <- R.bothDirections
-                return $ rootCode r dir
-
+        let rc' = minimum [rootCode r dir | r <- allHalfEdges child, dir <- R.bothDirections]
         guard $ rc <= rc'
-        return (rc, dartOwner child)
+        return (rc, child)
 
 
 rootCode :: (Crossing a) => Dart Link a -> R.RotationDirection -> (Int, UV.Vector Int)
-rootCode ab d | ac == opposite bd                       = (2, rootCode' ab d)
-              | nextDir d (opposite ac) == opposite bd  = (3, rootCode' ab d)
-              | otherwise                               = (4, UV.empty)
+rootCode ab dir | ac == opposite bd                         = (2, rootCode' ab dir)
+                | nextDir dir (opposite ac) == opposite bd  = (3, rootCode' ab dir)
+                | otherwise                                 = (4, UV.empty)
     where
         ba = opposite ab
-        ac = nextDir d ab
-        bd = nextDir (R.oppositeDirection d) ba
+        ac = nextDir dir ab
+        bd = nextDir (R.oppositeDirection dir) ba
 
 
 rootCode' :: (Crossing a) => Dart Link a -> R.RotationDirection -> UV.Vector Int
