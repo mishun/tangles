@@ -1,4 +1,4 @@
-{-# LANGUAGE TemplateHaskell, TypeFamilies, UnboxedTuples #-}
+{-# LANGUAGE TypeFamilies, UnboxedTuples #-}
 module Math.Topology.KnotTh.EmbeddedLink.Definition.EmbeddedLink
     ( EmbeddedLink
     , EmbeddedLinkProjection
@@ -9,58 +9,145 @@ module Math.Topology.KnotTh.EmbeddedLink.Definition.EmbeddedLink
     , EmbeddedLinkDiagramDart
     ) where
 
-import Language.Haskell.TH
+
 import Data.Function (fix)
 import Data.Maybe (fromMaybe)
-import Data.Bits ((.&.), shiftL, complement)
+import Data.List (foldl')
+import Data.Bits ((.&.), shiftL, shiftR, complement)
+import qualified Data.Vector as V
 import qualified Data.Vector.Mutable as MV
 import qualified Data.Vector.Primitive as PV
 import qualified Data.Vector.Primitive.Mutable as PMV
 import Data.STRef (newSTRef, readSTRef, writeSTRef)
-import Control.Monad.ST (ST)
+import Control.Monad.ST (runST)
 import Control.Monad (void, when, forM_, foldM, foldM_)
+import Control.DeepSeq (NFData(..))
 import Text.Printf
 import qualified Math.Algebra.Group.D4 as D4
 import qualified Math.Algebra.RotationDirection as R
 import Math.Topology.KnotTh.Knotted
 import Math.Topology.KnotTh.Crossings.Projection
 import Math.Topology.KnotTh.Crossings.Diagram
-import Math.Topology.KnotTh.Knotted.TH.Knotted
 
 
-produceKnotted
-    [d| data EmbeddedLink ct =
-            EmbeddedLink
-                { faceCount      :: {-# UNPACK #-} !Int
-                , faceDataOffset :: {-# UNPACK #-} !(PV.Vector Int)
-                , faceCCWBrdDart :: {-# UNPACK #-} !(PV.Vector Int)
-                , faceLLookup    :: {-# UNPACK #-} !(PV.Vector Int)
-                }
+data EmbeddedLink a =
+    EmbeddedLink
+        { loopsCount      :: {-# UNPACK #-} !Int
+        , vertexCount     :: {-# UNPACK #-} !Int
+        , involutionArray :: {-# UNPACK #-} !(PV.Vector Int)
+        , crossingsArray  :: {-# UNPACK #-} !(V.Vector a)
+        , faceCount       :: {-# UNPACK #-} !Int
+        , faceDataOffset  :: {-# UNPACK #-} !(PV.Vector Int)
+        , faceCCWBrdDart  :: {-# UNPACK #-} !(PV.Vector Int)
+        , faceLLookup     :: {-# UNPACK #-} !(PV.Vector Int)
+        }
 
-        instance Knotted EmbeddedLink where
-            vertexCrossing = undefined
-            numberOfFreeLoops = undefined
-            changeNumberOfFreeLoops = undefined
-            emptyKnotted = undefined
 
-            type ExplodeType EmbeddedLink a = (Int, [([(Int, Int)], a)])
+instance PlanarDiagram EmbeddedLink where
+    numberOfVertices = vertexCount
 
-            implode = undefined
+    numberOfEdges k = numberOfVertices k * 2
 
-            explode link =
-                ( numberOfFreeLoops link
-                , map (\ v -> (map endPair' $ outcomingDarts v, vertexCrossing v)) $ allVertices link
-                )
+    nthVertex k i | i < 1 || i > b  = error $ printf "nthVertex: index %i is out of bounds (1, %i)" i b
+                  | otherwise       = Vertex k (i - 1)
+        where
+             b = numberOfVertices k
 
-            homeomorphismInvariant link =
-                minimum $ do
-                    dart <- allHalfEdges link
-                    dir <- R.bothDirections
-                    globalG <- fromMaybe [D4.i] $ globalTransformations link
-                    return $! codeWithDirection globalG dir dart
+    nthDart k i | i < 0 || i > b  = error $ printf "nthDart: index %i is out of bounds (0, %i)" i b
+                | otherwise       = Dart k i
+        where
+            b = 2 * numberOfEdges k - 1
 
-                where
-                    codeWithDirection !globalG !dir !start = PV.create $ do
+    allVertices k =
+        let n = numberOfVertices k
+        in map (Vertex k) [0 .. n - 1]
+
+    allHalfEdges k =
+        let n = PV.length $ involutionArray k
+        in map (Dart k) [0 .. n - 1]
+
+    allEdges k =
+        let n = PV.length $ involutionArray k
+        in foldl' (\ !es !i ->
+                let j = involutionArray k `PV.unsafeIndex` i
+                in if i < j
+                    then (Dart k i, Dart k j) : es
+                    else es
+            ) [] [0 .. n - 1]
+
+    data Vertex EmbeddedLink a = Vertex !(EmbeddedLink a) {-# UNPACK #-} !Int
+
+    vertexDegree _ = 4
+    vertexOwner (Vertex k _) = k
+    vertexIndex (Vertex _ i) = i + 1
+
+    nthOutcomingDart (Vertex k c) i = Dart k ((c `shiftL` 2) + (i .&. 3))
+
+    outcomingDarts c = map (nthOutcomingDart c) [0 .. 3]
+
+    data Dart EmbeddedLink a = Dart !(EmbeddedLink a) {-# UNPACK #-} !Int
+
+    dartOwner (Dart k _) = k
+    dartIndex (Dart _ i) = i
+
+    opposite (Dart k d) = Dart k (involutionArray k `PV.unsafeIndex` d)
+
+    beginVertex (Dart k d) = Vertex k (d `shiftR` 2)
+
+    beginPlace (Dart _ d) = d .&. 3
+
+    nextCCW (Dart k d) = Dart k ((d .&. complement 3) + ((d + 1) .&. 3))
+
+    nextCW (Dart k d) = Dart k ((d .&. complement 3) + ((d - 1) .&. 3))
+
+    isDart _ = True
+
+    vertexIndicesRange k = (1, numberOfVertices k)
+
+    dartIndicesRange k = (0, numberOfDarts k - 1) 
+
+
+instance (NFData a) => NFData (EmbeddedLink a) where
+    rnf k = rnf (crossingsArray k) `seq` k `seq` ()
+
+instance (NFData a) => NFData (Vertex EmbeddedLink a)
+
+instance (NFData a) => NFData (Dart EmbeddedLink a)
+
+
+instance Functor EmbeddedLink where
+    fmap f k = k { crossingsArray = f `fmap` crossingsArray k }
+
+
+instance Knotted EmbeddedLink where
+    vertexCrossing (Vertex k i) = crossingsArray k `V.unsafeIndex` i
+
+    numberOfFreeLoops = loopsCount
+
+    changeNumberOfFreeLoops loops k | loops >= 0  = k { loopsCount = loops }
+                                    | otherwise   = error $ printf "changeNumberOfFreeLoops: number of free loops %i is negative" loops 
+
+    emptyKnotted =
+        EmbeddedLink
+            { loopsCount      = 0
+            , vertexCount     = 0
+            , involutionArray = PV.empty
+            , crossingsArray  = V.empty
+            , faceCount       = 1
+            , faceDataOffset  = PV.replicate 2 0
+            , faceCCWBrdDart  = PV.empty
+            , faceLLookup     = PV.empty
+            }
+
+    homeomorphismInvariant link =
+        minimum $ do
+            dart <- allHalfEdges link
+            dir <- R.bothDirections
+            globalG <- fromMaybe [D4.i] $ globalTransformations link
+            return $! codeWithDirection globalG dir dart
+
+        where
+            codeWithDirection !globalG !dir !start = PV.create $ do
                         let n = numberOfVertices link
 
                         index <- PMV.replicate (n + 1) 0
@@ -111,19 +198,50 @@ produceKnotted
 
                         return rc
 
-            isConnected _ = error "isConnected: not implemented"
+    isConnected _ = error "isConnected: not implemented"
 
-    |] $
-    let fcN = mkName "fc"
-        fllookN = mkName "fllook"
-        foffN = mkName "foff"
-        fccwdN = mkName "fccwd"
-    in defaultKnotted
-        { implodeExplodeSettings = defaultImplodeExplode
-            { implodePostExtra = \ n cr spliceFill -> (:[]) $
-                bindS (tupP [varP fcN, varP fllookN, varP foffN, varP fccwdN]) [| do
-                    fccwd <- PMV.new (4 * $n) :: ST s (PMV.STVector s Int)
-                    fllook <- PMV.replicate (8 * $n) (-1) :: ST s (PMV.STVector s Int)
+    type ExplodeType EmbeddedLink a = (Int, [([(Int, Int)], a)])
+
+    explode link =
+        ( numberOfFreeLoops link
+        , map (\ v -> (map endPair' $ outcomingDarts v, vertexCrossing v)) $ allVertices link
+        )
+
+    implode (loops, list) = runST $ do
+        when (loops < 0) $
+            error $ printf "EmbeddedLink.implode: number of free loops %i is negative" loops
+
+        let n = length list
+        cr <- PMV.new (4 * n)
+        st <- MV.new n
+
+        forM_ (list `zip` [0 ..]) $ \ ((!ns, !cs), !i) -> do
+            MV.unsafeWrite st i cs
+            case ns of
+                [p0, p1, p2, p3] ->
+                    forM_ [(p0, 0), (p1, 1), (p2, 2), (p3, 3)] $ \ ((!c, !p), !j) -> do
+                        let a = 4 * i + j
+                            b | c < 1 || c > n  = error $ printf "EmbeddedLink.implode: crossing index %i is out of bounds [1 .. %i]" c n
+                              | p < 0 || p > 3  = error $ printf "EmbeddedLink.implode: place index %i is out of bounds [0 .. 3]" p
+                              | otherwise       = 4 * (c - 1) + p
+                        when (a == b) $
+                            error $ printf "EmbeddedLink.implode: (%i, %i) connected to itself" c p
+                        PMV.unsafeWrite cr a b
+                        when (b < a) $ do
+                            x <- PMV.unsafeRead cr b
+                            when (x /= a) $
+                                error $ printf "EmbeddedLink.implode: (%i, %i) points to unconsistent position" c p
+
+                _                ->
+                    error $ printf "EmbeddedLink.implode: there must be 4 neighbours for every crossing, but found %i for %i-th"
+                                        (length ns) (i + 1)
+
+        cr' <- PV.unsafeFreeze cr
+        st' <- V.unsafeFreeze st
+
+        (fcN, fllookN, foffN, fccwdN) <- do
+                    fccwd <- PMV.new (4 * n)
+                    fllook <- PMV.replicate (8 * n) (-1)
 
                     (fc, _) <- foldM (\ (!fid, !base) !start -> do
                         mi <- PMV.read fllook (2 * start)
@@ -135,7 +253,7 @@ produceKnotted
                                     PMV.write fllook (2 * i + 1) offset
                                     PMV.write fccwd (base + offset) i
 
-                                    i' <- PMV.unsafeRead $cr i
+                                    i' <- PMV.unsafeRead cr i
                                     let j = (i' .&. complement 3) + ((i' - 1) .&. 3)
                                     mj <- PMV.read fllook (2 * j)
                                     if mj >= 0
@@ -143,10 +261,10 @@ produceKnotted
                                         else mark (offset + 1) j
                                     ) 0 start
                                 return (fid + 1, base + sz)
-                        ) (0, 0) [0 .. 4 * $n - 1]
+                        ) (0, 0) [0 .. 4 * n - 1]
 
-                    foff <- PMV.replicate (fc + 1) 0 :: ST s (PMV.STVector s Int)
-                    forM_ [0 .. 4 * $n - 1] $ \ !i -> do
+                    foff <- PMV.replicate (fc + 1) 0
+                    forM_ [0 .. 4 * n - 1] $ \ !i -> do
                         fid <- PMV.read fllook (2 * i)
                         cur <- PMV.read foff fid
                         PMV.write foff fid $! cur + 1
@@ -160,23 +278,29 @@ produceKnotted
                     fllook' <- PV.unsafeFreeze fllook
                     foff' <- PV.unsafeFreeze foff
                     return (fc, fllook', foff', fccwd')
-                    |]
 
-            , implodeInitializers =
-                [ (,) (mkName "faceCount")      `fmap` varE fcN
-                , (,) (mkName "faceDataOffset") `fmap` varE foffN
-                , (,) (mkName "faceCCWBrdDart") `fmap` varE fccwdN
-                , (,) (mkName "faceLLookup")    `fmap` varE fllookN
-                ]
+        return EmbeddedLink
+            { loopsCount      = loops
+            , vertexCount     = n
+            , involutionArray = cr'
+            , crossingsArray  = st'
+            , faceCount       = fcN
+            , faceDataOffset  = foffN
+            , faceCCWBrdDart  = fccwdN
+            , faceLLookup     = fllookN
             }
 
-        , emptyExtraInitializers =
-            [ (,) (mkName "faceCount")      `fmap` [| 1 :: Int |]
-            , (,) (mkName "faceDataOffset") `fmap` [| PV.replicate 2 0 |]
-            , (,) (mkName "faceCCWBrdDart") `fmap` [| PV.empty |]
-            , (,) (mkName "faceLLookup")    `fmap` [| PV.empty |]
-            ]
-        }
+
+instance (Show a) => Show (EmbeddedLink a) where
+    show = printf "implode %s" . show . explode
+
+
+instance (Show a) => Show (Vertex EmbeddedLink a) where
+    show v =
+        printf "(Crossing %i %s [ %s ])"
+            (vertexIndex v)
+            (show $ vertexCrossing v)
+            (unwords $ map (show . opposite) $ outcomingDarts v)
 
 
 instance Show (Dart EmbeddedLink a) where

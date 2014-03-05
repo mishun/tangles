@@ -9,10 +9,9 @@ module Math.Topology.KnotTh.Tangle.Definition.Tangle
     , TangleDiagramDart
     ) where
 
-import Language.Haskell.TH
 import Data.Function (fix)
 import Data.Maybe (fromMaybe)
-import Data.Bits ((.&.), complement, shiftL)
+import Data.Bits ((.&.), complement, shiftL, shiftR)
 import Data.List (nub, sort, foldl')
 import qualified Data.Set as S
 import qualified Data.Map as M
@@ -24,40 +23,135 @@ import Data.Array.IArray ((!), listArray)
 import Data.Array (Array)
 import Data.Array.Unboxed (UArray)
 import Data.STRef (newSTRef, readSTRef, writeSTRef)
-import Control.Monad.ST (ST, runST)
+import Control.Monad.ST (runST)
 import Control.Monad (void, forM_, when, unless, foldM_, foldM, filterM)
+import Control.DeepSeq (NFData(..))
 import Text.Printf
 import qualified Math.Algebra.Group.D4 as D4
 import qualified Math.Algebra.RotationDirection as R
-import Math.Topology.KnotTh.Knotted.TH.Knotted
 import Math.Topology.KnotTh.Knotted
 import Math.Topology.KnotTh.Crossings.Projection
 import Math.Topology.KnotTh.Crossings.Diagram
 import Math.Topology.KnotTh.Tangle.Definition.TangleLike
 
 
-produceKnotted
-    [d| data Tangle ct =
-            Tangle
-                { legsCount :: {-# UNPACK #-} !Int
-                }
+data Tangle a =
+    Tangle
+        { loopsCount      :: {-# UNPACK #-} !Int
+        , vertexCount     :: {-# UNPACK #-} !Int
+        , involutionArray :: {-# UNPACK #-} !(PV.Vector Int)
+        , crossingsArray  :: {-# UNPACK #-} !(V.Vector a)
+        , legsCount       :: {-# UNPACK #-} !Int
+        }
 
-        instance Knotted Tangle where
-            vertexCrossing = undefined
-            numberOfFreeLoops = undefined
-            changeNumberOfFreeLoops = undefined
-            emptyKnotted = undefined
-            implode = undefined
 
-            type ExplodeType Tangle a = (Int, [(Int, Int)], [([(Int, Int)], a)])
+instance PlanarDiagram Tangle where
+    numberOfVertices = vertexCount
 
-            explode tangle =
-                ( numberOfFreeLoops tangle
-                , map endPair' $ allLegs tangle
-                , map (\ v -> (map endPair' $ outcomingDarts v, vertexCrossing v)) $ allVertices tangle
-                )
+    numberOfEdges t = 2 * numberOfVertices t + (legsCount t `div` 2)
 
-            homeomorphismInvariant tangle
+    nthVertex t i | i < 1 || i > b  = error $ printf "nthVertex: index %i is out of bounds (1, %i)" i b
+                  | otherwise       = Vertex t (i - 1)
+        where
+             b = numberOfVertices t
+
+    nthDart t i | i < 0 || i > b  = error $ printf "nthDart: index %i is out of bounds (0, %i)" i b
+                | otherwise       = Dart t i
+        where
+            b = 2 * numberOfEdges t - 1
+
+    allVertices t = map (Vertex t) [0 .. numberOfVertices t - 1]
+
+    allHalfEdges t =
+        let n = PV.length $ involutionArray t
+        in map (Dart t) [0 .. n - 1]
+
+    allEdges k =
+        let n = PV.length $ involutionArray k
+        in foldl' (\ !es !i ->
+                let j = involutionArray k `PV.unsafeIndex` i
+                in if i < j
+                    then (Dart k i, Dart k j) : es
+                    else es
+            ) [] [0 .. n - 1]
+
+    data Vertex Tangle a = Vertex !(Tangle a) {-# UNPACK #-} !Int
+
+    vertexDegree _ = 4
+    vertexOwner (Vertex t _) = t
+    vertexIndex (Vertex _ i) = i + 1
+
+    nthOutcomingDart (Vertex t c) i = Dart t ((c `shiftL` 2) + (i .&. 3))
+
+    outcomingDarts c = map (nthOutcomingDart c) [0 .. 3]
+
+    data Dart Tangle a = Dart !(Tangle a) {-# UNPACK #-} !Int
+
+    dartOwner (Dart t _) = t
+    dartIndex (Dart _ i) = i
+
+    opposite (Dart t d) = Dart t (involutionArray t `PV.unsafeIndex` d)
+
+    beginVertex (Dart t d) | d >= n     = error $ printf "beginVertex: taken from %i-th leg" (d - n)
+                           | otherwise  = Vertex t (d `shiftR` 2)
+        where
+            n = vertexCount t `shiftL` 2
+
+    beginPlace (Dart t d) | d >= n     = error $ printf "beginPlace: taken from %i-th leg" (d - n)
+                          | otherwise  = d .&. 3
+        where
+            n = vertexCount t `shiftL` 2
+
+    beginPair' d | isDart d   = (vertexIndex $ beginVertex d, beginPlace d)
+                 | otherwise  = (0, legPlace d)
+
+    nextCCW (Dart t d) | d >= n     = Dart t (n + (d - n + 1) `mod` legsCount t)
+                       | otherwise  = Dart t ((d .&. complement 3) + ((d + 1) .&. 3))
+        where
+            n = vertexCount t `shiftL` 2
+
+    nextCW (Dart t d) | d >= n     = Dart t (n + (d - n - 1) `mod` legsCount t)
+                      | otherwise  = Dart t ((d .&. complement 3) + ((d - 1) .&. 3))
+        where
+            n = vertexCount t `shiftL` 2
+
+    isDart (Dart t i) = i < (vertexCount t `shiftL` 2)
+
+    vertexIndicesRange k = (1, numberOfVertices k)
+
+    dartIndicesRange k = (0, numberOfDarts k - 1)
+
+
+instance (NFData a) => NFData (Tangle a) where
+    rnf t = rnf (crossingsArray t) `seq` t `seq` ()
+
+instance (NFData a) => NFData (Vertex Tangle a)
+
+instance (NFData a) => NFData (Dart Tangle a)
+
+
+instance Functor Tangle where
+    fmap f t = t { crossingsArray = f `fmap` crossingsArray t }
+
+
+instance Knotted Tangle where
+    vertexCrossing (Vertex t i) = crossingsArray t `V.unsafeIndex` i
+
+    numberOfFreeLoops = loopsCount
+
+    changeNumberOfFreeLoops loops k | loops >= 0  = k { loopsCount = loops }
+                                    | otherwise   = error $ printf "changeNumberOfFreeLoops: number of free loops %i is negative" loops 
+
+    emptyKnotted =
+        Tangle
+            { loopsCount      = 0
+            , vertexCount     = 0
+            , involutionArray = PV.empty
+            , crossingsArray  = V.empty
+            , legsCount       = 0
+            }
+
+    homeomorphismInvariant tangle
                 | n > 127    = error $ printf "homeomorphismInvariant: too many crossings (%i)" n
                 | otherwise  = minimum $ do
                     leg <- allLegs tangle
@@ -151,113 +245,75 @@ produceKnotted
 
                         return rc
 
-            isConnected tangle
-                | numberOfEdges tangle == 0 && numberOfFreeLoops tangle <= 1  = True
-                | numberOfFreeLoops tangle /= 0                               = False
-                | otherwise                                                   = all (\ (a, b) -> S.member a con && S.member b con) edges
+    isConnected tangle
+        | numberOfEdges tangle == 0 && numberOfFreeLoops tangle <= 1  = True
+        | numberOfFreeLoops tangle /= 0                               = False
+        | otherwise                                                   = all (\ (a, b) -> S.member a con && S.member b con) edges
+        where
+            edges = allEdges tangle
+            con = dfs S.empty $ fst $ head edges
+            dfs vis c | S.member c vis  = vis
+                      | otherwise       = foldl' dfs (S.insert c vis) neigh
                 where
-                    edges = allEdges tangle
-                    con = dfs S.empty $ fst $ head edges
-                    dfs vis c | S.member c vis  = vis
-                              | otherwise       = foldl' dfs (S.insert c vis) neigh
-                        where
-                            neigh | isLeg c    = [opposite c]
-                                  | otherwise  = [opposite c, nextCCW c, nextCW c]
+                    neigh | isLeg c    = [opposite c]
+                          | otherwise  = [opposite c, nextCCW c, nextCW c]
 
-    |] $
-    let legsCount = varE $ mkName "legsCount"
-        dart = conE $ mkName "Dart"
-    in defaultKnotted
-        { implodeExplodeSettings =
-            let lN = mkName "l"
-                l = varE lN
-                brdN = mkName "brd"
-                brd = varE brdN
-            in defaultImplodeExplode
-                { extraImplodeExplodeParams =
-                    [ (brdN, [t| [(Int, Int)] |], \ t -> [| map endPair' $ allLegs $t |])
-                    ]
+    type ExplodeType Tangle a = (Int, [(Int, Int)], [([(Int, Int)], a)])
 
-                , extraImplodePairCases =
-                    [ \ spliceError n c p ->
-                        ([| $c == (0 :: Int) |],
-                            [|  if $p >= (0 :: Int) && $p < $l
-                                    then 4 * $n + $p :: Int
-                                    else $(spliceError "leg index %i is out of bounds [0 .. %i]" [ p, [| $l - 1 :: Int |] ])
-                            |])
-                    ]
+    explode tangle =
+        ( numberOfFreeLoops tangle
+        , map endPair' $ allLegs tangle
+        , map (\ v -> (map endPair' $ outcomingDarts v, vertexCrossing v)) $ allVertices tangle
+        )
 
-                , extraExplodePairCases =
-                    [ \ d -> ([| isLeg $d |], [| (,) (0 :: Int) $! legPlace $d |])
-                    ]
+    implode (loops, brd, list) = runST $ do
+        when (loops < 0) $
+            error $ printf "Tangle.implode: number of free loops %i is negative" loops
 
-                , modifyImplodeLimit = Just $ \ n _ -> [| 4 * $n + $l - 1 :: Int |]
+        let l = length brd
+        when (odd l) $
+            error $ printf "Tangle.implode: number of legs %i must be even" l
 
-                , implodePreExtra = \ spliceError ->
-                    [ letS $ (:[]) $ valD (varP lN) (normalB [| length $brd |]) []
-                    , noBindS
-                        [|  when (odd ($l :: Int)) $
-                                $(spliceError "number of legs %i must be even" [l])
-                        |]
-                    ]
+        let n = length list
+        cr <- PMV.new (4 * n + l)
+        st <- MV.new n
 
-                , implodePostExtra = \ n _ spliceFill ->
-                    [ noBindS
-                        [|  forM_ (zip $brd [0 :: Int ..]) $ \ ((!c, !p), !i) ->
-                                let a = 4 * $n + i
-                                in $(spliceFill [| a |] ([| c |], [| p |]))
-                        |]
-                    ]
+        let {-# INLINE write #-}
+            write !a !c !p = do
+                let b | c == 0 && p >= 0 && p < l  = 4 * n + p
+                      | c == 0                     = error $ printf "Tangle.implode: leg index %i is out of bounds [0, %i)" p l
+                      | c < 1 || c > n             = error $ printf "Tangle.implode: crossing index %i is out of bounds [1 .. %i]" c n
+                      | p < 0 || p > 3             = error $ printf "Tangle.implode: place index %i is out of bounds [0 .. 3]" p
+                      | otherwise                  = 4 * (c - 1) + p
+                when (a == b) $ error $ printf "Tangle.implode: (%i, %i) connected to itself" c p
+                PMV.unsafeWrite cr a b
+                when (b < a) $ do
+                    x <- PMV.unsafeRead cr b
+                    when (x /= a) $ error $ printf "Tangle.implode: (%i, %i) points to unconsistent position" c p
 
-                , implodeInitializers =
-                    [ (,) (mkName "legsCount") `fmap` l
-                    ]
-                }
+        forM_ (list `zip` [0 ..]) $ \ ((!ns, !cs), !i) -> do
+            MV.unsafeWrite st i cs
+            case ns of
+                [p0, p1, p2, p3] ->
+                    forM_ [(p0, 0), (p1, 1), (p2, 2), (p3, 3)] $ \ ((!c, !p), !j) ->
+                        write (4 * i + j) c p
+                _                ->
+                    error $ printf "Tangle.implode: there must be 4 neighbours for every crossing, but found %i for %i-th"
+                                        (length ns) (i + 1)
 
-        , modifyNumberOfEdges = Just $ \ t _ ->
-            [| 2 * numberOfVertices $t + ($legsCount $t `div` 2) |]
+        forM_ (brd `zip` [0 ..]) $ \ ((!c, !p), !i) ->
+            write (4 * n + i) c p
 
-        , modifyIsDart = Just $ \ (t, i) ->
-            [| $i < 4 * numberOfVertices $t |]
+        cr' <- PV.unsafeFreeze cr
+        st' <- V.unsafeFreeze st
 
-        , modifyNextCCW = Just $ \ (t, d) e ->
-            [|  let n = 4 * numberOfVertices $t
-                in if $d >= n
-                    then $dart $t $! n + ($d - n + 1) `mod` $legsCount $t
-                    else $e
-            |]
-
-        , modifyNextCW = Just $ \ (t, d) e ->
-            [|  let n = 4 * numberOfVertices $t
-                in if $d >= n
-                    then $dart $t $! n + ($d - n - 1) `mod` $legsCount $t
-                    else $e
-            |]
-
-        , modifyDartPlace = Just $ \ (t, d) e ->
-            [|  let n = 4 * numberOfVertices $t
-                in if $d >= n
-                    then error $ printf "dartPlace: taken from %i-th leg" ($d - n)
-                    else $e
-            |]
-
-        , modifyIncidentCrossing = Just $ \ (t, d) e ->
-            [|  let n = 4 * numberOfVertices $t
-                in if $d >= n
-                    then error $ printf "incidentCrossing: taken from %i-th leg" ($d - n)
-                    else $e
-            |]
-
-        , modifyFoldMIncidentDartsFrom = Just $ \ (d, _) e ->
-            [|  if isDart $d
-                    then $e
-                    else error $ printf "foldMIncidentDartsFrom: taken from leg %i" (legPlace $d)
-            |]
-
-        , emptyExtraInitializers =
-            [ (,) (mkName "legsCount") `fmap` [| 0 :: Int |]
-            ]
-        }
+        return Tangle
+            { loopsCount      = loops
+            , vertexCount     = n
+            , involutionArray = cr'
+            , crossingsArray  = st'
+            , legsCount       = l
+            }
 
 
 instance PlanarAlgebra Tangle where
@@ -348,7 +404,7 @@ instance TangleLike Tangle where
                 forM_ [0 .. n + l - 1] $ \ !i ->
                     PMV.unsafeWrite a' (modify i) $ modify (a `PV.unsafeIndex` i)
                 return a'
-            , crossingsArray = fmap f $ crossingsArray tangle
+            , crossingsArray = f `fmap` crossingsArray tangle
             }
 
     glueTangles legsToGlue legA legB = runST $ do
@@ -396,7 +452,7 @@ instance TangleLike Tangle where
                     where
                         ml = (x - 4 * nB - lpB - 1) `mod` lB
 
-            cr <- PMV.new (4 * newC + newL) :: ST s (PMV.STVector s Int)
+            cr <- PMV.new (4 * newC + newL)
             forM_ [0 .. 4 * nA - 1] $ \ !i ->
                 convertA (involutionArray tangleA `PV.unsafeIndex` i)
                     >>= PMV.unsafeWrite cr i
@@ -465,7 +521,7 @@ instance TangleLike Tangle where
                 { loopsCount      = numberOfFreeLoops tangle
                 , vertexCount     = newC
                 , involutionArray = PV.create $ do
-                    cr <- PMV.new (4 * newC + newL) :: ST s (PMV.STVector s Int)
+                    cr <- PMV.new (4 * newC + newL)
 
                     let {-# INLINE copyModified #-}
                         copyModified !index !index' =
@@ -538,6 +594,18 @@ instance TangleLike Tangle where
                 let t = crossSubst ! vertexIndex c
                 c' <- allVertices t
                 return (map (resolveInCrossing c) $ incomingDarts c', vertexCrossing c')
+
+
+instance (Show a) => Show (Tangle a) where
+    show = printf "implode %s" . show . explode
+
+
+instance (Show a) => Show (Vertex Tangle a) where
+    show v =
+        printf "(Crossing %i %s [ %s ])"
+            (vertexIndex v)
+            (show $ vertexCrossing v)
+            (unwords $ map (show . opposite) $ outcomingDarts v)
 
 
 instance Show (Dart Tangle a) where
