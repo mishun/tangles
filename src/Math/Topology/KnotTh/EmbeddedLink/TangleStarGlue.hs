@@ -43,7 +43,7 @@ tangleStarGlue starType tangleGenerator yield =
 
                 in forM_ variants $ \ !g -> do
                     let link = fromTangleAndStar star $ transformTangle g tangle
-                        token = homeomorphismInvariant link
+                        token = unrootedHomeomorphismInvariant link
                     new <- gets (S.notMember token)
                     when new $ do
                         modify (S.insert token)

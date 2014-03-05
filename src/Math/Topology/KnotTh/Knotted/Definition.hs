@@ -12,7 +12,7 @@ module Math.Topology.KnotTh.Knotted.Definition
     ) where
 
 import Data.Bits ((.&.))
-import Data.Vector.Primitive (Vector)
+import Data.Vector.Unboxed (Vector)
 import qualified Math.Algebra.RotationDirection as R
 import qualified Math.Algebra.Group.D4 as D4
 import Math.Algebra.PlanarAlgebra as X
@@ -35,7 +35,7 @@ class (Functor k, PlanarDiagram k) => Knotted k where
     isEmptyKnotted :: k a -> Bool
     isEmptyKnotted k = (numberOfVertices k == 0) && (numberOfFreeLoops k == 0)
 
-    homeomorphismInvariant :: (Crossing a) => k a -> Vector Int
+    unrootedHomeomorphismInvariant :: (Crossing a) => k a -> Vector Int
 
     isConnected :: k a -> Bool
 

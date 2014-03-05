@@ -64,7 +64,7 @@ equivalenceClasses moves enumerateDiagrams =
 
         enumerateDiagrams $
             flip fix Nothing $ \ dfs !prevCode !diagram -> do
-                let code = homeomorphismInvariant diagram
+                let code = unrootedHomeomorphismInvariant diagram
                 inserted <- insert code $ wrap diagram
                 maybe (return ()) (declareEquivalent code) prevCode
                 when inserted $

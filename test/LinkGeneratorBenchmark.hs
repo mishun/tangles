@@ -53,4 +53,3 @@ main = do
         forM_ (collisionClasses sifted `zip` [0 ..]) $ \ (cc, j) ->
             forM_ (cc `zip` [0 ..]) $ \ (info, i) ->
                 tell $ translate (r2 (2.2 * i, -2.2 * j)) $ drawKnotDef $ representative info
-

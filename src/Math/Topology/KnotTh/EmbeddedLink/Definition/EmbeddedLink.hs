@@ -16,6 +16,8 @@ import Data.List (foldl')
 import Data.Bits ((.&.), shiftL, shiftR, complement)
 import qualified Data.Vector as V
 import qualified Data.Vector.Mutable as MV
+import qualified Data.Vector.Unboxed as UV
+import qualified Data.Vector.Unboxed.Mutable as UMV
 import qualified Data.Vector.Primitive as PV
 import qualified Data.Vector.Primitive.Mutable as PMV
 import Data.STRef (newSTRef, readSTRef, writeSTRef)
@@ -53,27 +55,22 @@ instance PlanarDiagram EmbeddedLink where
         where
              b = numberOfVertices k
 
-    nthDart k i | i < 0 || i > b  = error $ printf "nthDart: index %i is out of bounds (0, %i)" i b
-                | otherwise       = Dart k i
+    nthDart k i | i < 0 || i >= b  = error $ printf "nthDart: index %i is out of bounds (0, %i)" i b
+                | otherwise        = Dart k i
         where
-            b = 2 * numberOfEdges k - 1
+            b = PV.length (involutionArray k)
 
-    allVertices k =
-        let n = numberOfVertices k
-        in map (Vertex k) [0 .. n - 1]
+    allVertices k = map (Vertex k) [0 .. numberOfVertices k - 1]
 
-    allHalfEdges k =
-        let n = PV.length $ involutionArray k
-        in map (Dart k) [0 .. n - 1]
+    allHalfEdges k = map (Dart k) [0 .. PV.length (involutionArray k) - 1]
 
     allEdges k =
-        let n = PV.length $ involutionArray k
-        in foldl' (\ !es !i ->
+        foldl' (\ !es !i ->
                 let j = involutionArray k `PV.unsafeIndex` i
                 in if i < j
                     then (Dart k i, Dart k j) : es
                     else es
-            ) [] [0 .. n - 1]
+            ) [] [0 .. PV.length (involutionArray k) - 1]
 
     data Vertex EmbeddedLink a = Vertex !(EmbeddedLink a) {-# UNPACK #-} !Int
 
@@ -139,7 +136,7 @@ instance Knotted EmbeddedLink where
             , faceLLookup     = PV.empty
             }
 
-    homeomorphismInvariant link =
+    unrootedHomeomorphismInvariant link =
         minimum $ do
             dart <- allHalfEdges link
             dir <- R.bothDirections
@@ -147,56 +144,56 @@ instance Knotted EmbeddedLink where
             return $! codeWithDirection globalG dir dart
 
         where
-            codeWithDirection !globalG !dir !start = PV.create $ do
-                        let n = numberOfVertices link
+            codeWithDirection !globalG !dir !start = UV.create $ do
+                let n = numberOfVertices link
 
-                        index <- PMV.replicate (n + 1) 0
-                        incoming <- PMV.replicate (n + 1) 0
-                        queue <- MV.new n
-                        free <- newSTRef 1
+                index <- UMV.replicate (n + 1) 0
+                incoming <- UMV.replicate (n + 1) 0
+                queue <- MV.new n
+                free <- newSTRef 1
 
-                        let {-# INLINE look #-}
-                            look !d = do
-                                let u = beginVertexIndex d
-                                ux <- PMV.unsafeRead index u
-                                if ux > 0
-                                    then do
-                                        up <- PMV.unsafeRead incoming u
-                                        return $! (ux `shiftL` 2) + (((beginPlace d - up) * R.directionSign dir) .&. 3)
-                                    else do
-                                        nf <- readSTRef free
-                                        writeSTRef free $! nf + 1
-                                        PMV.unsafeWrite index u nf
-                                        PMV.unsafeWrite incoming u (beginPlace d)
-                                        MV.unsafeWrite queue (nf - 1) d
-                                        return $! nf `shiftL` 2
+                let {-# INLINE look #-}
+                    look !d = do
+                        let u = beginVertexIndex d
+                        ux <- UMV.unsafeRead index u
+                        if ux > 0
+                            then do
+                                up <- UMV.unsafeRead incoming u
+                                return $! (ux `shiftL` 2) + (((beginPlace d - up) * R.directionSign dir) .&. 3)
+                            else do
+                                nf <- readSTRef free
+                                writeSTRef free $! nf + 1
+                                UMV.unsafeWrite index u nf
+                                UMV.unsafeWrite incoming u (beginPlace d)
+                                MV.unsafeWrite queue (nf - 1) d
+                                return $! nf `shiftL` 2
 
-                        rc <- PMV.replicate (6 * n + 1) 0
-                        PMV.unsafeWrite rc 0 $! numberOfFreeLoops link
+                rc <- UMV.replicate (6 * n + 1) 0
+                UMV.unsafeWrite rc 0 $! numberOfFreeLoops link
 
-                        let {-# INLINE lookAndWrite #-}
-                            lookAndWrite !d !offset = do
-                                look d >>= PMV.unsafeWrite rc offset
-                                return $! offset + 1
+                let {-# INLINE lookAndWrite #-}
+                    lookAndWrite !d !offset = do
+                        look d >>= UMV.unsafeWrite rc offset
+                        return $! offset + 1
 
-                        void $ look start
-                        flip fix 0 $ \ bfs !headI -> do
+                void $ look start
+                flip fix 0 $ \ bfs !headI -> do
                             tailI <- readSTRef free
                             when (headI < tailI - 1) $ do
                                 input <- MV.unsafeRead queue headI
                                 void $ foldMAdjacentDartsFrom input dir lookAndWrite (6 * headI + 3)
                                 case crossingCodeWithGlobal globalG dir input of
                                     (# be, le #) -> do
-                                        PMV.unsafeWrite rc (6 * headI + 1) be
-                                        PMV.unsafeWrite rc (6 * headI + 2) le
+                                        UMV.unsafeWrite rc (6 * headI + 1) be
+                                        UMV.unsafeWrite rc (6 * headI + 2) le
                                 bfs $! headI + 1
 
-                        fix $ \ _ -> do
-                            tailI <- readSTRef free
-                            when (tailI <= n) $
-                                fail "codeWithDirection: disconnected diagram (not implemented)"
+                fix $ \ _ -> do
+                    tailI <- readSTRef free
+                    when (tailI <= n) $
+                        fail "codeWithDirection: disconnected diagram (not implemented)"
 
-                        return rc
+                return rc
 
     isConnected _ = error "isConnected: not implemented"
 
@@ -240,44 +237,44 @@ instance Knotted EmbeddedLink where
         st' <- V.unsafeFreeze st
 
         (fcN, fllookN, foffN, fccwdN) <- do
-                    fccwd <- PMV.new (4 * n)
-                    fllook <- PMV.replicate (8 * n) (-1)
+            fccwd <- PMV.new (4 * n)
+            fllook <- PMV.replicate (8 * n) (-1)
 
-                    (fc, _) <- foldM (\ (!fid, !base) !start -> do
-                        mi <- PMV.read fllook (2 * start)
-                        if mi >= 0
-                            then return (fid, base)
-                            else do
-                                sz <- fix (\ mark !offset !i -> do
-                                    PMV.write fllook (2 * i) fid
-                                    PMV.write fllook (2 * i + 1) offset
-                                    PMV.write fccwd (base + offset) i
+            (fc, _) <- foldM (\ (!fid, !base) !start -> do
+                mi <- PMV.read fllook (2 * start)
+                if mi >= 0
+                    then return (fid, base)
+                    else do
+                        sz <- fix (\ mark !offset !i -> do
+                            PMV.write fllook (2 * i) fid
+                            PMV.write fllook (2 * i + 1) offset
+                            PMV.write fccwd (base + offset) i
 
-                                    i' <- PMV.unsafeRead cr i
-                                    let j = (i' .&. complement 3) + ((i' - 1) .&. 3)
-                                    mj <- PMV.read fllook (2 * j)
-                                    if mj >= 0
-                                        then return $! offset + 1
-                                        else mark (offset + 1) j
-                                    ) 0 start
-                                return (fid + 1, base + sz)
-                        ) (0, 0) [0 .. 4 * n - 1]
+                            i' <- PMV.unsafeRead cr i
+                            let j = (i' .&. complement 3) + ((i' - 1) .&. 3)
+                            mj <- PMV.read fllook (2 * j)
+                            if mj >= 0
+                                then return $! offset + 1
+                                else mark (offset + 1) j
+                            ) 0 start
+                        return (fid + 1, base + sz)
+                ) (0, 0) [0 .. 4 * n - 1]
 
-                    foff <- PMV.replicate (fc + 1) 0
-                    forM_ [0 .. 4 * n - 1] $ \ !i -> do
-                        fid <- PMV.read fllook (2 * i)
-                        cur <- PMV.read foff fid
-                        PMV.write foff fid $! cur + 1
-                    foldM_ (\ !offset !i -> do
-                            cur <- PMV.read foff i
-                            PMV.write foff i offset
-                            return $! offset + cur
-                        ) 0 [0 .. fc]
+            foff <- PMV.replicate (fc + 1) 0
+            forM_ [0 .. 4 * n - 1] $ \ !i -> do
+                fid <- PMV.read fllook (2 * i)
+                cur <- PMV.read foff fid
+                PMV.write foff fid $! cur + 1
+            foldM_ (\ !offset !i -> do
+                    cur <- PMV.read foff i
+                    PMV.write foff i offset
+                    return $! offset + cur
+                ) 0 [0 .. fc]
 
-                    fccwd' <- PV.unsafeFreeze fccwd
-                    fllook' <- PV.unsafeFreeze fllook
-                    foff' <- PV.unsafeFreeze foff
-                    return (fc, fllook', foff', fccwd')
+            fccwd' <- PV.unsafeFreeze fccwd
+            fllook' <- PV.unsafeFreeze fllook
+            foff' <- PV.unsafeFreeze foff
+            return (fc, fllook', foff', fccwd')
 
         return EmbeddedLink
             { loopsCount      = loops

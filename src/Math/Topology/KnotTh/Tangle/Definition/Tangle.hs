@@ -17,6 +17,8 @@ import qualified Data.Set as S
 import qualified Data.Map as M
 import qualified Data.Vector as V
 import qualified Data.Vector.Mutable as MV
+import qualified Data.Vector.Unboxed as UV
+import qualified Data.Vector.Unboxed.Mutable as UMV
 import qualified Data.Vector.Primitive as PV
 import qualified Data.Vector.Primitive.Mutable as PMV
 import Data.Array.IArray ((!), listArray)
@@ -55,25 +57,22 @@ instance PlanarDiagram Tangle where
         where
              b = numberOfVertices t
 
-    nthDart t i | i < 0 || i > b  = error $ printf "nthDart: index %i is out of bounds (0, %i)" i b
-                | otherwise       = Dart t i
+    nthDart t i | i < 0 || i >= b  = error $ printf "nthDart: index %i is out of bounds (0, %i)" i b
+                | otherwise        = Dart t i
         where
-            b = 2 * numberOfEdges t - 1
+            b = PV.length (involutionArray t)
 
     allVertices t = map (Vertex t) [0 .. numberOfVertices t - 1]
 
-    allHalfEdges t =
-        let n = PV.length $ involutionArray t
-        in map (Dart t) [0 .. n - 1]
+    allHalfEdges t = map (Dart t) [0 .. PV.length (involutionArray t) - 1]
 
-    allEdges k =
-        let n = PV.length $ involutionArray k
-        in foldl' (\ !es !i ->
-                let j = involutionArray k `PV.unsafeIndex` i
+    allEdges t =
+        foldl' (\ !es !i ->
+                let j = involutionArray t `PV.unsafeIndex` i
                 in if i < j
-                    then (Dart k i, Dart k j) : es
+                    then (Dart t i, Dart t j) : es
                     else es
-            ) [] [0 .. n - 1]
+            ) [] [0 .. PV.length (involutionArray t) - 1]
 
     data Vertex Tangle a = Vertex !(Tangle a) {-# UNPACK #-} !Int
 
@@ -117,9 +116,9 @@ instance PlanarDiagram Tangle where
 
     isDart (Dart t i) = i < (vertexCount t `shiftL` 2)
 
-    vertexIndicesRange k = (1, numberOfVertices k)
+    vertexIndicesRange t = (1, numberOfVertices t)
 
-    dartIndicesRange k = (0, numberOfDarts k - 1)
+    dartIndicesRange t = (0, numberOfDarts t - 1)
 
 
 instance (NFData a) => NFData (Tangle a) where
@@ -139,7 +138,7 @@ instance Knotted Tangle where
 
     numberOfFreeLoops = loopsCount
 
-    changeNumberOfFreeLoops loops k | loops >= 0  = k { loopsCount = loops }
+    changeNumberOfFreeLoops loops t | loops >= 0  = t { loopsCount = loops }
                                     | otherwise   = error $ printf "changeNumberOfFreeLoops: number of free loops %i is negative" loops 
 
     emptyKnotted =
@@ -151,9 +150,9 @@ instance Knotted Tangle where
             , legsCount       = 0
             }
 
-    homeomorphismInvariant tangle
+    unrootedHomeomorphismInvariant tangle
         | n > 127                    = error $ printf "homeomorphismInvariant: too many crossings (%i)" n
-        | numberOfEdges tangle == 0  = PV.singleton (numberOfFreeLoops tangle)
+        | numberOfEdges tangle == 0  = UV.singleton (numberOfFreeLoops tangle)
         | otherwise                  = minimum $ do
             leg <- allLegs tangle
             dir <- R.bothDirections
@@ -163,8 +162,8 @@ instance Knotted Tangle where
             n = numberOfVertices tangle
             l = numberOfLegs tangle
 
-            code globalG dir leg = PV.create $ do
-                index <- PMV.replicate (n + 1) 0
+            code globalG dir leg = UV.create $ do
+                index <- UMV.replicate (n + 1) 0
                 queue <- MV.new n
                 free <- newSTRef 1
 
@@ -173,13 +172,13 @@ instance Knotted Tangle where
                         | isLeg d    = return 0
                         | otherwise  = do
                             let u = beginVertex d
-                            ux <- PMV.unsafeRead index $! vertexIndex u
+                            ux <- UMV.unsafeRead index $! vertexIndex u
                             if ux > 0
                                 then return $! ux
                                 else do
                                     nf <- readSTRef free
                                     writeSTRef free $! nf + 1
-                                    PMV.unsafeWrite index (vertexIndex u) nf
+                                    UMV.unsafeWrite index (vertexIndex u) nf
                                     MV.unsafeWrite queue (nf - 1) d
                                     return $! nf
 
@@ -188,10 +187,10 @@ instance Knotted Tangle where
                         !c <- look d
                         return $! c + s `shiftL` 7
 
-                rc <- PMV.new (l + 2 * n + 1)
-                PMV.unsafeWrite rc 0 $! numberOfFreeLoops tangle
+                rc <- UMV.new (l + 2 * n + 1)
+                UMV.unsafeWrite rc 0 $! numberOfFreeLoops tangle
                 foldM_ (\ !d !i -> do
-                        look (opposite d) >>= PMV.unsafeWrite rc i
+                        look (opposite d) >>= UMV.unsafeWrite rc i
                         return $! nextDir dir d
                     ) leg [1 .. l]
 
@@ -206,15 +205,15 @@ instance Knotted Tangle where
                                         bi = l + 1 + 2 * headI
                                         li = bi + 1
                                     case st of
-                                        LT -> PMV.unsafeWrite rc bi be >> PMV.unsafeWrite rc li le >> bfs LT (headI + 1)
+                                        LT -> UMV.unsafeWrite rc bi be >> UMV.unsafeWrite rc li le >> bfs LT (headI + 1)
                                         EQ -> do
-                                            be' <- PMV.unsafeRead rc bi
+                                            be' <- UMV.unsafeRead rc bi
                                             case compare be be' of
-                                                LT -> PMV.unsafeWrite rc bi be >> PMV.unsafeWrite rc li le >> bfs LT (headI + 1)
+                                                LT -> UMV.unsafeWrite rc bi be >> UMV.unsafeWrite rc li le >> bfs LT (headI + 1)
                                                 EQ -> do
-                                                    le' <- PMV.unsafeRead rc li
+                                                    le' <- UMV.unsafeRead rc li
                                                     case compare le le' of
-                                                        LT -> PMV.unsafeWrite rc li le >> bfs LT (headI + 1)
+                                                        LT -> UMV.unsafeWrite rc li le >> bfs LT (headI + 1)
                                                         EQ -> bfs EQ (headI + 1)
                                                         GT -> return GT
                                                 GT -> return GT
@@ -224,11 +223,12 @@ instance Knotted Tangle where
                 fix $ \ recheck -> do
                     tailI <- readSTRef free
                     when (tailI <= n) $ do
-                        notVisited <- filterM (\ !i -> (== 0) `fmap` PMV.unsafeRead index i) [1 .. n]
+                        notVisited <- filterM (\ !i -> (== 0) `fmap` UMV.unsafeRead index i) [1 .. n]
 
                         (d, _) <- foldM (\ (pd, !st) !d -> do
                                 writeSTRef free tailI
-                                forM_ notVisited $ \ !i -> PMV.unsafeWrite index i 0
+                                forM_ notVisited $ \ !i ->
+                                    UMV.unsafeWrite index i 0
                                 void $ look d
                                 r <- bfs st (tailI - 1)
                                 return $! case r of
@@ -239,7 +239,8 @@ instance Knotted Tangle where
                             [d | i <- notVisited, d <- outcomingDarts (nthVertex tangle i)]
 
                         writeSTRef free tailI
-                        forM_ notVisited $ \ !i -> PMV.unsafeWrite index i 0
+                        forM_ notVisited $ \ !i ->
+                            UMV.unsafeWrite index i 0
                         void $ look d
                         LT <- bfs LT (tailI - 1)
                         recheck
