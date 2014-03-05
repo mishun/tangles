@@ -1,4 +1,4 @@
-module Math.Topology.KnotTh.Tangle.Generation.FlypeClasses
+module Math.Topology.KnotTh.Tabulation.TangleFlypeClasses
     ( generateFlypeEquivalentDecomposition
     , generateFlypeEquivalentDecompositionInTriangle
     , generateFlypeEquivalent
@@ -16,8 +16,8 @@ import qualified Math.Algebra.RotationDirection as R
 import qualified Math.Algebra.Group.Dn as Dn
 import Math.Topology.KnotTh.Crossings.SubTangle
 import Math.Topology.KnotTh.Tangle
-import Math.Topology.KnotTh.Tangle.Generation.BorderIncremental
-import Math.Topology.KnotTh.Tangle.Generation.FlypeClasses.Flypes
+import Math.Topology.KnotTh.Tabulation.TangleDiagramsCascade
+import Math.Topology.KnotTh.Tabulation.TangleFlypeClasses.Flypes
 
 
 templateDescendants

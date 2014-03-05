@@ -6,8 +6,8 @@ import Control.Monad (when)
 import Diagrams.Prelude
 import Math.Topology.KnotTh.Tangle
 import Math.Topology.KnotTh.Draw
-import Math.Topology.KnotTh.Tangle.Generation.BorderIncremental
-import Math.Topology.KnotTh.Tangle.Generation.FlypeClasses
+import Math.Topology.KnotTh.Tabulation.TangleDiagramsCascade
+import Math.Topology.KnotTh.Tabulation.TangleFlypeClasses
 import TestUtil.Table
 import TestUtil.Drawing
 

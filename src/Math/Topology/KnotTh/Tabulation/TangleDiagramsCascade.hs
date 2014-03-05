@@ -1,4 +1,4 @@
-module Math.Topology.KnotTh.Tangle.Generation.BorderIncremental
+module Math.Topology.KnotTh.Tabulation.TangleDiagramsCascade
     ( module X
     , nextNumberOfLegs
     , diagonalIndex
@@ -18,8 +18,8 @@ import qualified Math.Algebra.Group.Dn as Dn
 import qualified Math.Algebra.Group.D4 as D4
 import Math.Combinatorics.Generation.CanonicalConstructionPath as X
 import Math.Topology.KnotTh.Tangle
-import Math.Topology.KnotTh.Tangle.Generation.BorderIncremental.IncrementalTests as X
-import Math.Topology.KnotTh.Tangle.Generation.BorderIncremental.RootingTest as X
+import Math.Topology.KnotTh.Tabulation.TangleDiagramsCascade.IncrementalTests as X
+import Math.Topology.KnotTh.Tabulation.TangleDiagramsCascade.RootingTest as X
 
 
 {-# INLINE nextNumberOfLegs #-}

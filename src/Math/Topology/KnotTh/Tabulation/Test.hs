@@ -1,5 +1,5 @@
 {-# LANGUAGE RankNTypes #-}
-module Math.Topology.KnotTh.Tangle.Generation.Test
+module Math.Topology.KnotTh.Tabulation.Test
     ( test
     ) where
 
@@ -9,8 +9,8 @@ import Test.Framework (Test, testGroup)
 import Test.Framework.Providers.HUnit (testCase)
 import qualified Math.Algebra.Group.Dn as Dn
 import Math.Topology.KnotTh.Tangle
-import Math.Topology.KnotTh.Tangle.Generation.BorderIncremental
-import Math.Topology.KnotTh.Tangle.Generation.FlypeClasses
+import Math.Topology.KnotTh.Tabulation.TangleDiagramsCascade
+import Math.Topology.KnotTh.Tabulation.TangleFlypeClasses
 import TestUtil.Table
 
 

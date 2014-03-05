@@ -18,7 +18,7 @@ import Math.Topology.KnotTh.Enumeration.DiagramInfo as X
 import Math.Topology.KnotTh.Enumeration.DiagramInfo.MinimalDiagramInfo
 import Math.Topology.KnotTh.Tangle as X
 import Math.Topology.KnotTh.Tangle.Satellites
-import Math.Topology.KnotTh.Tangle.Generation.BorderIncremental
+import Math.Topology.KnotTh.Tabulation.TangleDiagramsCascade
 import Math.Topology.KnotTh.Link (tangleDoubling)
 import Math.Topology.KnotTh.Invariants
 import qualified Math.Topology.KnotTh.Moves.AdHocOfTangle as AdHoc

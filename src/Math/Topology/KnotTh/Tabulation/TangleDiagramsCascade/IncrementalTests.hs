@@ -1,4 +1,4 @@
-module Math.Topology.KnotTh.Tangle.Generation.BorderIncremental.IncrementalTests
+module Math.Topology.KnotTh.Tabulation.TangleDiagramsCascade.IncrementalTests
     ( testNoMultiEdges
     , testNo2ndReidemeisterReduction
     , testFlow4

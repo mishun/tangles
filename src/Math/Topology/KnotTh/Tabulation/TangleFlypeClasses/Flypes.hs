@@ -1,5 +1,5 @@
 {-# LANGUAGE UnboxedTuples #-}
-module Math.Topology.KnotTh.Tangle.Generation.FlypeClasses.Flypes
+module Math.Topology.KnotTh.Tabulation.TangleFlypeClasses.Flypes
     ( minimumFlypeCode
     , additionalFlypeSymmetry
     ) where

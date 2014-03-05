@@ -83,10 +83,9 @@ library
         Math.Topology.KnotTh.Link,
         Math.Topology.KnotTh.Link.Table,
         Math.Topology.KnotTh.Tabulation.LinkDiagrams,
+        Math.Topology.KnotTh.Tabulation.TangleDiagramsCascade,
+        Math.Topology.KnotTh.Tabulation.TangleFlypeClasses,
         Math.Topology.KnotTh.Tangle,
-        Math.Topology.KnotTh.Tangle.Generation.BorderIncremental,
-        Math.Topology.KnotTh.Tangle.Generation.FlypeClasses,
-        Math.Topology.KnotTh.Tangle.Generation.FlypeClasses.Flypes,
         Math.Topology.KnotTh.Tangle.Satellites,
         Math.Topology.Manifolds.SurfaceGraph
     other-modules:
@@ -130,8 +129,9 @@ library
         Math.Topology.KnotTh.Tangle.Definition.Misc,
         Math.Topology.KnotTh.Tangle.Definition.Tangle,
         Math.Topology.KnotTh.Tangle.Definition.TangleLike,
-        Math.Topology.KnotTh.Tangle.Generation.BorderIncremental.IncrementalTests,
-        Math.Topology.KnotTh.Tangle.Generation.BorderIncremental.RootingTest,
+        Math.Topology.KnotTh.Tabulation.TangleDiagramsCascade.IncrementalTests,
+        Math.Topology.KnotTh.Tabulation.TangleDiagramsCascade.RootingTest,
+        Math.Topology.KnotTh.Tabulation.TangleFlypeClasses.Flypes,
         Math.Topology.Manifolds.SurfaceGraph.Barycentric,
         Math.Topology.Manifolds.SurfaceGraph.Definition,
         Math.Topology.Manifolds.SurfaceGraph.Embedding,
@@ -158,10 +158,10 @@ library
             Math.Topology.KnotTh.Enumeration.Applied.Test,
             Math.Topology.KnotTh.Invariants.Test,
             Math.Topology.KnotTh.Moves.Test,
-            Math.Topology.KnotTh.Tangle.Generation.Test,
-            Math.Topology.KnotTh.Tangle.Test
-            TestUtil.Drawing
-            TestUtil.Table
+            Math.Topology.KnotTh.Tangle.Test,
+            Math.Topology.KnotTh.Tabulation.Test,
+            TestUtil.Drawing,
+            TestUtil.Table,
             TestUtil.TestCollection
     else
         other-modules:

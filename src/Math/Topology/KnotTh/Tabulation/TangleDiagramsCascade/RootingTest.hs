@@ -1,5 +1,5 @@
 {-# LANGUAGE UnboxedTuples #-}
-module Math.Topology.KnotTh.Tangle.Generation.BorderIncremental.RootingTest
+module Math.Topology.KnotTh.Tabulation.TangleDiagramsCascade.RootingTest
     ( rootingSymmetryTest
     , rootCodeLeg
     ) where
