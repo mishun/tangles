@@ -18,6 +18,7 @@ import Data.Array.Unboxed (UArray)
 import Control.Monad.State (execState, gets, modify)
 import Control.Monad (MonadPlus(..), unless, guard)
 import Math.Topology.KnotTh.Tangle
+import Math.Topology.KnotTh.Link
 import Math.Topology.KnotTh.Moves.Modify
 
 
@@ -128,7 +129,16 @@ makePattern mirror pattern =
         return res
 
 
-searchMoves :: [Pattern a (Tangle a)] -> Tangle a -> [Tangle a]
-searchMoves patterns tangle = do
-    pattern <- patterns
-    patternMatching pattern tangle
+class (Knotted k) => PatternMatching k where
+    searchMoves :: [Pattern a (Tangle a)] -> k a -> [k a]
+
+
+instance PatternMatching Tangle where
+    searchMoves patterns tangle = do
+        pattern <- patterns
+        patternMatching pattern tangle
+
+
+instance PatternMatching Link where
+    searchMoves patterns =
+        map tangleToLink . searchMoves patterns . linkToTangle
