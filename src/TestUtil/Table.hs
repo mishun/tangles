@@ -10,6 +10,7 @@ module TestUtil.Table
 
 import Data.Maybe (isJust, fromJust)
 import Data.List (intercalate, foldl')
+import qualified Data.Set as S
 import qualified Data.Map as M
 import Control.Monad.State.Strict (execState, get, put)
 import Control.Monad (forM_, guard)
@@ -63,7 +64,7 @@ printTable name table = do
     let maxN = maximum $ map fst $ M.keys table
     let totalTangles = sum $ M.elems table
     putStr $
-        let possibleLegs = [ 2 * (i + 1) | i <- [0 .. maxN] ]
+        let possibleLegs = S.toList $ foldl (flip S.insert) S.empty $ map snd $ M.keys table
             total = "total: " ++ show totalTangles
             header = intercalate "\t" $ "l\\n" : map show [1 .. maxN]
             line l = intercalate "\t" $ show l : map (\ c -> cell (c, l)) [1 .. maxN]

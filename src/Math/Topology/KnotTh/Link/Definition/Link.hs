@@ -1,4 +1,4 @@
-{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE TypeFamilies, UnboxedTuples #-}
 module Math.Topology.KnotTh.Link.Definition.Link
     ( Link
     , emptyLink
@@ -12,8 +12,18 @@ module Math.Topology.KnotTh.Link.Definition.Link
     , LinkDiagramDart
     ) where
 
+import Data.Function (fix)
+import Data.Maybe (fromMaybe)
+import Data.Bits ((.&.), shiftL)
+import qualified Data.Vector.Mutable as MV
+import qualified Data.Vector.Primitive as PV
+import qualified Data.Vector.Primitive.Mutable as PMV
+import Data.STRef (newSTRef, readSTRef, writeSTRef)
+import Control.Monad (void, when)
 import Control.Arrow ((***))
 import Text.Printf
+import qualified Math.Algebra.Group.D4 as D4
+import qualified Math.Algebra.RotationDirection as R
 import Math.Topology.KnotTh.Knotted
 import Math.Topology.KnotTh.Tangle
 
@@ -65,9 +75,84 @@ instance Knotted Link where
     explode (L t) = let (f, [], l) = explode t in (f, l)
     implode (f, l) = L (implode (f, [], l))
 
-    homeomorphismInvariant (L t) = homeomorphismInvariant t
+    homeomorphismInvariant link
+        | numberOfEdges link == 0  = PV.singleton (numberOfFreeLoops link)
+        | otherwise                =
+            minimum $ do
+                dart <- allHalfEdges link
+                dir <- R.bothDirections
+                globalG <- fromMaybe [D4.i] $ globalTransformations link
+                return $! codeWithDirection globalG dir dart
+
+        where
+            codeWithDirection !globalG !dir !start = PV.create $ do
+                        let n = numberOfVertices link
+
+                        index <- PMV.replicate (n + 1) 0
+                        incoming <- PMV.replicate (n + 1) 0
+                        queue <- MV.new n
+                        free <- newSTRef 1
+
+                        let {-# INLINE look #-}
+                            look !d = do
+                                let u = beginVertexIndex d
+                                ux <- PMV.unsafeRead index u
+                                if ux > 0
+                                    then do
+                                        up <- PMV.unsafeRead incoming u
+                                        return $! (ux `shiftL` 2) + (((beginPlace d - up) * R.directionSign dir) .&. 3)
+                                    else do
+                                        nf <- readSTRef free
+                                        writeSTRef free $! nf + 1
+                                        PMV.unsafeWrite index u nf
+                                        PMV.unsafeWrite incoming u (beginPlace d)
+                                        MV.unsafeWrite queue (nf - 1) d
+                                        return $! nf `shiftL` 2
+
+                        rc <- PMV.replicate (6 * n + 1) 0
+                        PMV.unsafeWrite rc 0 $! numberOfFreeLoops link
+
+                        let {-# INLINE lookAndWrite #-}
+                            lookAndWrite !d !offset = do
+                                look d >>= PMV.unsafeWrite rc offset
+                                return $! offset + 1
+
+                        void $ look start
+                        flip fix 0 $ \ bfs !headI -> do
+                            tailI <- readSTRef free
+                            when (headI < tailI - 1) $ do
+                                input <- MV.unsafeRead queue headI
+                                void $ foldMAdjacentDartsFrom input dir lookAndWrite (6 * headI + 3)
+                                case crossingCodeWithGlobal globalG dir input of
+                                    (# be, le #) -> do
+                                        PMV.unsafeWrite rc (6 * headI + 1) be
+                                        PMV.unsafeWrite rc (6 * headI + 2) le
+                                bfs $! headI + 1
+
+                        fix $ \ _ -> do
+                            tailI <- readSTRef free
+                            when (tailI <= n) $
+                                fail "codeWithDirection: disconnected diagram (not implemented)"
+
+                        return rc
 
     isConnected (L t) = isConnected t
+
+
+instance KnottedWithPrimeTest Link where
+    isPrime (L t) = isPrime t
+
+
+instance (Show a) => Show (Link a) where
+    show = printf "implode %s" . show . explode
+
+
+instance (Show a) => Show (Vertex Link a) where
+    show v =
+        printf "(Crossing %i %s [ %s ])"
+            (vertexIndex v)
+            (show $ vertexCrossing v)
+            (unwords $ map (show . opposite) $ outcomingDarts v)
 
 
 instance Show (Dart Link a) where

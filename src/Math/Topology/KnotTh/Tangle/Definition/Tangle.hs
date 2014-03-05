@@ -152,98 +152,99 @@ instance Knotted Tangle where
             }
 
     homeomorphismInvariant tangle
-                | n > 127    = error $ printf "homeomorphismInvariant: too many crossings (%i)" n
-                | otherwise  = minimum $ do
-                    leg <- allLegs tangle
-                    dir <- R.bothDirections
-                    globalG <- fromMaybe [D4.i] $ globalTransformations tangle
-                    return $ code globalG dir leg
-                where
-                    n = numberOfVertices tangle
-                    l = numberOfLegs tangle
+        | n > 127                    = error $ printf "homeomorphismInvariant: too many crossings (%i)" n
+        | numberOfEdges tangle == 0  = PV.singleton (numberOfFreeLoops tangle)
+        | otherwise                  = minimum $ do
+            leg <- allLegs tangle
+            dir <- R.bothDirections
+            globalG <- fromMaybe [D4.i] $ globalTransformations tangle
+            return $ code globalG dir leg
+        where
+            n = numberOfVertices tangle
+            l = numberOfLegs tangle
 
-                    code globalG dir leg = PV.create $ do
-                        index <- PMV.replicate (n + 1) 0
-                        queue <- MV.new n
-                        free <- newSTRef 1
+            code globalG dir leg = PV.create $ do
+                index <- PMV.replicate (n + 1) 0
+                queue <- MV.new n
+                free <- newSTRef 1
 
-                        let {-# INLINE look #-}
-                            look !d
-                                | isLeg d    = return 0
-                                | otherwise  = do
-                                    let u = beginVertex d
-                                    ux <- PMV.unsafeRead index $! vertexIndex u
-                                    if ux > 0
-                                        then return $! ux
-                                        else do
-                                            nf <- readSTRef free
-                                            writeSTRef free $! nf + 1
-                                            PMV.unsafeWrite index (vertexIndex u) nf
-                                            MV.unsafeWrite queue (nf - 1) d
-                                            return $! nf
+                let {-# INLINE look #-}
+                    look !d
+                        | isLeg d    = return 0
+                        | otherwise  = do
+                            let u = beginVertex d
+                            ux <- PMV.unsafeRead index $! vertexIndex u
+                            if ux > 0
+                                then return $! ux
+                                else do
+                                    nf <- readSTRef free
+                                    writeSTRef free $! nf + 1
+                                    PMV.unsafeWrite index (vertexIndex u) nf
+                                    MV.unsafeWrite queue (nf - 1) d
+                                    return $! nf
 
-                            {-# INLINE lookAndAdd #-}
-                            lookAndAdd !d !s = do
-                                !c <- look d
-                                return $! c + s `shiftL` 7
+                    {-# INLINE lookAndAdd #-}
+                    lookAndAdd !d !s = do
+                        !c <- look d
+                        return $! c + s `shiftL` 7
 
-                        rc <- PMV.new (l + 2 * n + 1)
-                        PMV.unsafeWrite rc 0 $! numberOfFreeLoops tangle
-                        foldM_ (\ !d !i -> do
-                                look (opposite d) >>= PMV.unsafeWrite rc i
-                                return $! nextDir dir d
-                            ) leg [1 .. l]
+                rc <- PMV.new (l + 2 * n + 1)
+                PMV.unsafeWrite rc 0 $! numberOfFreeLoops tangle
+                foldM_ (\ !d !i -> do
+                        look (opposite d) >>= PMV.unsafeWrite rc i
+                        return $! nextDir dir d
+                    ) leg [1 .. l]
 
-                        let bfs !st !headI = do
-                                tailI <- readSTRef free
-                                if headI >= tailI - 1 then return $! st else do
-                                    input <- MV.unsafeRead queue headI
-                                    !nb <- foldMAdjacentDartsFrom input dir lookAndAdd 0
-                                    case crossingCodeWithGlobal globalG dir input of
-                                        (# be, le'' #) -> do
-                                            let le = le'' + shiftL nb 3
-                                                bi = l + 1 + 2 * headI
-                                                li = bi + 1
-                                            case st of
+                let bfs !st !headI = do
+                        tailI <- readSTRef free
+                        if headI >= tailI - 1 then return $! st else do
+                            input <- MV.unsafeRead queue headI
+                            !nb <- foldMAdjacentDartsFrom input dir lookAndAdd 0
+                            case crossingCodeWithGlobal globalG dir input of
+                                (# be, le'' #) -> do
+                                    let le = le'' + shiftL nb 3
+                                        bi = l + 1 + 2 * headI
+                                        li = bi + 1
+                                    case st of
+                                        LT -> PMV.unsafeWrite rc bi be >> PMV.unsafeWrite rc li le >> bfs LT (headI + 1)
+                                        EQ -> do
+                                            be' <- PMV.unsafeRead rc bi
+                                            case compare be be' of
                                                 LT -> PMV.unsafeWrite rc bi be >> PMV.unsafeWrite rc li le >> bfs LT (headI + 1)
                                                 EQ -> do
-                                                    be' <- PMV.unsafeRead rc bi
-                                                    case compare be be' of
-                                                        LT -> PMV.unsafeWrite rc bi be >> PMV.unsafeWrite rc li le >> bfs LT (headI + 1)
-                                                        EQ -> do
-                                                            le' <- PMV.unsafeRead rc li
-                                                            case compare le le' of
-                                                                LT -> PMV.unsafeWrite rc li le >> bfs LT (headI + 1)
-                                                                EQ -> bfs EQ (headI + 1)
-                                                                GT -> return GT
+                                                    le' <- PMV.unsafeRead rc li
+                                                    case compare le le' of
+                                                        LT -> PMV.unsafeWrite rc li le >> bfs LT (headI + 1)
+                                                        EQ -> bfs EQ (headI + 1)
                                                         GT -> return GT
                                                 GT -> return GT
+                                        GT -> return GT
 
-                        LT <- bfs LT 0
-                        fix $ \ recheck -> do
-                            tailI <- readSTRef free
-                            when (tailI <= n) $ do
-                                notVisited <- filterM (\ !i -> (== 0) `fmap` PMV.unsafeRead index i) [1 .. n]
+                LT <- bfs LT 0
+                fix $ \ recheck -> do
+                    tailI <- readSTRef free
+                    when (tailI <= n) $ do
+                        notVisited <- filterM (\ !i -> (== 0) `fmap` PMV.unsafeRead index i) [1 .. n]
 
-                                (d, _) <- foldM (\ (pd, !st) !d -> do
-                                        writeSTRef free tailI
-                                        forM_ notVisited $ \ !i -> PMV.unsafeWrite index i 0
-                                        void $ look d
-                                        r <- bfs st (tailI - 1)
-                                        return $! case r of
-                                            LT -> (d, EQ)
-                                            _  -> (pd, EQ)
-                                    )
-                                    (undefined, LT)
-                                    [d | i <- notVisited, d <- outcomingDarts (nthVertex tangle i)]
-
+                        (d, _) <- foldM (\ (pd, !st) !d -> do
                                 writeSTRef free tailI
                                 forM_ notVisited $ \ !i -> PMV.unsafeWrite index i 0
                                 void $ look d
-                                LT <- bfs LT (tailI - 1)
-                                recheck
+                                r <- bfs st (tailI - 1)
+                                return $! case r of
+                                    LT -> (d, EQ)
+                                    _  -> (pd, EQ)
+                            )
+                            (undefined, LT)
+                            [d | i <- notVisited, d <- outcomingDarts (nthVertex tangle i)]
 
-                        return rc
+                        writeSTRef free tailI
+                        forM_ notVisited $ \ !i -> PMV.unsafeWrite index i 0
+                        void $ look d
+                        LT <- bfs LT (tailI - 1)
+                        recheck
+
+                return rc
 
     isConnected tangle
         | numberOfEdges tangle == 0 && numberOfFreeLoops tangle <= 1  = True

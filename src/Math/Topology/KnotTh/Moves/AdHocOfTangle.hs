@@ -4,6 +4,7 @@ module Math.Topology.KnotTh.Moves.AdHocOfTangle
     , reidemeisterIII
     , weak
     , greedyReidemeisterReduction
+    , greedyReidemeisterReductionLink
     , reduce1st
     , reduce2nd
     , smoothA
@@ -15,6 +16,7 @@ import Data.Maybe (mapMaybe)
 import Data.Array.Unboxed ((!))
 import Control.Monad (when, unless, msum, guard, liftM2)
 import Math.Topology.KnotTh.Tangle
+import Math.Topology.KnotTh.Link
 import Math.Topology.KnotTh.Moves.Modify
 import Math.Topology.KnotTh.Moves.AdHocOfTangle.Resting
 
@@ -202,6 +204,11 @@ weak tangle = concat [neighboursBorderCrossing, neighboursBorderLoop]
 
 greedyReidemeisterReduction :: TangleDiagram -> TangleDiagram
 greedyReidemeisterReduction tangleC = move tangleC $ greedy [reduce1st, reduce2nd]
+
+
+greedyReidemeisterReductionLink :: LinkDiagram -> LinkDiagram
+greedyReidemeisterReductionLink =
+    tangleToLink . greedyReidemeisterReduction . linkToTangle
 
 
 reduce1st :: TangleDiagramDart -> MoveM s DiagramCrossing Bool
