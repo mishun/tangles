@@ -14,14 +14,11 @@ import Data.Function (fix)
 import Data.Monoid (Monoid(..))
 
 import qualified Data.Vector as V
+import qualified Data.Vector.Mutable as MV
 import qualified Data.Vector.Unboxed as UV
-
-import Data.Array.IArray ((!), array, listArray)
-import Data.Array.MArray (newArray_, newArray, readArray, writeArray, getBounds)
-import Data.Array (Array)
+import qualified Data.Vector.Unboxed.Mutable as UMV
+import Data.Array.IArray ((!), array)
 import Data.Array.Unboxed (UArray)
-import Data.Array.ST (STArray, STUArray)
-
 import Data.STRef (STRef, newSTRef, readSTRef, writeSTRef, modifySTRef')
 import Control.Monad.Reader (ReaderT, runReaderT, ask, lift)
 import Control.Monad.ST (ST, runST)
@@ -39,7 +36,7 @@ class (Monoid s) => PlanarStateSum s where
 
     loopState     :: Int -> (s, Int) -> (s, UV.Vector Int)
     connectStates :: Int -> (s, Int) -> (s, Int) -> (s, UV.Vector Int, UV.Vector Int)
-    assemble      :: V.Vector (Int, Int) -> Array Int (Array Int Int) -> Array Int s -> s -> s
+    assemble      :: V.Vector (Int, Int) -> V.Vector (UV.Vector Int) -> V.Vector s -> s -> s
 
 
 {-
@@ -160,11 +157,11 @@ data Context s a =
     Context
         { size     :: !Int
         , alive    :: !(STRef s Int)
-        , active   :: !(STUArray s Int Bool)
-        , state    :: !(STArray s Int a)
-        , adjacent :: !(STArray s Int (STArray s Int (Int, Int)))
+        , active   :: !(UMV.STVector s Bool)
+        , state    :: !(MV.STVector s a)
+        , adjacent :: !(MV.STVector s (MV.STVector s (Int, Int)))
         , queue    :: !(STRef s [Int])
-        , queued   :: !(STUArray s Int Bool)
+        , queued   :: !(UMV.STVector s Bool)
         , multiple :: !(STRef s a)
         }
 
@@ -173,17 +170,17 @@ makeContext :: (PlanarAlgebra a, PlanarStateSum t) => a x -> (Vertex a x -> t) -
 makeContext alg weight = do
     s <- do
         let n = numberOfVertices alg
-        adjacent' <- newArray_ (0, n)
-        newArray_ (0, numberOfLegs alg - 1) >>= writeArray adjacent' 0
+        adjacent' <- MV.new (n + 1)
+        MV.new (numberOfLegs alg) >>= MV.write adjacent' 0
 
         forM_ [1 .. n] $ \ !i ->
-            newArray_ (0, 3) >>= writeArray adjacent' i
+            MV.new 4 >>= MV.write adjacent' i
 
         alive' <- newSTRef n
-        active' <- newArray (1, n) True
-        state' <- newArray_ (1, n)
+        active' <- UMV.replicate (n + 1) True
+        state' <- MV.new (n + 1)
         queue' <- newSTRef [1 .. n]
-        queued' <- newArray (1, n) True
+        queued' <- UMV.replicate (n + 1) True
         multiple' <- newSTRef mempty
 
         return Context
@@ -212,14 +209,15 @@ makeContext alg weight = do
 dumpStateST :: (Show a) => Context s a -> ST s String
 dumpStateST s = do
     cross <- forM [1 .. size s] $ \ i -> do
-        act <- readArray (active s) i
+        act <- UMV.read (active s) i
         if not act
             then return "???"
             else do
-                adj <- readArray (adjacent s) i
-                (0, bound) <- getBounds adj
-                con <- fmap concat $ forM [0 .. bound] $ \ j -> show `fmap` readArray adj j
-                st <- readArray (state s) i
+                adj <- MV.read (adjacent s) i
+                let bound = MV.length adj
+                con <- fmap concat $ forM [0 .. bound - 1] $ \ j ->
+                    show `fmap` MV.read adj j
+                st <- MV.read (state s) i
                 return $ printf "{ %s } %s" con (show st)
 
     alive' <- readSTRef $ alive s
@@ -234,40 +232,37 @@ appendMultipleST s x =
 
 connectST :: Context s a -> (Int, Int) -> (Int, Int) -> ST s ()
 connectST s a@(!v, !p) b@(!u, !q) = do
-    readArray (adjacent s) v >>= \ d -> writeArray d p b
-    readArray (adjacent s) u >>= \ d -> writeArray d q a
+    MV.read (adjacent s) v >>= \ d -> MV.write d p b
+    MV.read (adjacent s) u >>= \ d -> MV.write d q a
 
 
 vertexDegreeST :: Context s a -> Int -> ST s Int
-vertexDegreeST s v =
-    readArray (adjacent s) v >>=
-        getBounds >>= \ (0, n) ->
-            return $! n + 1
+vertexDegreeST s v = do
+    MV.length `fmap` MV.read (adjacent s) v
 
 
 neighbourST :: Context s a -> (Int, Int) -> ST s (Int, Int)
 neighbourST s (!v, !p) = do
-    x <- readArray (adjacent s) v
-    (_, d) <- getBounds x
-    readArray x $ p `mod` (d + 1)
+    x <- MV.read (adjacent s) v
+    MV.read x $ p `mod` MV.length x
 
 
 killVertexST :: Context s a -> Int -> ST s ()
 killVertexST s v = do
-    a <- readArray (active s) v
+    a <- UMV.read (active s) v
     unless a $ fail "killVertexST: vertex is already dead"
-    writeArray (active s) v False
-    writeArray (state s) v $ error "do not touch!"
-    writeArray (adjacent s) v $ error "do not touch!"
+    UMV.write (active s) v False
+    MV.write (state s) v $ error "do not touch!"
+    MV.write (adjacent s) v $ error "do not touch!"
     modifySTRef' (alive s) (+ (-1))
 
 
 enqueueST :: Context s a -> Int -> ST s ()
 enqueueST s v = do
-    a <- readArray (active s) v
-    e <- readArray (queued s) v
+    a <- UMV.read (active s) v
+    e <- UMV.read (queued s) v
     when (a && not e) $ do
-        writeArray (queued s) v True
+        UMV.write (queued s) v True
         modifySTRef' (queue s) (v :)
 
 
@@ -278,31 +273,31 @@ dequeueST s = do
         []    -> return Nothing
         h : t -> do
             writeSTRef (queue s) t
-            writeArray (queued s) h False
-            ok <- readArray (active s) h
+            UMV.write (queued s) h False
+            ok <- UMV.read (active s) h
             if ok
                 then return $! Just $! h
                 else dequeueST s
 
 
-getAdjListST :: Context s a -> Int -> ST s (STArray s Int (Int, Int))
-getAdjListST s = readArray (adjacent s)
+getAdjListST :: Context s a -> Int -> ST s (MV.STVector s (Int, Int))
+getAdjListST s = MV.read (adjacent s)
 
 
-resizeAdjListST :: Context s a -> Int -> Int -> ST s (STArray s Int (Int, Int))
+resizeAdjListST :: Context s a -> Int -> Int -> ST s (MV.STVector s (Int, Int))
 resizeAdjListST s v degree = do
-    prev <- readArray (adjacent s) v
-    next <- newArray_ (0, degree - 1)
-    writeArray (adjacent s) v next
-    return $! prev
+    prev <- MV.read (adjacent s) v
+    next <- MV.new degree
+    MV.write (adjacent s) v next
+    return prev
 
 
 getStateSumST :: Context s a -> Int -> ST s a
-getStateSumST s = readArray (state s)
+getStateSumST s = MV.read (state s)
 
 
 setStateSumST :: Context s a -> Int -> a -> ST s ()
-setStateSumST s = writeArray (state s)
+setStateSumST s = MV.write (state s)
 
 
 numberOfAliveVerticesST :: Context s a -> ST s Int
@@ -310,7 +305,7 @@ numberOfAliveVerticesST s = readSTRef $ alive s
 
 
 aliveVerticesST :: Context s a -> ST s [Int]
-aliveVerticesST s = filterM (readArray $ active s) [1 .. size s]
+aliveVerticesST s = filterM (UMV.read $ active s) [1 .. size s]
 
 
 extractStateSumST :: (PlanarStateSum a) => Context s a -> ST s a
@@ -321,21 +316,26 @@ extractStateSumST s = do
     border <- do
         let ix :: UArray Int Int
             ix = array (0, size s) $ zip vertices [1 ..]
-        b <- readArray (adjacent s) 0
-        (0, l) <- getBounds b
-        list <- forM [0 .. l] $ \ !i -> do
-            (v, p) <- readArray b i
+        b <- MV.read (adjacent s) 0
+        let l = MV.length b
+        list <- forM [0 .. l - 1] $ \ !i -> do
+            (v, p) <- MV.read b i
             return $! if v == 0 then (0, p) else (ix ! v, p)
-        return $! V.fromListN (l + 1) list
+        return $! V.fromListN l list
 
-    connections <- fmap (listArray (1, n)) $ forM vertices $ \ !v -> do
-        a <- readArray (adjacent s) v
-        (0, k) <- getBounds a
-        fmap (listArray (0, k)) $ forM [0 .. k] $ \ !i -> do
-            (0, p) <- readArray a i
-            return $! p
+    connections <- do
+        conns <- forM vertices $ \ !v -> do
+            a <- MV.read (adjacent s) v
+            let k = MV.length a
+            fmap (UV.fromListN k) $ forM [0 .. k - 1] $ \ !i -> do
+                (0, p) <- MV.read a i
+                return $! p
+        return $ V.fromListN (n + 1) $ undefined : conns
 
-    internals <- listArray (1, n) `fmap` forM vertices (readArray (state s))
+    internals <- do
+         states <- forM vertices (MV.read (state s))
+         return $ V.fromListN (n + 1) (undefined : states)
+
     global <- readSTRef (multiple s)
     return $! assemble border connections internals global
 
@@ -392,19 +392,21 @@ contract s (!v, !p) (!u, !q) = do
         prevV <- resizeAdjListST s v $ degreeV + degreeU - 2
         prevU <- getAdjListST s u
 
-        forM_ [0 .. degreeV - 1] $ \ !i -> when (i /= p) $ do
-            (w, k) <- readArray prevV i
-            connectST s (v, substV UV.! i) $ case () of
-                _ | w == v    -> (v, substV UV.! k)
-                  | w == u    -> (v, substU UV.! k)
-                  | otherwise -> (w, k)
+        forM_ [0 .. degreeV - 1] $ \ !i ->
+            when (i /= p) $ do
+                (w, k) <- MV.read prevV i
+                connectST s (v, substV UV.! i) $ case () of
+                    _ | w == v    -> (v, substV UV.! k)
+                      | w == u    -> (v, substU UV.! k)
+                      | otherwise -> (w, k)
 
-        forM_ [0 .. degreeU - 1] $ \ !i -> when (i /= q) $ do
-            (w, k) <- readArray prevU i
-            connectST s (v, substU UV.! i) $ case () of
-                _ | w == v    -> (v, substV UV.! k)
-                  | w == u    -> (v, substU UV.! k)
-                  | otherwise -> (w, k)
+        forM_ [0 .. degreeU - 1] $ \ !i ->
+            when (i /= q) $ do
+                (w, k) <- MV.read prevU i
+                connectST s (v, substU UV.! i) $ case () of
+                    _ | w == v    -> (v, substV UV.! k)
+                      | w == u    -> (v, substU UV.! k)
+                      | otherwise -> (w, k)
 
     killVertexST s u
     return $! v
@@ -449,7 +451,7 @@ contractLoopST s (!v, !p) = do
 
     prev <- resizeAdjListST s v $ degree - 2
     forM_ [0 .. degree - 1] $ \ !i -> when (i /= p' && i /= p) $ do
-        (u, j) <- readArray prev i
+        (u, j) <- MV.read prev i
         connectST s (v, subst UV.! i) $
             if u /= v
                 then (u, j)

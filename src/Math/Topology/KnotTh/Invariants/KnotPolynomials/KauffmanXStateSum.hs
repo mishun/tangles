@@ -10,7 +10,6 @@ import qualified Data.Map as M
 import qualified Data.Vector as V
 import qualified Data.Vector.Unboxed as UV
 import qualified Data.Vector.Unboxed.Mutable as UMV
-import Data.Array.IArray ((!), bounds)
 import Data.STRef (newSTRef, readSTRef, modifySTRef')
 import Control.Monad.ST (runST)
 import Control.Monad (forM_, when, foldM_)
@@ -165,7 +164,7 @@ instance (KauffmanXArg a) => PlanarStateSum (KauffmanXStateSum a) where
 
     assemble border connections internals global = runST $ do
         let l = V.length border
-        let (1, n) = bounds internals
+        let n = V.length internals - 1
 
         cd <- UMV.new l
         forM_ [0 .. l - 1] $ \ !i -> do
@@ -178,11 +177,11 @@ instance (KauffmanXArg a) => PlanarStateSum (KauffmanXStateSum a) where
                 modifySTRef' result (PlanarChordDiagram x factor :)
 
             substState factor (v : rest) =
-                forAllSummands (internals ! v) $ \ (PlanarChordDiagram x f) -> do
+                forAllSummands (internals V.! v) $ \ (PlanarChordDiagram x f) -> do
                     let k = UV.length x
                     forM_ [0 .. k - 1] $ \ !i -> do
-                        let a = (connections ! v) ! i
-                        let b = (connections ! v) ! (x UV.! i)
+                        let a = (connections V.! v) UV.! i
+                        let b = (connections V.! v) UV.! (x UV.! i)
                         UMV.write cd a b
                     substState (factor * f) rest
 

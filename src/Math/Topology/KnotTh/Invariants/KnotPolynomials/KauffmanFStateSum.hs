@@ -9,13 +9,11 @@ import Data.Monoid (Monoid(..))
 import Data.List (intercalate, foldl')
 import qualified Data.Vector as V
 import qualified Data.Vector.Unboxed as UV
-import Data.Array.IArray ((!), (//), bounds, array, listArray, elems)
-import Data.Array.MArray (newArray, newArray_, readArray, writeArray, freeze)
+import qualified Data.Vector.Unboxed.Mutable as UMV
+import Data.Array.IArray ((!), array)
 import Data.Array (Array)
-import Data.Array.Unboxed (UArray)
-import Data.Array.ST (STUArray)
 import Data.STRef (newSTRef, readSTRef, modifySTRef')
-import Control.Monad.ST (ST, runST)
+import Control.Monad.ST (runST)
 import Control.Monad (forM_, when)
 import Control.DeepSeq
 import Text.Printf
@@ -42,7 +40,7 @@ instance KauffmanFArg Poly2 where
     swapTwists = invert2 "a"
 
 
-data ChordDiagram a = ChordDiagram {-# UNPACK #-} !(UArray Int Int) !a deriving (Eq, Ord)
+data ChordDiagram a = ChordDiagram !(UV.Vector Int) !a deriving (Eq, Ord)
 
 
 instance Functor ChordDiagram where
@@ -55,7 +53,7 @@ instance (NFData a) => NFData (ChordDiagram a) where
 
 instance (Show a) => Show (ChordDiagram a) where
     show (ChordDiagram a x) =
-        printf "(%s)%s" (show x) (show $ elems a)
+        printf "(%s)%s" (show x) (show $ UV.toList a)
 
 
 data ChordDiagramsSum a = ChordDiagramsSum {-# UNPACK #-} !Int ![ChordDiagram a] deriving (Eq, Ord)
@@ -78,7 +76,7 @@ instance (Show a) => Show (ChordDiagramsSum a) where
 
 singletonStateSum :: ChordDiagram a -> ChordDiagramsSum a
 singletonStateSum summand @ (ChordDiagram a _) =
-    ChordDiagramsSum (1 + snd (bounds a)) [summand]
+    ChordDiagramsSum (UV.length a) [summand]
 
 
 concatStateSums :: (Eq a, Num a) => [ChordDiagramsSum a] -> ChordDiagramsSum a
@@ -121,37 +119,37 @@ canonicalOver _ (!a, !b) (!c, !d) =
 --    in (sa, min a b) < (sb, min c d)
 
 
-restoreBasicTangle :: UArray Int Int -> TangleDiagram
+restoreBasicTangle :: UV.Vector Int -> TangleDiagram
 restoreBasicTangle !chordDiagram =
-    let cdl = 1 + snd (bounds chordDiagram)
+    let cdl = UV.length chordDiagram
 
-        restore :: UArray Int Int -> Array Int (Int, Int) -> [Int] -> TangleDiagram
+        restore :: UV.Vector Int -> V.Vector (Int, Int) -> [Int] -> TangleDiagram
         restore _ _ [] = error "impossible happened"
         restore a h (i : rest) = case () of
             _ | l == 0                           -> emptyTangle
               | l == 2                           -> identityTangle
               | i' == j                          ->
                   let tangle = restore
-                          (listArray (0, l - 3) $ map (\ x -> ((a ! ((i + 2 + x) `mod` l)) - i - 2) `mod` l) [0 .. l - 3])
-                          (listArray (0, l - 3) $ map (\ x -> h ! ((i + 2 + x) `mod` l)) [0 .. l - 3])
+                          (UV.generate (l - 2) (\ x -> ((a UV.! ((i + 2 + x) `mod` l)) - i - 2) `mod` l))
+                          (V.generate (l - 2) $ \ x -> h V.! ((i + 2 + x) `mod` l))
                           [0 .. l - 3]
                   in rotateTangle i $ glueTangles 0 (firstLeg identityTangle) (lastLeg tangle)
               | haveIntersection (i, i') (j, j') ->
-                  let tangle = restore (a // [(i, j'), (j, i'), (i', j), (j', i)]) (h // [(i, h ! j), (j, h ! i)]) [0 .. l - 1]
+                  let tangle = restore (a UV.// [(i, j'), (j, i'), (i', j), (j', i)]) (h V.// [(i, h V.! j), (j, h V.! i)]) [0 .. l - 1]
                   in rotateTangle i $ vertexOwner $ glueToBorder (nthLeg tangle j) 2 $
-                      if canonicalOver cdl (h ! i) (h ! j)
+                      if canonicalOver cdl (h V.! i) (h V.! j)
                           then overCrossing
                           else underCrossing
               | otherwise                        -> restore a h rest
             where
-                l = 1 + snd (bounds a)
-                i' = a ! i
+                l = UV.length a
+                i' = a UV.! i
                 j = (i + 1) `mod` l
-                j' = a ! j
+                j' = a UV.! j
 
     in restore
         chordDiagram
-        (listArray (0, cdl - 1) $ map (\ i -> (i, chordDiagram ! i)) [0 .. cdl - 1])
+        (V.generate cdl $ \ i -> (i, chordDiagram UV.! i))
         [0 .. cdl - 1]
 
 
@@ -199,7 +197,7 @@ decomposeTangle path !initialFactor !tangle' =
 
                 (n, _, threads) = allThreadsWithMarks tangle
 
-                a = array (0, numberOfLegs tangle - 1) $ do
+                a = (UV.replicate (numberOfLegs tangle ) 0 UV.//) $ do
                         (_, thread) <- threads
                         case thread of
                             (h, _) : _ | isLeg h ->
@@ -225,13 +223,13 @@ decomposeTangle path !initialFactor !tangle' =
 
 
 instance (KauffmanFArg a) => Monoid (ChordDiagramsSum a) where
-    mempty = ChordDiagramsSum 0 [ChordDiagram (listArray (0, -1) []) 1]
+    mempty = ChordDiagramsSum 0 [ChordDiagram UV.empty 1]
 
     mappend a b =
        let c = takeAsScalar a * takeAsScalar b
        in ChordDiagramsSum 0 $ if c == 0
            then []
-           else [ChordDiagram (listArray (0, -1) []) c]
+           else [ChordDiagram UV.empty c]
 
 
 instance (KauffmanFArg a) => PlanarStateSum (ChordDiagramsSum a) where
@@ -268,32 +266,32 @@ instance (KauffmanFArg a) => PlanarStateSum (ChordDiagramsSum a) where
 
     assemble border connections internals global = {- trace "assemble" $ -} runST $ do
         let l = V.length border
-        let (1, n) = bounds internals
+        let n = V.length internals - 1
 
-        cd <- newArray_ (0, l - 1) :: ST s (STUArray s Int Int)
-        rot <- newArray (1, n) (-1) :: ST s (STUArray s Int Int)
+        cd <- UMV.new l
+        rot <- UMV.replicate (n + 1) (-1)
 
         forM_ [0 .. l - 1] $ \ !i -> do
             let (v, p) = border V.! i
             if v == 0
-                then writeArray cd i p
+                then UMV.write cd i p
                 else do
-                    r <- readArray rot v
-                    when (r < 0) $ writeArray rot v p
+                    r <- UMV.read rot v
+                    when (r < 0) $ UMV.write rot v p
 
         result <- newSTRef []
         let substState factor [] = do
-                x <- freeze cd
+                x <- UV.freeze cd
                 modifySTRef' result (ChordDiagram x factor :)
 
             substState factor (v : rest) = do
-                r <- readArray rot v
-                forAllSummands (rotateState (-r) $ internals ! v) $ \ (ChordDiagram x f) -> do
-                    let (0, k) = bounds x
-                    forM_ [0 .. k] $ \ !i -> do
-                        let a = (connections ! v) ! ((i + r) `mod` (k + 1))
-                        let b = (connections ! v) ! (((x ! i) + r) `mod` (k + 1))
-                        writeArray cd a b
+                r <- UMV.read rot v
+                forAllSummands (rotateState (-r) $ internals V.! v) $ \ (ChordDiagram x f) -> do
+                    let k = UV.length x
+                    forM_ [0 .. k - 1] $ \ !i -> do
+                        let a = (connections V.! v) UV.! ((i + r) `mod` k)
+                        let b = (connections V.! v) UV.! (((x UV.! i) + r) `mod` k)
+                        UMV.write cd a b
                     substState (factor * f) rest
 
         substState (takeAsScalar global) [1 .. n]
@@ -311,13 +309,13 @@ instance (KauffmanFArg a) => PlanarStateSum (ChordDiagramsSum a) where
 
 instance (KauffmanFArg a) => SkeinRelation ChordDiagramsSum a where
     skeinLPlus =
-        singletonStateSum $ ChordDiagram (listArray (0, 3) [2, 3, 0, 1]) 1
+        singletonStateSum $ ChordDiagram (UV.fromList [2, 3, 0, 1]) 1
 
     skeinLMinus =
         concatStateSums $ map singletonStateSum
-            [ ChordDiagram (listArray (0, 3) [2, 3, 0, 1]) (-1)
-            , ChordDiagram (listArray (0, 3) [3, 2, 1, 0]) smoothFactor
-            , ChordDiagram (listArray (0, 3) [1, 0, 3, 2]) smoothFactor
+            [ ChordDiagram (UV.fromList [2, 3, 0, 1]) (-1)
+            , ChordDiagram (UV.fromList [3, 2, 1, 0]) smoothFactor
+            , ChordDiagram (UV.fromList [1, 0, 3, 2]) smoothFactor
             ]
 
     finalNormalization tangle =
