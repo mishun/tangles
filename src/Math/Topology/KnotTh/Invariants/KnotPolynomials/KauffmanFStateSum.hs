@@ -7,6 +7,8 @@ import qualified Data.Map as M
 import Data.Function (on)
 import Data.Monoid (Monoid(..))
 import Data.List (intercalate, foldl')
+import qualified Data.Vector as V
+import qualified Data.Vector.Unboxed as UV
 import Data.Array.IArray ((!), (//), bounds, array, listArray, elems)
 import Data.Array.MArray (newArray, newArray_, readArray, writeArray, freeze)
 import Data.Array (Array)
@@ -238,7 +240,7 @@ instance (KauffmanFArg a) => PlanarStateSum (ChordDiagramsSum a) where
     loopState _ (preSum@(ChordDiagramsSum !degree _), !p) = {- trace (printf "%i[%i] ) %i" degree (complexityRank preSum) p) $ -}
         let !p' = (p + 1) `mod` degree
 
-            !subst = listArray (0, degree - 1) $
+            !subst = UV.fromListN degree $
                 if p' == 0
                     then [-1] ++ [0 .. degree - 3] ++ [-1]
                     else [0 .. p - 1] ++ [-1, -1] ++ [p .. degree - 3]
@@ -251,11 +253,9 @@ instance (KauffmanFArg a) => PlanarStateSum (ChordDiagramsSum a) where
         in (postSum, subst)
 
     connectStates _ (sumV@(ChordDiagramsSum !degreeV _), !p) (sumU@(ChordDiagramsSum !degreeU _), !q) = {- trace (printf "%i[%i] -- %i[%i]" degreeV (complexityRank sumV) degreeU (complexityRank sumU)) $ -}
-        let !substV = listArray (0, degreeV - 1) $
-                [0 .. p - 1] ++ [-1] ++ [ i + degreeU - 2 | i <- [p + 1 .. degreeV - 1]]
+        let !substV = UV.fromListN degreeV $ [0 .. p - 1] ++ [-1] ++ [ i + degreeU - 2 | i <- [p + 1 .. degreeV - 1]]
 
-            !substU = listArray (0, degreeU - 1) $
-                [ i + degreeU - q + p - 1 | i <- [0 .. q - 1]] ++ [-1] ++ [ i - q - 1 + p | i <- [q + 1 .. degreeU - 1]]
+            !substU = UV.fromListN degreeU $ [ i + degreeU - q + p - 1 | i <- [0 .. q - 1]] ++ [-1] ++ [ i - q - 1 + p | i <- [q + 1 .. degreeU - 1]]
 
             !result = flip mapStateSum sumV $ \ (ChordDiagram xa ka) ->
                 let ta = restoreBasicTangle xa
@@ -267,14 +267,14 @@ instance (KauffmanFArg a) => PlanarStateSum (ChordDiagramsSum a) where
         in (result, substV, substU)
 
     assemble border connections internals global = {- trace "assemble" $ -} runST $ do
-        let (0, l) = bounds border
+        let l = V.length border
         let (1, n) = bounds internals
 
-        cd <- newArray_ (0, l) :: ST s (STUArray s Int Int)
+        cd <- newArray_ (0, l - 1) :: ST s (STUArray s Int Int)
         rot <- newArray (1, n) (-1) :: ST s (STUArray s Int Int)
 
-        forM_ [0 .. l] $ \ !i -> do
-            let (v, p) = border ! i
+        forM_ [0 .. l - 1] $ \ !i -> do
+            let (v, p) = border V.! i
             if v == 0
                 then writeArray cd i p
                 else do

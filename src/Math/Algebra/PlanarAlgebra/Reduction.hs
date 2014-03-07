@@ -12,11 +12,16 @@ module Math.Algebra.PlanarAlgebra.Reduction
 
 import Data.Function (fix)
 import Data.Monoid (Monoid(..))
+
+import qualified Data.Vector as V
+import qualified Data.Vector.Unboxed as UV
+
 import Data.Array.IArray ((!), array, listArray)
 import Data.Array.MArray (newArray_, newArray, readArray, writeArray, getBounds)
 import Data.Array (Array)
 import Data.Array.Unboxed (UArray)
 import Data.Array.ST (STArray, STUArray)
+
 import Data.STRef (STRef, newSTRef, readSTRef, writeSTRef, modifySTRef')
 import Control.Monad.Reader (ReaderT, runReaderT, ask, lift)
 import Control.Monad.ST (ST, runST)
@@ -32,9 +37,9 @@ class (Monoid s) => PlanarStateSum s where
     rotateState   :: Int -> s -> s
     mirrorState   :: s -> s
 
-    loopState     :: Int -> (s, Int) -> (s, UArray Int Int)
-    connectStates :: Int -> (s, Int) -> (s, Int) -> (s, UArray Int Int, UArray Int Int)
-    assemble      :: Array Int (Int, Int) -> Array Int (Array Int Int) -> Array Int s -> s -> s
+    loopState     :: Int -> (s, Int) -> (s, UV.Vector Int)
+    connectStates :: Int -> (s, Int) -> (s, Int) -> (s, UV.Vector Int, UV.Vector Int)
+    assemble      :: V.Vector (Int, Int) -> Array Int (Array Int Int) -> Array Int s -> s -> s
 
 
 {-
@@ -321,7 +326,7 @@ extractStateSumST s = do
         list <- forM [0 .. l] $ \ !i -> do
             (v, p) <- readArray b i
             return $! if v == 0 then (0, p) else (ix ! v, p)
-        return $! listArray (0, l) list
+        return $! V.fromListN (l + 1) list
 
     connections <- fmap (listArray (1, n)) $ forM vertices $ \ !v -> do
         a <- readArray (adjacent s) v
@@ -389,16 +394,16 @@ contract s (!v, !p) (!u, !q) = do
 
         forM_ [0 .. degreeV - 1] $ \ !i -> when (i /= p) $ do
             (w, k) <- readArray prevV i
-            connectST s (v, substV ! i) $ case () of
-                _ | w == v    -> (v, substV ! k)
-                  | w == u    -> (v, substU ! k)
+            connectST s (v, substV UV.! i) $ case () of
+                _ | w == v    -> (v, substV UV.! k)
+                  | w == u    -> (v, substU UV.! k)
                   | otherwise -> (w, k)
 
         forM_ [0 .. degreeU - 1] $ \ !i -> when (i /= q) $ do
             (w, k) <- readArray prevU i
-            connectST s (v, substU ! i) $ case () of
-                _ | w == v    -> (v, substV ! k)
-                  | w == u    -> (v, substU ! k)
+            connectST s (v, substU UV.! i) $ case () of
+                _ | w == v    -> (v, substV UV.! k)
+                  | w == u    -> (v, substU UV.! k)
                   | otherwise -> (w, k)
 
     killVertexST s u
@@ -445,7 +450,10 @@ contractLoopST s (!v, !p) = do
     prev <- resizeAdjListST s v $ degree - 2
     forM_ [0 .. degree - 1] $ \ !i -> when (i /= p' && i /= p) $ do
         (u, j) <- readArray prev i
-        connectST s (v, subst ! i) $ if u /= v then (u, j) else (v, subst ! j)
+        connectST s (v, subst UV.! i) $
+            if u /= v
+                then (u, j)
+                else (v, subst UV.! j)
 
 
 internalEdgesST :: (PlanarStateSum a) => Context s a -> ST s [(Int, Int)]

@@ -7,8 +7,11 @@ module Math.Topology.KnotTh.Invariants.KnotPolynomials.KauffmanXStateSum
 import Data.List (foldl', intercalate)
 import Data.Monoid (Monoid(..))
 import qualified Data.Map as M
+import qualified Data.Vector as V
+import qualified Data.Vector.Unboxed as UV
+import qualified Data.Vector.Unboxed.Mutable as UMV
 import Data.Array.IArray ((!), bounds, elems, listArray)
-import Data.Array.MArray (newArray, newArray_, writeArray, freeze)
+import Data.Array.MArray (newArray_, writeArray, freeze)
 import Data.Array.Unboxed (UArray)
 import Data.Array.ST (STUArray, runSTUArray)
 import Data.STRef (newSTRef, readSTRef, modifySTRef')
@@ -102,14 +105,14 @@ instance (KauffmanXArg a) => PlanarStateSum (KauffmanXStateSum a) where
     loopState _ (preSum@(KauffmanXStateSum !degree _), !p) =
         let !p' = (p + 1) `mod` degree
 
-            !subst = runSTUArray $ do
-                a <- newArray (0, degree - 1) (-1) :: ST s (STUArray s Int Int)
+            !subst = UV.create $ do
+                a <- UMV.replicate degree (-1)
                 foldM_ (\ !k !i ->
                     if i == p' || i == p
                         then return $! k
-                        else writeArray a i k >> (return $! k + 1)
+                        else UMV.write a i k >> (return $! k + 1)
                     ) 0 [0 .. degree - 1]
-                return $! a
+                return a
 
             !result = flip mapStateSum preSum $ \ (PlanarChordDiagram x k) ->
                 let x' = runSTUArray $ do
@@ -119,7 +122,7 @@ instance (KauffmanXArg a) => PlanarStateSum (KauffmanXStateSum a) where
                                 let j | (x ! i) == p   = x ! p'
                                       | (x ! i) == p'  = x ! p
                                       | otherwise      = x ! i
-                                writeArray xm (subst ! i) (subst ! j)
+                                writeArray xm (subst UV.! i) (subst UV.! j)
                         return $! xm
 
                     k' | x ! p == p'  = k * circleFactor
@@ -129,47 +132,47 @@ instance (KauffmanXArg a) => PlanarStateSum (KauffmanXStateSum a) where
         in (result, subst)
 
     connectStates _ (sumV@(KauffmanXStateSum !degreeV _), !p) (sumU@(KauffmanXStateSum !degreeU _), !q) =
-        let !substV = runSTUArray $ do
-                a <- newArray (0, degreeV - 1) (-1) :: ST s (STUArray s Int Int)
+        let !substV = UV.create $ do
+                a <- UMV.replicate degreeV (-1)
                 forM_ [0 .. p - 1] $ \ !i ->
-                    writeArray a i i
+                    UMV.write a i i
                 forM_ [p + 1 .. degreeV - 1] $ \ !i ->
-                    writeArray a i $ i + degreeU - 2
-                return $! a
+                    UMV.write a i $ i + degreeU - 2
+                return a
 
-            !substU = runSTUArray $ do
-                a <- newArray (0, degreeU - 1) (-1) :: ST s (STUArray s Int Int)
+            !substU = UV.create $ do
+                a <- UMV.replicate degreeU (-1)
                 forM_ [q + 1 .. degreeU - 1] $ \ !i ->
-                    writeArray a i $ i - q - 1 + p
+                    UMV.write a i $ i - q - 1 + p
                 forM_ [0 .. q - 1] $ \ !i ->
-                    writeArray a i $ i + degreeU - q + p - 1
-                return $! a
+                    UMV.write a i $ i + degreeU - q + p - 1
+                return a
 
             !result = flip mapStateSum sumV $ \ (PlanarChordDiagram xa ka) ->
                 flip mapStateSum sumU $ \ (PlanarChordDiagram xb kb) ->
                     let x = runSTUArray $ do
                             xm <- newArray_ (0, degreeV + degreeU - 3) :: ST s (STUArray s Int Int)
                             forM_ [0 .. degreeV - 1] $ \ !i -> when (i /= p) $
-                                writeArray xm (substV ! i) $
+                                writeArray xm (substV UV.! i) $
                                     if (xa ! i) == p
-                                        then substU ! (xb ! q)
-                                        else substV ! (xa ! i)
+                                        then substU UV.! (xb ! q)
+                                        else substV UV.! (xa ! i)
                             forM_ [0 .. degreeU - 1] $ \ !i -> when (i /= q) $
-                                writeArray xm (substU ! i) $
+                                writeArray xm (substU UV.! i) $
                                     if (xb ! i) == q
-                                        then substV ! (xa ! p)
-                                        else substU ! (xb ! i)
+                                        then substV UV.! (xa ! p)
+                                        else substU UV.! (xb ! i)
                             return $! xm
                     in singletonStateSum $ PlanarChordDiagram x (ka * kb)
         in (result, substV, substU)
 
     assemble border connections internals global = runST $ do
-        let (0, l) = bounds border
+        let l = V.length border
         let (1, n) = bounds internals
 
-        cd <- newArray_ (0, l) :: ST s (STUArray s Int Int)
-        forM_ [0 .. l] $ \ !i -> do
-            let (v, p) = border ! i
+        cd <- newArray_ (0, l - 1) :: ST s (STUArray s Int Int)
+        forM_ [0 .. l - 1] $ \ !i -> do
+            let (v, p) = border V.! i
             when (v == 0) $ writeArray cd i p
 
         result <- newSTRef []
