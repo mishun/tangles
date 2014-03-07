@@ -6,11 +6,10 @@ module Math.Topology.KnotTh.Invariants.KauffmanXPolynomial
 
 import Data.Function (fix)
 import Data.List (groupBy)
-import Data.Array.IArray (array, (!))
-import Data.Array.MArray (newArray, readArray, writeArray)
-import Data.Array (Array)
-import Data.Array.ST (STUArray)
-import Control.Monad.ST (ST, runST)
+import qualified Data.Vector as V
+import qualified Data.Vector.Unboxed as UV
+import qualified Data.Vector.Unboxed.Mutable as UMV
+import Control.Monad.ST (runST)
 import Control.Monad (foldM)
 import Math.Topology.KnotTh.Invariants.Util.Poly
 import Math.Topology.KnotTh.Invariants.KnotPolynomials
@@ -47,8 +46,8 @@ instance KnottedWithKauffmanXPolynomial EmbeddedLink where
             let (tangle, star) = splitIntoTangleAndStar link
                 l = numberOfLegs tangle
 
-                border :: Array Int (Int, [Int])
-                border = array (0, l - 1) $ do
+                border :: V.Vector (Int, [Int])
+                border = (V.replicate l undefined V.//) $ do
                     (pair, gr) <-
                         let ds =
                                 let isBigon d = nextCCW (opposite d) == opposite (nextCW d)
@@ -64,21 +63,21 @@ instance KnottedWithKauffmanXPolynomial EmbeddedLink where
                     return (beginPlace d, (endPlace d, pair))
 
                 homologyMultiple (PlanarChordDiagram a startFactor) = runST $ do
-                    visited <- newArray (0, l - 1) False :: ST s (STUArray s Int Bool)
+                    visited <- UMV.replicate l False
                     foldM (\ !f !start -> do
-                            vs <- readArray visited start
+                            vs <- UMV.read visited start
                             if vs
                                 then return f
                                 else do
                                     homology <- fix (\ loop hom !i -> do
-                                            c <- readArray visited i
+                                            c <- UMV.read visited i
                                             if c
                                                 then return hom
                                                 else do
-                                                    let (i', hom') = border ! i
-                                                    writeArray visited i True
-                                                    writeArray visited i' True
-                                                    loop (zipWith (+) hom hom') (a ! i')
+                                                    let (i', hom') = border V.! i
+                                                    UMV.write visited i True
+                                                    UMV.write visited i' True
+                                                    loop (zipWith (+) hom hom') (a UV.! i')
                                         ) (replicate (2 * genus link) 0) start
                                     return $ f *
                                         if all (== 0) homology

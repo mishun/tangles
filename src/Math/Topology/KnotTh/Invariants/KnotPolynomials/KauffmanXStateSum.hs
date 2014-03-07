@@ -10,12 +10,9 @@ import qualified Data.Map as M
 import qualified Data.Vector as V
 import qualified Data.Vector.Unboxed as UV
 import qualified Data.Vector.Unboxed.Mutable as UMV
-import Data.Array.IArray ((!), bounds, elems, listArray)
-import Data.Array.MArray (newArray_, writeArray, freeze)
-import Data.Array.Unboxed (UArray)
-import Data.Array.ST (STUArray, runSTUArray)
+import Data.Array.IArray ((!), bounds)
 import Data.STRef (newSTRef, readSTRef, modifySTRef')
-import Control.Monad.ST (ST, runST)
+import Control.Monad.ST (runST)
 import Control.Monad (forM_, when, foldM_)
 import Text.Printf
 import Math.Topology.KnotTh.Invariants.KnotPolynomials
@@ -35,7 +32,7 @@ instance KauffmanXArg Poly where
     swapFactors = invert "a"
 
 
-data PlanarChordDiagram a = PlanarChordDiagram !(UArray Int Int) !a deriving (Eq, Ord)
+data PlanarChordDiagram a = PlanarChordDiagram !(UV.Vector Int) !a deriving (Eq, Ord)
 
 
 instance Functor PlanarChordDiagram where
@@ -45,7 +42,7 @@ instance Functor PlanarChordDiagram where
 
 instance (Show a) => Show (PlanarChordDiagram a) where
     show (PlanarChordDiagram a x) =
-        printf "(%s)%s" (show x) (show $ elems a)
+        printf "(%s)%s" (show x) (show $ UV.toList a)
 
 
 data KauffmanXStateSum a = KauffmanXStateSum !Int ![PlanarChordDiagram a] deriving (Eq, Ord)
@@ -64,7 +61,7 @@ instance (Show a) => Show (KauffmanXStateSum a) where
 
 singletonStateSum :: PlanarChordDiagram a -> KauffmanXStateSum a
 singletonStateSum summand @ (PlanarChordDiagram a _) =
-    KauffmanXStateSum (1 + snd (bounds a)) [summand]
+    KauffmanXStateSum (UV.length a) [summand]
 
 
 concatStateSums :: (Eq a, Num a) => [KauffmanXStateSum a] -> KauffmanXStateSum a
@@ -90,13 +87,13 @@ forAllSummands (KauffmanXStateSum _ list) = forM_ list
 
 
 instance (KauffmanXArg a) => Monoid (KauffmanXStateSum a) where
-    mempty = KauffmanXStateSum 0 [PlanarChordDiagram (listArray (0, -1) []) 1]
+    mempty = KauffmanXStateSum 0 [PlanarChordDiagram UV.empty 1]
 
     mappend a b =
        let c = takeAsScalar a * takeAsScalar b
        in KauffmanXStateSum 0 $ if c == 0
            then []
-           else [PlanarChordDiagram (listArray (0, -1) []) c]
+           else [PlanarChordDiagram UV.empty c]
 
 
 instance (KauffmanXArg a) => PlanarStateSum (KauffmanXStateSum a) where
@@ -115,18 +112,18 @@ instance (KauffmanXArg a) => PlanarStateSum (KauffmanXStateSum a) where
                 return a
 
             !result = flip mapStateSum preSum $ \ (PlanarChordDiagram x k) ->
-                let x' = runSTUArray $ do
-                        xm <- newArray_ (0, degree - 3) :: ST s (STUArray s Int Int)
+                let x' = UV.create $ do
+                        xm <- UMV.new (degree - 2)
                         forM_ [0 .. degree - 1] $ \ !i ->
                             when (i /= p' && i /= p) $ do
-                                let j | (x ! i) == p   = x ! p'
-                                      | (x ! i) == p'  = x ! p
-                                      | otherwise      = x ! i
-                                writeArray xm (subst UV.! i) (subst UV.! j)
-                        return $! xm
+                                let j | (x UV.! i) == p   = x UV.! p'
+                                      | (x UV.! i) == p'  = x UV.! p
+                                      | otherwise         = x UV.! i
+                                UMV.write xm (subst UV.! i) (subst UV.! j)
+                        return xm
 
-                    k' | x ! p == p'  = k * circleFactor
-                       | otherwise    = k
+                    k' | x UV.! p == p'  = k * circleFactor
+                       | otherwise       = k
 
                 in singletonStateSum $ PlanarChordDiagram x' k'
         in (result, subst)
@@ -150,19 +147,19 @@ instance (KauffmanXArg a) => PlanarStateSum (KauffmanXStateSum a) where
 
             !result = flip mapStateSum sumV $ \ (PlanarChordDiagram xa ka) ->
                 flip mapStateSum sumU $ \ (PlanarChordDiagram xb kb) ->
-                    let x = runSTUArray $ do
-                            xm <- newArray_ (0, degreeV + degreeU - 3) :: ST s (STUArray s Int Int)
+                    let x = UV.create $ do
+                            xm <- UMV.new (degreeV + degreeU - 2)
                             forM_ [0 .. degreeV - 1] $ \ !i -> when (i /= p) $
-                                writeArray xm (substV UV.! i) $
-                                    if (xa ! i) == p
-                                        then substU UV.! (xb ! q)
-                                        else substV UV.! (xa ! i)
+                                UMV.write xm (substV UV.! i) $
+                                    if (xa UV.! i) == p
+                                        then substU UV.! (xb UV.! q)
+                                        else substV UV.! (xa UV.! i)
                             forM_ [0 .. degreeU - 1] $ \ !i -> when (i /= q) $
-                                writeArray xm (substU UV.! i) $
-                                    if (xb ! i) == q
-                                        then substV UV.! (xa ! p)
-                                        else substU UV.! (xb ! i)
-                            return $! xm
+                                UMV.write xm (substU UV.! i) $
+                                    if (xb UV.! i) == q
+                                        then substV UV.! (xa UV.! p)
+                                        else substU UV.! (xb UV.! i)
+                            return xm
                     in singletonStateSum $ PlanarChordDiagram x (ka * kb)
         in (result, substV, substU)
 
@@ -170,23 +167,23 @@ instance (KauffmanXArg a) => PlanarStateSum (KauffmanXStateSum a) where
         let l = V.length border
         let (1, n) = bounds internals
 
-        cd <- newArray_ (0, l - 1) :: ST s (STUArray s Int Int)
+        cd <- UMV.new l
         forM_ [0 .. l - 1] $ \ !i -> do
             let (v, p) = border V.! i
-            when (v == 0) $ writeArray cd i p
+            when (v == 0) $ UMV.write cd i p
 
         result <- newSTRef []
         let substState factor [] = do
-                x <- freeze cd
+                x <- UV.freeze cd
                 modifySTRef' result (PlanarChordDiagram x factor :)
 
             substState factor (v : rest) =
                 forAllSummands (internals ! v) $ \ (PlanarChordDiagram x f) -> do
-                    let (0, k) = bounds x
-                    forM_ [0 .. k] $ \ !i -> do
+                    let k = UV.length x
+                    forM_ [0 .. k - 1] $ \ !i -> do
                         let a = (connections ! v) ! i
-                        let b = (connections ! v) ! (x ! i)
-                        writeArray cd a b
+                        let b = (connections ! v) ! (x UV.! i)
+                        UMV.write cd a b
                     substState (factor * f) rest
 
         substState (takeAsScalar global) [1 .. n]
@@ -196,36 +193,36 @@ instance (KauffmanXArg a) => PlanarStateSum (KauffmanXStateSum a) where
         | rot == 0   = id
         | otherwise  =
             mapStateSum $ \ (PlanarChordDiagram x f) ->
-                let x' = runSTUArray $ do
-                        let (0, l) = bounds x
-                        a <- newArray_ (0, l)
-                        forM_ [0 .. l] $ \ !i ->
-                            writeArray a ((i + rot) `mod` (l + 1)) (((x ! i) + rot) `mod` (l + 1))
-                        return $! a
+                let x' = UV.create $ do
+                        let l = UV.length x
+                        a <- UMV.new l
+                        forM_ [0 .. l - 1] $ \ !i ->
+                            UMV.write a ((i + rot) `mod` l) (((x UV.! i) + rot) `mod` l)
+                        return a
                 in singletonStateSum $ PlanarChordDiagram x' f
 
     mirrorState =
         mapStateSum $ \ (PlanarChordDiagram x f) ->
-            let x' = runSTUArray $ do
-                    let (0, l) = bounds x
-                    a <- newArray_ (0, l)
-                    forM_ [0 .. l] $ \ !i ->
-                        writeArray a ((-i) `mod` (l + 1)) ((-(x ! i)) `mod` (l + 1))
-                    return $! a
+            let x' = UV.create $ do
+                    let l = UV.length x
+                    a <- UMV.new l
+                    forM_ [0 .. l - 1] $ \ !i ->
+                        UMV.write a ((-i) `mod` l) ((-(x UV.! i)) `mod` l)
+                    return a
             in singletonStateSum $ PlanarChordDiagram x' f
 
 
 instance (KauffmanXArg a) => SkeinRelation KauffmanXStateSum a where
     skeinLPlus =
         concatStateSums $ map singletonStateSum
-            [ PlanarChordDiagram (listArray (0, 3) [3, 2, 1, 0]) aFactor
-            , PlanarChordDiagram (listArray (0, 3) [1, 0, 3, 2]) bFactor
+            [ PlanarChordDiagram (UV.fromList [3, 2, 1, 0]) aFactor
+            , PlanarChordDiagram (UV.fromList [1, 0, 3, 2]) bFactor
             ]
 
     skeinLMinus =
         concatStateSums $ map singletonStateSum
-            [ PlanarChordDiagram (listArray (0, 3) [3, 2, 1, 0]) bFactor
-            , PlanarChordDiagram (listArray (0, 3) [1, 0, 3, 2]) aFactor
+            [ PlanarChordDiagram (UV.fromList [3, 2, 1, 0]) bFactor
+            , PlanarChordDiagram (UV.fromList [1, 0, 3, 2]) aFactor
             ]
 
     finalNormalization tangle =
