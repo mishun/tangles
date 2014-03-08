@@ -12,13 +12,10 @@ module Math.Algebra.PlanarAlgebra.Reduction
 
 import Data.Function (fix)
 import Data.Monoid (Monoid(..))
-
 import qualified Data.Vector as V
 import qualified Data.Vector.Mutable as MV
 import qualified Data.Vector.Unboxed as UV
 import qualified Data.Vector.Unboxed.Mutable as UMV
-import Data.Array.IArray ((!), array)
-import Data.Array.Unboxed (UArray)
 import Data.STRef (STRef, newSTRef, readSTRef, writeSTRef, modifySTRef')
 import Control.Monad.Reader (ReaderT, runReaderT, ask, lift)
 import Control.Monad.ST (ST, runST)
@@ -42,8 +39,7 @@ class (Monoid s) => PlanarStateSum s where
 {-
 data VertexM a =
     VertexM
-        { degree    :: {-# UNPACK #-} !Int
-        , incidence :: {-# UNPACK #-} !(UArray Int Int)
+        { incidence :: !(UV.Vector Int)
         , value     :: !a
         }
 
@@ -56,7 +52,7 @@ data DartM a =
 
 data Context s a =
     Context
-        { _opposite :: {-# UNPACK #-} !(STArray s Int (DartM a))
+        { _opposite :: {-# UNPACK #-} !(MV.STVector s (DartM a))
         , _free     :: {-# UNPACK #-} !(STRef s Int)
         }
 
@@ -72,16 +68,16 @@ reduceWithStrategy alg weight strategy =
         context <- do
             let (1, n) = vertexIndicesRange alg
 
-                vs = (array (0, n) :: [(Int, a)] -> Array Int a) $
+                vs = (V.replicate (n + 1) undefined V.//) $
                     flip map (allVertices alg) $ \ v ->
                         let d = vertexDegree v
-                            inc = listArray (0, d - 1) $ map dartIndex $ outcomingDarts v
+                            inc = UV.fromListN d $ map dartIndex $ outcomingDarts v
                         in (vertexIndex v, VertexM d inc (weight v))
 
-            opp <- newArray_ (dartIndicesRange alg)
+            opp <- MV.new (numberOfDarts alg)
             forM_ (allHalfEdges alg) $ \ d ->
                 let (u, p) = endPair' d
-                in writeArray opp (dartIndex d) (DartM (vs ! u) p)
+                in MV.write opp (dartIndex d) (DartM (vs ! u) p)
 
             fi <- newSTRef $ 1 + snd (vertexIndicesRange alg)
             return Context { _opposite = opp, _free = fi }
@@ -97,7 +93,7 @@ reduceWithStrategy alg weight strategy =
 oppositeM :: DartM a -> PlanarM s a (DartM a)
 oppositeM (DartM v p) =
     ask >>= \ context -> lift $
-        readArray (_opposite context) (incidence v ! p)
+        MV.read (_opposite context) (incidence v UV.! p)
 
 
 nextCCWM :: DartM a -> DartM a
@@ -314,13 +310,12 @@ extractStateSumST s = do
     let n = length vertices
 
     border <- do
-        let ix :: UArray Int Int
-            ix = array (0, size s) $ zip vertices [1 ..]
+        let ix = (UV.replicate (size s + 1) 0) UV.// (vertices `zip` [1 ..])
         b <- MV.read (adjacent s) 0
         let l = MV.length b
         list <- forM [0 .. l - 1] $ \ !i -> do
             (v, p) <- MV.read b i
-            return $! if v == 0 then (0, p) else (ix ! v, p)
+            return $! if v == 0 then (0, p) else (ix UV.! v, p)
         return $! V.fromListN l list
 
     connections <- do

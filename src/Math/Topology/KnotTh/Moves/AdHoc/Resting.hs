@@ -1,4 +1,4 @@
-module Math.Topology.KnotTh.Moves.AdHocOfTangle.Resting
+module Math.Topology.KnotTh.Moves.AdHoc.Resting
     ( restingPart
     ) where
 
@@ -7,18 +7,17 @@ import Data.List (find)
 import qualified Data.Sequence as Seq
 import qualified Data.Set as S
 import qualified Data.Map as M
-import Data.Array.Unboxed (UArray, (!), (//), array, listArray)
+import qualified Data.Vector.Unboxed as UV
 import Control.Monad.State.Strict (execState, evalState, gets, modify)
 import Control.Monad (unless, forM_)
-import Control.Arrow (first)
 import Math.Topology.KnotTh.Tangle
 
 
-zeroFlow :: Tangle ct -> UArray Int Int
-zeroFlow tangle = listArray (dartIndicesRange tangle) $ repeat 0
+zeroFlow :: Tangle ct -> UV.Vector Int
+zeroFlow tangle = UV.replicate (numberOfDarts tangle) 0
 
 
-restingPart :: Tangle ct -> [Dart Tangle ct] -> Maybe ([Dart Tangle ct], UArray Int Bool)
+restingPart :: Tangle ct -> [Dart Tangle ct] -> Maybe ([Dart Tangle ct], UV.Vector Bool)
 restingPart tangle incoming
     | null incoming       = error "restingPart: no darts"
     | any isLeg incoming  = error "restingPart: leg passed"
@@ -37,7 +36,7 @@ restingPart tangle incoming
             where
                 flow0 =
                     let blockingFlow = concatMap (\ l -> if isLeg l then [] else [(dartIndex l, 1)]) (incoming ++ map opposite incoming)
-                    in zeroFlow tangle // blockingFlow
+                    in zeroFlow tangle UV.// blockingFlow
 
                 push flowValue flow
                     | flowValue > m       = Nothing
@@ -49,7 +48,8 @@ restingPart tangle incoming
 
         getSubtangle (flow, flowValue) = Just (result, flowValue)
             where
-                result = listArray (vertexIndicesRange tangle) $ map (`S.member` subtangle) $ allVertices tangle
+                --result = listArray (vertexIndicesRange tangle) $ map (`S.member` subtangle) $ allVertices tangle
+                result = UV.fromListN (numberOfVertices tangle + 1) $ False : map (`S.member` subtangle) (allVertices tangle)
 
                 subtangle = execState (forM_ starts dfs) S.empty
 
@@ -57,7 +57,7 @@ restingPart tangle incoming
                     visited <- gets $ S.member c
                     unless visited $ do
                         modify $ S.insert c
-                        mapM_ (dfs . endVertex) $ filter (\ d -> (flow ! dartIndex d) < 1) $ outcomingDarts c
+                        mapM_ (dfs . endVertex) $ filter (\ d -> (flow UV.! dartIndex d) < 1) $ outcomingDarts c
 
         checkConnectivity (sub, flowValue)
             | all (`S.member` mask) $ tail starts  = Just (sub, flowValue)
@@ -69,7 +69,7 @@ restingPart tangle incoming
                     visited <- gets $ S.member c
                     unless visited $ do
                         modify $ S.insert c
-                        mapM_ dfs $ filter ((sub !) . vertexIndex) $ mapMaybe endVertexM $ outcomingDarts c
+                        mapM_ dfs $ filter ((sub UV.!) . vertexIndex) $ mapMaybe endVertexM $ outcomingDarts c
 
         outcoming (sub, flowValue)
             | any (not . onBorder) incoming  = Nothing
@@ -81,7 +81,7 @@ restingPart tangle incoming
                 firstIncoming = head incoming
                 lastIncoming = last incoming
 
-                onBorder xy = isDart xy && (sub ! vertexIndex x) && (isLeg yx || not (sub ! vertexIndex y))
+                onBorder xy = isDart xy && (sub UV.! vertexIndex x) && (isLeg yx || not (sub UV.! vertexIndex y))
                     where
                         yx = opposite xy
 
@@ -96,15 +96,12 @@ restingPart tangle incoming
                     | otherwise           = restoreOutcoming (traverseNext d) out
 
 
-pushResidualFlow :: Tangle ct -> [Vertex Tangle ct] -> [Vertex Tangle ct] -> UArray Int Int -> Maybe (UArray Int Int)
+pushResidualFlow :: Tangle ct -> [Vertex Tangle ct] -> [Vertex Tangle ct] -> UV.Vector Int -> Maybe (UV.Vector Int)
 pushResidualFlow tangle starts ends flow = evalState bfs initial >>= push
     where
         initial = (Seq.fromList starts, M.fromList $ zip starts (repeat []))
 
-        endFlag :: UArray Int Bool
-        endFlag = array (vertexIndicesRange tangle) $
-            map (first vertexIndex) $
-                zip (allVertices tangle) (repeat False) ++ zip ends (repeat True)
+        endFlag = UV.replicate (numberOfVertices tangle + 1) False UV.// map (\ v -> (vertexIndex v, True)) ends
 
         bfs = do
             empty <- isEmpty
@@ -112,12 +109,12 @@ pushResidualFlow tangle starts ends flow = evalState bfs initial >>= push
                 then return Nothing
                 else do
                     u <- dequeue
-                    if endFlag ! vertexIndex u
+                    if endFlag UV.! vertexIndex u
                         then do
                             p <- getPath u
                             return $! Just p
                         else do
-                            let ud = filter (\ d -> flow ! dartIndex d < 1) $ outcomingDarts u
+                            let ud = filter (\ d -> flow UV.! dartIndex d < 1) $ outcomingDarts u
                             let brd = find (isLeg . opposite) ud
                             if isJust brd
                                 then do
@@ -145,7 +142,7 @@ pushResidualFlow tangle starts ends flow = evalState bfs initial >>= push
 
                 isVisited c = gets (\ (_, p) -> M.member c p)
 
-        push path = return $! flow // pathFlow
+        push path = return $! flow UV.// pathFlow
             where
                 pathFlow = concatMap dartFlow path
 
@@ -153,6 +150,6 @@ pushResidualFlow tangle starts ends flow = evalState bfs initial >>= push
                     | isLeg r    = [df]
                     | otherwise  = [df, rf]
                     where
-                        df = (dartIndex d, (flow ! dartIndex d) + 1)
+                        df = (dartIndex d, (flow UV.! dartIndex d) + 1)
                         r = opposite d
-                        rf = (dartIndex r, (flow ! dartIndex r) - 1)
+                        rf = (dartIndex r, (flow UV.! dartIndex r) - 1)

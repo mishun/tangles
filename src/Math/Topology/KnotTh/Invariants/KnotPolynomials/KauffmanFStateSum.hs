@@ -19,7 +19,7 @@ import Control.DeepSeq
 import Text.Printf
 import Math.Topology.KnotTh.Tangle
 import Math.Topology.KnotTh.Moves.Modify
-import Math.Topology.KnotTh.Moves.AdHocOfTangle
+import Math.Topology.KnotTh.Moves.AdHoc
 import Math.Topology.KnotTh.Invariants.KnotPolynomials
 import Math.Topology.KnotTh.Invariants.Util.Poly
 

@@ -61,17 +61,17 @@ printTable :: String -> Table -> IO ()
 printTable name table = do
     beginTime <- getCPUTime
     putStrLn $ name ++ ":"
-    let maxN = maximum $ map fst $ M.keys table
+    let crs = S.toList $ foldl (flip S.insert) S.empty $ map fst $ M.keys table
     let totalTangles = sum $ M.elems table
     putStr $
         let possibleLegs = S.toList $ foldl (flip S.insert) S.empty $ map snd $ M.keys table
             total = "total: " ++ show totalTangles
-            header = intercalate "\t" $ "l\\n" : map show [1 .. maxN]
-            line l = intercalate "\t" $ show l : map (\ c -> cell (c, l)) [1 .. maxN]
+            header = intercalate "\t" $ "l\\n" : map show crs
+            line l = intercalate "\t" $ show l : map (\ c -> cell (c, l)) crs
 
             allCr =
                 let numForCr c = foldl' (\ !carry ((!cc, !_), !cn) -> carry + if cc == c then cn else 0) 0 $ M.assocs table
-                in intercalate "\t" $ "all:" : map (show . numForCr) [1 .. maxN]
+                in intercalate "\t" $ "all:" : map (show . numForCr) crs
 
             cell arg
                 | isJust r && x > 0  = show x
