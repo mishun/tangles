@@ -15,7 +15,9 @@ module Math.Topology.KnotTh.Moves.Modify
     , greedy
     ) where
 
-import Data.Array.ST (STArray, STUArray, newArray_, newListArray, readArray, writeArray)
+import qualified Data.Vector.Mutable as MV
+import qualified Data.Vector.Unboxed.Mutable as UMV
+--import Data.Array.ST (STArray, STUArray, newArray_, readArray, writeArray)
 import Data.STRef (STRef, newSTRef, readSTRef, modifySTRef')
 import Control.Monad.ST (ST, runST)
 import Control.Monad.Reader (ReaderT, runReaderT, ask, lift)
@@ -32,37 +34,39 @@ data CrossingFlag a = Direct !a
 data MoveState s a =
     MoveState
         { stateSource      :: !(Tangle a)
-        , stateMask        :: !(STArray s Int (CrossingFlag a))
+        , stateMask        :: !(MV.STVector s (CrossingFlag a))
         , stateCircles     :: !(STRef s Int)
-        , stateConnections :: !(STArray s Int (Dart Tangle a))
+        , stateConnections :: !(MV.STVector s (Dart Tangle a))
         }
 
 
 readMaskST :: MoveState s a -> Vertex Tangle a -> ST s (CrossingFlag a)
-readMaskST st c = readArray (stateMask st) (vertexIndex c)
+readMaskST st c = MV.read (stateMask st) (vertexIndex c)
 
 
 writeMaskST :: MoveState s a -> Vertex Tangle a -> CrossingFlag a -> ST s ()
-writeMaskST st c = writeArray (stateMask st) (vertexIndex c)
+writeMaskST st c = MV.write (stateMask st) (vertexIndex c)
 
 
 reconnectST :: MoveState s a -> [(Dart Tangle a, Dart Tangle a)] -> ST s ()
 reconnectST st connections =
     forM_ connections $ \ (!a, !b) -> do
         when (a == b) $ fail $ printf "reconnect: %s connect to itself" (show a)
-        writeArray (stateConnections st) (dartIndex a) b
-        writeArray (stateConnections st) (dartIndex b) a
+        MV.write (stateConnections st) (dartIndex a) b
+        MV.write (stateConnections st) (dartIndex b) a
 
 
 disassembleST :: Tangle a -> ST s (MoveState s a)
 disassembleST tangle = do
-    connections <- newArray_ (dartIndicesRange tangle)
+    connections <- MV.new (numberOfDarts tangle)
     forM_ (allEdges tangle) $ \ (!a, !b) -> do
-        writeArray connections (dartIndex a) b
-        writeArray connections (dartIndex b) a
+        MV.write connections (dartIndex a) b
+        MV.write connections (dartIndex b) a
 
-    mask <- newListArray (vertexIndicesRange tangle) $
-        map (Direct . vertexCrossing) $ allVertices tangle
+    mask <- MV.new (numberOfVertices tangle + 1)
+    forM_ (allVertices tangle) $ \ v ->
+        MV.write mask (vertexIndex v) (Direct $ vertexCrossing v)
+
     circlesCounter <- newSTRef $ numberOfFreeLoops tangle
     return MoveState
         { stateSource      = tangle
@@ -76,25 +80,25 @@ assembleST :: (Show a) => MoveState s a -> ST s (Tangle a)
 assembleST st = do
     let source = stateSource st
 
-    offset <- newArray_ (vertexIndicesRange source) :: ST s (STUArray s Int Int)
+    offset <- UMV.new (numberOfVertices source + 1)
     foldM_ (\ !x !c -> do
             msk <- readMaskST st c
             case msk of
                 Masked -> return x
-                _      -> writeArray offset (vertexIndex c) x >> (return $! x + 1)
+                _      -> UMV.write offset (vertexIndex c) x >> (return $! x + 1)
         ) 1 (allVertices source)
 
     let pair d | isLeg d    = return $! (,) 0 $! legPlace d
                | otherwise  = do
                    let i = beginVertexIndex d
-                   msk <- readArray (stateMask st) i
-                   off <- readArray offset i
+                   msk <- MV.read (stateMask st) i
+                   off <- UMV.read offset i
                    case msk of
                        Direct _  -> return (off, beginPlace d)
                        Flipped _ -> return (off, 3 - beginPlace d)
                        Masked    -> fail $ printf "assemble: %s is touching masked crossing %i at:\n%s" (show d) i (show $ stateSource st)
 
-    let opp d = readArray (stateConnections st) (dartIndex d)
+    let opp d = MV.read (stateConnections st) (dartIndex d)
 
     border <- forM (allLegs source) (opp >=> pair)
     connections <- do
@@ -139,7 +143,7 @@ oppositeC d = do
         when masked $
             fail $ printf "oppositeC: touching masked crossing when taking from %s" (show d)
     ask >>= \ st -> lift $
-        readArray (stateConnections st) (dartIndex d)
+        MV.read (stateConnections st) (dartIndex d)
 
 
 passOverC :: TangleDiagramDart -> MoveM s DiagramCrossing Bool
@@ -208,18 +212,18 @@ substituteC substitutions = do
     lift $ do
         let source = stateSource st
 
-        arr <- newArray_ (dartIndicesRange source) :: ST s (STArray s Int (Dart Tangle ct))
+        arr <- MV.new (numberOfDarts source)
         forM_ (allEdges source) $ \ (!a, !b) -> do
-            writeArray arr (dartIndex a) a
-            writeArray arr (dartIndex b) b
+            MV.write arr (dartIndex a) a
+            MV.write arr (dartIndex b) b
 
         forM_ substitutions $ \ (a, b) ->
             if a == b
                 then modifySTRef' (stateCircles st) (+ 1)
-                else writeArray arr (dartIndex b) a
+                else MV.write arr (dartIndex b) a
 
         (reconnectST st =<<) $ forM reconnections $ \ (a, b) ->
-            (,) a `fmap` readArray arr (dartIndex b)
+            (,) a `fmap` MV.read arr (dartIndex b)
 
 
 greedy :: [Dart Tangle a -> MoveM s a Bool] -> MoveM s a ()
