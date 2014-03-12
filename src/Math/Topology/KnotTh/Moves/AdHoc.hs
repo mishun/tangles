@@ -159,6 +159,7 @@ instance AdHocMoves Tangle where
                         guard $ isDart ph
                         let pa' = nextCW ph
                         guard $ passOver pa' == passOver tb && pa' /= tb
+                        guard $ pa' /= head incoming
                         tryPass (n + 1) pa' tb (opposite pa' : incoming)
                     ]
 

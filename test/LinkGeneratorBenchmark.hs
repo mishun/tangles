@@ -13,7 +13,7 @@ import Math.Topology.KnotTh.Tabulation.LinkDiagrams
 import Math.Topology.KnotTh.Draw
 import Math.Topology.KnotTh.Moves.Moves
 import Math.Topology.KnotTh.Moves.PatternMatching
-import qualified Math.Topology.KnotTh.Moves.AdHocOfTangle as AdHoc
+import qualified Math.Topology.KnotTh.Moves.AdHoc as AdHoc
 import Math.Topology.KnotTh.Invariants
 import Math.Topology.KnotTh.Enumeration.EquivalenceClasses
 import Math.Topology.KnotTh.Enumeration.SiftByInvariant
@@ -26,17 +26,21 @@ import TestUtil.Drawing
 main :: IO ()
 main = do
     let diagramsGen maxN =
-            let walk link | numberOfVertices link >= maxN  = [link]
-                          | otherwise                      = link : concatMap walk (nextGeneration bothDiagramCrossings link)
+            let walk link | numberOfVertices link >= maxN  = p
+                          | otherwise                      = p ++ next
+                    where
+                        p = [link | numberOfThreads link == 1]
+                        next = concatMap walk (nextGeneration bothDiagramCrossings link)
             in forM_ (walk hopfLink)
 
         linkClasses maxN =
             siftByInvariant minimalJonesPolynomial $
                 equivalenceClasses
-                    [map AdHoc.greedyReidemeisterReductionLink . searchMoves [flype, pass1, pass2, pass3]]
+                    --[map AdHoc.greedyReidemeisterReduction . searchMoves [flype, pass1, pass2, pass3]]
+                    (map (map AdHoc.greedyReidemeisterReduction .) [AdHoc.reidemeisterIII, AdHoc.flype, AdHoc.pass])
                     (diagramsGen maxN)
 
-    let n = 6
+    let n = 7
 
     printTable "Diagrams" $ generateTable'
         (numberOfVertices &&& numberOfThreads)
