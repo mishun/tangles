@@ -59,7 +59,7 @@ drawCDInsideCircle s cd =
         let putArc a b =
                 let g = 0.5 * (b - a)
                     c = polar (1 / cos g) (0.5 * (a + b))
-                in translate (r2 c) $ scale (tan g) $ arc (Rad $ b + pi / 2) (Rad $ a - pi / 2)
+                in translate (r2 c) $ scale (tan g) $ arc ((b + pi / 2) @@ rad) ((a - pi / 2) @@ rad)
 
         tell $ styleLine s $ execWriter $
             forM_ [0 .. p - 1] $ \ !i ->
