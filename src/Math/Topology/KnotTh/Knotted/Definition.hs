@@ -3,6 +3,7 @@ module Math.Topology.KnotTh.Knotted.Definition
     ( module X
     , Crossing(..)
     , Knotted(..)
+    , KnottedPlanar(..)
     , KnottedWithPrimeTest(..)
     , SurfaceKnotted
     , nthCrossing
@@ -27,13 +28,6 @@ class Crossing a where
 
 class (Functor k, PlanarDiagram k) => Knotted k where
     vertexCrossing :: Vertex k a -> a
-
-    numberOfFreeLoops       :: k a -> Int
-    changeNumberOfFreeLoops :: Int -> k a -> k a
-
-    emptyKnotted   :: k a
-    isEmptyKnotted :: k a -> Bool
-    isEmptyKnotted k = (numberOfVertices k == 0) && (numberOfFreeLoops k == 0)
 
     unrootedHomeomorphismInvariant :: (Crossing a) => k a -> Vector Int
 
@@ -67,6 +61,15 @@ class (Functor k, PlanarDiagram k) => Knotted k where
             >>= f (nthOutcomingDart c $ (p + d) .&. 3)
             >>= f (nthOutcomingDart c $ (p + 2 * d) .&. 3)
             >>= f (nthOutcomingDart c $ (p + 3 * d) .&. 3)
+
+
+class (Knotted k) => KnottedPlanar k where
+    numberOfFreeLoops       :: k a -> Int
+    changeNumberOfFreeLoops :: Int -> k a -> k a
+
+    emptyKnotted   :: k a
+    isEmptyKnotted :: k a -> Bool
+    isEmptyKnotted k = (numberOfVertices k == 0) && (numberOfFreeLoops k == 0)
 
 
 class (Knotted k) => KnottedWithPrimeTest k where

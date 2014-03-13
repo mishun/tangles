@@ -28,7 +28,7 @@ import Math.Topology.KnotTh.Knotted
 import Math.Topology.KnotTh.Tangle
 
 
-newtype Link ct = L (Tangle ct)
+newtype Link a = L (Tangle a)
 
 
 instance PlanarDiagram Link where
@@ -40,14 +40,14 @@ instance PlanarDiagram Link where
     allEdges (L t) = map (D *** D) (allEdges t)
     allHalfEdges (L t) = map D (allHalfEdges t)
 
-    newtype Vertex Link ct = V (Vertex Tangle ct)
+    newtype Vertex Link a = V (Vertex Tangle a)
     vertexDegree (V v) = vertexDegree v
     vertexOwner (V v) = L (vertexOwner v)
     vertexIndex (V v) = vertexIndex v
     nthOutcomingDart (V v) n = D (nthOutcomingDart v n)
     outcomingDarts (V v) = map D (outcomingDarts v)
 
-    newtype Dart Link ct = D (Dart Tangle ct)
+    newtype Dart Link a = D (Dart Tangle a)
     dartOwner (D d) = L (dartOwner d)
     dartIndex (D d) = dartIndex d
     opposite (D d) = D (opposite d)
@@ -67,9 +67,6 @@ instance Functor Link where
 
 instance Knotted Link where
     vertexCrossing (V v) = vertexCrossing v
-    numberOfFreeLoops (L t) = numberOfFreeLoops t
-    changeNumberOfFreeLoops n (L t) = L (changeNumberOfFreeLoops n t)
-    emptyKnotted = L emptyKnotted
 
     type ExplodeType Link a = (Int, [([(Int, Int)], a)])
     explode (L t) = let (f, [], l) = explode t in (f, l)
@@ -137,6 +134,12 @@ instance Knotted Link where
                 return rc
 
     isConnected (L t) = isConnected t
+
+
+instance KnottedPlanar Link where
+    numberOfFreeLoops (L t) = numberOfFreeLoops t
+    changeNumberOfFreeLoops n (L t) = L (changeNumberOfFreeLoops n t)
+    emptyKnotted = L emptyKnotted
 
 
 instance KnottedWithPrimeTest Link where

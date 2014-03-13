@@ -8,7 +8,7 @@ import Math.Topology.KnotTh.Knotted
 import Math.Topology.KnotTh.Crossings.Diagram
 
 
-linkingNumbersInvariant :: (Knotted k) => k DiagramCrossing -> [Int]
+linkingNumbersInvariant :: (KnottedPlanar k) => k DiagramCrossing -> [Int]
 linkingNumbersInvariant knot = sort $ do
     let ((n, _, _), ln) = threadsWithLinkingNumbers knot
     i <- [1 .. n]

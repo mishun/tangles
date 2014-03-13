@@ -9,7 +9,6 @@ module Math.Topology.KnotTh.EmbeddedLink.Definition.EmbeddedLink
     , EmbeddedLinkDiagramDart
     ) where
 
-
 import Data.Function (fix)
 import Data.Maybe (fromMaybe)
 import Data.List (foldl')
@@ -118,23 +117,6 @@ instance Functor EmbeddedLink where
 
 instance Knotted EmbeddedLink where
     vertexCrossing (Vertex k i) = crossingsArray k `V.unsafeIndex` i
-
-    numberOfFreeLoops = loopsCount
-
-    changeNumberOfFreeLoops loops k | loops >= 0  = k { loopsCount = loops }
-                                    | otherwise   = error $ printf "changeNumberOfFreeLoops: number of free loops %i is negative" loops 
-
-    emptyKnotted =
-        EmbeddedLink
-            { loopsCount      = 0
-            , vertexCount     = 0
-            , involutionArray = PV.empty
-            , crossingsArray  = V.empty
-            , faceCount       = 1
-            , faceDataOffset  = PV.replicate 2 0
-            , faceCCWBrdDart  = PV.empty
-            , faceLLookup     = PV.empty
-            }
 
     unrootedHomeomorphismInvariant link =
         minimum $ do
@@ -285,6 +267,25 @@ instance Knotted EmbeddedLink where
             , faceDataOffset  = foffN
             , faceCCWBrdDart  = fccwdN
             , faceLLookup     = fllookN
+            }
+
+
+instance KnottedPlanar EmbeddedLink where
+    numberOfFreeLoops = loopsCount
+
+    changeNumberOfFreeLoops loops k | loops >= 0  = k { loopsCount = loops }
+                                    | otherwise   = error $ printf "changeNumberOfFreeLoops: number of free loops %i is negative" loops 
+
+    emptyKnotted =
+        EmbeddedLink
+            { loopsCount      = 0
+            , vertexCount     = 0
+            , involutionArray = PV.empty
+            , crossingsArray  = V.empty
+            , faceCount       = 1
+            , faceDataOffset  = PV.replicate 2 0
+            , faceCCWBrdDart  = PV.empty
+            , faceLLookup     = PV.empty
             }
 
 

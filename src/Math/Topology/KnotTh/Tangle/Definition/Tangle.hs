@@ -136,20 +136,6 @@ instance Functor Tangle where
 instance Knotted Tangle where
     vertexCrossing (Vertex t i) = crossingsArray t `V.unsafeIndex` i
 
-    numberOfFreeLoops = loopsCount
-
-    changeNumberOfFreeLoops loops t | loops >= 0  = t { loopsCount = loops }
-                                    | otherwise   = error $ printf "changeNumberOfFreeLoops: number of free loops %i is negative" loops 
-
-    emptyKnotted =
-        Tangle
-            { loopsCount      = 0
-            , vertexCount     = 0
-            , involutionArray = PV.empty
-            , crossingsArray  = V.empty
-            , legsCount       = 0
-            }
-
     unrootedHomeomorphismInvariant tangle
         | n > 127                    = error $ printf "homeomorphismInvariant: too many crossings (%i)" n
         | numberOfEdges tangle == 0  = UV.singleton (numberOfFreeLoops tangle)
@@ -315,6 +301,22 @@ instance Knotted Tangle where
             , involutionArray = cr'
             , crossingsArray  = st'
             , legsCount       = l
+            }
+
+
+instance KnottedPlanar Tangle where
+    numberOfFreeLoops = loopsCount
+
+    changeNumberOfFreeLoops loops t | loops >= 0  = t { loopsCount = loops }
+                                    | otherwise   = error $ printf "changeNumberOfFreeLoops: number of free loops %i is negative" loops 
+
+    emptyKnotted =
+        Tangle
+            { loopsCount      = 0
+            , vertexCount     = 0
+            , involutionArray = PV.empty
+            , crossingsArray  = V.empty
+            , legsCount       = 0
             }
 
 

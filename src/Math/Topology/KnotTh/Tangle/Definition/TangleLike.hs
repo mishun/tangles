@@ -5,7 +5,7 @@ module Math.Topology.KnotTh.Tangle.Definition.TangleLike
 import Math.Topology.KnotTh.Knotted
 
 
-class (Knotted t, PlanarAlgebra t) => TangleLike t where
+class (KnottedPlanar t, PlanarAlgebra t) => TangleLike t where
     emptyTangle :: t a
     emptyTangle = emptyKnotted
 
