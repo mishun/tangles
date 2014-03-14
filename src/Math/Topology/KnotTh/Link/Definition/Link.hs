@@ -12,18 +12,8 @@ module Math.Topology.KnotTh.Link.Definition.Link
     , LinkDiagramDart
     ) where
 
-import Data.Function (fix)
-import Data.Maybe (fromMaybe)
-import Data.Bits ((.&.), shiftL)
-import qualified Data.Vector.Mutable as MV
-import qualified Data.Vector.Unboxed as UV
-import qualified Data.Vector.Unboxed.Mutable as UMV
-import Data.STRef (newSTRef, readSTRef, writeSTRef)
-import Control.Monad (void, when)
 import Control.Arrow ((***))
 import Text.Printf
-import qualified Math.Algebra.Group.D4 as D4
-import qualified Math.Algebra.RotationDirection as R
 import Math.Topology.KnotTh.Knotted
 import Math.Topology.KnotTh.Tangle
 
@@ -73,66 +63,7 @@ instance Knotted Link where
     explode (L t) = let (f, [], l) = explode t in (f, l)
     implode (f, l) = L (implode (f, [], l))
 
-    unrootedHomeomorphismInvariant link
-        | numberOfEdges link == 0  = UV.singleton (numberOfFreeLoops link)
-        | otherwise                =
-            minimum $ do
-                dart <- allHalfEdges link
-                dir <- R.bothDirections
-                globalG <- fromMaybe [D4.i] $ globalTransformations link
-                return $! codeWithDirection globalG dir dart
-
-        where
-            codeWithDirection !globalG !dir !start = UV.create $ do
-                let n = numberOfVertices link
-
-                index <- UMV.replicate (n + 1) 0
-                incoming <- UMV.replicate (n + 1) 0
-                queue <- MV.new n
-                free <- newSTRef 1
-
-                let {-# INLINE look #-}
-                    look !d = do
-                        let u = beginVertexIndex d
-                        ux <- UMV.unsafeRead index u
-                        if ux > 0
-                            then do
-                                up <- UMV.unsafeRead incoming u
-                                return $! (ux `shiftL` 2) + (((beginPlace d - up) * R.directionSign dir) .&. 3)
-                            else do
-                                nf <- readSTRef free
-                                writeSTRef free $! nf + 1
-                                UMV.unsafeWrite index u nf
-                                UMV.unsafeWrite incoming u (beginPlace d)
-                                MV.unsafeWrite queue (nf - 1) d
-                                return $! nf `shiftL` 2
-
-                rc <- UMV.replicate (6 * n + 1) 0
-                UMV.unsafeWrite rc 0 $! numberOfFreeLoops link
-
-                let {-# INLINE lookAndWrite #-}
-                    lookAndWrite !d !offset = do
-                        look d >>= UMV.unsafeWrite rc offset
-                        return $! offset + 1
-
-                void $ look start
-                flip fix 0 $ \ bfs !headI -> do
-                    tailI <- readSTRef free
-                    when (headI < tailI - 1) $ do
-                        input <- MV.unsafeRead queue headI
-                        void $ foldMAdjacentDartsFrom input dir lookAndWrite (6 * headI + 3)
-                        case crossingCodeWithGlobal globalG dir input of
-                            (# be, le #) -> do
-                                UMV.unsafeWrite rc (6 * headI + 1) be
-                                UMV.unsafeWrite rc (6 * headI + 2) le
-                        bfs $! headI + 1
-
-                fix $ \ _ -> do
-                    tailI <- readSTRef free
-                    when (tailI <= n) $
-                        fail "codeWithDirection: disconnected diagram (not implemented)"
-
-                return rc
+    unrootedHomeomorphismInvariant (L t) = unrootedHomeomorphismInvariant t
 
     isConnected (L t) = isConnected t
 
