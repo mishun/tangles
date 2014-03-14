@@ -34,6 +34,7 @@ newtype Link a = L (Tangle a)
 instance PlanarDiagram Link where
     numberOfVertices (L t) = numberOfVertices t
     numberOfEdges (L t) = numberOfEdges t
+    numberOfDarts (L t) = numberOfDarts t
     nthVertex (L t) n = V (nthVertex t n)
     nthDart (L t) n = D (nthDart t n)
     allVertices (L t) = map V (allVertices t)

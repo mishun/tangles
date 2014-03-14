@@ -2,7 +2,6 @@
 module Math.Algebra.PlanarAlgebra.Definition
     ( PlanarDiagram(..)
     , hasVertices
-    , numberOfDarts
     , nextDir
     , endVertex
     , endVertexIndex
@@ -28,6 +27,7 @@ module Math.Algebra.PlanarAlgebra.Definition
     ) where
 
 import Data.Ix (Ix(..))
+import Data.Bits (shiftL, shiftR)
 import Control.Arrow (first, (***))
 import qualified Math.Algebra.RotationDirection as R
 
@@ -37,6 +37,11 @@ import qualified Math.Algebra.RotationDirection as R
 class PlanarDiagram a where
     numberOfVertices   :: a t -> Int
     numberOfEdges      :: a t -> Int
+    numberOfDarts      :: a t -> Int
+
+    numberOfEdges x = numberOfDarts x `shiftR` 1
+    numberOfDarts x = numberOfEdges x `shiftL` 1
+
     nthVertex          :: a t -> Int -> Vertex a t
     nthDart            :: a t -> Int -> Dart a t
     allVertices        :: a t -> [Vertex a t]
@@ -127,11 +132,6 @@ instance (PlanarDiagram a) => Ix (Dart a t) where
 {-# INLINE hasVertices #-}
 hasVertices :: (PlanarDiagram a) => a t -> Bool
 hasVertices = (> 0) . numberOfVertices
-
-
-{-# INLINE numberOfDarts #-}
-numberOfDarts :: (PlanarDiagram a) => a t -> Int
-numberOfDarts = (* 2) . numberOfEdges
 
 
 {-# INLINE nextDir #-}

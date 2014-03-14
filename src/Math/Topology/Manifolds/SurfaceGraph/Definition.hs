@@ -29,7 +29,7 @@ data SurfaceGraph a =
 instance PlanarDiagram SurfaceGraph where
     numberOfVertices g = V.length (_vertices g)
 
-    numberOfEdges g = UV.length (_opposite g) `div` 2
+    numberOfDarts g = UV.length (_opposite g)
 
     nthVertex g i | i >= 0 && i < l  = Vertex g i
                   | otherwise        = error $ printf "nthVertex: index %i is out of bounds [0, %i)" i l

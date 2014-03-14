@@ -47,7 +47,9 @@ data EmbeddedLink a =
 instance PlanarDiagram EmbeddedLink where
     numberOfVertices = vertexCount
 
-    numberOfEdges k = numberOfVertices k * 2
+    numberOfEdges l = PV.length (involutionArray l) `shiftR` 1
+
+    numberOfDarts l = PV.length (involutionArray l)
 
     nthVertex k i | i < 1 || i > b  = error $ printf "nthVertex: index %i is out of bounds (1, %i)" i b
                   | otherwise       = Vertex k (i - 1)

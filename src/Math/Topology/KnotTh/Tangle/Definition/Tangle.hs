@@ -50,7 +50,9 @@ data Tangle a =
 instance PlanarDiagram Tangle where
     numberOfVertices = vertexCount
 
-    numberOfEdges t = 2 * numberOfVertices t + (legsCount t `div` 2)
+    numberOfEdges t = PV.length (involutionArray t) `shiftR` 1
+
+    numberOfDarts t = PV.length (involutionArray t)
 
     nthVertex t i | i < 1 || i > b  = error $ printf "nthVertex: index %i is out of bounds (1, %i)" i b
                   | otherwise       = Vertex t (i - 1)
