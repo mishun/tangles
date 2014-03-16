@@ -36,10 +36,13 @@ normalizePoly (LMP.LP denominator) (LMP.LP monomials)
         let (LMP.LP q') = factor * quotient
         in LMP.LP $ map (second numerator) q'
     where
-        factor = LMP.LP [(LMP.LM $ M.map (+ (-1)) $ foldl (\ a (LMP.LM b, _) -> M.unionWith min a b) M.empty monomials, 1)]
-        (quotient, remainder) = LMP.quotRemLP
-            (recip factor * (LMP.LP $ map (\ (a, b) -> (a, b % 1)) monomials))
-            (LMP.LP $ map (\ (a, b) -> (a, b % 1)) denominator)
+        factor =
+            let mono = M.map (min 0) $ foldl (\ a (LMP.LM b, _) -> M.unionWith min a b) M.empty monomials
+            in LMP.LP [(LMP.LM mono, 1)]
+
+        (quotient, remainder) =
+            let cutoff = LMP.LP . map (second (% 1))
+            in LMP.quotRemLP (recip factor * cutoff monomials) (cutoff denominator)
 
 
 type Poly2 = LMP.LaurentMPoly Int
