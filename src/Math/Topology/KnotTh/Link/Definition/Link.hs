@@ -1,4 +1,4 @@
-{-# LANGUAGE TypeFamilies, UnboxedTuples #-}
+{-# LANGUAGE TypeFamilies #-}
 module Math.Topology.KnotTh.Link.Definition.Link
     ( Link
     , emptyLink
@@ -104,8 +104,10 @@ linkToTangle (L t) = t
 
 
 tangleToLink :: Tangle a -> Link a
-tangleToLink t | numberOfLegs t == 0  = L t
-               | otherwise            = error "tangleToLink: tangle must have 0 legs"
+tangleToLink t | l == 0     = L t
+               | otherwise  = error $ printf "tangleToLink: expected 0 legs, found %i" l
+    where
+        l = numberOfLegs t
 
 
 type LinkProjection = Link ProjectionCrossing

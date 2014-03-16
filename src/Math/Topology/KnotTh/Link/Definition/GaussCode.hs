@@ -123,8 +123,8 @@ decode (n, threads) = implode (length $ filter null threads, incidence)
             let connection second out i =
                     let j | not second && not out      = 0
                           | second     && not out      = 2
-                          | (color ! abs i) == second  = 1
-                          | otherwise                  = 3
+                          | (color ! abs i) == second  = 3
+                          | otherwise                  = 1
                     in (abs i, j)
 
             vis <- newArray (1, n) False :: ST s (STUArray s Int Bool)
@@ -134,9 +134,8 @@ decode (n, threads) = implode (length $ filter null threads, incidence)
                     writeArray vis (abs i) True
                     connect prev (connection second False i)
 
-                    let crossing
-                            | i > 0      = overCrossing
-                            | otherwise  = underCrossing
+                    let crossing | i > 0      = overCrossing
+                                 | otherwise  = underCrossing
 
                     if second
                         then readArray state (abs i) >>= flip when (fail "gauss code internal error") . (/= crossing)
