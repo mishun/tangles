@@ -84,6 +84,7 @@ library
         Math.Topology.KnotTh.Moves.Moves,
         Math.Topology.KnotTh.Moves.PatternMatching,
         Math.Topology.KnotTh.Moves.AdHoc,
+        Math.Topology.KnotTh.SurfaceLink,
         Math.Topology.KnotTh.Tabulation.LinkDiagrams,
         Math.Topology.KnotTh.Tabulation.TangleDiagramsCascade,
         Math.Topology.KnotTh.Tabulation.TangleFlypeClasses,
