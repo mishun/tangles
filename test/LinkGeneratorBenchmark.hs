@@ -8,7 +8,6 @@ import Control.Monad (forM_)
 import Text.Printf
 import Diagrams.Prelude
 import Math.Topology.KnotTh.Link
-import Math.Topology.KnotTh.Link.Table
 import Math.Topology.KnotTh.Tabulation.LinkDiagrams
 import Math.Topology.KnotTh.Draw
 import Math.Topology.KnotTh.Moves.Moves
@@ -29,7 +28,7 @@ main = do
             let walk link | numberOfVertices link >= maxN  = p
                           | otherwise                      = p ++ next
                     where
-                        p = [link | numberOfThreads link == 1]
+                        p = [link | numberOfThreads link >= 1]
                         next = concatMap walk (nextGeneration bothDiagramCrossings link)
             in forM_ (walk hopfLink)
 
@@ -40,7 +39,7 @@ main = do
                     (map (map AdHoc.greedyReidemeisterReduction .) [AdHoc.reidemeisterIII, AdHoc.flype, AdHoc.pass])
                     (diagramsGen maxN)
 
-    let n = 7
+    let n = 8
 
     printTable "Diagrams" $ generateTable'
         (numberOfVertices &&& numberOfThreads)
