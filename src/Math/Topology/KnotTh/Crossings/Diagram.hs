@@ -14,8 +14,7 @@ module Math.Topology.KnotTh.Crossings.Diagram
     , passOver'
     , passUnder'
     , possibleDiagramOrientations
-    , alternatingDefect
-    , totalAlternatingDefect
+    , KnottedDiagram(..)
     , isAlternating
     , selfWrithe
     , selfWritheByThread
@@ -138,18 +137,20 @@ possibleDiagramOrientations induced =
                | otherwise                                  -> overCrossingOnly
 
 
-alternatingDefect :: (Knotted k) => Dart k DiagramCrossing -> Int
-alternatingDefect a | isDart a && isDart b && passOver a == passOver b  = 1
-                    | otherwise                                         = 0
-    where
-        b = opposite a
+class (Knotted k) => KnottedDiagram k where
+    alternatingDefect      :: Dart k DiagramCrossing -> Int
+    totalAlternatingDefect :: k DiagramCrossing -> Int
+
+    alternatingDefect a | isDart a && isDart b && passOver a == passOver b  = 1
+                        | otherwise                                         = 0
+        where
+            b = opposite a
+
+    totalAlternatingDefect =
+        sum . map (alternatingDefect . fst) . allEdges
 
 
-totalAlternatingDefect :: (Knotted k) => k DiagramCrossing -> Int
-totalAlternatingDefect = sum . map (alternatingDefect . fst) . allEdges
-
-
-isAlternating :: (Knotted k) => k DiagramCrossing -> Bool
+isAlternating :: (KnottedDiagram k) => k DiagramCrossing -> Bool
 isAlternating = (== 0) . totalAlternatingDefect
 
 

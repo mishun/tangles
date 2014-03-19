@@ -74,6 +74,9 @@ instance KnottedPlanar Link where
     emptyKnotted = L emptyKnotted
 
 
+instance KnottedDiagram Link where
+
+
 instance KnottedWithPrimeTest Link where
     isPrime (L t) = isPrime t
 

@@ -358,6 +358,9 @@ instance KnottedPlanar Tangle where
             }
 
 
+instance KnottedDiagram Tangle where
+
+
 instance PlanarAlgebra Tangle where
     numberOfLegs = legsCount
 

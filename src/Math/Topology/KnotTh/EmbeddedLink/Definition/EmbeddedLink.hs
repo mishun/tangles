@@ -291,6 +291,9 @@ instance KnottedPlanar EmbeddedLink where
             }
 
 
+instance KnottedDiagram EmbeddedLink where
+
+
 instance (Show a) => Show (EmbeddedLink a) where
     show = printf "implode %s" . show . explode
 
