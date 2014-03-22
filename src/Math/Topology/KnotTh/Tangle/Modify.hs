@@ -1,5 +1,5 @@
 {-# LANGUAGE RankNTypes #-}
-module Math.Topology.KnotTh.Moves.Modify
+module Math.Topology.KnotTh.Tangle.Modify
     ( MoveM
     , move
     , assemble
@@ -17,7 +17,6 @@ module Math.Topology.KnotTh.Moves.Modify
 
 import qualified Data.Vector.Mutable as MV
 import qualified Data.Vector.Unboxed.Mutable as UMV
---import Data.Array.ST (STArray, STUArray, newArray_, readArray, writeArray)
 import Data.STRef (STRef, newSTRef, readSTRef, modifySTRef')
 import Control.Monad.ST (ST, runST)
 import Control.Monad.Reader (ReaderT, runReaderT, ask, lift)

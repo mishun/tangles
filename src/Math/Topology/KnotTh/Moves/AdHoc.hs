@@ -16,7 +16,7 @@ import qualified Data.Vector.Unboxed as UV
 import Control.Monad (when, unless, msum, guard, liftM2)
 import Math.Topology.KnotTh.Tangle
 import Math.Topology.KnotTh.Link
-import Math.Topology.KnotTh.Moves.Modify
+import Math.Topology.KnotTh.Tangle.Modify
 import Math.Topology.KnotTh.Moves.AdHoc.Resting
 
 
