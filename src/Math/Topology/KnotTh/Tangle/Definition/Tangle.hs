@@ -11,7 +11,7 @@ module Math.Topology.KnotTh.Tangle.Definition.Tangle
 
 import Data.Maybe (fromMaybe)
 import Data.Bits ((.&.), complement, shiftL, shiftR)
-import Data.List (nub, sort, foldl')
+import Data.List (nub, sort, foldl', find)
 import qualified Data.Set as S
 import qualified Data.Map as M
 import qualified Data.Vector as V
@@ -359,6 +359,19 @@ instance KnottedPlanar Tangle where
 
 
 instance KnottedDiagram Tangle where
+    isReidemeisterReducible =
+        any (\ ab ->
+                let ba = opposite ab
+                    ac = nextCCW ab
+                in (ac == ba) || (passOver ab == passOver ba && opposite ac == nextCW ba)
+            ) . allOutcomingDarts
+
+    tryReduceReidemeisterI tangle = do
+        d <- find (\ d -> opposite d == nextCCW d) (allOutcomingDarts tangle)
+        return $! tangle
+                     { loopsCount  = loopsCount tangle
+                     , vertexCount = vertexCount tangle - 1
+                     }
 
 
 instance PlanarAlgebra Tangle where

@@ -20,7 +20,7 @@ import Math.Topology.KnotTh.Moves.Modify
 import Math.Topology.KnotTh.Moves.AdHoc.Resting
 
 
-class (Knotted k) => AdHocMoves k where
+class (KnottedDiagram k) => AdHocMoves k where
     greedyReidemeisterReduction  :: k DiagramCrossing -> k DiagramCrossing
     flype, pass, reidemeisterIII :: k DiagramCrossing -> [k DiagramCrossing] 
 
@@ -112,11 +112,7 @@ instance AdHocMoves Tangle where
             let ae = nextCCW ac
                 ad = nextCW ab
 
-            ((rp, sq), sub) <-
-                restingPart tangle [ba, ca] >>= \ (lst, s) ->
-                    case lst of
-                        [x, y] -> return ((x, y), s)
-                        _      -> Nothing
+            ([rp, sq], sub) <- restingPart tangle [ba, ca]
 
             return $! move tangle $ do
                 substituteC [(ba, ae), (ca, ad), (ab, rp), (ac, sq)]

@@ -75,6 +75,8 @@ instance KnottedPlanar Link where
 
 
 instance KnottedDiagram Link where
+    isReidemeisterReducible (L t) = isReidemeisterReducible t
+    tryReduceReidemeisterI (L t) = tangleToLink `fmap` tryReduceReidemeisterI t
 
 
 instance KnottedWithPrimeTest Link where

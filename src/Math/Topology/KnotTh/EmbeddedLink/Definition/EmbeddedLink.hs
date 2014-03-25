@@ -292,6 +292,12 @@ instance KnottedPlanar EmbeddedLink where
 
 
 instance KnottedDiagram EmbeddedLink where
+    isReidemeisterReducible =
+        any (\ ab ->
+                let ba = opposite ab
+                    ac = nextCCW ab
+                in (ac == ba) || (passOver ab == passOver ba && opposite ac == nextCW ba)
+            ) . allOutcomingDarts
 
 
 instance (Show a) => Show (EmbeddedLink a) where
