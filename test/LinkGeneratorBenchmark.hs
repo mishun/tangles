@@ -10,6 +10,7 @@ import Diagrams.Prelude
 import Math.Topology.KnotTh.Link
 import Math.Topology.KnotTh.Tabulation.LinkDiagrams
 import Math.Topology.KnotTh.Draw
+import Math.Topology.KnotTh.Tangle.Satellites
 import Math.Topology.KnotTh.Moves.Moves
 import Math.Topology.KnotTh.Moves.PatternMatching
 import qualified Math.Topology.KnotTh.Moves.AdHoc as AdHoc
@@ -28,18 +29,23 @@ main = do
             let walk link | numberOfVertices link >= maxN  = p
                           | otherwise                      = p ++ next
                     where
-                        p = [link | numberOfThreads link >= 1]
+                        p = [link | not (isReidemeisterReducible link)]
                         next = concatMap walk (nextGeneration bothDiagramCrossings link)
             in forM_ (walk hopfLink)
 
         linkClasses maxN =
-            siftByInvariant minimalJonesPolynomial $
+            siftByInvariant
+                (\ l -> ( minimalJonesPolynomial l
+                        , minimalKauffmanFPolynomial l
+                        , minimalJonesPolynomial $ tangleToLink $ twistedDoubleSatellite $ linkToTangle l
+                        )
+                ) $
                 equivalenceClasses
                     --[map AdHoc.greedyReidemeisterReduction . searchMoves [flype, pass1, pass2, pass3]]
                     (map (map AdHoc.greedyReidemeisterReduction .) [AdHoc.reidemeisterIII, AdHoc.flype, AdHoc.pass])
                     (diagramsGen maxN)
 
-    let n = 8
+    let n = 10
 
     printTable "Diagrams" $ generateTable'
         (numberOfVertices &&& numberOfThreads)
