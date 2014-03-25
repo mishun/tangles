@@ -18,8 +18,8 @@ import Data.Array.Unboxed (UArray)
 import Control.Monad.State (execState, gets, modify)
 import Control.Monad (MonadPlus(..), unless, guard)
 import Math.Topology.KnotTh.Tangle
+import Math.Topology.KnotTh.Tangle.Modify
 import Math.Topology.KnotTh.Link
-import Math.Topology.KnotTh.Moves.Modify
 
 
 data PatternS a =
