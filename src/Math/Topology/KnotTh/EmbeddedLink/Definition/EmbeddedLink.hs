@@ -37,7 +37,12 @@ data EmbeddedLink a =
         , vertexCount     :: {-# UNPACK #-} !Int
         , involutionArray :: {-# UNPACK #-} !(PV.Vector Int)
         , crossingsArray  :: {-# UNPACK #-} !(V.Vector a)
-        , faceCount       :: {-# UNPACK #-} !Int
+        , faceSystem      :: FaceSystem
+        }
+
+data FaceSystem =
+    FaceSystem
+        { faceCount       :: {-# UNPACK #-} !Int
         , faceDataOffset  :: {-# UNPACK #-} !(PV.Vector Int)
         , faceCCWBrdDart  :: {-# UNPACK #-} !(PV.Vector Int)
         , faceLLookup     :: {-# UNPACK #-} !(PV.Vector Int)
@@ -220,7 +225,22 @@ instance Knotted EmbeddedLink where
         cr' <- PV.unsafeFreeze cr
         st' <- V.unsafeFreeze st
 
-        (fcN, fllookN, foffN, fccwdN) <- do
+        let link = EmbeddedLink
+                { loopsCount      = loops
+                , vertexCount     = n
+                , involutionArray = cr'
+                , crossingsArray  = st'
+                , faceSystem      = makeFaceSystem link
+                }
+
+        return $! link
+
+
+makeFaceSystem :: EmbeddedLink a -> FaceSystem
+makeFaceSystem link =
+    let n = numberOfVertices link
+
+        (fcN, fllookN, fccwdN) = runST $ do
             fccwd <- PMV.new (4 * n)
             fllook <- PMV.replicate (8 * n) (-1)
 
@@ -234,8 +254,8 @@ instance Knotted EmbeddedLink where
                             PMV.write fllook (2 * i + 1) offset
                             PMV.write fccwd (base + offset) i
 
-                            i' <- PMV.unsafeRead cr i
-                            let j = (i' .&. complement 3) + ((i' - 1) .&. 3)
+                            let i' = involutionArray link `PV.unsafeIndex` i
+                                j = (i' .&. complement 3) + ((i' - 1) .&. 3)
                             mj <- PMV.read fllook (2 * j)
                             if mj >= 0
                                 then return $! offset + 1
@@ -244,28 +264,25 @@ instance Knotted EmbeddedLink where
                         return (fid + 1, base + sz)
                 ) (0, 0) [0 .. 4 * n - 1]
 
-            foff <- PMV.replicate (fc + 1) 0
+            fccwd' <- PV.unsafeFreeze fccwd
+            fllook' <- PV.unsafeFreeze fllook
+            return (fc, fllook', fccwd')
+
+        foffN = PV.create $ do
+            foff <- PMV.replicate (fcN + 1) 0
             forM_ [0 .. 4 * n - 1] $ \ !i -> do
-                fid <- PMV.read fllook (2 * i)
+                let fid = fllookN PV.! (2 * i)
                 cur <- PMV.read foff fid
                 PMV.write foff fid $! cur + 1
             foldM_ (\ !offset !i -> do
                     cur <- PMV.read foff i
                     PMV.write foff i offset
                     return $! offset + cur
-                ) 0 [0 .. fc]
+                ) 0 [0 .. fcN]
+            return foff
 
-            fccwd' <- PV.unsafeFreeze fccwd
-            fllook' <- PV.unsafeFreeze fllook
-            foff' <- PV.unsafeFreeze foff
-            return (fc, fllook', foff', fccwd')
-
-        return EmbeddedLink
-            { loopsCount      = loops
-            , vertexCount     = n
-            , involutionArray = cr'
-            , crossingsArray  = st'
-            , faceCount       = fcN
+    in FaceSystem
+            { faceCount       = fcN
             , faceDataOffset  = foffN
             , faceCCWBrdDart  = fccwdN
             , faceLLookup     = fllookN
@@ -284,10 +301,13 @@ instance KnottedPlanar EmbeddedLink where
             , vertexCount     = 0
             , involutionArray = PV.empty
             , crossingsArray  = V.empty
-            , faceCount       = 1
-            , faceDataOffset  = PV.replicate 2 0
-            , faceCCWBrdDart  = PV.empty
-            , faceLLookup     = PV.empty
+            , faceSystem      =
+                FaceSystem
+                    { faceCount       = 1
+                    , faceDataOffset  = PV.replicate 2 0
+                    , faceCCWBrdDart  = PV.empty
+                    , faceLLookup     = PV.empty
+                    }
             }
 
 
@@ -318,7 +338,7 @@ instance Show (Dart EmbeddedLink a) where
 
 
 instance SurfaceDiagram EmbeddedLink where
-    numberOfFaces = faceCount
+    numberOfFaces = faceCount . faceSystem
 
     nthFace link i | i > 0 && i <= n  = Face link (i - 1)
                    | otherwise        = error $ printf "nthFace: index %i is out of bounds (1, %i)" i n
@@ -330,22 +350,22 @@ instance SurfaceDiagram EmbeddedLink where
     data Face EmbeddedLink ct = Face !(EmbeddedLink ct) {-# UNPACK #-} !Int
 
     faceDegree (Face l i) =
-        let cur = faceDataOffset l `PV.unsafeIndex` i
-            nxt = faceDataOffset l `PV.unsafeIndex` (i + 1)
+        let cur = faceDataOffset (faceSystem l) `PV.unsafeIndex` i
+            nxt = faceDataOffset (faceSystem l) `PV.unsafeIndex` (i + 1)
         in nxt - cur
 
     faceOwner (Face l _) = l
 
     faceIndex (Face _ i) = i + 1
 
-    leftFace (Dart l i) = Face l $ faceLLookup l `PV.unsafeIndex` (2 * i)
+    leftFace (Dart l i) = Face l $ faceLLookup (faceSystem l) `PV.unsafeIndex` (2 * i)
 
-    leftPlace (Dart l i) = faceLLookup l `PV.unsafeIndex` (2 * i + 1)
+    leftPlace (Dart l i) = faceLLookup (faceSystem l) `PV.unsafeIndex` (2 * i + 1)
 
     nthDartInCCWTraverse (Face l i) p =
-        let cur = faceDataOffset l `PV.unsafeIndex` i
-            nxt = faceDataOffset l `PV.unsafeIndex` (i + 1)
-        in Dart l $ faceCCWBrdDart l `PV.unsafeIndex` (cur + p `mod` (nxt - cur))
+        let cur = faceDataOffset (faceSystem l) `PV.unsafeIndex` i
+            nxt = faceDataOffset (faceSystem l) `PV.unsafeIndex` (i + 1)
+        in Dart l $ faceCCWBrdDart (faceSystem l) `PV.unsafeIndex` (cur + p `mod` (nxt - cur))
 
     faceIndicesRange l = (1, numberOfFaces l)
 
