@@ -125,6 +125,11 @@ instance Functor EmbeddedLink where
 instance Knotted EmbeddedLink where
     vertexCrossing (Vertex k i) = crossingsArray k `V.unsafeIndex` i
 
+    mapCrossings f t =
+        t { crossingsArray =
+                V.generate (numberOfVertices t) $ \ i -> f (nthVertex t $ i + 1)
+          }
+
     unrootedHomeomorphismInvariant link =
         minimum $ do
             dart <- allHalfEdges link

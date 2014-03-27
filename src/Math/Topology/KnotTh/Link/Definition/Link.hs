@@ -59,6 +59,8 @@ instance Functor Link where
 instance Knotted Link where
     vertexCrossing (V v) = vertexCrossing v
 
+    mapCrossings f (L t) = L $ mapCrossings (\ v -> f (V v)) t
+
     type ExplodeType Link a = (Int, [([(Int, Int)], a)])
     explode (L t) = let (f, [], l) = explode t in (f, l)
     implode (f, l) = L (implode (f, [], l))

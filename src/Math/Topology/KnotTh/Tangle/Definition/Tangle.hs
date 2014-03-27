@@ -134,6 +134,11 @@ instance Functor Tangle where
 instance Knotted Tangle where
     vertexCrossing (Vertex t i) = crossingsArray t `V.unsafeIndex` i
 
+    mapCrossings f t =
+        t { crossingsArray =
+                V.generate (numberOfVertices t) $ \ i -> f (nthVertex t $ i + 1)
+          }
+
     unrootedHomeomorphismInvariant tangle
         | n > 127    = error $ printf "unrootedHomeomorphismInvariant: too many crossings (%i)" n
         | otherwise  = UV.concat $ UV.singleton (numberOfFreeLoops tangle) : border : internal

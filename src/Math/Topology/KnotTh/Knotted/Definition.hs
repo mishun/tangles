@@ -28,6 +28,7 @@ class Crossing a where
 
 class (Functor k, PlanarDiagram k) => Knotted k where
     vertexCrossing :: Vertex k a -> a
+    mapCrossings :: (Vertex k a -> b) -> k a -> k b
 
     unrootedHomeomorphismInvariant :: (Crossing a) => k a -> Vector Int
 
