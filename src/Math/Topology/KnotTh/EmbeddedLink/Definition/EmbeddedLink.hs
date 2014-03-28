@@ -1,4 +1,4 @@
-{-# LANGUAGE TypeFamilies, UnboxedTuples #-}
+{-# LANGUAGE TypeFamilies, UnboxedTuples, RankNTypes #-}
 module Math.Topology.KnotTh.EmbeddedLink.Definition.EmbeddedLink
     ( EmbeddedLink
     , EmbeddedLinkProjection
@@ -11,7 +11,7 @@ module Math.Topology.KnotTh.EmbeddedLink.Definition.EmbeddedLink
 
 import Data.Function (fix)
 import Data.Maybe (fromMaybe)
-import Data.List (foldl')
+import Data.List (foldl', find)
 import Data.Bits ((.&.), shiftL, shiftR, complement)
 import qualified Data.Vector as V
 import qualified Data.Vector.Mutable as MV
@@ -19,9 +19,10 @@ import qualified Data.Vector.Unboxed as UV
 import qualified Data.Vector.Unboxed.Mutable as UMV
 import qualified Data.Vector.Primitive as PV
 import qualified Data.Vector.Primitive.Mutable as PMV
-import Data.STRef (newSTRef, readSTRef, writeSTRef)
-import Control.Monad.ST (runST)
-import Control.Monad (void, when, forM_, foldM, foldM_)
+import Data.STRef (STRef, newSTRef, readSTRef, writeSTRef, modifySTRef')
+import Control.Monad.ST (ST, runST)
+import Control.Monad.Reader (ReaderT, runReaderT, ask, lift)
+import Control.Monad (void, when, forM, forM_, foldM, foldM_, guard)
 import Control.DeepSeq (NFData(..))
 import Text.Printf
 import qualified Math.Algebra.Group.D4 as D4
@@ -324,6 +325,47 @@ instance KnottedDiagram EmbeddedLink where
                 in (ac == ba) || (passOver ab == passOver ba && opposite ac == nextCW ba)
             ) . allOutcomingDarts
 
+    tryReduceReidemeisterI link = do
+        d <- find (\ d -> opposite d == nextCCW d) (allOutcomingDarts link)
+        return $! modifyELink link $ do
+            let ac = nextCW d
+                ab = nextCW ac
+                ba = opposite ab
+            substituteC [(ba, ac)]
+            maskC [beginVertex d]
+
+    tryReduceReidemeisterII link = Nothing
+
+    goReidemeisterIII link = do
+        ab <- allOutcomingDarts link
+        let ac = nextCCW ab
+            ba = opposite ab
+            ca = opposite ac
+            bc = nextCW ba
+            cb = nextCCW ca
+
+        guard $ bc == opposite cb
+
+        let a = beginVertex ab
+            b = beginVertex ba
+            c = beginVertex ca
+
+        guard $ (a /= b) && (a /= c) && (b /= c)
+        guard $ passOver bc == passOver cb
+
+        guard $ let altRoot | passOver ab == passOver ba  = ca
+                            | otherwise                   = bc
+                in ab < altRoot
+
+        let ap = threadContinuation ab
+            aq = nextCW ab
+            br = nextCW bc
+            cs = nextCCW cb
+
+        return $! modifyELink link $ do
+            substituteC [(ca, ap), (ba, aq), (ab, br), (ac, cs)]
+            connectC [(br, aq), (cs, ap)]
+
 
 instance (Show a) => Show (EmbeddedLink a) where
     show = printf "implode %s" . show . explode
@@ -386,3 +428,87 @@ type EmbeddedLinkProjectionDart = Dart EmbeddedLink ProjectionCrossing
 type EmbeddedLinkDiagram = EmbeddedLink DiagramCrossing
 type EmbeddedLinkDiagramVertex = Vertex EmbeddedLink DiagramCrossing
 type EmbeddedLinkDiagramDart = Dart EmbeddedLink DiagramCrossing
+
+
+
+type ModifyELinkM a s r = ReaderT (ModifyState a s) (ST s) r
+
+
+data ModifyState a s =
+    ModifyState
+        { stateSource     :: !(EmbeddedLink a)
+        , stateCircles    :: !(STRef s Int)
+        , stateInvolution :: !(PMV.STVector s Int)
+        , stateMask       :: !(UMV.STVector s Bool)
+        }
+
+
+modifyELink :: EmbeddedLink a -> (forall s. ModifyELinkM a s ()) -> EmbeddedLink a
+modifyELink link action = runST $ do
+    s <- disassembleST link
+    runReaderT action s
+    return link
+
+
+disassembleST :: EmbeddedLink a -> ST s (ModifyState a s)
+disassembleST link = do
+    circ <- newSTRef $ numberOfFreeLoops link
+    inv <- PV.thaw $ involutionArray link
+    mask <- UMV.replicate (numberOfVertices link) True
+    return $! ModifyState
+                  { stateSource     = link
+                  , stateCircles    = circ
+                  , stateInvolution = inv
+                  , stateMask       = mask
+                  }
+
+
+emitCircle :: Int -> ModifyELinkM a s ()
+emitCircle dn =
+    ask >>= \ !s -> lift $
+        modifySTRef' (stateCircles s) (+ dn)
+
+
+maskC :: [Vertex EmbeddedLink a] -> ModifyELinkM a s ()
+maskC crossings =
+    ask >>= \ !s -> lift $
+        forM_ crossings $ \ !(Vertex _ i) ->
+            UMV.write (stateMask s) i False
+
+
+connectC :: [(Dart EmbeddedLink a, Dart EmbeddedLink a)] -> ModifyELinkM a s ()
+connectC connections =
+    ask >>= \ !s -> lift $ do
+        forM_ connections $ \ (Dart _ !a, Dart _ !b) -> do
+            when (a == b) $ fail $ printf "reconnect: %s connect to itself" (show a)
+            PMV.write (stateInvolution s) a b
+            PMV.write (stateInvolution s) b a
+
+
+substituteC :: [(Dart EmbeddedLink a, Dart EmbeddedLink a)] -> ModifyELinkM a s ()
+substituteC substitutions = do
+    reconnections <- mapM (\ (a, b) -> (,) a `fmap` oppositeC b) substitutions
+    st <- ask
+    x <- lift $ do
+        let source = stateSource st
+
+        arr <- MV.new (numberOfDarts source)
+        forM_ (allEdges source) $ \ (!a, !b) -> do
+            MV.write arr (dartIndex a) a
+            MV.write arr (dartIndex b) b
+
+        forM_ substitutions $ \ (a, b) ->
+            if a == b
+                then modifySTRef' (stateCircles st) (+ 1)
+                else MV.write arr (dartIndex b) a
+
+        forM reconnections $ \ (a, b) ->
+            (,) a `fmap` MV.read arr (dartIndex b)
+
+    connectC x
+
+
+oppositeC :: Dart EmbeddedLink a -> ModifyELinkM a s (Dart EmbeddedLink a)
+oppositeC (Dart link d) =
+    ask >>= \ !s -> lift $
+        Dart link `fmap` PMV.read (stateInvolution s) d
