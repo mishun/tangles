@@ -11,10 +11,11 @@ import Text.Printf
 import Diagrams.Prelude
 import Math.Topology.KnotTh.Draw
 import Math.Topology.KnotTh.Tangle
-import Math.Topology.KnotTh.Tangle.Generation.BorderIncremental
+import Math.Topology.KnotTh.Tabulation.TangleDiagramsCascade
 import Math.Topology.KnotTh.EmbeddedLink
 import Math.Topology.KnotTh.EmbeddedLink.TestPrime
 import Math.Topology.KnotTh.EmbeddedLink.TangleStarGlue
+import Math.Topology.KnotTh.EdgeIndicesEncoding
 import Math.Topology.KnotTh.Invariants
 import TestUtil.Drawing
 
@@ -96,7 +97,7 @@ generateVirtualKnotProjections maxN = do
     forM_ (M.toList table) $ \ (n, links) ->
         withFile (printf "knot-projection-codes-%i.txt" n) WriteMode $ \ f ->
             forM_ links $ \ link ->
-                hPrint f $ encodeEdgeIndices link
+                hPrint f $ edgeIndicesEncoding link
 
     print $ M.map length table
 
