@@ -2,10 +2,14 @@ module Main (main) where
 
 import Data.Ord (comparing)
 import Data.Function (on)
+import Data.Maybe (mapMaybe)
+import qualified Data.Map as M
+import Control.Arrow ((&&&))
 import qualified Data.Map as M
 import Data.List (sortBy, groupBy)
 import System.IO (withFile, IOMode(..), hPrint)
 import Control.Monad.State.Strict (execState, modify)
+import Control.Monad.Writer (execWriter, tell)
 import Control.Monad (forM_, when)
 import Text.Printf
 import Diagrams.Prelude
@@ -17,6 +21,11 @@ import Math.Topology.KnotTh.EmbeddedLink.TestPrime
 import Math.Topology.KnotTh.EmbeddedLink.TangleStarGlue
 import Math.Topology.KnotTh.EdgeIndicesEncoding
 import Math.Topology.KnotTh.Invariants
+import Math.Topology.KnotTh.Enumeration.EquivalenceClasses
+import Math.Topology.KnotTh.Enumeration.SiftByInvariant
+import Math.Topology.KnotTh.Enumeration.DiagramInfo
+import Math.Topology.KnotTh.Enumeration.DiagramInfo.MinimalDiagramInfo
+import TestUtil.Table
 import TestUtil.Drawing
 
 
@@ -132,7 +141,32 @@ generateAlternatingSkeletons maxN = do
 
 main :: IO ()
 main = do
-    let maxN = 3
+    let maxN = 5
     --generateAlternatingSkeletons maxN
-    generateVirtualKnots maxN
+    --generateVirtualKnots maxN
     --generateVirtualKnotProjections maxN
+    let diagrams = flip execState [] $
+            tangleStarGlue
+                AnyStar
+                (forCCP_ $ primeIrreducibleDiagrams maxN)
+                (\ !link ->
+                    when (eulerChar link == 0 && not (isReidemeisterReducible link) && testPrime link && numberOfThreads link == 1) $
+                        modify (link :)
+                )
+
+    let sifted =
+            siftByInvariant minimalKauffmanXPolynomial $
+                equivalenceClasses
+                    --[map AdHoc.greedyReidemeisterReduction . searchMoves [flype, pass1, pass2, pass3]]
+                    [map reidemeisterReduction . goReidemeisterIII]
+                    (forM_ diagrams)
+
+    printTable "Embedded Links" $ generateTable'
+        (numberOfVertices &&& numberOfThreads)
+        (const 1)
+        (forM_ (mapMaybe maybePrimeDiagram $ singleRepresentativeClasses sifted))
+    putStrLn $ printf "Collision classes: %i" (length $ collisionClasses sifted)
+    writeSVGImage "collisions.svg" (Width 500) $ pad 1.05 $ execWriter $
+        forM_ (collisionClasses sifted `zip` [0 ..]) $ \ (cc, j) ->
+            forM_ (cc `zip` [0 ..]) $ \ (info, i) ->
+                tell $ translate (r2 (2.2 * i, -2.2 * j)) $ drawKnotDef $ representative info

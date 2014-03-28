@@ -142,6 +142,7 @@ class (Knotted k) => KnottedDiagram k where
     totalAlternatingDefect :: k DiagramCrossing -> Int
 
     isReidemeisterReducible :: k DiagramCrossing -> Bool
+    reidemeisterReduction   :: k DiagramCrossing -> k DiagramCrossing
     tryReduceReidemeisterI  :: k DiagramCrossing -> Maybe (k DiagramCrossing)
     tryReduceReidemeisterII :: k DiagramCrossing -> Maybe (k DiagramCrossing)
     goReidemeisterIII       :: k DiagramCrossing -> [k DiagramCrossing]
@@ -153,6 +154,14 @@ class (Knotted k) => KnottedDiagram k where
 
     totalAlternatingDefect =
         sum . map (alternatingDefect . fst) . allEdges
+
+    reidemeisterReduction k =
+        case tryReduceReidemeisterI k of
+            Just k' -> reidemeisterReduction k'
+            Nothing ->
+                case tryReduceReidemeisterII k of
+                    Just k' -> reidemeisterReduction k'
+                    Nothing -> k
 
 
 isAlternating :: (KnottedDiagram k) => k DiagramCrossing -> Bool

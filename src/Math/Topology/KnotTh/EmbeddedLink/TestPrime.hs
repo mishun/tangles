@@ -15,6 +15,10 @@ import Control.Monad.IfElse (whenM, whileM)
 import Math.Topology.KnotTh.EmbeddedLink
 
 
+instance KnottedWithPrimeTest EmbeddedLink where
+    isPrime = testPrime
+
+
 isReducable :: EmbeddedLink ct -> Bool
 isReducable link = or $ do
     c <- allVertices link

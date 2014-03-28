@@ -190,7 +190,8 @@ instance Knotted EmbeddedLink where
 
                 return rc
 
-    isConnected _ = error "isConnected: not implemented"
+    isConnected link =
+        numberOfFreeLoops link < (if numberOfVertices link == 0 then 2 else 1)
 
     type ExplodeType EmbeddedLink a = (Int, [([(Int, Int)], a)])
 
@@ -334,7 +335,7 @@ instance KnottedDiagram EmbeddedLink where
             substituteC [(ba, ac)]
             maskC [beginVertex d]
 
-    tryReduceReidemeisterII link = Nothing
+    tryReduceReidemeisterII _ = Nothing
 
     goReidemeisterIII link = do
         ab <- allOutcomingDarts link
@@ -447,7 +448,7 @@ modifyELink :: EmbeddedLink a -> (forall s. ModifyELinkM a s ()) -> EmbeddedLink
 modifyELink link action = runST $ do
     s <- disassembleST link
     runReaderT action s
-    return link
+    assembleST s
 
 
 disassembleST :: EmbeddedLink a -> ST s (ModifyState a s)
@@ -461,6 +462,28 @@ disassembleST link = do
                   , stateInvolution = inv
                   , stateMask       = mask
                   }
+
+
+assembleST :: ModifyState a s -> ST s (EmbeddedLink a)
+assembleST s = do
+    mask <- UV.freeze $ stateMask s
+    let crs = V.ifilter (\ !i _ -> mask UV.! i) $ crossingsArray $ stateSource s
+        n = V.length crs
+        idx = let sz = PV.length $ involutionArray $ stateSource s
+              in UV.prescanl'
+                   (\ !off !i -> off + if mask UV.! (i `shiftR` 2) then 1 else 0)
+                   0 (UV.enumFromN 0 sz)
+
+    inv <- PV.freeze $ stateInvolution s
+    loops <- readSTRef $ stateCircles s
+    let link = EmbeddedLink
+            { loopsCount      = loops
+            , vertexCount     = n
+            , involutionArray = PV.map (idx UV.!) $ PV.ifilter (\ !i _ -> mask UV.! (i `shiftR` 2)) inv
+            , crossingsArray  = crs
+            , faceSystem      = makeFaceSystem link
+            }
+    return link
 
 
 emitCircle :: Int -> ModifyELinkM a s ()
