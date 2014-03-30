@@ -141,6 +141,22 @@ generateAlternatingSkeletons maxN = do
 
 main :: IO ()
 main = do
+    let heuristic link =
+            let test d a
+                    | beginVertex a == beginVertex d     = False
+                    | beginVertex a == beginVertex a'    = False
+                    | beginVertex d == beginVertex a'    = False
+                    | opposite (nextCCW a) /= nextCW a'  = False
+                    | passOver a == passOver a'          = True
+                    | opposite b == nextCW d             = passOver b == passOver (opposite b)
+                    | otherwise                          = test d b
+                    where
+                        a' = opposite a
+                        b = nextCCW a'
+            in not $ or $ do
+                d <- allHalfEdges link
+                return $! test (opposite d) (nextCCW d)
+
     let maxN = 5
     --generateAlternatingSkeletons maxN
     --generateVirtualKnots maxN
@@ -150,7 +166,7 @@ main = do
                 AnyStar
                 (forCCP_ $ primeIrreducibleDiagrams maxN)
                 (\ !link ->
-                    when (eulerChar link == 0 && not (isReidemeisterReducible link) && testPrime link && numberOfThreads link == 1) $
+                    when (eulerChar link == 0 && not (isReidemeisterReducible link) && testPrime link && heuristic link && numberOfThreads link == 1) $
                         modify (link :)
                 )
 

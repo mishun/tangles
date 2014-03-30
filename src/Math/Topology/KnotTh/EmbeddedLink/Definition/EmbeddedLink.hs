@@ -131,14 +131,15 @@ instance Knotted EmbeddedLink where
                 V.generate (numberOfVertices t) $ \ i -> f (nthVertex t $ i + 1)
           }
 
-    unrootedHomeomorphismInvariant link =
-        minimum $ do
-            dart <- allHalfEdges link
-            dir <- R.bothDirections
-            globalG <- fromMaybe [D4.i] $ globalTransformations link
-            return $! codeWithDirection globalG dir dart
-
+    unrootedHomeomorphismInvariant link = UV.singleton (numberOfFreeLoops link) UV.++ internal
         where
+            internal | numberOfVertices link == 0  = UV.empty
+                     | otherwise                   = minimum $ do
+                dart <- allHalfEdges link
+                dir <- R.bothDirections
+                globalG <- fromMaybe [D4.i] $ globalTransformations link
+                return $! codeWithDirection globalG dir dart
+
             codeWithDirection !globalG !dir !start = UV.create $ do
                 let n = numberOfVertices link
 
@@ -343,19 +344,18 @@ instance KnottedDiagram EmbeddedLink where
                 in passOver abl == passOver bal
                     && abr == opposite bar
                     && beginVertex abl /= beginVertex bal
-                    && rightFace (nextCW abl) /= leftFace (nextCCW bal)
             ) (allOutcomingDarts link)
 
         let bal = opposite abl
             a = beginVertex abl
             b = beginVertex bal
 
-        let ap = threadContinuation abl
+            ap = threadContinuation abl
             aq = nextCW abl
             br = nextCCW bal
             bs = threadContinuation bal
 
-        let pa = opposite ap
+            pa = opposite ap
             qa = opposite aq
             rb = opposite br
             sb = opposite bs
@@ -374,7 +374,7 @@ instance KnottedDiagram EmbeddedLink where
                         if qa == br
                             then emitCircle 1
                             else connectC [(qa, rb)]
-    
+
                         if pa == bs
                             then emitCircle 1
                             else connectC [(pa, sb)]

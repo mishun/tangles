@@ -11,11 +11,13 @@ import qualified Data.Vector.Unboxed as UV
 import qualified Data.Vector.Unboxed.Mutable as UMV
 import Control.Monad.ST (runST)
 import Control.Monad (foldM)
+import Text.Printf
 import Math.Topology.KnotTh.Invariants.Util.Poly
 import Math.Topology.KnotTh.Invariants.KnotPolynomials
 import Math.Topology.KnotTh.Invariants.KnotPolynomials.KauffmanXStateSum
 import Math.Topology.KnotTh.Link
 import Math.Topology.KnotTh.EmbeddedLink
+import Math.Topology.KnotTh.EmbeddedLink.Construction
 import Math.Topology.KnotTh.EmbeddedLink.TangleStarGlue
 
 
@@ -41,8 +43,8 @@ instance KnottedWithKauffmanXPolynomial EmbeddedLink where
     type KauffmanXPolynomial EmbeddedLink = Poly2
 
     kauffmanXPolynomial link
-        | eulerChar link /= 0  = error "jonesPolynomial: yet implemented for torus only"
-        | otherwise            =
+        | eulerChar link == 2 || numberOfVertices link == 0  = kauffmanXPolynomial (toLink link)
+        | eulerChar link == 0  =
             let (tangle, star) = splitIntoTangleAndStar link
                 l = numberOfLegs tangle
 
@@ -89,6 +91,8 @@ instance KnottedWithKauffmanXPolynomial EmbeddedLink where
                     let KauffmanXStateSum _ list = finalNormalization link $ reduceSkeinStd tangle
                     in sum $ map homologyMultiple list
             in result
+        | otherwise  =
+            error $ printf "kauffmanXPolynomial: yet implemented for torus only (%i)\n%s" (eulerChar link) (show $ explode link)
 
     minimalKauffmanXPolynomial link =
         min (kauffmanXPolynomial link) (kauffmanXPolynomial $ invertCrossings link)

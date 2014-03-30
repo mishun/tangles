@@ -1,4 +1,4 @@
-{-# LANGUAGE TemplateHaskell, TypeFamilies, UnboxedTuples #-}
+{-# LANGUAGE TypeFamilies, UnboxedTuples #-}
 module Math.Topology.KnotTh.Tangle.Definition.Tangle
     ( Tangle
     , TangleProjection

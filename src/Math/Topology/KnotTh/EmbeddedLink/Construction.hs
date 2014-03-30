@@ -17,8 +17,8 @@ fromLink = implode . explode
 
 
 toLink :: EmbeddedLink a -> Link a
-toLink sl | eulerChar sl == 2  = implode (explode sl)
-          | otherwise          = error "toLink: euler char must be 2"
+toLink sl | eulerChar sl == 2 || numberOfVertices sl == 0  = implode (explode sl)
+          | otherwise                                      = error "toLink: euler char must be 2"
 
 
 fromTangleAndStar :: ChordDiagram -> Tangle a -> EmbeddedLink a
