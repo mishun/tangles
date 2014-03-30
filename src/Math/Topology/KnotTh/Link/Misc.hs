@@ -1,4 +1,4 @@
-module Math.Topology.KnotTh.Link.Definition.Misc
+module Math.Topology.KnotTh.Link.Misc
     ( linkTable
     , knotTable
     , unlink
@@ -23,9 +23,9 @@ module Math.Topology.KnotTh.Link.Definition.Misc
 
 import Text.Printf
 import Math.Topology.KnotTh.Knotted
-import Math.Topology.KnotTh.Link.Definition.Link
-import Math.Topology.KnotTh.Link.Definition.GaussCode
-import Math.Topology.KnotTh.Link.Definition.TableOfCodes
+import Math.Topology.KnotTh.Link.Link
+import Math.Topology.KnotTh.Link.GaussCode
+import Math.Topology.KnotTh.Link.TableOfCodes
 import Math.Topology.KnotTh.Tangle
 
 

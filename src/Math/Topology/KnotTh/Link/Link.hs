@@ -1,5 +1,5 @@
 {-# LANGUAGE TypeFamilies #-}
-module Math.Topology.KnotTh.Link.Definition.Link
+module Math.Topology.KnotTh.Link.Link
     ( Link
     , emptyLink
     , linkToTangle
@@ -59,7 +59,7 @@ instance Functor Link where
 instance Knotted Link where
     vertexCrossing (V v) = vertexCrossing v
 
-    mapCrossings f (L t) = L $ mapCrossings (\ v -> f (V v)) t
+    mapCrossings f (L t) = L $ mapCrossings (f . V) t
 
     type ExplodeType Link a = (Int, [([(Int, Int)], a)])
     explode (L t) = let (f, [], l) = explode t in (f, l)

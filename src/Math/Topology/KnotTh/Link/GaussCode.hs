@@ -1,4 +1,4 @@
-module Math.Topology.KnotTh.Link.Definition.GaussCode
+module Math.Topology.KnotTh.Link.GaussCode
     ( toDTCode
     , fromDTCode
     , toGaussCode
@@ -17,7 +17,7 @@ import Control.Monad (forM, forM_, when, unless, foldM_, liftM2)
 import Text.Printf
 import Math.Topology.KnotTh.Knotted
 import Math.Topology.KnotTh.Crossings.Diagram
-import Math.Topology.KnotTh.Link.Definition.Link
+import Math.Topology.KnotTh.Link.Link
 
 
 toDTCode :: LinkDiagram -> [[Int]]

@@ -1,4 +1,4 @@
-module Math.Topology.KnotTh.Link.Definition.TableOfCodes
+module Math.Topology.KnotTh.Link.TableOfCodes
     ( listOfDTCodes
     ) where
 
