@@ -112,7 +112,7 @@ connectionP :: [(Dart Tangle a, Dart Tangle a)] -> PatternM s a ()
 connectionP = mapM_ (\ (a, b) -> guard (opposite a == b))
 
 
-reconnectP :: (Show a) => (forall s. MoveM s a ()) -> PatternM s' a (Tangle a)
+reconnectP :: (Show a) => (forall s. ModifyTangleM a s ()) -> PatternM s' a (Tangle a)
 reconnectP m =
     PatternM $ \ s@(PatternS _ tangle _) ->
         [(s, move tangle m)]

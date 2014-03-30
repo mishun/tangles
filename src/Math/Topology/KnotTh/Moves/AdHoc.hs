@@ -25,7 +25,7 @@ class (KnottedDiagram k) => AdHocMoves k where
     flype, pass, reidemeisterIII :: k DiagramCrossing -> [k DiagramCrossing] 
 
 
-reduce1st :: TangleDiagramDart -> MoveM s DiagramCrossing Bool
+reduce1st :: TangleDiagramDart -> ModifyTangleM DiagramCrossing s Bool
 reduce1st aad = do
     aar <- oppositeC aad
     if aar /= nextCCW aad
@@ -48,7 +48,7 @@ reduce1st aad = do
 --     \a/
 --      \
 --     / \
-reduce2nd :: TangleDiagramDart -> MoveM s DiagramCrossing Bool
+reduce2nd :: TangleDiagramDart -> ModifyTangleM DiagramCrossing s Bool
 reduce2nd abl = do
     let a = beginVertex abl
     bal <- oppositeC abl
@@ -228,7 +228,7 @@ instance AdHocMoves Link where
     reidemeisterIII = map tangleToLink . reidemeisterIII . linkToTangle
 
 
-smoothA :: TangleDiagramVertex -> MoveM s DiagramCrossing ()
+smoothA :: TangleDiagramVertex -> ModifyTangleM DiagramCrossing s ()
 smoothA cs = do
     let dn@[_, d1, d2, d3] = outcomingDarts cs
     [od0, od1, od2, od3] <- mapM oppositeC dn
@@ -241,7 +241,7 @@ smoothA cs = do
     maskC [cs]
 
 
-smoothB :: TangleDiagramVertex -> MoveM s DiagramCrossing ()
+smoothB :: TangleDiagramVertex -> ModifyTangleM DiagramCrossing s ()
 smoothB cs = do
     let dn@[_, d1, d2, d3] = outcomingDarts cs
     [od0, od1, od2, od3] <- mapM oppositeC dn
@@ -255,7 +255,7 @@ smoothB cs = do
 
 
 weak :: TangleDiagram -> [TangleDiagram]
-weak tangle = concat [neighboursBorderCrossing, neighboursBorderLoop]
+weak tangle = neighboursBorderCrossing ++ neighboursBorderLoop
     where
         neighboursBorderCrossing =
             flip mapMaybe (allLegs tangle) $ \ xa -> do
