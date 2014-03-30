@@ -335,7 +335,50 @@ instance KnottedDiagram EmbeddedLink where
             substituteC [(ba, ac)]
             maskC [beginVertex d]
 
-    tryReduceReidemeisterII _ = Nothing
+    tryReduceReidemeisterII link = do
+        abl <- find (\ abl ->
+                let bal = opposite abl
+                    abr = nextCCW abl
+                    bar = nextCW bal
+                in passOver abl == passOver bal
+                    && abr == opposite bar
+                    && beginVertex abl /= beginVertex bal
+                    && rightFace (nextCW abl) /= leftFace (nextCCW bal)
+            ) (allOutcomingDarts link)
+
+        let bal = opposite abl
+            a = beginVertex abl
+            b = beginVertex bal
+
+        let ap = threadContinuation abl
+            aq = nextCW abl
+            br = nextCCW bal
+            bs = threadContinuation bal
+
+        let pa = opposite ap
+            qa = opposite aq
+            rb = opposite br
+            sb = opposite bs
+
+        return $! if rightFace (nextCW abl) == leftFace (nextCCW bal)
+            then emptyKnotted
+            else modifyELink link $ do
+                emitCircle 1
+                if qa == ap || rb == bs
+                    then if qa == ap && rb == bs
+                        then emitCircle 1
+                        else do
+                            when (qa /= ap) $ connectC [(pa, qa)]
+                            when (rb /= bs) $ connectC [(rb, sb)]
+                    else do
+                        if qa == br
+                            then emitCircle 1
+                            else connectC [(qa, rb)]
+    
+                        if pa == bs
+                            then emitCircle 1
+                            else connectC [(pa, sb)]
+                maskC [a, b]
 
     goReidemeisterIII link = do
         ab <- allOutcomingDarts link
@@ -495,13 +538,13 @@ emitCircle dn =
 maskC :: [Vertex EmbeddedLink a] -> ModifyELinkM a s ()
 maskC crossings =
     ask >>= \ !s -> lift $
-        forM_ crossings $ \ !(Vertex _ i) ->
+        forM_ crossings $ \ (Vertex _ i) ->
             UMV.write (stateMask s) i False
 
 
 connectC :: [(Dart EmbeddedLink a, Dart EmbeddedLink a)] -> ModifyELinkM a s ()
 connectC connections =
-    ask >>= \ !s -> lift $ do
+    ask >>= \ !s -> lift $
         forM_ connections $ \ (Dart _ !a, Dart _ !b) -> do
             when (a == b) $ fail $ printf "reconnect: %s connect to itself" (show a)
             PMV.write (stateInvolution s) a b
