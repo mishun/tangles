@@ -1,4 +1,4 @@
-module Math.Topology.KnotTh.Tangle.Definition.TangleLike
+module Math.Topology.KnotTh.Tangle.TangleLike
     ( TangleLike(..)
     ) where
 

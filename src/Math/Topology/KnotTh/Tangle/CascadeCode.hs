@@ -1,5 +1,5 @@
 {-# LANGUAGE TypeFamilies #-}
-module Math.Topology.KnotTh.Tangle.Definition.CascadeCode
+module Math.Topology.KnotTh.Tangle.CascadeCode
     ( ProjectionPattern(..)
     , DiagramPattern(..)
     , CascadeCodePattern(..)
@@ -12,8 +12,8 @@ import Text.Printf
 import Math.Topology.KnotTh.Crossings.Projection
 import Math.Topology.KnotTh.Crossings.Diagram
 import Math.Topology.KnotTh.Knotted
-import Math.Topology.KnotTh.Tangle.Definition.TangleLike
-import Math.Topology.KnotTh.Tangle.Definition.Tangle
+import Math.Topology.KnotTh.Tangle.TangleLike
+import Math.Topology.KnotTh.Tangle.Tangle
 
 
 data ProjectionPattern = W | X | M deriving (Eq, Enum, Show, Read)

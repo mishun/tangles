@@ -1,16 +1,21 @@
-module Math.Topology.KnotTh.Tangle.Definition.Misc
+module Math.Topology.KnotTh.Tangle.Misc
     ( mirrorTangle
     , transformTangle
     , allOrientationsOfTangle
     , gridTangle
     , chainTangle
+    , twistedDoubleSatellite
+    , twistedTripleSatellite
     ) where
 
+import Data.Array.IArray ((!))
 import Text.Printf
 import qualified Math.Algebra.Group.Dn as Dn
 import Math.Topology.KnotTh.Knotted
-import Math.Topology.KnotTh.Tangle.Definition.TangleLike
-import Math.Topology.KnotTh.Tangle.Definition.Tangle
+import Math.Topology.KnotTh.Crossings.Diagram
+import Math.Topology.KnotTh.Tangle.TangleLike
+import Math.Topology.KnotTh.Tangle.Tangle
+import Math.Topology.KnotTh.Tangle.Braid
 
 
 transformTangle :: (Crossing a, TangleLike t) => Dn.Dn -> t a -> t a
@@ -70,3 +75,35 @@ chainTangle list =
             , s
             )) ([1 .. n] `zip` list)
         )
+
+
+twistedDoubleSatellite :: TangleDiagram -> TangleDiagram
+twistedDoubleSatellite = twistedNSatellite 2
+
+
+twistedTripleSatellite :: TangleDiagram -> TangleDiagram
+twistedTripleSatellite = twistedNSatellite 3
+
+
+twistedNSatellite :: Int -> TangleDiagram -> TangleDiagram
+twistedNSatellite n tangle
+    | n < 0      = error "twistedNSattelite: negative order"
+    | n == 0     = emptyTangle
+    | n == 1     = tangle
+    | otherwise  = tensorSubst n wrap tangle
+    where
+        w = selfWritheArray tangle
+
+        wrap v | wc == 0    = cross
+               | otherwise  =
+                   let r | wc > 0     = underCrossing
+                         | otherwise  = overCrossing
+
+                       braid =
+                           let half = reversingBraidTangle n r
+                           in half |=| half
+                   in glueTangles n (nthLeg braid n) (nthLeg cross $ n - 1)
+            where
+                wc = w ! v
+                s = vertexCrossing v
+                cross = gridTangle (n, n) (const s)

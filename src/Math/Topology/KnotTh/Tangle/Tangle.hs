@@ -1,5 +1,5 @@
 {-# LANGUAGE TypeFamilies, UnboxedTuples #-}
-module Math.Topology.KnotTh.Tangle.Definition.Tangle
+module Math.Topology.KnotTh.Tangle.Tangle
     ( Tangle
     , TangleProjection
     , TangleProjectionVertex
@@ -30,7 +30,7 @@ import qualified Math.Algebra.RotationDirection as R
 import Math.Topology.KnotTh.Knotted
 import Math.Topology.KnotTh.Crossings.Projection
 import Math.Topology.KnotTh.Crossings.Diagram
-import Math.Topology.KnotTh.Tangle.Definition.TangleLike
+import Math.Topology.KnotTh.Tangle.TangleLike
 
 
 data Tangle a =

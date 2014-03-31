@@ -8,9 +8,9 @@ import Control.Monad (forM_)
 import Text.Printf
 import Diagrams.Prelude
 import Math.Topology.KnotTh.Link
+import Math.Topology.KnotTh.Tangle
 import Math.Topology.KnotTh.Tabulation.LinkDiagrams
 import Math.Topology.KnotTh.Draw
-import Math.Topology.KnotTh.Tangle.Satellites
 import Math.Topology.KnotTh.Moves.Moves
 import Math.Topology.KnotTh.Moves.PatternMatching
 import qualified Math.Topology.KnotTh.Moves.AdHoc as AdHoc

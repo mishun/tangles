@@ -1,4 +1,4 @@
-module Math.Topology.KnotTh.Tangle.Definition.Braid
+module Math.Topology.KnotTh.Tangle.Braid
     ( (|=|)
     , (|~|)
     , identityBraidTangle
@@ -9,8 +9,8 @@ module Math.Topology.KnotTh.Tangle.Definition.Braid
 
 import Text.Printf
 import Math.Topology.KnotTh.Knotted
-import Math.Topology.KnotTh.Tangle.Definition.TangleLike
-import Math.Topology.KnotTh.Tangle.Definition.Tangle
+import Math.Topology.KnotTh.Tangle.TangleLike
+import Math.Topology.KnotTh.Tangle.Tangle
 
 
 (|=|) :: (TangleLike t) => t a -> t a -> t a
