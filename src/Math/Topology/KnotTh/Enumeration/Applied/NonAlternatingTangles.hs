@@ -35,8 +35,8 @@ tangleDiagrams triangle legsLimit maxN yield =
 tangleClasses :: (DiagramInfo info) => (forall m. (Monad m) => (TangleDiagram -> m ()) -> m ()) -> [info TangleDiagram]
 tangleClasses =
     equivalenceClasses
-        (map (map AdHoc.greedyReidemeisterReduction .)
-            [ AdHoc.reidemeisterIII
+        (map (map reidemeisterReduction .)
+            [ reidemeisterIII
             , AdHoc.flype
             , AdHoc.pass
             ])
@@ -45,9 +45,9 @@ tangleClasses =
 weakTangleClasses :: (DiagramInfo info) => (forall m. (Monad m) => (TangleDiagram -> m ()) -> m ()) -> [info TangleDiagram]
 weakTangleClasses =
     equivalenceClasses
-        (map (map AdHoc.greedyReidemeisterReduction .)
+        (map (map reidemeisterReduction .)
             [ AdHoc.weak
-            , AdHoc.reidemeisterIII
+            , reidemeisterIII
             , AdHoc.flype
             , AdHoc.pass
             ])

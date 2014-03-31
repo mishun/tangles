@@ -380,7 +380,7 @@ instance KnottedDiagram EmbeddedLink where
                             else connectC [(pa, sb)]
                 maskC [a, b]
 
-    goReidemeisterIII link = do
+    reidemeisterIII link = do
         ab <- allOutcomingDarts link
         let ac = nextCCW ab
             ba = opposite ab

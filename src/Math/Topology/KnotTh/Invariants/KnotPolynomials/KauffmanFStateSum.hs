@@ -18,7 +18,6 @@ import Control.Monad (forM_, when)
 import Control.DeepSeq
 import Text.Printf
 import Math.Topology.KnotTh.Tangle
-import Math.Topology.KnotTh.Tangle.Modify
 import Math.Topology.KnotTh.Moves.AdHoc
 import Math.Topology.KnotTh.Invariants.KnotPolynomials
 import Math.Topology.KnotTh.Invariants.Util.Poly
@@ -193,7 +192,7 @@ irregularCrossings tangle =
 decomposeTangle :: (KauffmanFArg a) => [(Int, [(Int, Int)], [([(Int, Int)], DiagramCrossing)])] -> a -> TangleDiagram -> ChordDiagramsSum a
 decomposeTangle path !initialFactor !tangle' =
     let splices [] toInvert factor inter =
-            let tangle = move tangle' $ modifyC False invertCrossing toInvert
+            let tangle = modifyTangle tangle' $ modifyC False invertCrossing toInvert
 
                 (n, _, threads) = allThreadsWithMarks tangle
 
@@ -215,8 +214,8 @@ decomposeTangle path !initialFactor !tangle' =
                                 (circleFactor ^ (n - numberOfLegs tangle `div` 2))
 
         splices (h : r) toInvert factor inter =
-            let a = (factor * smoothFactor, move tangle' $ modifyC False invertCrossing toInvert >> smoothA h >> greedy [reduce2nd])
-                b = (factor * smoothFactor, move tangle' $ modifyC False invertCrossing toInvert >> smoothB h >> greedy [reduce2nd])
+            let a = (factor * smoothFactor, modifyTangle tangle' $ modifyC False invertCrossing toInvert >> smoothA h >> greedy [reduce2nd])
+                b = (factor * smoothFactor, modifyTangle tangle' $ modifyC False invertCrossing toInvert >> smoothB h >> greedy [reduce2nd])
             in splices r (h : toInvert) (-factor) (a : b : inter)
 
     in concatStateSums $ splices (irregularCrossings tangle') [] initialFactor []

@@ -80,7 +80,7 @@ instance KnottedDiagram Link where
     isReidemeisterReducible (L t) = isReidemeisterReducible t
     tryReduceReidemeisterI (L t) = tangleToLink `fmap` tryReduceReidemeisterI t
     tryReduceReidemeisterII (L t) = tangleToLink `fmap` tryReduceReidemeisterII t
-    goReidemeisterIII (L t) = tangleToLink `fmap` goReidemeisterIII t
+    reidemeisterIII (L t) = tangleToLink `fmap` reidemeisterIII t
 
 
 instance KnottedWithPrimeTest Link where

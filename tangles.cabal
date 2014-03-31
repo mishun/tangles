@@ -122,7 +122,6 @@ library
         Math.Topology.KnotTh.Tangle.Braid,
         Math.Topology.KnotTh.Tangle.CascadeCode,
         Math.Topology.KnotTh.Tangle.Misc,
-        Math.Topology.KnotTh.Tangle.Modify,
         Math.Topology.KnotTh.Tangle.Tangle,
         Math.Topology.KnotTh.Tangle.TangleLike,
         Math.Topology.KnotTh.Tabulation.TangleDiagramsCascade.IncrementalTests,

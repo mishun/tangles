@@ -1,10 +1,8 @@
 module Math.Topology.KnotTh.Moves.AdHoc
     ( reduce1st
     , reduce2nd
-    , greedyReidemeisterReduction
     , flype
     , pass
-    , reidemeisterIII
     , smoothA
     , smoothB
     , weak
@@ -16,13 +14,11 @@ import qualified Data.Vector.Unboxed as UV
 import Control.Monad (when, unless, msum, guard, liftM2)
 import Math.Topology.KnotTh.Tangle
 import Math.Topology.KnotTh.Link
-import Math.Topology.KnotTh.Tangle.Modify
 import Math.Topology.KnotTh.Moves.AdHoc.Resting
 
 
 class (KnottedDiagram k) => AdHocMoves k where
-    greedyReidemeisterReduction  :: k DiagramCrossing -> k DiagramCrossing
-    flype, pass, reidemeisterIII :: k DiagramCrossing -> [k DiagramCrossing] 
+    flype, pass :: k DiagramCrossing -> [k DiagramCrossing] 
 
 
 reduce1st :: TangleDiagramDart -> ModifyTangleM DiagramCrossing s Bool
@@ -92,9 +88,6 @@ reduce2nd abl = do
 
 
 instance AdHocMoves Tangle where
-    greedyReidemeisterReduction tangleC = move tangleC $ greedy [reduce1st, reduce2nd]
-
-
     flype tangle =
         flip mapMaybe (allOutcomingDarts tangle) $ \ ab -> do
             let ba = opposite ab
@@ -114,7 +107,7 @@ instance AdHocMoves Tangle where
 
             ([rp, sq], sub) <- restingPart tangle [ba, ca]
 
-            return $! move tangle $ do
+            return $! modifyTangle tangle $ do
                 substituteC [(ba, ae), (ca, ad), (ab, rp), (ac, sq)]
                 connectC [(rp, ae), (sq, ad)]
                 modifyC True id $ filter ((sub UV.!) . vertexIndex) $ allVertices tangle
@@ -159,7 +152,7 @@ instance AdHocMoves Tangle where
                         tryPass (n + 1) pa' tb (opposite pa' : incoming)
                     ]
 
-            passM incoming outcoming = move tangle $ do
+            passM incoming outcoming = modifyTangle tangle $ do
                 let m = length outcoming
                     toRemove = drop m incoming
 
@@ -172,60 +165,9 @@ instance AdHocMoves Tangle where
                     maskC $ map endVertex toRemove
 
 
-    reidemeisterIII tangle =
-        flip mapMaybe (allOutcomingDarts tangle) $ \ ab -> do
-            -- \sc           /rb             \sc   /rb
-            --  \           /                 \   /
-            -- cs\ cb   bc /br               ac\ /ab
-            -- ---------------                  /
-            --   ca\c   b/ba                 ap/a\aq
-            --      \   /         -->         /   \
-            --     ac\ /ab                 cs/c   b\br
-            --        /                  ---------------
-            --     ap/a\aq               ca/ cb   bc \ba
-            --      /   \                 /           \
-            --   pa/     \qa             /pa           \qa
-            guard $ isDart ab
-
-            let ac = nextCCW ab
-                ba = opposite ab
-                ca = opposite ac
-
-            guard $ isDart ba && isDart ca
-
-            let bc = nextCW ba
-                cb = nextCCW ca
-
-            guard $ bc == opposite cb
-
-            let a = beginVertex ab
-                b = beginVertex ba
-                c = beginVertex ca
-
-            guard $ (a /= b) && (a /= c) && (b /= c)
-            guard $ passOver bc == passOver cb
-
-            guard $ let altRoot | passOver ab == passOver ba  = ca
-                                | otherwise                   = bc
-                    in ab < altRoot
-
-            let ap = threadContinuation ab
-                aq = nextCW ab
-                br = nextCW bc
-                cs = nextCCW cb
-
-            return $! move tangle $ do
-                substituteC [(ca, ap), (ba, aq), (ab, br), (ac, cs)]
-                connectC [(br, aq), (cs, ap)]
-
-
 instance AdHocMoves Link where
-    greedyReidemeisterReduction =
-        tangleToLink . greedyReidemeisterReduction . linkToTangle
-
     flype = map tangleToLink . flype . linkToTangle
     pass = map tangleToLink . pass . linkToTangle
-    reidemeisterIII = map tangleToLink . reidemeisterIII . linkToTangle
 
 
 smoothA :: TangleDiagramVertex -> ModifyTangleM DiagramCrossing s ()
@@ -273,7 +215,7 @@ weak tangle = neighboursBorderCrossing ++ neighboursBorderLoop
                     pa = opposite ap
                     qa = opposite aq
 
-                return $! move tangle $ do
+                return $! modifyTangle tangle $ do
                     maskC [a]
                     if qa == ap
                         then connectC [(xa, ya)] >> emitCircle 1
@@ -300,6 +242,6 @@ weak tangle = neighboursBorderCrossing ++ neighboursBorderLoop
                 guard $ abl == opposite bal
                 guard $ passOver ax /= passOver by
 
-                return $! move tangle $ do
+                return $! modifyTangle tangle $ do
                     substituteC [(abl, ap), (bal, bq)]
                     connectC [(ax, by), (ap, xa), (bq, yb)]

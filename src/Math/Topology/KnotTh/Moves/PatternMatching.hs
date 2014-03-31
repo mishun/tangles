@@ -18,7 +18,6 @@ import Data.Array.Unboxed (UArray)
 import Control.Monad.State (execState, gets, modify)
 import Control.Monad (MonadPlus(..), unless, guard)
 import Math.Topology.KnotTh.Tangle
-import Math.Topology.KnotTh.Tangle.Modify
 import Math.Topology.KnotTh.Link
 
 
@@ -115,7 +114,7 @@ connectionP = mapM_ (\ (a, b) -> guard (opposite a == b))
 reconnectP :: (Show a) => (forall s. ModifyTangleM a s ()) -> PatternM s' a (Tangle a)
 reconnectP m =
     PatternM $ \ s@(PatternS _ tangle _) ->
-        [(s, move tangle m)]
+        [(s, modifyTangle tangle m)]
 
 
 makePattern :: Bool -> (forall s. PatternM s a x) -> Pattern a x

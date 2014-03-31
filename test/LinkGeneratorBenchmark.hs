@@ -41,8 +41,8 @@ main = do
                         )
                 ) $
                 equivalenceClasses
-                    --[map AdHoc.greedyReidemeisterReduction . searchMoves [flype, pass1, pass2, pass3]]
-                    (map (map AdHoc.greedyReidemeisterReduction .) [AdHoc.reidemeisterIII, AdHoc.flype, AdHoc.pass])
+                    --[map reidemeisterReduction . searchMoves [flype, pass1, pass2, pass3]]
+                    (map (map reidemeisterReduction .) [reidemeisterIII, AdHoc.flype, AdHoc.pass])
                     (diagramsGen maxN)
 
     let n = 10

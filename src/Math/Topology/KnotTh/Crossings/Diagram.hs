@@ -145,7 +145,7 @@ class (Knotted k) => KnottedDiagram k where
     reidemeisterReduction   :: k DiagramCrossing -> k DiagramCrossing
     tryReduceReidemeisterI  :: k DiagramCrossing -> Maybe (k DiagramCrossing)
     tryReduceReidemeisterII :: k DiagramCrossing -> Maybe (k DiagramCrossing)
-    goReidemeisterIII       :: k DiagramCrossing -> [k DiagramCrossing]
+    reidemeisterIII         :: k DiagramCrossing -> [k DiagramCrossing]
 
     alternatingDefect a | isDart a && isDart b && passOver a == passOver b  = 1
                         | otherwise                                         = 0

@@ -174,7 +174,7 @@ main = do
             siftByInvariant minimalKauffmanXPolynomial $
                 equivalenceClasses
                     --[map AdHoc.greedyReidemeisterReduction . searchMoves [flype, pass1, pass2, pass3]]
-                    [map reidemeisterReduction . goReidemeisterIII]
+                    [map reidemeisterReduction . reidemeisterIII]
                     (forM_ diagrams)
 
     printTable "Embedded Links" $ generateTable'
