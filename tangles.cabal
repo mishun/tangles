@@ -102,7 +102,7 @@ library
         Math.Topology.KnotTh.Draw.Link,
         Math.Topology.KnotTh.Draw.Settings,
         Math.Topology.KnotTh.Draw.Tangle,
-        Math.Topology.KnotTh.EmbeddedLink.Definition.EmbeddedLink,
+        Math.Topology.KnotTh.EmbeddedLink.EmbeddedLink,
         Math.Topology.KnotTh.Invariants.HomflyPolynomial,
         Math.Topology.KnotTh.Invariants.JonesPolynomial,
         Math.Topology.KnotTh.Invariants.KauffmanFPolynomial,

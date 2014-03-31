@@ -1,5 +1,5 @@
 {-# LANGUAGE TypeFamilies, UnboxedTuples, RankNTypes #-}
-module Math.Topology.KnotTh.EmbeddedLink.Definition.EmbeddedLink
+module Math.Topology.KnotTh.EmbeddedLink.EmbeddedLink
     ( EmbeddedLink
     , EmbeddedLinkProjection
     , EmbeddedLinkProjectionVertex
