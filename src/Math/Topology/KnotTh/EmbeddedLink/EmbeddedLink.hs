@@ -22,7 +22,7 @@ import qualified Data.Vector.Primitive.Mutable as PMV
 import Data.STRef (STRef, newSTRef, readSTRef, writeSTRef, modifySTRef')
 import Control.Monad.ST (ST, runST)
 import Control.Monad.Reader (ReaderT, runReaderT, ask, lift)
-import Control.Monad (void, when, forM, forM_, foldM, foldM_, guard)
+import Control.Monad (void, when, unless, forM, forM_, foldM, foldM_, guard)
 import Control.DeepSeq (NFData(..))
 import Text.Printf
 import qualified Math.Algebra.Group.D4 as D4
@@ -487,7 +487,7 @@ data ModifyState a s =
         }
 
 
-modifyELink :: EmbeddedLink a -> (forall s. ModifyELinkM a s ()) -> EmbeddedLink a
+modifyELink :: (Show a) => EmbeddedLink a -> (forall s. ModifyELinkM a s ()) -> EmbeddedLink a
 modifyELink link action = runST $ do
     s <- disassembleST link
     runReaderT action s
@@ -507,17 +507,27 @@ disassembleST link = do
                   }
 
 
-assembleST :: ModifyState a s -> ST s (EmbeddedLink a)
+assembleST :: (Show a) => ModifyState a s -> ST s (EmbeddedLink a)
 assembleST s = do
+    let src = stateSource s
     mask <- UV.freeze $ stateMask s
-    let crs = V.ifilter (\ !i _ -> mask UV.! i) $ crossingsArray $ stateSource s
+    let crs = V.ifilter (\ !i _ -> mask UV.! i) $ crossingsArray src
         n = V.length crs
-        idx = let sz = PV.length $ involutionArray $ stateSource s
+        idx = let sz = PV.length $ involutionArray src
               in UV.prescanl'
                    (\ !off !i -> off + if mask UV.! (i `shiftR` 2) then 1 else 0)
                    0 (UV.enumFromN 0 sz)
 
     inv <- PV.freeze $ stateInvolution s
+    forM_ [0 .. vertexCount src - 1] $ \ !v ->
+        when (mask UV.! v) $
+            forM_ [0 .. 3] $ \ !i ->
+                let a = 4 * v + i
+                    b = inv PV.! a
+                in unless (mask UV.! (b `shiftR` 2)) $
+                    fail $ printf "modifyELink: touching masked crossing\nlink: %s\nmask: %s\ninvolution: %s"
+                               (show src) (show mask) (show inv)
+
     loops <- readSTRef $ stateCircles s
     let link = EmbeddedLink
             { loopsCount      = loops
