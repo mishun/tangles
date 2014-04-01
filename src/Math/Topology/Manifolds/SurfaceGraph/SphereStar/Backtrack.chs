@@ -8,7 +8,7 @@ import Data.Array.MArray (newArray, newArray_, readArray, writeArray, freeze)
 import Data.Array.Unboxed (UArray)
 import Data.Array.IO (IOUArray)
 import Data.Array.Storable (withStorableArray)
-import Control.Monad (forM_, liftM2)
+import Control.Monad (unless, forM_, liftM2)
 import Foreign.Ptr (Ptr)
 import Foreign.C.Types
 import Math.Topology.Manifolds.SurfaceGraph.Definition
@@ -18,7 +18,7 @@ foreign import ccall "sphereStarDecomposition"
     c_sphereStarDecomposition
         :: CSize -> CSize -> CSize
             -> Ptr CSize -> Ptr CSize -> Ptr CSize
-                -> Ptr CSize -> Ptr CSize -> IO ()
+                -> Ptr CSize -> Ptr CSize -> IO CInt
 
 
 backtrack :: SurfaceGraph a -> (UArray (Face SurfaceGraph a) Bool, UArray (Dart SurfaceGraph a) Bool)
@@ -41,7 +41,7 @@ backtrack graph = unsafePerformIO $ do
 
     resultFaces <- newArray_ (0, f - 1)
     resultEdges <- newArray_ (0, e - 1)
-    withStorableArray vertexDegrees $ \ vertexDegreesPtr ->
+    st <- withStorableArray vertexDegrees $ \ vertexDegreesPtr ->
         withStorableArray edges $ \ edgesPtr ->
             withStorableArray coedges $ \ coedgesPtr ->
                 withStorableArray resultFaces $ \ resultFacesPtr ->
@@ -50,6 +50,8 @@ backtrack graph = unsafePerformIO $ do
                             (fromIntegral v) (fromIntegral f) (fromIntegral e)
                             vertexDegreesPtr edgesPtr coedgesPtr
                             resultFacesPtr resultEdgesPtr
+    unless (st == 0) $
+        fail $ "can not find sphere-star decomposition for: " ++ show graph
 
     faceMarks <- (newArray :: (Ix i) => (i, i) -> Bool -> IO (IOUArray i Bool)) (facesRange graph) False
     forM_ ([0 ..] `zip` allFaces graph) $ \ (i, face) -> do

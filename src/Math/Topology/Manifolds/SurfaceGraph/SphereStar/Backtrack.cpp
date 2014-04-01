@@ -186,7 +186,7 @@ namespace Math { namespace Manifolds { namespace SphereStar {
 		return false;
 	}
 
-	extern "C" void sphereStarDecomposition
+	extern "C" int sphereStarDecomposition
 		( const size_t numberOfVertices
 		, const size_t numberOfFaces
 		, const size_t numberOfEdges
@@ -209,7 +209,7 @@ namespace Math { namespace Manifolds { namespace SphereStar {
 			};
 
 		const bool ok = backtrack(context);
-		assert(ok && "Can not find solution");
+		return (ok ? 0 : 1);
 	}
 
 }}}

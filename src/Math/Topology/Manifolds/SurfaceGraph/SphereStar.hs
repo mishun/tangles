@@ -22,8 +22,9 @@ sphereStarDecomposition
         )
 
 sphereStarDecomposition graph
-    | eulerChar graph == 2  = error "sphereStarDecomposition: undefined for planar graphs"
-    | otherwise             = runST $ do
+    | numberOfVertices graph == 0  = error "sphereStarDecomposition: undefined for empty graph"
+    | eulerChar graph == 2         = error "sphereStarDecomposition: undefined for planar graphs"
+    | otherwise                    = runST $ do
         let (_, edgeTreeMarks) = backtrack graph
 
         edgeMarks <- (thaw :: (Ix i) => UArray i Bool -> ST s (STUArray s i Bool)) edgeTreeMarks
