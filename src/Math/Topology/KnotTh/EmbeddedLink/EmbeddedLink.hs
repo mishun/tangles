@@ -7,6 +7,14 @@ module Math.Topology.KnotTh.EmbeddedLink.EmbeddedLink
     , EmbeddedLinkDiagram
     , EmbeddedLinkDiagramVertex
     , EmbeddedLinkDiagramDart
+
+    , ModifyELinkM
+    , modifyELink
+    , emitCircle
+    , maskC
+    , modifyC
+    , connectC
+    , substituteC
     ) where
 
 import Data.Function (fix)
@@ -22,7 +30,7 @@ import qualified Data.Vector.Primitive.Mutable as PMV
 import Data.STRef (STRef, newSTRef, readSTRef, writeSTRef, modifySTRef')
 import Control.Monad.ST (ST, runST)
 import Control.Monad.Reader (ReaderT, runReaderT, ask, lift)
-import Control.Monad (void, when, unless, forM, forM_, foldM, foldM_, guard)
+import Control.Monad (void, when, forM, forM_, foldM, foldM_, guard)
 import Control.DeepSeq (NFData(..))
 import Text.Printf
 import qualified Math.Algebra.Group.D4 as D4
@@ -486,12 +494,14 @@ type EmbeddedLinkDiagramDart = Dart EmbeddedLink DiagramCrossing
 type ModifyELinkM a s r = ReaderT (ModifyState a s) (ST s) r
 
 
+data CrossingMask = Direct | Flipped | Masked deriving (Show)
+
 data ModifyState a s =
     ModifyState
         { stateSource     :: !(EmbeddedLink a)
         , stateCircles    :: !(STRef s Int)
         , stateInvolution :: !(PMV.STVector s Int)
-        , stateMask       :: !(UMV.STVector s Bool)
+        , stateMask       :: !(MV.STVector s CrossingMask)
         }
 
 
@@ -506,7 +516,7 @@ disassembleST :: EmbeddedLink a -> ST s (ModifyState a s)
 disassembleST link = do
     circ <- newSTRef $ numberOfFreeLoops link
     inv <- PV.thaw $ involutionArray link
-    mask <- UMV.replicate (numberOfVertices link) True
+    mask <- MV.replicate (numberOfVertices link) Direct
     return $! ModifyState
                   { stateSource     = link
                   , stateCircles    = circ
@@ -518,29 +528,45 @@ disassembleST link = do
 assembleST :: (Show a) => ModifyState a s -> ST s (EmbeddedLink a)
 assembleST s = do
     let src = stateSource s
-    mask <- UV.freeze $ stateMask s
-    let crs = V.ifilter (\ !i _ -> mask UV.! i) $ crossingsArray src
+    mask <- V.freeze $ stateMask s
+    let crs = V.ifilter (\ !i _ -> case mask V.! i of Masked -> False ; _ -> True) $ crossingsArray src
         n = V.length crs
-        idx = let sz = PV.length $ involutionArray src
-              in UV.prescanl'
-                   (\ !off !i -> off + if mask UV.! (i `shiftR` 2) then 1 else 0)
-                   0 (UV.enumFromN 0 sz)
+        idx = UV.fromList $ do
+            let offsets = UV.prescanl'
+                              (\ off i -> off + case mask V.! i of Masked -> 0 ; _ -> 1)
+                              0
+                              (UV.enumFromN 0 $ vertexCount src)
+            i <- [0 .. vertexCount src - 1]
+            let d = 4 * (offsets UV.! i)
+            case mask V.! i of
+                Masked  -> [-1, -1, -1, -1]
+                Direct  -> [d, d + 1, d + 2, d + 3]
+                Flipped -> [d + 3, d + 2, d + 1, d]
 
     inv <- PV.freeze $ stateInvolution s
     forM_ [0 .. vertexCount src - 1] $ \ !v ->
-        when (mask UV.! v) $
-            forM_ [0 .. 3] $ \ !i ->
-                let a = 4 * v + i
-                    b = inv PV.! a
-                in unless (mask UV.! (b `shiftR` 2)) $
-                    fail $ printf "modifyELink: touching masked crossing\nlink: %s\nmask: %s\ninvolution: %s"
+        case mask V.! v of
+            Masked -> return ()
+            _      ->
+                forM_ [0 .. 3] $ \ !i ->
+                    let a = 4 * v + i
+                        b = inv PV.! a
+                    in case mask V.! (b `shiftR` 2) of
+                        Masked -> fail $ printf "modifyELink: touching masked crossing\nlink: %s\nmask: %s\ninvolution: %s"
                                (show src) (show mask) (show inv)
+                        _      -> return ()
 
     loops <- readSTRef $ stateCircles s
     let link = EmbeddedLink
             { loopsCount      = loops
             , vertexCount     = n
-            , involutionArray = PV.map (idx UV.!) $ PV.ifilter (\ !i _ -> mask UV.! (i `shiftR` 2)) inv
+            , involutionArray =
+                PV.map (idx UV.!) $ PV.concat $ do
+                    i <- [0 .. vertexCount src - 1]
+                    return $! case mask V.! i of
+                        Masked  -> PV.empty
+                        Direct  -> PV.slice (4 * i) 4 inv
+                        Flipped -> PV.reverse $ PV.slice (4 * i) 4 inv
             , crossingsArray  = crs
             , faceSystem      = makeFaceSystem link
             }
@@ -557,7 +583,21 @@ maskC :: [Vertex EmbeddedLink a] -> ModifyELinkM a s ()
 maskC crossings =
     ask >>= \ !s -> lift $
         forM_ crossings $ \ (Vertex _ i) ->
-            UMV.write (stateMask s) i False
+            MV.write (stateMask s) i Masked
+
+
+modifyC :: (Show a) => Bool -> [Vertex EmbeddedLink a] -> ModifyELinkM a s ()
+modifyC needFlip crossings =
+    ask >>= \ !s -> lift $
+        forM_ crossings $ \ (Vertex _ c) -> do
+            msk <- MV.read (stateMask s) c
+            MV.write (stateMask s) c $
+                case msk of
+                    Direct  | needFlip  -> Flipped
+                            | otherwise -> Direct
+                    Flipped | needFlip  -> Direct
+                            | otherwise -> Flipped
+                    Masked              -> error $ printf "modifyC: flipping masked crossing %s" (show c)
 
 
 connectC :: [(Dart EmbeddedLink a, Dart EmbeddedLink a)] -> ModifyELinkM a s ()

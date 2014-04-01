@@ -25,6 +25,7 @@ import Math.Topology.KnotTh.Enumeration.EquivalenceClasses
 import Math.Topology.KnotTh.Enumeration.SiftByInvariant
 import Math.Topology.KnotTh.Enumeration.DiagramInfo
 import Math.Topology.KnotTh.Enumeration.DiagramInfo.MinimalDiagramInfo
+import Math.Topology.KnotTh.Moves.MovesOfELink
 import TestUtil.Table
 import TestUtil.Drawing
 
@@ -141,23 +142,9 @@ generateAlternatingSkeletons maxN = do
 
 main :: IO ()
 main = do
-    let heuristic link =
-            let test d a
-                    | beginVertex a == beginVertex d     = False
-                    | beginVertex a == beginVertex a'    = False
-                    | beginVertex d == beginVertex a'    = False
-                    | opposite (nextCCW a) /= nextCW a'  = False
-                    | passOver a == passOver a'          = True
-                    | opposite b == nextCW d             = passOver b == passOver (opposite b)
-                    | otherwise                          = test d b
-                    where
-                        a' = opposite a
-                        b = nextCCW a'
-            in not $ or $ do
-                d <- allHalfEdges link
-                return $! test (opposite d) (nextCCW d)
-
     let maxN = 5
+
+
     --generateAlternatingSkeletons maxN
     --generateVirtualKnots maxN
     --generateVirtualKnotProjections maxN
@@ -166,15 +153,14 @@ main = do
                 AnyStar
                 (forCCP_ $ primeIrreducibleDiagrams maxN)
                 (\ !link ->
-                    when (eulerChar link == 0 && not (isReidemeisterReducible link) && testPrime link && heuristic link && numberOfThreads link == 1) $
+                    when (eulerChar link == 0 && not (isReidemeisterReducible link) && testPrime link) $
                         modify (link :)
                 )
 
     let sifted =
             siftByInvariant minimalKauffmanXPolynomial $
                 equivalenceClasses
-                    --[map AdHoc.greedyReidemeisterReduction . searchMoves [flype, pass1, pass2, pass3]]
-                    [map reidemeisterReduction . reidemeisterIII]
+                    (map (map reidemeisterReduction .) [reidemeisterIII, movesOfELink])
                     (forM_ diagrams)
 
     printTable "Embedded Links" $ generateTable'
@@ -182,7 +168,29 @@ main = do
         (const 1)
         (forM_ (mapMaybe maybePrimeDiagram $ singleRepresentativeClasses sifted))
     putStrLn $ printf "Collision classes: %i" (length $ collisionClasses sifted)
+
     writeSVGImage "collisions.svg" (Width 500) $ pad 1.05 $ execWriter $
         forM_ (collisionClasses sifted `zip` [0 ..]) $ \ (cc, j) ->
             forM_ (cc `zip` [0 ..]) $ \ (info, i) ->
                 tell $ translate (r2 (2.2 * i, -2.2 * j)) $ drawKnotDef $ representative info
+
+    writeSVGImage "links.svg" (Width 500) $ pad 1.05 $
+        let group' f = groupBy (on (==) f) . sortBy (comparing f)
+
+            paginate _ [] = []
+            paginate n ls = let (h, t) = splitAt n ls
+                            in h : paginate n t
+
+            links = filter ((> 0) . numberOfVertices) $
+                        mapMaybe maybePrimeDiagram $ singleRepresentativeClasses sifted
+
+        in vcat' with { _sep = 5 } $ do
+            byThread <- group' numberOfThreads links
+            return $ hcat' with { _sep = 3 } $ do
+                byCross <- group' numberOfVertices byThread
+                return $ hcat' with { _sep = 0.5 } $ do
+                    page <- paginate 8 byCross
+                    return $ vcat' with { _sep = 0.5 } $ do
+                        link <- page
+                        return $ drawKnotDef link <> strutX 2 <> strutY 2
+

@@ -83,6 +83,7 @@ library
         Math.Topology.KnotTh.Knotted,
         Math.Topology.KnotTh.Link,
         Math.Topology.KnotTh.Moves.Moves,
+        Math.Topology.KnotTh.Moves.MovesOfELink,
         Math.Topology.KnotTh.Moves.PatternMatching,
         Math.Topology.KnotTh.Moves.AdHoc,
         Math.Topology.KnotTh.SurfaceLink,
