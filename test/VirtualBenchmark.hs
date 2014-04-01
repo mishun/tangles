@@ -3,13 +3,11 @@ module Main (main) where
 import Data.Ord (comparing)
 import Data.Function (on)
 import Data.Maybe (mapMaybe)
-import qualified Data.Map as M
 import Control.Arrow ((&&&))
 import qualified Data.Map as M
 import Data.List (sortBy, groupBy)
 import System.IO (withFile, IOMode(..), hPrint)
 import Control.Monad.State.Strict (execState, modify)
-import Control.Monad.Writer (execWriter, tell)
 import Control.Monad (forM_, when)
 import Text.Printf
 import Diagrams.Prelude
@@ -28,64 +26,6 @@ import Math.Topology.KnotTh.Enumeration.DiagramInfo.MinimalDiagramInfo
 import Math.Topology.KnotTh.Moves.MovesOfELink
 import TestUtil.Table
 import TestUtil.Drawing
-
-
-generateVirtualKnots :: Int -> IO ()
-generateVirtualKnots maxN = do
-    let is1stOr2ndReidemeisterReducible knot = or $ do
-            c <- allVertices knot
-            a <- outcomingDarts c
-            let b = opposite a
-                r1 = nextCCW a == b
-                r2 = isDart b && (passOver a == passOver b) && (nextCCW a == opposite (nextCW b))
-            return $! r1 || r2
-
-        heuristic link =
-            let test d a
-                    | beginVertex a == beginVertex d     = False
-                    | beginVertex a == beginVertex a'    = False
-                    | beginVertex d == beginVertex a'    = False
-                    | opposite (nextCCW a) /= nextCW a'  = False
-                    | passOver a == passOver a'          = True
-                    | opposite b == nextCW d             = passOver b == passOver (opposite b)
-                    | otherwise                          = test d b
-                    where
-                        a' = opposite a
-                        b = nextCCW a'
-            in not $ or $ do
-                d <- allHalfEdges link
-                return $! test (opposite d) (nextCCW d)
-
-    let diagrams = flip execState [] $
-            tangleStarGlue
-                AnyStar
-                (forCCP_ $ primeIrreducibleDiagrams maxN)
-                (\ !link ->
-                    when (eulerChar link == 0 && not (is1stOr2ndReidemeisterReducible link) && numberOfThreads link == 1 && testPrime link && heuristic link) $
-                        modify (link :)
-                )
-
-    let results =
-            groupBy (on (==) (numberOfVertices . head . snd)) $ sortBy (comparing $ numberOfVertices . head . snd) $
-                map (\ pairs@((poly, _) : _) -> (poly, sortBy (comparing numberOfVertices) $ map snd pairs)) $
-                    filter (not . null) $ groupBy (on (==) fst) $ sortBy (comparing fst) $
-                        map (\ d -> (minimalKauffmanXPolynomial d, d)) diagrams
-
-    mapM_ (print . fst) $ concat results
-
-    writeSVGImage "diagrams.svg" (Width 500) $ pad 1.05 $
-        flip execState mempty $
-            forM_ results $ \ ofSize ->
-                let pack = flip execState mempty $
-                        forM_ ([1 :: Int ..] `zip` ofSize) $ \ (i, (poly, reps)) ->
-                            let line = flip execState mempty $ do
-                                    forM_ reps $ \ link -> modify (||| pad 1.1 (drawKnotDef link # freeze # scale 8))
-                                    modify $ (|||) $ text (show poly) <> strutX 50
-                                    modify $ (|||) $ text (show i ++ ".") <> strutX 3
-                            in modify (=== line)
-                in modify (=== strutY 5) >> modify (=== pack)
-
-    print $ map length results
 
 
 generateVirtualKnotProjections :: Int -> IO ()
@@ -144,10 +84,9 @@ main :: IO ()
 main = do
     let maxN = 5
 
-
     --generateAlternatingSkeletons maxN
-    --generateVirtualKnots maxN
     --generateVirtualKnotProjections maxN
+
     let diagrams = flip execState [] $
             tangleStarGlue
                 AnyStar
@@ -169,12 +108,21 @@ main = do
         (forM_ (mapMaybe maybePrimeDiagram $ singleRepresentativeClasses sifted))
     putStrLn $ printf "Collision classes: %i" (length $ collisionClasses sifted)
 
-    writeSVGImage "collisions.svg" (Width 500) $ pad 1.05 $ execWriter $
-        forM_ (collisionClasses sifted `zip` [0 ..]) $ \ (cc, j) ->
-            forM_ (cc `zip` [0 ..]) $ \ (info, i) ->
-                tell $ translate (r2 (2.2 * i, -2.2 * j)) $ drawKnotDef $ representative info
+    do
+        let classes = map (map representative) $ collisionClasses sifted
 
-    writeSVGImage "links.svg" (Width 500) $ pad 1.05 $
+        writeSVGImage "collisions.svg" (Width 500) $ pad 1.05 $
+            vcat' with { _sep = 0.5 } $ do
+                cls <- classes
+                return $ hcat' with { _sep = 0.2 } $ do
+                    link <- cls
+                    return $ drawKnotDef link <> strutX 2 <> strutY 2
+
+        forM_ (classes `zip` [1 :: Int ..]) $ \ (cls, i) ->
+            withFile (printf "collision_%i.txt" i) WriteMode $ \ handle ->
+                mapM_ (hPrint handle . edgeIndicesEncoding) cls
+
+    do
         let group' f = groupBy (on (==) f) . sortBy (comparing f)
 
             paginate _ [] = []
@@ -184,13 +132,22 @@ main = do
             links = filter ((> 0) . numberOfVertices) $
                         mapMaybe maybePrimeDiagram $ singleRepresentativeClasses sifted
 
-        in vcat' with { _sep = 5 } $ do
-            byThread <- group' numberOfThreads links
-            return $ hcat' with { _sep = 3 } $ do
-                byCross <- group' numberOfVertices byThread
-                return $ hcat' with { _sep = 0.5 } $ do
-                    page <- paginate 8 byCross
-                    return $ vcat' with { _sep = 0.5 } $ do
-                        link <- page
-                        return $ drawKnotDef link <> strutX 2 <> strutY 2
+        writeSVGImage "links.svg" (Width 500) $ pad 1.05 $
+            vcat' with { _sep = 5 } $ do
+                byThreads <- group' numberOfThreads links
+                return $ hcat' with { _sep = 3 } $ do
+                    byCross <- group' numberOfVertices byThreads
+                    return $ hcat' with { _sep = 0.5 } $ do
+                        page <- paginate 8 byCross
+                        return $ vcat' with { _sep = 0.5 } $ do
+                            link <- page
+                            return $ drawKnotDef link <> strutX 2 <> strutY 2
 
+        forM_ (group' numberOfThreads links) $ \ byThreads ->
+            forM_ (group' numberOfVertices byThreads) $ \ list -> do
+                let n = numberOfVertices $ head list
+                    k = numberOfThreads $ head list
+                withFile (printf "links_%i^%i.txt" n k) WriteMode $ \ handle ->
+                    mapM_ (hPrint handle . edgeIndicesEncoding) list
+                withFile (printf "poly_%i^%i" n k) WriteMode $ \ handle ->
+                    mapM_ (hPrint handle . minimalKauffmanXPolynomial) list
