@@ -363,21 +363,29 @@ instance KnottedDiagram EmbeddedLink where
         return $! if rightFace (nextCW abl) == leftFace (nextCCW bal)
             then emptyKnotted
             else modifyELink link $ do
-                emitCircle 1
-                if qa == ap || rb == bs
-                    then if qa == ap && rb == bs
-                        then emitCircle 1
-                        else do
-                            when (qa /= ap) $ connectC [(pa, qa)]
-                            when (rb /= bs) $ connectC [(rb, sb)]
-                    else do
+                case () of
+                    _ | qa == ap || rb == bs ->
+                        if qa == ap && rb == bs
+                            then emitCircle 1
+                            else do
+                                when (qa /= ap) $ connectC [(pa, qa)]
+                                when (rb /= bs) $ connectC [(rb, sb)]
+
+                      | qa == bs || rb == ap ->
+                        if qa == bs && rb == ap
+                            then error "strange configuration"
+                            else do
+                                when (qa /= bs) $ connectC [(sb, qa)]
+                                when (rb /= ap) $ connectC [(rb, pa)]
+
+                      | otherwise            -> do
                         if qa == br
                             then emitCircle 1
                             else connectC [(qa, rb)]
-
                         if pa == bs
                             then emitCircle 1
                             else connectC [(pa, sb)]
+
                 maskC [a, b]
 
     reidemeisterIII link = do
