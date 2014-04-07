@@ -17,6 +17,7 @@ import Math.Topology.KnotTh.Tabulation.TangleDiagramsCascade
 import Math.Topology.KnotTh.EmbeddedLink
 import Math.Topology.KnotTh.EmbeddedLink.TestPrime
 import Math.Topology.KnotTh.EmbeddedLink.TangleStarGlue
+import Math.Topology.KnotTh.EmbeddedLink.Construction
 import Math.Topology.KnotTh.EdgeIndicesEncoding
 import Math.Topology.KnotTh.Invariants
 import Math.Topology.KnotTh.Enumeration.EquivalenceClasses
@@ -97,7 +98,12 @@ main = do
                 )
 
     let sifted =
-            siftByInvariant minimalKauffmanXPolynomial $
+            siftByInvariant
+                (\ l ->
+                    ( minimalKauffmanXPolynomial l
+                    , minimalKauffmanXPolynomial $ twistedDoubleSatelliteELink l
+                    )
+                ) $
                 equivalenceClasses
                     (map (map reidemeisterReduction .) [reidemeisterIII, movesOfELink])
                     (forM_ diagrams)
