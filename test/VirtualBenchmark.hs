@@ -5,7 +5,7 @@ import Data.Function (on)
 import Data.Maybe (mapMaybe)
 import Control.Arrow ((&&&))
 import qualified Data.Map as M
-import Data.List (sort, sortBy, groupBy)
+import Data.List (nub, sort, sortBy, groupBy)
 import System.IO (withFile, IOMode(..), hPrint)
 import Control.Monad.State.Strict (execState, modify)
 import Control.Monad (forM_, when, unless)
@@ -105,7 +105,7 @@ main = do
         forM_ classes $ \ cls -> do
             let inv = sort $ map minimalKauffmanXPolynomial cls
             unless (all (== head inv) inv) $
-                putStrLn $ "Class failed: " ++ show inv
+                putStrLn $ "Class failed: " ++ (show $ nub inv)
 
     let sifted =
             siftByInvariant

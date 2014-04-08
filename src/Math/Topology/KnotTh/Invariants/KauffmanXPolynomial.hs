@@ -4,21 +4,14 @@ module Math.Topology.KnotTh.Invariants.KauffmanXPolynomial
     , minimalKauffmanXPolynomial
     ) where
 
-import Data.Function (fix)
-import Data.List (groupBy)
-import qualified Data.Vector as V
-import qualified Data.Vector.Unboxed as UV
-import qualified Data.Vector.Unboxed.Mutable as UMV
-import Control.Monad.ST (runST)
-import Control.Monad (foldM)
 import Text.Printf
 import Math.Topology.KnotTh.Invariants.Util.Poly
 import Math.Topology.KnotTh.Invariants.KnotPolynomials
 import Math.Topology.KnotTh.Invariants.KnotPolynomials.KauffmanXStateSum
+import Math.Topology.KnotTh.Invariants.KnotPolynomials.Surface
 import Math.Topology.KnotTh.Link
 import Math.Topology.KnotTh.EmbeddedLink
 import Math.Topology.KnotTh.EmbeddedLink.Construction
-import Math.Topology.KnotTh.EmbeddedLink.TangleStarGlue
 
 
 class (Knotted k) => KnottedWithKauffmanXPolynomial k where
@@ -40,59 +33,12 @@ instance KnottedWithKauffmanXPolynomial Link where
 
 
 instance KnottedWithKauffmanXPolynomial EmbeddedLink where
-    type KauffmanXPolynomial EmbeddedLink = Poly2
+    type KauffmanXPolynomial EmbeddedLink = [((Int, Int), Poly2)]
 
     kauffmanXPolynomial link
-        | eulerChar link == 2         = kauffmanXPolynomial (toLink link)
-        | numberOfVertices link == 0  = kauffmanXPolynomial (toLink link)
-        | eulerChar link == 0         =
-            let (tangle, star) = splitIntoTangleAndStar link
-                l = numberOfLegs tangle
-
-                border = (V.replicate l undefined V.//) $ do
-                    (pair, gr) <-
-                        let ds =
-                                let isBigon d = nextCCW (opposite d) == opposite (nextCW d)
-                                in groupBy (const isBigon) $
-                                    let (pre, post) = span isBigon (outcomingDarts star)
-                                    in post ++ pre
-                        in case length ds of
-                            4 -> [[1, 0], [0, 1], [-1, 0], [0, -1]] `zip` ds
-                            6 -> [[1, 0], [1, 1], [0, 1], [-1, 0], [-1, -1], [0, -1]] `zip` ds
-                            _ -> error "internal error"
-
-                    d <- gr
-                    return (beginPlace d, (endPlace d, pair :: [Int]))
-
-                homologyClasses a = runST $ do
-                    visited <- UMV.replicate l False
-                    foldM (\ !list !start -> do
-                            vs <- UMV.read visited start
-                            if vs
-                                then return list
-                                else do
-                                    homology <- fix (\ loop hom !i -> do
-                                            c <- UMV.read visited i
-                                            if c
-                                                then return hom
-                                                else do
-                                                    let (i', hom') = border V.! i
-                                                    UMV.write visited i True
-                                                    UMV.write visited i' True
-                                                    loop (zipWith (+) hom hom') (a UV.! i')
-                                        ) (replicate (2 * genus link) 0) start
-                                    return $ homology : list
-                        ) [] [0 .. l - 1]
-
-            in sum $ do
-                let KauffmanXStateSum _ list = finalNormalization link $ reduceSkeinStd tangle
-                PlanarChordDiagram a factor <- list
-                return $ (factor *) $ product $ do
-                    c <- homologyClasses a
-                    return $! case c of
-                                  [0, 0] -> circleFactor
-                                  _      -> monomial 1 "x" 1
-
+        | eulerChar link == 2         = [((0, 0), kauffmanXPolynomial (toLink link))]
+        | numberOfVertices link == 0  = [((0, 0), kauffmanXPolynomial (toLink link))]
+        | eulerChar link == 0         = torusDecomposition link
         | otherwise  =
             error $ printf "kauffmanXPolynomial: yet implemented for torus only (%i)\n%s" (eulerChar link) (show $ explode link)
 
