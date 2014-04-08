@@ -43,12 +43,12 @@ instance KnottedWithKauffmanXPolynomial EmbeddedLink where
     type KauffmanXPolynomial EmbeddedLink = Poly2
 
     kauffmanXPolynomial link
-        | eulerChar link == 2 || numberOfVertices link == 0  = kauffmanXPolynomial (toLink link)
-        | eulerChar link == 0  =
+        | eulerChar link == 2         = kauffmanXPolynomial (toLink link)
+        | numberOfVertices link == 0  = kauffmanXPolynomial (toLink link)
+        | eulerChar link == 0         =
             let (tangle, star) = splitIntoTangleAndStar link
                 l = numberOfLegs tangle
 
-                border :: V.Vector (Int, [Int])
                 border = (V.replicate l undefined V.//) $ do
                     (pair, gr) <-
                         let ds =
@@ -62,14 +62,14 @@ instance KnottedWithKauffmanXPolynomial EmbeddedLink where
                             _ -> error "internal error"
 
                     d <- gr
-                    return (beginPlace d, (endPlace d, pair))
+                    return (beginPlace d, (endPlace d, pair :: [Int]))
 
-                homologyMultiple (PlanarChordDiagram a startFactor) = runST $ do
+                homologyClasses a = runST $ do
                     visited <- UMV.replicate l False
-                    foldM (\ !f !start -> do
+                    foldM (\ !list !start -> do
                             vs <- UMV.read visited start
                             if vs
-                                then return f
+                                then return list
                                 else do
                                     homology <- fix (\ loop hom !i -> do
                                             c <- UMV.read visited i
@@ -81,16 +81,18 @@ instance KnottedWithKauffmanXPolynomial EmbeddedLink where
                                                     UMV.write visited i' True
                                                     loop (zipWith (+) hom hom') (a UV.! i')
                                         ) (replicate (2 * genus link) 0) start
-                                    return $ f *
-                                        if all (== 0) homology
-                                            then circleFactor
-                                            else monomial 1 "x" 1
-                        ) startFactor [0 .. l - 1]
+                                    return $ homology : list
+                        ) [] [0 .. l - 1]
 
-                result =
-                    let KauffmanXStateSum _ list = finalNormalization link $ reduceSkeinStd tangle
-                    in sum $ map homologyMultiple list
-            in result
+            in sum $ do
+                let KauffmanXStateSum _ list = finalNormalization link $ reduceSkeinStd tangle
+                PlanarChordDiagram a factor <- list
+                return $ (factor *) $ product $ do
+                    c <- homologyClasses a
+                    return $! case c of
+                                  [0, 0] -> circleFactor
+                                  _      -> monomial 1 "x" 1
+
         | otherwise  =
             error $ printf "kauffmanXPolynomial: yet implemented for torus only (%i)\n%s" (eulerChar link) (show $ explode link)
 

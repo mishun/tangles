@@ -5,10 +5,10 @@ import Data.Function (on)
 import Data.Maybe (mapMaybe)
 import Control.Arrow ((&&&))
 import qualified Data.Map as M
-import Data.List (sortBy, groupBy)
+import Data.List (sort, sortBy, groupBy)
 import System.IO (withFile, IOMode(..), hPrint)
 import Control.Monad.State.Strict (execState, modify)
-import Control.Monad (forM_, when)
+import Control.Monad (forM_, when, unless)
 import Text.Printf
 import Diagrams.Prelude
 import Math.Topology.KnotTh.Draw
@@ -24,6 +24,7 @@ import Math.Topology.KnotTh.Enumeration.EquivalenceClasses
 import Math.Topology.KnotTh.Enumeration.SiftByInvariant
 import Math.Topology.KnotTh.Enumeration.DiagramInfo
 import Math.Topology.KnotTh.Enumeration.DiagramInfo.MinimalDiagramInfo
+import Math.Topology.KnotTh.Enumeration.DiagramInfo.AllDiagramsInfo
 import Math.Topology.KnotTh.Moves.MovesOfELink
 import TestUtil.Table
 import TestUtil.Drawing
@@ -96,6 +97,15 @@ main = do
                     when (eulerChar link == 0 && not (isReidemeisterReducible link) && testPrime link) $
                         modify (link :)
                 )
+
+    do
+        let classes = map allDiagrams $
+                equivalenceClasses (map (map reidemeisterReduction .) [reidemeisterIII, movesOfELink]) $
+                    forM_ diagrams
+        forM_ classes $ \ cls -> do
+            let inv = sort $ map minimalKauffmanXPolynomial cls
+            unless (all (== head inv) inv) $
+                putStrLn $ "Class failed: " ++ show inv
 
     let sifted =
             siftByInvariant
