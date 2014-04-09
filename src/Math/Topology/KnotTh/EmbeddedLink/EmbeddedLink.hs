@@ -375,16 +375,12 @@ instance KnottedDiagram EmbeddedLink where
                     _ | qa == ap || rb == bs ->
                         if qa == ap && rb == bs
                             then emitCircle 1
-                            else do
-                                when (qa /= ap) $ connectC [(pa, qa)]
-                                when (rb /= bs) $ connectC [(rb, sb)]
+                            else connectC $ [(pa, qa) | qa /= ap] ++ [(rb, sb) | rb /= bs]
 
                       | qa == bs || rb == ap ->
                         if qa == bs && rb == ap
                             then error "strange configuration"
-                            else do
-                                when (qa /= bs) $ connectC [(sb, qa)]
-                                when (rb /= ap) $ connectC [(rb, pa)]
+                            else connectC $ [(sb, qa) | qa /= bs] ++ [(rb, pa) | rb /= ap]
 
                       | otherwise            -> do
                         if qa == br

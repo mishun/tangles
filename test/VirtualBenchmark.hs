@@ -124,9 +124,11 @@ main = do
                     link <- cls
                     return $ drawKnotDef link <> strutX 2 <> strutY 2
 
-        forM_ (classes `zip` [1 :: Int ..]) $ \ (cls, i) ->
+        forM_ (classes `zip` [1 :: Int ..]) $ \ (cls, i) -> do
             withFile (printf "collision_%i.txt" i) WriteMode $ \ handle ->
                 mapM_ (hPrint handle . edgeIndicesEncoding) cls
+            withFile (printf "collision_poly_%i" i) WriteMode $ \ handle ->
+                mapM_ (hPrint handle . minimalKauffmanXPolynomial) cls
 
     do
         let group' f = groupBy (on (==) f) . sortBy (comparing f)
