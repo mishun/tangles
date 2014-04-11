@@ -105,13 +105,13 @@ main = do
         forM_ classes $ \ cls -> do
             let inv = sort $ map minimalKauffmanXPolynomial cls
             unless (all (== head inv) inv) $
-                putStrLn $ "Class failed: " ++ (show $ nub inv)
+                putStrLn $ "Class failed: " ++ show (nub inv)
 
     let sifted =
             siftByInvariant
                 (\ l ->
                     ( minimalKauffmanXPolynomial l
-                    , minimalKauffmanXPolynomial $ twistedDoubleSatelliteELink l
+                    -- , minimalKauffmanXPolynomial $ twistedDoubleSatelliteELink l
                     )
                 ) $
                 equivalenceClasses

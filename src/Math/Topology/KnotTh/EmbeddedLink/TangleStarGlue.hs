@@ -26,14 +26,16 @@ tangleStarGlue
             -> (EmbeddedLink a -> m ()) -> m ()
 
 tangleStarGlue starType tangleGenerator yield =
-    let generator =
-            case starType of
-                BicolourableStar -> generateBicolourableNonPlanarRaw
-                AnyStar          -> generateNonPlanarRaw
+    let diagrams =
+            let generator =
+                    case starType of
+                        BicolourableStar -> generateBicolourableNonPlanarRaw
+                        AnyStar          -> generateNonPlanarRaw
+            in map (listChordDiagrams . generator) [0 ..]
     in flip evalStateT S.empty $
         tangleGenerator $ \ (!tangle, (!tangleSymmetry, _)) ->
             let l = numberOfLegs tangle
-            in forM_ (listChordDiagrams $ generator (l `div` 2)) $ \ (!star, (!starMirror, !starPeriod)) ->
+            in forM_ (diagrams !! (l `div` 2)) $ \ (!star, (!starMirror, !starPeriod)) ->
                 let variants = do
                         rot <- [0 .. gcd starPeriod (Dn.rotationPeriod tangleSymmetry) - 1]
                         mir <- if not starMirror && not (Dn.hasReflectionPart tangleSymmetry)
