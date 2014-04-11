@@ -3,13 +3,14 @@ module Math.Topology.KnotTh.Invariants.KnotPolynomials.Surface
     ) where
 
 import Data.Function (fix)
-import Data.List (sort, groupBy, partition)
+import Data.Ord (comparing)
+import Data.List (sortBy, groupBy, partition, minimumBy)
 import qualified Data.Map as M
 import qualified Data.Vector as V
 import qualified Data.Vector.Unboxed as UV
 import qualified Data.Vector.Unboxed.Mutable as UMV
 import Control.Monad.ST (runST)
-import Control.Monad (foldM)
+import Control.Monad (foldM, guard)
 import Math.Topology.KnotTh.Invariants.KnotPolynomials
 import Math.Topology.KnotTh.Invariants.KnotPolynomials.KauffmanXStateSum
 import Math.Topology.KnotTh.EmbeddedLink
@@ -66,7 +67,25 @@ torusDecomposition link =
                 [x, y] = foldl (zipWith (+)) [0, 0] nonTrivial
             return ((x, y), factor * (circleFactor ^ length trivial))
 
-        swap (a, b) = max (b, a) (-b, -a)
+    in canonicalForm $ filter ((/= 0) . snd) $ M.assocs tab
 
-    in min (M.assocs tab) (sort $ map (\ (k, p) -> (swap k, p)) $ M.assocs tab)
 
+canonicalForm :: (Ord a) => [((Int, Int), a)] -> [((Int, Int), a)]
+canonicalForm initial =
+    let weight ((x, y), value) = (abs x + abs y, x, y, value)
+    in minimumBy (comparing $ map weight) $ do
+        list <- [initial, map (\ ((x, y), value) -> ((x, -y), value)) initial]
+
+        let n = 4
+        a <- [-n .. n]
+        b <- [-n .. n]
+        c <- [-n .. n]
+        d <- [-n .. n]
+        guard $ a * d - b * c == 1
+
+        return $ sortBy (comparing weight) $
+            map (\ ((x, y), value) ->
+                    let x' = a * x + b * y
+                        y' = c * x + d * y
+                    in (max (x', y') (-x', -y'), value)
+                ) list
