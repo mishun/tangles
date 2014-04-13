@@ -109,8 +109,10 @@ main = do
                     hcat' with { _sep = 0.5 } $ do
                         link <- cls
                         return $ drawKnotDef link <> strutX 2 <> strutY 2
-                withFile (printf "dumps/dump_codes_%i.txt" i) WriteMode $ \ handle ->
+                withFile (printf "dumps/dump-explode-%i.txt" i) WriteMode $ \ handle ->
                     mapM_ (hPrint handle . explode) cls
+                withFile (printf "dumps/dump-codes-%i.txt" i) WriteMode $ \ handle ->
+                    mapM_ (hPrint handle . unrootedHomeomorphismInvariant) cls
 
             let inv = sort $ map minimalKauffmanXPolynomial cls
             unless (all (== head inv) inv) $
