@@ -29,22 +29,25 @@ drawKnotDef knot = drawKnot (defaultDrawSettings knot) knot
 instance (DrawableCrossing a) => DrawableKnotted (Tangle a) where
     drawKnot s tangle
         | numberOfLegs tangle > 0  =
-            tangleImage s tangle $
-                drawThreads s $ crossingDependentSegmentation s tangle $
-                    tangleEmbedding tangle
+            freeze $
+                tangleImage s tangle $
+                    drawThreads s $ crossingDependentSegmentation s tangle $
+                        tangleEmbedding tangle
         | otherwise                =
             drawKnot s $ tangleToLink tangle
 
 
 instance (DrawableCrossing a) => DrawableKnotted (Link a) where
     drawKnot s link =
-        linkImage s link $
-            drawThreads s $ crossingDependentSegmentation s link $
-                linkEmbedding link
+        freeze $
+            linkImage s link $
+                drawThreads s $ crossingDependentSegmentation s link $
+                    linkEmbedding link
 
 
 instance (DrawableCrossing a) => DrawableKnotted (EmbeddedLink a) where
     drawKnot s link =
-        let (numberOfGroups, embedding) = surfaceLinkEmbedding link
-        in surfaceLinkImage s link numberOfGroups $
-            drawThreads s $ crossingDependentSegmentation s link embedding
+        freeze $
+            let (numberOfGroups, embedding) = surfaceLinkEmbedding link
+            in surfaceLinkImage s link numberOfGroups $
+                drawThreads s $ crossingDependentSegmentation s link embedding

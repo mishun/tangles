@@ -18,36 +18,38 @@ surfaceLinkEmbedding
     :: EmbeddedLink ct
         -> (Int, Array (Dart EmbeddedLink ct) (Either [(Double, Double)] ([(Double, Double)], [(Double, Double)])))
 
-surfaceLinkEmbedding link =
-    let (sphereRoot, _, sphereToStarProjection, _) =
-            let g = constructFromList $
-                    let (_, r) = explode link
-                    in flip map r $ \ (adj, _) ->
-                        flip map adj $ \ (v, p) ->
-                            (v - 1, p)
-            in sphereStarDecomposition g
+surfaceLinkEmbedding link 
+    | numberOfVertices link == 0  = (0, undefined)
+    | otherwise                   =
+        let (sphereRoot, _, sphereToStarProjection, _) =
+                let g = constructFromList $
+                        let (_, r) = explode link
+                        in flip map r $ \ (adj, _) ->
+                            flip map adj $ \ (v, p) ->
+                                (v - 1, p)
+                in sphereStarDecomposition g
 
-        spherePart = vertexOwner sphereRoot
+            spherePart = vertexOwner sphereRoot
 
-        (numberOfGroups, embeddingSphere) = embeddingInPolygonWithGrouping
-            (\ sd ->
-                let d = fromJust $ sphereToStarProjection sd
-                in (opposite d /= nextCW d) && (opposite (nextCW d) == nextCCW (opposite d))
-            ) 2 sphereRoot
+            (numberOfGroups, embeddingSphere) = embeddingInPolygonWithGrouping
+                (\ sd ->
+                    let d = fromJust $ sphereToStarProjection sd
+                    in (opposite d /= nextCW d) && (opposite (nextCW d) == nextCCW (opposite d))
+                ) 2 sphereRoot
 
-        linkToSphereDart d =
-            let (c, p) = beginPair d
-            in nthOutcomingDart (nthVertex spherePart $ vertexIndex c) p
+            linkToSphereDart d =
+                let (c, p) = beginPair d
+                in nthOutcomingDart (nthVertex spherePart $ vertexIndex c) p
 
-        embedding = array (dartsRange link) $ do
-            d <- allHalfEdges link
-            let gd = linkToSphereDart d
-            return $ (,) d $
-                if beginVertex (opposite gd) == sphereRoot
-                    then Right (embeddingSphere ! gd, embeddingSphere ! opposite (linkToSphereDart $ opposite d))
-                    else Left (embeddingSphere ! gd)
+            embedding = array (dartsRange link) $ do
+                d <- allHalfEdges link
+                let gd = linkToSphereDart d
+                return $ (,) d $
+                    if beginVertex (opposite gd) == sphereRoot
+                        then Right (embeddingSphere ! gd, embeddingSphere ! opposite (linkToSphereDart $ opposite d))
+                        else Left (embeddingSphere ! gd)
 
-    in (numberOfGroups, embedding)
+        in (numberOfGroups, embedding)
 
 
 surfaceLinkImage :: (Renderable (Path R2) b) => DrawKnotSettings -> EmbeddedLink ct -> Int -> Diagram b R2 -> Diagram b R2
@@ -55,9 +57,11 @@ surfaceLinkImage s _ numberOfGroups img =
     execWriter $ do
         when (borderWidth s > 0.0) $
             tell $ styleBorder s $
-                polygon with
-                    { _polyType   = PolyRegular numberOfGroups 1
-                    , _polyOrient = OrientV
-                    }
+                if numberOfGroups > 2
+                    then polygon with
+                        { _polyType   = PolyRegular numberOfGroups 1
+                        , _polyOrient = OrientV
+                        }
+                    else circle 1
 
         tell img
