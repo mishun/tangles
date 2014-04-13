@@ -102,7 +102,16 @@ main = do
         let classes = map allDiagrams $
                 equivalenceClasses (map (map reidemeisterReduction .) [reidemeisterIII, movesOfELink]) $
                     forM_ diagrams
-        forM_ classes $ \ cls -> do
+        forM_ (classes `zip` [0 :: Int ..]) $ \ (cls, i) -> do
+
+            when (any (\ l -> numberOfVertices l <= 4 && numberOfThreads l == 1) cls) $ do
+                writeSVGImage (printf "dumps/dump-%i.svg" i) (Width 500) $ pad 1.05 $
+                    hcat' with { _sep = 0.5 } $ do
+                        link <- cls
+                        return $ drawKnotDef link <> strutX 2 <> strutY 2
+                withFile (printf "dumps/dump_codes_%i.txt" i) WriteMode $ \ handle ->
+                    mapM_ (hPrint handle . explode) cls
+
             let inv = sort $ map minimalKauffmanXPolynomial cls
             unless (all (== head inv) inv) $
                 putStrLn $ "Class failed: " ++ show (nub inv)
