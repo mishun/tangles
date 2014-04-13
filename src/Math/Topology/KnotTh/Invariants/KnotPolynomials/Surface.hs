@@ -5,12 +5,13 @@ module Math.Topology.KnotTh.Invariants.KnotPolynomials.Surface
 import Data.Function (fix)
 import Data.Ord (comparing)
 import Data.List (sortBy, groupBy, partition, minimumBy)
+import qualified Data.Set as S
 import qualified Data.Map as M
 import qualified Data.Vector as V
 import qualified Data.Vector.Unboxed as UV
 import qualified Data.Vector.Unboxed.Mutable as UMV
 import Control.Monad.ST (runST)
-import Control.Monad (foldM, guard)
+import Control.Monad (foldM)
 import Math.Topology.KnotTh.Invariants.KnotPolynomials
 import Math.Topology.KnotTh.Invariants.KnotPolynomials.KauffmanXStateSum
 import Math.Topology.KnotTh.EmbeddedLink
@@ -75,13 +76,18 @@ canonicalForm initial =
     let weight ((x, y), value) = (abs x + abs y, x, y, value)
     in minimumBy (comparing $ map weight) $ do
         list <- [initial, map (\ ((x, y), value) -> ((x, -y), value)) initial]
+        (x1, y1) <- S.toList $ S.fromList $
+            map (\ (x, y) -> let g = gcd x y in (x `div` g, y `div` g)) $
+                case filter (\ (x, y) -> x /= 0 || y /= 0) (map fst list) of
+                    [] -> [(1, 0)]
+                    l  -> l
 
-        let n = 4
-        a <- [-n .. n]
-        b <- [-n .. n]
-        c <- [-n .. n]
-        d <- [-n .. n]
-        guard $ a * d - b * c == 1
+        let (_, y2, x2) = extendedEuclid x1 y1
+        n <- [-20 .. 20]
+        let a = y2 + n * y1
+            b = x2 - n * x1
+            c = -y1
+            d = x1
 
         return $ sortBy (comparing weight) $
             map (\ ((x, y), value) ->
@@ -89,3 +95,11 @@ canonicalForm initial =
                         y' = c * x + d * y
                     in (max (x', y') (-x', -y'), value)
                 ) list
+
+
+extendedEuclid :: (Show a, Integral a) => a -> a -> (a, a, a)
+extendedEuclid a 0 | a >= 0     = (a, 1, 0)
+                   | otherwise  = (-a, -1, 0)
+extendedEuclid a b =
+    let (g, x, y) = extendedEuclid b (a `mod` b)
+    in (g, y, x - (a `div` b) * y)

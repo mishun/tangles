@@ -36,8 +36,8 @@ instance KnottedWithKauffmanXPolynomial EmbeddedLink where
     type KauffmanXPolynomial EmbeddedLink = [((Int, Int), Poly2)]
 
     kauffmanXPolynomial link
+        | numberOfVertices link == 0  = [((0, 0), 1)]
         | eulerChar link == 2         = [((0, 0), kauffmanXPolynomial (toLink link))]
-        | numberOfVertices link == 0  = [((0, 0), kauffmanXPolynomial (toLink link))]
         | eulerChar link == 0         = torusDecomposition link
         | otherwise  =
             error $ printf "kauffmanXPolynomial: yet implemented for torus only (%i)\n%s" (eulerChar link) (show $ explode link)
