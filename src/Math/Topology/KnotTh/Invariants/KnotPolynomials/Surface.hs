@@ -11,7 +11,7 @@ import qualified Data.Vector as V
 import qualified Data.Vector.Unboxed as UV
 import qualified Data.Vector.Unboxed.Mutable as UMV
 import Control.Monad.ST (runST)
-import Control.Monad (foldM)
+import Control.Monad (foldM, guard)
 import Math.Topology.KnotTh.Invariants.KnotPolynomials
 import Math.Topology.KnotTh.Invariants.KnotPolynomials.KauffmanXStateSum
 import Math.Topology.KnotTh.EmbeddedLink
@@ -58,43 +58,60 @@ torusDecomposition link =
                             return $ homology : list
                 ) [] [0 .. l - 1]
 
-        tab = foldl (\ m (k, v) -> M.insertWith' (+) k v m) M.empty $ do
-            let KauffmanXStateSum _ list = finalNormalization link $ reduceSkeinStd tangle
-            PlanarChordDiagram a factor <- list
-            let (trivial, nonTrivial) =
-                    partition (all (== 0)) $
-                        map (\ h -> max h $ map (* (-1)) h) $
-                            homologyClasses a
-                [x, y] = foldl (zipWith (+)) [0, 0] nonTrivial
-            return ((x, y), factor * (circleFactor ^ length trivial))
+        tab = filter ((/= 0) . snd) $ M.assocs $
+            foldl (\ m (k, v) -> M.insertWith' (+) k v m) M.empty $ do
+                let KauffmanXStateSum _ list = finalNormalization link $ reduceSkeinStd tangle
+                PlanarChordDiagram a factor <- list
+                let (trivial, nonTrivial) =
+                        partition (all (== 0)) $
+                            map (\ h -> max h $ map (* (-1)) h) $
+                                homologyClasses a
+                    [x, y] = foldl (zipWith (+)) [0, 0] nonTrivial
+                return ((x, y), factor * (circleFactor ^ length trivial))
 
-    in canonicalForm $ filter ((/= 0) . snd) $ M.assocs tab
+    in min (canonicalForm tab)
+           (canonicalForm $ map (\ ((x, y), value) -> ((x, -y), value)) tab)
 
 
 canonicalForm :: (Ord a) => [((Int, Int), a)] -> [((Int, Int), a)]
-canonicalForm initial =
-    let weight ((x, y), value) = (abs x + abs y, x, y, value)
+canonicalForm list =
+    let weight ((x, y), value) = (abs x + abs y, -x, -y, value)
     in minimumBy (comparing $ map weight) $ do
-        list <- [initial, map (\ ((x, y), value) -> ((x, -y), value)) initial]
-        (x1, y1) <- S.toList $ S.fromList $
-            map (\ (x, y) -> let g = gcd x y in (x `div` g, y `div` g)) $
-                case filter (\ (x, y) -> x /= 0 || y /= 0) (map fst list) of
-                    [] -> [(1, 0)]
-                    l  -> l
+        (x1, y1) <- S.toList $ S.fromList $ do
+            (x, y) <- case filter (/= (0, 0)) (map fst list) of
+                          [] -> [(1, 0)]
+                          l  -> l
+            let g = gcd x y
+                x' = x `div` g
+                y' = y `div` g
+            return $ max (x', y') (-x', -y')
 
-        let (_, y2, x2) = extendedEuclid x1 y1
-        n <- [-20 .. 20]
-        let a = y2 + n * y1
-            b = x2 - n * x1
-            c = -y1
-            d = x1
+        let (1, y2, x2) = extendedEuclid x1 y1
 
-        return $ sortBy (comparing weight) $
-            map (\ ((x, y), value) ->
-                    let x' = a * x + b * y
-                        y' = c * x + d * y
-                    in (max (x', y') (-x', -y'), value)
-                ) list
+        n <- S.toList $ S.fromList $ (0 :) $ do
+            ((x', y'), _) <- list
+            let (x, y) | d >= 0     = (u, d)
+                       | otherwise  = (-u, -d)
+                    where d = x1 * y' - y1 * x'
+                          u = x2 * y' + y2 * x'
+            guard $ y /= 0
+{-
+            let p = x `mod` y
+                d = x `div` y
+            case compare p (y - p) of
+                EQ -> [d, d + 1]
+                LT -> [d]
+                GT -> [d + 1]
+-}
+            let f n = abs $ x + n * y
+                tmp = minimumBy (comparing f) [-20 .. 20]
+            filter (\ n -> f n == f tmp) [-20 .. 20]
+
+        return $ sortBy (comparing weight) $ do
+            ((x, y), value) <- list
+            let y' = -y1 * x + x1 * y
+                x' = y2 * x + x2 * y + n * y'
+            return (max (x', y') (-x', -y'), value)
 
 
 extendedEuclid :: (Show a, Integral a) => a -> a -> (a, a, a)
