@@ -95,22 +95,18 @@ canonicalForm list =
                     where d = x1 * y' - y1 * x'
                           u = x2 * y' + y2 * x'
             guard $ y /= 0
-{-
+
             let p = x `mod` y
                 d = x `div` y
             case compare p (y - p) of
                 EQ -> [d, d + 1]
                 LT -> [d]
                 GT -> [d + 1]
--}
-            let f n = abs $ x + n * y
-                tmp = minimumBy (comparing f) [-20 .. 20]
-            filter (\ n -> f n == f tmp) [-20 .. 20]
 
         return $ sortBy (comparing weight) $ do
             ((x, y), value) <- list
             let y' = -y1 * x + x1 * y
-                x' = y2 * x + x2 * y + n * y'
+                x' = y2 * x + x2 * y - n * y'
             return (max (x', y') (-x', -y'), value)
 
 
