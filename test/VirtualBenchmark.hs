@@ -99,11 +99,11 @@ main = do
                 )
 
     do
-        let classes = map allDiagrams $
+        let classes = map (sortBy (comparing numberOfVertices) . allDiagrams) $
                 equivalenceClasses (map (map reidemeisterReduction .) [reidemeisterIII, movesOfELink]) $
                     forM_ diagrams
 
-        writeSVGImage "classes.svg" (Width 500) $ pad 1.05 $
+        writeSVGImage "data/classes.svg" (Width 500) $ pad 1.05 $
             vcat' with { _sep = 0.6 } $ do
                cls <- classes
                guard $ any (\ l -> numberOfVertices l <= 4 && numberOfThreads l == 1) cls
@@ -136,7 +136,7 @@ main = do
     do
         let classes = map (map representative) $ collisionClasses sifted
 
-        writeSVGImage "collisions.svg" (Width 500) $ pad 1.05 $
+        writeSVGImage "data/collisions.svg" (Width 500) $ pad 1.05 $
             vcat' with { _sep = 0.5 } $ do
                 cls <- classes
                 return $ hcat' with { _sep = 0.2 } $ do
@@ -144,9 +144,9 @@ main = do
                     return $ drawKnotDef link <> strutX 2 <> strutY 2
 
         forM_ (classes `zip` [1 :: Int ..]) $ \ (cls, i) -> do
-            withFile (printf "collision_%i.txt" i) WriteMode $ \ handle ->
+            withFile (printf "data/collision_%i.txt" i) WriteMode $ \ handle ->
                 mapM_ (hPrint handle . edgeIndicesEncoding) cls
-            withFile (printf "collision_poly_%i" i) WriteMode $ \ handle ->
+            withFile (printf "data/collision_poly_%i" i) WriteMode $ \ handle ->
                 mapM_ (hPrint handle . minimalKauffmanXPolynomial) cls
 
     do
@@ -159,7 +159,7 @@ main = do
             links = filter ((> 0) . numberOfVertices) $
                         mapMaybe maybePrimeDiagram $ singleRepresentativeClasses sifted
 
-        writeSVGImage "links.svg" (Width 500) $ pad 1.05 $
+        writeSVGImage "data/links.svg" (Width 500) $ pad 1.05 $
             vcat' with { _sep = 5 } $ do
                 byThreads <- group' numberOfThreads links
                 return $ hcat' with { _sep = 3 } $ do
@@ -174,7 +174,7 @@ main = do
             forM_ (group' numberOfVertices byThreads) $ \ list -> do
                 let n = numberOfVertices $ head list
                     k = numberOfThreads $ head list
-                withFile (printf "links_%i^%i.txt" n k) WriteMode $ \ handle ->
+                withFile (printf "data/links_%i^%i.txt" n k) WriteMode $ \ handle ->
                     mapM_ (hPrint handle . edgeIndicesEncoding) list
-                withFile (printf "poly_%i^%i" n k) WriteMode $ \ handle ->
+                withFile (printf "data/poly_%i^%i" n k) WriteMode $ \ handle ->
                     mapM_ (hPrint handle . minimalKauffmanXPolynomial) list
