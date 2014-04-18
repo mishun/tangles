@@ -1,10 +1,10 @@
 module Math.Topology.KnotTh.EmbeddedLink.TestPrime
-    ( isReducable
-    , testPrime
+    ( testPrime
     , has4LegPlanarPart
     ) where
 
 import Data.Ix (Ix)
+import Data.Array.IArray ((!))
 import Data.Array.MArray (newListArray, newArray, newArray_, readArray, writeArray)
 import Data.Array.ST (STUArray, STArray)
 import Data.STRef (newSTRef, readSTRef, writeSTRef, modifySTRef')
@@ -19,19 +19,49 @@ instance KnottedWithPrimeTest EmbeddedLink where
     isPrime = testPrime
 
 
-isReducable :: EmbeddedLink ct -> Bool
-isReducable link = or $ do
-    c <- allVertices link
-    a <- outcomingDarts c
-    return $! nextCW (opposite a) == opposite (nextCCW a)
-
-
-testPrime :: EmbeddedLink ct -> Bool
+testPrime :: (ThreadedCrossing a) => EmbeddedLink a -> Bool
 testPrime link
-    | numberOfVertices link < 2  = True
-    | otherwise                  =
-        let mincut = stoerWagner link
-        in mincut >= 4
+    | numberOfFreeLoops link > 0  = False
+    | numberOfVertices link < 2   = True
+    | testLayering link           = False
+    | otherwise                   = stoerWagner link >= 4
+
+
+testLayering :: (ThreadedCrossing a) => EmbeddedLink a -> Bool
+testLayering link = runST $ do
+    let (n, marks, threads) = allThreadsWithMarks link
+
+    lowlink <- newArray (1, n) 0 :: ST s (STUArray s Int Int)
+    time <- newSTRef 0
+    stack <- newSTRef []
+
+    let dfs u = do
+            readSTRef time >>= writeArray lowlink u
+            modifySTRef' time (+ 1)
+            modifySTRef' stack (u :)
+            isComponentRoot <- newSTRef True
+
+            forM_ (threads !! (u - 1)) $ \ (d, _) ->
+                when (passOver d) $ do
+                    let v = abs (marks ! nextCCW d)
+
+                    do
+                        vlw <- readArray lowlink v
+                        unless (vlw >= 0) $ dfs v
+
+                    vlw <- readArray lowlink v
+                    ulw <- readArray lowlink u
+                    when (ulw > vlw) $ do
+                        writeArray lowlink u vlw
+                        writeSTRef isComponentRoot False
+
+            return ()
+
+    forM_ [1 .. n] $ \ !i -> do
+        lw <- readArray lowlink i
+        unless (lw >= 0) $ dfs i
+
+    return False
 
 
 cfor :: (Monad m) => (m a, a -> m Bool, a -> m a) -> (a -> m ()) -> m ()
@@ -44,7 +74,7 @@ cfor (initial, cond, next) body =
     in initial >>= loop
 
 
-stoerWagner :: EmbeddedLink ct -> Int
+stoerWagner :: EmbeddedLink a -> Int
 stoerWagner link = runST $ do
     let sz = numberOfVertices link
     g <- newArray ((1, 1), (sz, sz)) 0 :: ST s (STUArray s (Int, Int) Int)

@@ -53,7 +53,7 @@ generateVirtualKnotProjections maxN = do
 
     print $ M.map length table
 
-
+{-
 generateAlternatingSkeletons :: Int -> IO ()
 generateAlternatingSkeletons maxN = do
     let table = flip execState M.empty $
@@ -61,7 +61,7 @@ generateAlternatingSkeletons maxN = do
                 BicolourableStar
                 (forCCP_ $ templateProjections maxN)
                 (\ !link ->
-                    when (not (isReducable link) && testPrime link && not (has4LegPlanarPart link)) $
+                    when (not (isReidemeisterReducible link) && testPrime link && not (has4LegPlanarPart link)) $
                         let g = (2 - eulerChar link) `div` 2
                             n = numberOfVertices link
                         in modify $ M.insertWith' (++) (n, g) [link]
@@ -80,7 +80,7 @@ generateAlternatingSkeletons maxN = do
             forM_ (M.assocs table) $ \ ((_, g), lst) ->
                 when (g == 1) $ forM_ lst $ \ link ->
                     modify (=== pad 1.1 (drawKnotDef link))
-
+-}
 
 main :: IO ()
 main = do
