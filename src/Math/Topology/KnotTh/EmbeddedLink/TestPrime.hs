@@ -1,5 +1,6 @@
 module Math.Topology.KnotTh.EmbeddedLink.TestPrime
     ( testPrime
+    , testLayering
     , has4LegPlanarPart
     ) where
 
@@ -19,18 +20,18 @@ instance KnottedWithPrimeTest EmbeddedLink where
     isPrime = testPrime
 
 
-testPrime :: (ThreadedCrossing a) => EmbeddedLink a -> Bool
+testPrime :: EmbeddedLink a -> Bool
 testPrime link
     | numberOfFreeLoops link > 0  = False
     | numberOfVertices link < 2   = True
-    | testLayering link           = False
     | otherwise                   = stoerWagner link >= 4
 
 
-testLayering :: (ThreadedCrossing a) => EmbeddedLink a -> Bool
+testLayering :: EmbeddedLinkDiagram -> Bool
 testLayering link = runST $ do
     let (n, marks, threads) = allThreadsWithMarks link
 
+    comp <- newArray (1, n) 0 :: ST s (STUArray s Int Int)
     lowlink <- newArray (1, n) 0 :: ST s (STUArray s Int Int)
     time <- newSTRef 0
     stack <- newSTRef []
@@ -41,13 +42,13 @@ testLayering link = runST $ do
             modifySTRef' stack (u :)
             isComponentRoot <- newSTRef True
 
-            forM_ (threads !! (u - 1)) $ \ (d, _) ->
+            forM_ (snd (threads !! (u - 1))) $ \ (d, _) ->
                 when (passOver d) $ do
                     let v = abs (marks ! nextCCW d)
 
                     do
                         vlw <- readArray lowlink v
-                        unless (vlw >= 0) $ dfs v
+                        unless (vlw > 0) $ dfs v
 
                     vlw <- readArray lowlink v
                     ulw <- readArray lowlink u
@@ -55,13 +56,25 @@ testLayering link = runST $ do
                         writeArray lowlink u vlw
                         writeSTRef isComponentRoot False
 
-            return ()
+            isRoot <- readSTRef isComponentRoot
+            when isRoot $ do
+                let extract = do
+                        st <- readSTRef stack
+                        case st of
+                            []       -> return ()
+                            k : rest -> do
+                                writeSTRef stack rest
+                                writeArray lowlink k (n + 1)
+                                writeArray comp k u
+                                when (k /= u) extract
+                extract
 
     forM_ [1 .. n] $ \ !i -> do
         lw <- readArray lowlink i
         unless (lw >= 0) $ dfs i
 
-    return False
+    cmp <- mapM (readArray comp) [1 .. n]
+    return $ all (== head cmp) cmp
 
 
 cfor :: (Monad m) => (m a, a -> m Bool, a -> m a) -> (a -> m ()) -> m ()
