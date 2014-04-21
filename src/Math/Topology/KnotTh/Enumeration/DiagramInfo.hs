@@ -6,6 +6,6 @@ import Math.Topology.KnotTh.Knotted
 
 
 class DiagramInfo info where
-    merge          :: (Crossing a, KnottedWithPrimeTest k) => info (k a) -> info (k a) -> info (k a)
-    wrap           :: (Crossing a, KnottedWithPrimeTest k) => k a -> info (k a)
-    representative :: (KnottedWithPrimeTest k) => info (k a) -> k a
+    merge          :: (KnotWithPrimeTest k a) => info (k a) -> info (k a) -> info (k a)
+    wrap           :: (KnotWithPrimeTest k a) => k a -> info (k a)
+    representative :: (KnotWithPrimeTest k a) => info (k a) -> k a

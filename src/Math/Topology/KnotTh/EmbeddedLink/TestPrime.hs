@@ -1,9 +1,10 @@
 module Math.Topology.KnotTh.EmbeddedLink.TestPrime
     ( testPrime
-    , testLayering
     , has4LegPlanarPart
     ) where
 
+import Data.Maybe (fromJust)
+import Data.List (find)
 import Data.Ix (Ix)
 import Data.Array.IArray ((!))
 import Data.Array.MArray (newListArray, newArray, newArray_, readArray, writeArray)
@@ -16,24 +17,28 @@ import Control.Monad.IfElse (whenM, whileM)
 import Math.Topology.KnotTh.EmbeddedLink
 
 
-instance KnottedWithPrimeTest EmbeddedLink where
+instance KnotWithPrimeTest EmbeddedLink ProjectionCrossing where
     isPrime = testPrime
+
+instance KnotWithPrimeTest EmbeddedLink DiagramCrossing where
+    isPrime link = testPrime link && testLayering link
 
 
 testPrime :: EmbeddedLink a -> Bool
-testPrime link
-    | numberOfFreeLoops link > 0  = False
-    | numberOfVertices link < 2   = True
-    | otherwise                   = stoerWagner link >= 4
+testPrime link | numberOfFreeLoops link > 0  = False
+               | numberOfVertices link < 2   = True
+               | otherwise                   = stoerWagner link >= 4
 
 
 testLayering :: EmbeddedLinkDiagram -> Bool
-testLayering link = runST $ do
+testLayering link | numberOfFreeLoops link > 0  = False
+		  | numberOfVertices link == 0  = False
+                  | otherwise                   = runST $ do
     let (n, marks, threads) = allThreadsWithMarks link
 
     comp <- newArray (1, n) 0 :: ST s (STUArray s Int Int)
     lowlink <- newArray (1, n) 0 :: ST s (STUArray s Int Int)
-    time <- newSTRef 0
+    time <- newSTRef 1
     stack <- newSTRef []
 
     let dfs u = do
@@ -42,10 +47,9 @@ testLayering link = runST $ do
             modifySTRef' stack (u :)
             isComponentRoot <- newSTRef True
 
-            forM_ (snd (threads !! (u - 1))) $ \ (d, _) ->
-                when (passOver d) $ do
-                    let v = abs (marks ! nextCCW d)
-
+            forM_ (snd $ fromJust $ find ((== u) . fst) threads) $ \ (_, d) -> do
+                let v = abs (marks ! nextCCW d)
+                when (passUnder d && v /= u) $ do
                     do
                         vlw <- readArray lowlink v
                         unless (vlw > 0) $ dfs v
@@ -71,7 +75,7 @@ testLayering link = runST $ do
 
     forM_ [1 .. n] $ \ !i -> do
         lw <- readArray lowlink i
-        unless (lw >= 0) $ dfs i
+        unless (lw > 0) $ dfs i
 
     cmp <- mapM (readArray comp) [1 .. n]
     return $ all (== head cmp) cmp
@@ -166,7 +170,7 @@ stoerWagner link = runST $ do
     readSTRef best
 
 
-has4LegPlanarPart :: EmbeddedLink ct -> Bool
+has4LegPlanarPart :: EmbeddedLink a -> Bool
 has4LegPlanarPart =
     let planar link start darts = runST $ do
             vertex <- (newArray :: (Ix i) => (i, i) -> Bool -> ST s (STUArray s i Bool)) (verticesRange link) False

@@ -780,7 +780,7 @@ instance Show (Dart Tangle a) where
                           in printf "(Dart %i %i)" c p
 
 
-instance KnottedWithPrimeTest Tangle where
+instance (Crossing a) => KnotWithPrimeTest Tangle a where
     isPrime tangle = connections == nub connections
         where
             idm = let faces = directedPathsDecomposition (nextCW, nextCCW)

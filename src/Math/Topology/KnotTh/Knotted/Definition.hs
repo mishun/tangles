@@ -4,7 +4,7 @@ module Math.Topology.KnotTh.Knotted.Definition
     , Crossing(..)
     , Knotted(..)
     , KnottedPlanar(..)
-    , KnottedWithPrimeTest(..)
+    , KnotWithPrimeTest(..)
     , SurfaceKnotted
     , nthCrossing
     , forMAdjacentDarts
@@ -73,7 +73,7 @@ class (Knotted k) => KnottedPlanar k where
     isEmptyKnotted k = (numberOfVertices k == 0) && (numberOfFreeLoops k == 0)
 
 
-class (Knotted k) => KnottedWithPrimeTest k where
+class (Knotted k, Crossing a) => KnotWithPrimeTest k a where
     isPrime :: k a -> Bool
 
 

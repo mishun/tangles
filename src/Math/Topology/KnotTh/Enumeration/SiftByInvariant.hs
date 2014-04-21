@@ -25,9 +25,9 @@ hasCollisions = not . null . collisionClasses
 
 
 siftByInvariant ::
-    (Ord inv, DiagramInfo info, KnottedWithPrimeTest k)
-        => (k ct -> inv) -> [info (k ct)]
-            -> SiftResult info (k ct)
+    (Ord inv, DiagramInfo info, KnotWithPrimeTest k a)
+        => (k a -> inv) -> [info (k a)]
+            -> SiftResult info (k a)
 
 siftByInvariant invariant input =
     let (cls, cols) =

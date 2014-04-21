@@ -22,7 +22,7 @@ data State k v =
 
 
 equivalenceClasses
-    :: (KnottedWithPrimeTest k, Crossing a, DiagramInfo info)
+    :: (KnotWithPrimeTest k a, DiagramInfo info)
         => [k a -> [k a]] -> (forall m. (Monad m) => (k a -> m ()) -> m ()) -> [info (k a)]
 
 equivalenceClasses moves enumerateDiagrams =

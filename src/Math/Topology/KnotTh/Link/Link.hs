@@ -83,7 +83,7 @@ instance KnottedDiagram Link where
     reidemeisterIII (L t) = tangleToLink `fmap` reidemeisterIII t
 
 
-instance KnottedWithPrimeTest Link where
+instance (Crossing a) => KnotWithPrimeTest Link a where
     isPrime (L t) = isPrime t
 
 
