@@ -5,10 +5,11 @@ module Math.Topology.KnotTh.EmbeddedLink.TangleStarGlue
     , splitIntoTangleAndStar
     ) where
 
-import qualified Data.Set as S
+import qualified Data.Map as M
 import Control.Arrow (first)
-import Control.Monad.State.Strict (lift, evalStateT, gets, modify)
-import Control.Monad (when, forM_)
+import Control.Monad.State.Strict (execState, modify)
+import Control.DeepSeq
+import Control.Parallel.Strategies (parMap, rdeepseq)
 import qualified Math.Algebra.Group.Dn as Dn
 import Math.Combinatorics.ChordDiagram (generateNonPlanarRaw, generateBicolourableNonPlanarRaw, listChordDiagrams)
 import Math.Topology.KnotTh.Tangle
@@ -21,35 +22,33 @@ data StarType = BicolourableStar | AnyStar
 
 
 tangleStarGlue
-    :: (Monad m, Crossing a) => StarType
+    :: (NFData a, Crossing a) => StarType
         -> (forall m'. (Monad m') => ((Tangle a, (Dn.DnSubGroup, x)) -> m' ()) -> m' ())
-            -> (EmbeddedLink a -> m ()) -> m ()
+            -> [EmbeddedLink a]
 
-tangleStarGlue starType tangleGenerator yield =
+tangleStarGlue starType tangleGenerator =
     let diagrams =
             let generator =
                     case starType of
                         BicolourableStar -> generateBicolourableNonPlanarRaw
                         AnyStar          -> generateNonPlanarRaw
             in map (listChordDiagrams . generator) [0 ..]
-    in flip evalStateT S.empty $
-        tangleGenerator $ \ (!tangle, (!tangleSymmetry, _)) ->
-            let l = numberOfLegs tangle
-            in forM_ (diagrams !! (l `div` 2)) $ \ (!star, (!starMirror, !starPeriod)) ->
-                let variants = do
-                        rot <- [0 .. gcd starPeriod (Dn.rotationPeriod tangleSymmetry) - 1]
-                        mir <- if not starMirror && not (Dn.hasReflectionPart tangleSymmetry)
-                                   then [False, True]
-                                   else [False]
-                        return $! Dn.fromReflectionRotation l (mir, rot)
 
-                in forM_ variants $ \ !g -> do
-                    let link = fromTangleAndStar star $ transformTangle g tangle
-                        token = unrootedHomeomorphismInvariant link
-                    new <- gets (S.notMember token)
-                    when new $ do
-                        modify (S.insert token)
-                        lift $ yield link
+        tangles = execState (tangleGenerator $ \ (!tangle, (!symmetry, _)) -> modify ((tangle, symmetry) :)) []
+
+    in M.elems $ M.unions $ parMap rdeepseq
+        (\ (tangle, tangleSymmetry) ->
+            M.fromList $ do
+                let l = numberOfLegs tangle
+                (star, (starMirror, starPeriod)) <- diagrams !! (l `div` 2)
+                rot <- [0 .. gcd starPeriod (Dn.rotationPeriod tangleSymmetry) - 1]
+                mir <- if not starMirror && not (Dn.hasReflectionPart tangleSymmetry)
+                           then [False, True]
+                           else [False]
+                let g = Dn.fromReflectionRotation l (mir, rot)
+                    link = fromTangleAndStar star $ transformTangle g tangle
+                return (unrootedHomeomorphismInvariant link, link)
+        ) tangles
 
 
 splitIntoTangleAndStar :: EmbeddedLink a -> (Tangle a, Vertex SurfaceGraph a')

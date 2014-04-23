@@ -29,7 +29,7 @@ import Math.Topology.KnotTh.Moves.MovesOfELink
 import TestUtil.Table
 import TestUtil.Drawing
 
-
+{-
 generateVirtualKnotProjections :: Int -> IO ()
 generateVirtualKnotProjections maxN = do
     let table = flip execState M.empty $
@@ -52,7 +52,7 @@ generateVirtualKnotProjections maxN = do
                 hPrint f $ edgeIndicesEncoding link
 
     print $ M.map length table
-
+-}
 {-
 generateAlternatingSkeletons :: Int -> IO ()
 generateAlternatingSkeletons maxN = do
@@ -89,14 +89,9 @@ main = do
     --generateAlternatingSkeletons maxN
     --generateVirtualKnotProjections maxN
 
-    let diagrams = flip execState [] $
-            tangleStarGlue
-                AnyStar
-                (forCCP_ $ primeIrreducibleDiagrams maxN)
-                (\ !link ->
-                    when (eulerChar link == 0 && not (isReidemeisterReducible link) && testPrime link) $
-                        modify (link :)
-                )
+    let diagrams =
+            filter (\ link -> (eulerChar link == 0) && not (isReidemeisterReducible link) && testPrime link) $
+                tangleStarGlue AnyStar (forCCP_ $ primeIrreducibleDiagrams maxN)
 
     do
         let classes = map (sortBy (comparing numberOfVertices) . allDiagrams) $
