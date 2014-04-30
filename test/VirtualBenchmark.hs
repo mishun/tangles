@@ -11,6 +11,9 @@ import Control.Monad.State.Strict (execState, modify)
 import Control.Monad (forM_, when, unless, guard)
 import Text.Printf
 import Diagrams.Prelude
+import qualified Math.Algebra.Group.Dn as Dn
+import Math.Combinatorics.ChordDiagram (generateNonPlanarRaw, generateBicolourableNonPlanarRaw, listChordDiagrams)
+import Math.Combinatorics.ChordDiagram.Draw (drawCDInsideCircleDef)
 import Math.Topology.KnotTh.Draw
 import Math.Topology.KnotTh.Tangle
 import Math.Topology.KnotTh.Tabulation.TangleDiagramsCascade
@@ -84,11 +87,33 @@ generateAlternatingSkeletons maxN = do
 
 main :: IO ()
 main = do
-    let maxN = 5
+    let maxN = 4
 
-    --generateAlternatingSkeletons maxN
-    --generateVirtualKnotProjections maxN
+    let makeDiagrams tangleGenerator =
+            let diagrams = map (listChordDiagrams . generateNonPlanarRaw) [0 ..]
+                merge (a, al) (_, bl) = (a, al ++ bl)
+            in M.elems $ M.fromListWith merge $ do
+                (tangle, tangleSymmetry) <- execState (tangleGenerator $ \ (!tangle, (!symmetry, _)) -> modify ((tangle, symmetry) :)) []
 
+                let l = numberOfLegs tangle
+                (star, (starMirror, starPeriod)) <- diagrams !! (l `div` 2)
+                rot <- [0 .. gcd starPeriod (Dn.rotationPeriod tangleSymmetry) - 1]
+                mir <- if not starMirror && not (Dn.hasReflectionPart tangleSymmetry)
+                           then [False, True]
+                           else [False]
+                let g = Dn.fromReflectionRotation l (mir, rot)
+                    link = fromTangleAndStar star $ transformTangle g tangle
+                return (unrootedHomeomorphismInvariant link, (link, [(transformTangle g tangle, star)]))
+
+    writeSVGImage "glues.svg" (Width 500) $ pad 1.05 $
+        vcat' with { _sep = 0.6 } $ do
+            (link, gluings) <- makeDiagrams (forCCP_ $ primeProjections maxN)
+            guard $ eulerChar link == 0
+            return $ hcat' with { _sep = 0.8 } $ ((drawKnotDef link ||| strutX 1) :) $ do
+                (tangle, star) <- gluings
+                return $ drawKnotDef tangle ||| strutX 0.2 ||| drawCDInsideCircleDef star
+
+{-
     let diagrams =
             filter (\ link -> (eulerChar link == 0) && not (isReidemeisterReducible link) && testPrime link) $
                 tangleStarGlue AnyStar (forCCP_ $ primeIrreducibleDiagrams maxN)
@@ -173,3 +198,4 @@ main = do
                     mapM_ (hPrint handle . edgeIndicesEncoding) list
                 withFile (printf "data/poly_%i^%i" n k) WriteMode $ \ handle ->
                     mapM_ (hPrint handle . minimalKauffmanXPolynomial) list
+-}
