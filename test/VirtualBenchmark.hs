@@ -12,7 +12,7 @@ import Control.Monad (forM_, when, unless, guard)
 import Text.Printf
 import Diagrams.Prelude
 import qualified Math.Algebra.Group.Dn as Dn
-import Math.Combinatorics.ChordDiagram (generateNonPlanarRaw, generateBicolourableNonPlanarRaw, listChordDiagrams)
+import Math.Combinatorics.ChordDiagram (generateNonPlanarRaw, generateBicolourableNonPlanarRaw, listChordDiagrams, genusOfChordDiagram)
 import Math.Combinatorics.ChordDiagram.Draw (drawCDInsideCircleDef)
 import Math.Topology.KnotTh.Draw
 import Math.Topology.KnotTh.Tangle
@@ -87,8 +87,8 @@ generateAlternatingSkeletons maxN = do
 
 main :: IO ()
 main = do
-    let maxN = 4
-
+    let maxN = 5
+{-
     let makeDiagrams tangleGenerator =
             let diagrams = map (listChordDiagrams . generateNonPlanarRaw) [0 ..]
                 merge (a, al) (_, bl) = (a, al ++ bl)
@@ -112,11 +112,13 @@ main = do
             return $ hcat' with { _sep = 0.8 } $ ((drawKnotDef link ||| strutX 1) :) $ do
                 (tangle, star) <- gluings
                 return $ drawKnotDef tangle ||| strutX 0.2 ||| drawCDInsideCircleDef star
+-}
 
-{-
     let diagrams =
             filter (\ link -> (eulerChar link == 0) && not (isReidemeisterReducible link) && testPrime link) $
-                tangleStarGlue AnyStar (forCCP_ $ primeIrreducibleDiagrams maxN)
+                tangleStarGlue
+                    (filter ((== 1) . genusOfChordDiagram . fst) . listChordDiagrams . generateNonPlanarRaw)
+                    (forCCP_ $ primeIrreducibleDiagrams maxN)
 
     do
         let classes = map (sortBy (comparing numberOfVertices) . allDiagrams) $
@@ -198,4 +200,3 @@ main = do
                     mapM_ (hPrint handle . edgeIndicesEncoding) list
                 withFile (printf "data/poly_%i^%i" n k) WriteMode $ \ handle ->
                     mapM_ (hPrint handle . minimalKauffmanXPolynomial) list
--}

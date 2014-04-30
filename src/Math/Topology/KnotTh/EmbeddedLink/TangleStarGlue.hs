@@ -1,7 +1,6 @@
 {-# LANGUAGE RankNTypes #-}
 module Math.Topology.KnotTh.EmbeddedLink.TangleStarGlue
-    ( StarType(..)
-    , tangleStarGlue
+    ( tangleStarGlue
     , splitIntoTangleAndStar
     ) where
 
@@ -11,28 +10,21 @@ import Control.Monad.State.Strict (execState, modify)
 import Control.DeepSeq
 import Control.Parallel.Strategies (parMap, rdeepseq)
 import qualified Math.Algebra.Group.Dn as Dn
-import Math.Combinatorics.ChordDiagram (generateNonPlanarRaw, generateBicolourableNonPlanarRaw, listChordDiagrams)
+import Math.Combinatorics.ChordDiagram (ChordDiagram)
 import Math.Topology.KnotTh.Tangle
 import Math.Topology.KnotTh.EmbeddedLink
 import Math.Topology.KnotTh.EmbeddedLink.Construction (fromTangleAndStar)
 import Math.Topology.Manifolds.SurfaceGraph
 
 
-data StarType = BicolourableStar | AnyStar
-
 
 tangleStarGlue
-    :: (NFData a, Crossing a) => StarType
+    :: (NFData a, Crossing a) => (Int -> [(ChordDiagram, (Bool, Int))])
         -> (forall m'. (Monad m') => ((Tangle a, (Dn.DnSubGroup, x)) -> m' ()) -> m' ())
             -> [EmbeddedLink a]
 
-tangleStarGlue starType tangleGenerator =
-    let diagrams =
-            let generator =
-                    case starType of
-                        BicolourableStar -> generateBicolourableNonPlanarRaw
-                        AnyStar          -> generateNonPlanarRaw
-            in map (listChordDiagrams . generator) [0 ..]
+tangleStarGlue starGenerator tangleGenerator =
+    let diagrams = map starGenerator [0 ..]
 
         tangles = execState (tangleGenerator $ \ (!tangle, (!symmetry, _)) -> modify ((tangle, symmetry) :)) []
 
