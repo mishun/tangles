@@ -33,7 +33,7 @@ main = do
     [maxN] <- fmap (map read) getArgs
 
     let diagrams =
-            filter (\ link -> (eulerChar link == 0) && not (isReidemeisterReducible link) && testPrime link) $
+            filter (\ link -> not (isReidemeisterReducible link) && testPrime link) $
                 tangleStarGlue
                     (filter ((== 1) . genusOfChordDiagram . fst) . listChordDiagrams . generateNonPlanarRaw)
                     (forCCP_ $ primeIrreducibleDiagrams maxN)

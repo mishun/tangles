@@ -17,8 +17,8 @@ config-dev:
 	cabal configure --enable-tests --enable-benchmarks -fenable-test-modules
 
 .PHONY: apps
-apps: bin/DrawTangleStarGlues bin/GenerateVirtualLinks
+apps: bin/DrawTangleStarGlues bin/GenerateVirtualLinks bin/PrintVirtualLinksTable
 
-bin/%: apps/%.hs
+bin/%: apps/%.hs copy
 	mkdir -p bin
 	ghc --make $(GHC_OPTS) -o $@ $<
