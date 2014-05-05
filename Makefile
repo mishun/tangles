@@ -1,4 +1,4 @@
-GHC_OPTS := -Wall -O -XBangPatterns
+GHC_OPTS := -Wall -O -XBangPatterns -threaded
 
 .PHONY: all
 all: build
