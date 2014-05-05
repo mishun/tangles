@@ -109,8 +109,14 @@ reconnectP m =
 
 movesOfELink :: EmbeddedLinkDiagram -> [EmbeddedLinkDiagram]
 movesOfELink link = do
-    let initial = PatternS id link (allVertices link)
-    pattern <- [flype, pass2, handlePass]
+    (pattern, reorders) <-
+        [ (flype, [id])
+        , (pass2, [id])
+        , (pass1, [id])
+        , (handlePass, [id, reverse])
+        ]
+    reorder <- reorders
+    let initial = PatternS reorder link (allVertices link)
     (_, res) <- runPatternMatching pattern initial
     return res
 
@@ -126,6 +132,26 @@ flype = do
         substituteC [(ba, ae), (ca, ad), (ab, rp), (ac, sq)]
         connectC [(rp, ae), (sq, ad)]
         modifyC True sub
+
+
+pass1 :: PatternM s DiagramCrossing EmbeddedLinkDiagram
+pass1 = do
+    ([a0, a1, a2, a3], _) <- crossingP
+    mplus
+        (do
+            ([x0, x1], _) <- subTangleP 2
+            connectionP [(a0, x0)]
+            reconnectP $ do
+                substituteC [(x0, a2), (a0, x1)]
+                connectC [(x1, a2)]
+        )
+        (do
+            ([x0, x1, x2, x3], _) <- subTangleP 4
+            connectionP [(a0, x0), (a1, x3), (a3, x1)]
+            reconnectP $ do
+                substituteC [(x0, a2), (a0, x2)]
+                connectC [(x2, a2)]
+        )
 
 
 pass2 :: PatternM s DiagramCrossing EmbeddedLinkDiagram
