@@ -113,6 +113,7 @@ movesOfELink link = do
         [ (flype, [id])
         , (pass2, [id])
         , (pass1, [id])
+        , (pass3, [id])
         , (handlePass, [id, reverse])
         ]
     reorder <- reorders
@@ -175,6 +176,33 @@ pass2 = do
             reconnectP $ do
                 substituteC [(x0, a2), (x1, b2), (a0, x4), (b0, x3)]
                 connectC [(a2, x4), (b2, x3)]
+        )
+
+
+pass3 :: PatternM s DiagramCrossing EmbeddedLinkDiagram
+pass3 = do
+    ([a0, a1, a2, a3], _) <- crossingP
+    ([b0, b1, b2, b3], _) <- crossingP
+    connectionP [(a3, b1)]
+    guard $ passOver a3 == passOver b1
+    ([c0, c1, c2, c3], _) <- crossingP
+    connectionP [(b3, c1)]
+    guard $ passOver b3 == passOver c1
+
+    mplus
+        (do
+            ([x0, x1, x2, x3, x4, x5], _) <- subTangleP 6
+            connectionP [(x0, a0), (x1, b0), (x2, c0)]
+            reconnectP $ do
+                substituteC [(x0, a2), (x1, b2), (x2, c2), (a0, x5), (b0, x4), (c0, x3)]
+                connectC [(a2, x5), (b2, x4), (c2, x3)]
+        )
+        (do
+            ([x0, x1, x2, x3, x4, x5, x6, x7], _) <- subTangleP 8
+            connectionP [(x0, a0), (x1, b0), (x2, c0), (x7, a1), (x3, c3)]
+            reconnectP $ do
+                substituteC [(x0, a2), (x1, b2), (x2, c2), (a0, x6), (b0, x5), (c0, x4)]
+                connectC [(a2, x6), (b2, x5), (c2, x4)]
         )
 
 
