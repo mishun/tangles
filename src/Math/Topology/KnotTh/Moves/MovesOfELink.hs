@@ -101,6 +101,10 @@ connectionP :: [(Dart EmbeddedLink a, Dart EmbeddedLink a)] -> PatternM s a ()
 connectionP = mapM_ (\ (a, b) -> guard (opposite a == b))
 
 
+connectionNonAltP :: [(EmbeddedLinkDiagramDart, EmbeddedLinkDiagramDart)] -> PatternM s DiagramCrossing ()
+connectionNonAltP = mapM_ (\ (a, b) -> guard (opposite a == b && passOver a == passOver b))
+
+
 reconnectP :: (Show a) => (forall s. ModifyELinkM a s ()) -> PatternM s' a (EmbeddedLink a)
 reconnectP m =
     PatternM $ \ s@(PatternS _ tangle _) ->
@@ -114,7 +118,9 @@ movesOfELink link = do
         , (pass2, [id])
         , (pass1, [id])
         , (pass3, [id])
-        , (handlePass, [id, reverse])
+        , (handleFlype, [id, reverse])
+        , (handleTwist, [id, reverse])
+        , (handlePass2, [id, reverse])
         ]
     reorder <- reorders
     let initial = PatternS reorder link (allVertices link)
@@ -159,8 +165,7 @@ pass2 :: PatternM s DiagramCrossing EmbeddedLinkDiagram
 pass2 = do
     ([a0, a1, a2, a3], _) <- crossingP
     ([b0, b1, b2, b3], _) <- crossingP
-    connectionP [(a3, b1)]
-    guard $ passOver a3 == passOver b1
+    connectionNonAltP [(a3, b1)]
 
     mplus
         (do
@@ -183,11 +188,9 @@ pass3 :: PatternM s DiagramCrossing EmbeddedLinkDiagram
 pass3 = do
     ([a0, a1, a2, a3], _) <- crossingP
     ([b0, b1, b2, b3], _) <- crossingP
-    connectionP [(a3, b1)]
-    guard $ passOver a3 == passOver b1
+    connectionNonAltP [(a3, b1)]
     ([c0, c1, c2, c3], _) <- crossingP
-    connectionP [(b3, c1)]
-    guard $ passOver b3 == passOver c1
+    connectionNonAltP [(b3, c1)]
 
     mplus
         (do
@@ -206,8 +209,8 @@ pass3 = do
         )
 
 
-handlePass :: PatternM s DiagramCrossing EmbeddedLinkDiagram
-handlePass = do
+handleFlype :: PatternM s DiagramCrossing EmbeddedLinkDiagram
+handleFlype = do
     ([a0, a1, a2, a3], _) <- crossingP
     ([b0, b1, b2, b3], _) <- crossingP
     guard $ passOver a0 == passOver b0
@@ -219,3 +222,36 @@ handlePass = do
         substituteC [(a3, a2), (b2, b3)]
         connectC [(a0, x0), (a1, x1), (a2, x5), (b0, x4), (b3, x3), (b1, x2)]
         modifyC True sub
+
+
+handleTwist :: PatternM s DiagramCrossing EmbeddedLinkDiagram
+handleTwist = do
+    ([a0, a1, a2, a3], a) <- crossingP
+    ([b0, b1, b2, b3], _) <- crossingP
+    connectionNonAltP [(a2, b0)]
+    ([c0, c1, c2, c3], _) <- crossingP
+    connectionNonAltP [(a3, c0)]
+
+    ([x0, x1, x2, x3, x4, x5], sub) <- subTangleP 6
+    connectionP [(x0, b3), (x1, b1), (x2, a1), (x3, a0), (x4, c3), (x5, c1)]
+
+    reconnectP $ do
+        substituteC [(b0, c2), (c0, b2)]
+        connectC [(x2, b2), (x3, c2)]
+        maskC [a]
+        modifyC True sub
+
+
+handlePass2 :: PatternM s DiagramCrossing EmbeddedLinkDiagram
+handlePass2 = do
+    ([a0, a1, a2, a3], _) <- crossingP
+    ([b0, b1, b2, b3], _) <- crossingP
+    connectionNonAltP [(a3, b1), (a1, b3)]
+
+    ([x0, x1, x2, x3, x4, x5], _) <- subTangleP 6
+    connectionP [(x0, a0), (x1, b0), (x2, x5)]
+
+    reconnectP $ do
+        substituteC [(x0, a2), (x1, b2), (a0, x4), (b0, x3)]
+        connectC [(a2, x4), (b2, x3)]
+

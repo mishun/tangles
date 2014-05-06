@@ -17,7 +17,7 @@ config-dev:
 	cabal configure --enable-tests --enable-benchmarks -fenable-test-modules
 
 .PHONY: apps
-apps: bin/DrawTangleStarGlues bin/GenerateVirtualLinks bin/PrintVirtualLinksTable
+apps: bin/DrawTangleStarGlues bin/GenerateVirtualLinks bin/PrintVirtualLinksTable bin/DrawKnot
 
 bin/%: apps/%.hs copy
 	mkdir -p bin
