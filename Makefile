@@ -1,24 +1,32 @@
-GHC_OPTS := -Wall -O -XBangPatterns -threaded
+Bin := bin
+GHCOpts := -Wall -O -XBangPatterns -threaded
 
 .PHONY: all
 all: build
 
-.PHONY: build
-build:
-	cabal build
-
-.PHONY: copy
-copy: build
-	cabal copy
-	cabal register
 
 .PHONY: config-dev
 config-dev:
 	cabal configure --enable-tests --enable-benchmarks -fenable-test-modules
 
-.PHONY: apps
-apps: bin/DrawTangleStarGlues bin/GenerateVirtualLinks bin/PrintVirtualLinksTable bin/DrawKnot
+.PHONY: build
+build:
+	cabal build
+	mkdir -p $(Bin) && touch $(Bin)/.lib
 
-bin/%: apps/%.hs copy
-	mkdir -p bin
-	ghc --make $(GHC_OPTS) -o $@ $<
+.PHONY: copy
+copy:
+	cabal copy
+	cabal register
+
+
+.PHONY: apps
+apps: $(patsubst apps/%.hs, $(Bin)/%, $(wildcard apps/*.hs))
+
+$(Bin)/.lib:
+	cabal copy
+	cabal register
+	mkdir -p $(Bin) && touch $(Bin)/.lib
+
+$(Bin)/%: apps/%.hs $(Bin)/.lib
+	ghc --make $(GHCOpts) -outputdir=$(Bin) -o $@ $<
