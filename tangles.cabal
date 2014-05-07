@@ -164,27 +164,6 @@ library
         other-modules:
 
 
-flag enable-GraphDrawingBenchmark
-    default: False
-
-benchmark GraphDrawingBenchmark
-    if !(flag(enable-test-modules) && flag(enable-GraphDrawingBenchmark))
-        buildable: False
-    type:               exitcode-stdio-1.0
-    default-language:   Haskell2010
-    default-extensions: BangPatterns
-    ghc-options:        -threaded
-    ghc-prof-options:   -rtsopts -prof -auto-all -caf-all
-    build-depends:
-        base >=4.6,
-        array,
-        mtl,
-        diagrams-lib ==1.1.*,
-        tangles
-    main-is:            GraphDrawingBenchmark.hs
-    hs-source-dirs:     test
-
-
 flag enable-TangleGeneratorBenchmark
     default: False
 
@@ -203,28 +182,6 @@ benchmark TangleGeneratorBenchmark
         diagrams-lib ==1.1.*,
         tangles
     main-is:            TangleGeneratorBenchmark.hs
-    hs-source-dirs:     test
-
-
-flag enable-NonAlternatingBenchmark
-    default: False
-
-benchmark NonAlternatingBenchmark
-    if !(flag(enable-test-modules) && flag(enable-NonAlternatingBenchmark))
-        buildable: False
-    type:               exitcode-stdio-1.0
-    default-language:   Haskell2010
-    default-extensions: BangPatterns
-    ghc-options:        -threaded
-    ghc-prof-options:   -rtsopts -prof -auto-all -caf-all
-    build-depends:
-        base >=4.6,
-        array,
-        mtl,
-        containers,
-        diagrams-lib ==1.1.*,
-        tangles
-    main-is:            NonAlternatingBenchmark.hs
     hs-source-dirs:     test
 
 
@@ -250,75 +207,6 @@ benchmark KnotPolynomialsBenchmark
     hs-source-dirs:     test
 
 
-flag enable-VirtualBenchmark
-    default: False
-
-benchmark VirtualBenchmark
-    if !(flag(enable-test-modules) && flag(enable-VirtualBenchmark))
-        buildable: False
-    type:               exitcode-stdio-1.0
-    default-language:   Haskell2010
-    default-extensions: BangPatterns
-    ghc-options:        -threaded
-    ghc-prof-options:   -rtsopts -prof -auto-all -caf-all
-    build-depends:
-        base >=4.6,
-        array,
-        mtl,
-        containers,
-        criterion,
-        diagrams-lib ==1.1.*,
-        tangles
-    main-is:            VirtualBenchmark.hs
-    hs-source-dirs:     test
-
-
-flag enable-ChordDiagramsBenchmark
-    default: False
-
-benchmark ChordDiagramsBenchmark
-    if !(flag(enable-test-modules) && flag(enable-ChordDiagramsBenchmark))
-        buildable: False
-    type:               exitcode-stdio-1.0
-    default-language:   Haskell2010
-    default-extensions: BangPatterns
-    ghc-options:        -threaded
-    ghc-prof-options:   -rtsopts -prof -auto-all -caf-all
-    build-depends:
-        base >=4.6,
-        array,
-        mtl,
-        containers,
-        criterion,
-        diagrams-lib ==1.1.*,
-        tangles
-    main-is:            ChordDiagramsBenchmark.hs
-    hs-source-dirs:     test
-
-
-flag enable-LinkGeneratorBenchmark
-    default: False
-
-benchmark LinkGeneratorBenchmark
-    if !(flag(enable-test-modules) && flag(enable-LinkGeneratorBenchmark))
-        buildable: False
-    type:               exitcode-stdio-1.0
-    default-language:   Haskell2010
-    default-extensions: BangPatterns
-    ghc-options:        -threaded
-    ghc-prof-options:   -rtsopts -prof -auto-all -caf-all
-    build-depends:
-        base >=4.6,
-        array,
-        mtl,
-        containers,
-        criterion,
-        diagrams-lib ==1.1.*,
-        tangles
-    main-is:            LinkGeneratorBenchmark.hs
-    hs-source-dirs:     test
-
-
 test-suite TestTangles
     if !flag(enable-test-modules)
         buildable: False
@@ -333,17 +221,3 @@ test-suite TestTangles
         tangles
     main-is:            TestTangles.hs
     hs-source-dirs:     test
-
-
-executable TestMoves
-    if !flag(enable-test-modules)
-        buildable: False
-    default-language:   Haskell2010
-    ghc-options:        -threaded
-    build-depends:
-        base >=4.6,
-        diagrams-lib ==1.1.*,
-        tangles
-    main-is:            TestMoves.hs
-    hs-source-dirs:     test
-

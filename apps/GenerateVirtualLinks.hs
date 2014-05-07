@@ -27,6 +27,34 @@ import Math.Topology.KnotTh.Moves.MovesOfELink
 import TestUtil.Table
 import TestUtil.Drawing
 
+{-
+generateAlternatingSkeletons :: Int -> IO ()
+generateAlternatingSkeletons maxN = do
+    let table = flip execState M.empty $
+            tangleStarGlue
+                BicolourableStar
+                (forCCP_ $ templateProjections maxN)
+                (\ !link ->
+                    when (not (isReidemeisterReducible link) && testPrime link && not (has4LegPlanarPart link)) $
+                        let g = (2 - eulerChar link) `div` 2
+                            n = numberOfVertices link
+                        in modify $ M.insertWith' (++) (n, g) [link]
+                )
+
+    forM_ [1 .. maxN] $ \ n -> do
+        putStr $ show n ++ ":"
+        forM_ [1 .. maxN] $ \ g ->
+            putStr $ case M.lookup (n, g) table of
+                Just x  -> printf "\t%i" $ length x
+                Nothing -> "\t."
+        putStrLn ""
+
+    writeSVGImage "virtual.svg" (Width 500) $ pad 1.05 $
+        flip execState mempty $
+            forM_ (M.assocs table) $ \ ((_, g), lst) ->
+                when (g == 1) $ forM_ lst $ \ link ->
+                    modify (=== pad 1.1 (drawKnotDef link))
+-}
 
 main :: IO ()
 main = do

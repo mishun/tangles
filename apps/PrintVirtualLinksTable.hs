@@ -44,10 +44,9 @@ main = do
     putStrLn $ printf "Collision classes: %i" (length $ collisionClasses sifted)
 
     when (length (collisionClasses sifted) > 0) $ do
-        let classes = map (map representative) $ collisionClasses sifted
-        writeSVGImage (printf "collisions-%i.svg" maxN) (Width 500) $ pad 1.05 $
+        writeSVGImage (printf "torus-links-collisions-%i.svg" maxN) (Width 500) $ pad 1.05 $
             vcat' with { _sep = 0.5 } $ do
-                cls <- classes
+                cls <- map (map representative) $ collisionClasses sifted
                 return $ hcat' with { _sep = 0.2 } $ do
                     link <- cls
                     return $ drawKnotDef link <> strutX 2 <> strutY 2

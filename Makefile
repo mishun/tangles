@@ -1,4 +1,5 @@
 Bin := bin
+Obj := obj
 GHCOpts := -Wall -O -XBangPatterns -threaded
 
 .PHONY: all
@@ -7,26 +8,29 @@ all: build
 
 .PHONY: config-dev
 config-dev:
-	cabal configure --enable-tests --enable-benchmarks -fenable-test-modules
+	cabal configure --enable-tests -fenable-test-modules
 
 .PHONY: build
 build:
 	cabal build
-	mkdir -p $(Bin) && touch $(Bin)/.lib
 
 .PHONY: copy
 copy:
 	cabal copy
 	cabal register
+	mkdir -p $(Obj) && touch $(Obj)/.lib
 
+
+AppsBinaries := $(patsubst apps/%.hs,$(Bin)/%, $(wildcard apps/*.hs))
 
 .PHONY: apps
-apps: $(patsubst apps/%.hs, $(Bin)/%, $(wildcard apps/*.hs))
+apps: $(AppsBinaries)
 
-$(Bin)/.lib:
+$(Obj)/.lib:
 	cabal copy
 	cabal register
-	mkdir -p $(Bin) && touch $(Bin)/.lib
+	mkdir -p $(Obj) && touch $(Obj)/.lib
 
-$(Bin)/%: apps/%.hs $(Bin)/.lib
-	ghc --make $(GHCOpts) -outputdir=$(Bin) -o $@ $<
+$(Bin)/%: apps/%.hs $(Obj)/.lib
+	mkdir -p $(dir $@)
+	ghc -fforce-recomp $(GHCOpts) -outputdir=$(Obj) -osuf=$(patsubst apps/%.hs,%.o, $<) -hisuf=$(patsubst apps/%.hs,%.hi, $<) -o $@ $<

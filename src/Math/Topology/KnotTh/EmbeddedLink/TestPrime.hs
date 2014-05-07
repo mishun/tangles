@@ -32,7 +32,7 @@ testPrime link | numberOfFreeLoops link > 0  = False
 
 testLayering :: EmbeddedLinkDiagram -> Bool
 testLayering link | numberOfFreeLoops link > 0  = False
-		  | numberOfVertices link == 0  = False
+                  | numberOfVertices link == 0  = False
                   | otherwise                   = runST $ do
     let (n, marks, threads) = allThreadsWithMarks link
 
