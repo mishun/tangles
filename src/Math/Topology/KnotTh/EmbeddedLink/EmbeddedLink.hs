@@ -448,7 +448,7 @@ instance SurfaceDiagram EmbeddedLink where
         where
             n = numberOfFaces link
 
-    allFaces link = map (Face link) [1 .. numberOfFaces link]
+    allFaces link = map (Face link) [0 .. numberOfFaces link - 1]
 
     data Face EmbeddedLink ct = Face !(EmbeddedLink ct) {-# UNPACK #-} !Int
 

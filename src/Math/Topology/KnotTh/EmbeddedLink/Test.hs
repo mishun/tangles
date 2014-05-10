@@ -23,6 +23,12 @@ test =
                     p = rightPlace d
                 nthDartInCWTraverse f p @?= d
 
+            forM_ (allVertices link `zip` [1 ..]) $ \ (v, i) ->
+                vertexIndex v @?= i
+
+            forM_ (allFaces link `zip` [1 ..]) $ \ (f, i) ->
+                faceIndex f @?= i
+
     in testGroup "EmbeddedLink tests"
         [ testCase "Simplest torus link" $ do
             let l :: EmbeddedLinkProjection
