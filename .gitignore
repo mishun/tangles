@@ -1,7 +1,6 @@
 dist/
-bin/
-obj/
 cabal-dev/
+bin/
 *.o
 *.hi
 *.chi
