@@ -16,13 +16,13 @@ import Math.Topology.KnotTh.Draw.EmbeddedLink
 
 
 class DrawableKnotted k where
-    drawKnot            :: (Renderable (Path R2) b) => DrawKnotSettings -> k -> Diagram b R2
+    drawKnot            :: (Renderable (Path R2) b, Backend b R2) => DrawKnotSettings -> k -> Diagram b R2
     defaultDrawSettings :: k -> DrawKnotSettings
 
     defaultDrawSettings _ = defaultDraw
 
 
-drawKnotDef :: (DrawableKnotted k, Renderable (Path R2) b) => k -> Diagram b R2
+drawKnotDef :: (DrawableKnotted k, Renderable (Path R2) b, Backend b R2) => k -> Diagram b R2
 drawKnotDef knot = drawKnot (defaultDrawSettings knot) knot
 
 
@@ -49,5 +49,6 @@ instance (DrawableCrossing a) => DrawableKnotted (EmbeddedLink a) where
     drawKnot s link =
         freeze $
             let (numberOfGroups, embedding) = surfaceLinkEmbedding link
-            in surfaceLinkImage s link numberOfGroups $
-                drawThreads s $ crossingDependentSegmentation s link embedding
+                img = surfaceLinkImage s link numberOfGroups $
+                        drawThreads s $ crossingDependentSegmentation s link embedding
+            in img <> strutX 2 <> strutY 2

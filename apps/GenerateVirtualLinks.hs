@@ -77,7 +77,7 @@ main = do
                guard $ any (\ l -> numberOfVertices l <= 4 && numberOfThreads l == 1) cls
                return $ hcat' with { _sep = 0.5 } $ do
                    link <- cls
-                   return $ drawKnotDef link <> strutX 2 <> strutY 2
+                   return $ drawKnotDef link
 
         forM_ classes $ \ cls -> do
             let invs = sort $ map minimalKauffmanXPolynomial cls
@@ -109,7 +109,7 @@ main = do
                 cls <- classes
                 return $ hcat' with { _sep = 0.2 } $ do
                     link <- cls
-                    return $ drawKnotDef link <> strutX 2 <> strutY 2
+                    return $ drawKnotDef link
 
         forM_ (classes `zip` [1 :: Int ..]) $ \ (cls, i) -> do
             withFile (printf "data/collision_%i.txt" i) WriteMode $ \ handle ->
@@ -136,7 +136,7 @@ main = do
                         page <- paginate 8 byCross
                         return $ vcat' with { _sep = 0.5 } $ do
                             link <- page
-                            return $ drawKnotDef link <> strutX 2 <> strutY 2
+                            return $ drawKnotDef link
 
         forM_ (group' numberOfThreads links) $ \ byThreads ->
             forM_ (group' numberOfVertices byThreads) $ \ list -> do

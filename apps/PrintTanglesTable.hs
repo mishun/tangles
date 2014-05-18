@@ -35,4 +35,4 @@ main = do
                 cls <- map (map representative) $ collisionClasses sifted
                 return $ hcat' with { _sep = 0.2 } $ do
                     link <- cls
-                    return $ drawKnotDef link <> strutX 2 <> strutY 2
+                    return $ drawKnotDef link
