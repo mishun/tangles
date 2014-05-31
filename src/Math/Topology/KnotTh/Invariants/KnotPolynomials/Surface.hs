@@ -1,21 +1,86 @@
 module Math.Topology.KnotTh.Invariants.KnotPolynomials.Surface
     ( torusDecomposition
+    , kernelBasis
     ) where
 
 import Data.Function (fix)
 import Data.Ord (comparing)
-import Data.List (sortBy, groupBy, partition, minimumBy)
+import Data.List (sortBy, partition, minimumBy)
 import qualified Data.Set as S
 import qualified Data.Map as M
 import qualified Data.Vector as V
+import qualified Data.Vector.Mutable as MV
 import qualified Data.Vector.Unboxed as UV
 import qualified Data.Vector.Unboxed.Mutable as UMV
+import qualified Data.Array as A
 import Control.Monad.ST (runST)
 import Control.Monad (foldM, guard)
+import Math.Topology.Manifolds.SurfaceGraph
 import Math.Topology.KnotTh.Invariants.KnotPolynomials
 import Math.Topology.KnotTh.Invariants.KnotPolynomials.KauffmanXStateSum
 import Math.Topology.KnotTh.EmbeddedLink
 import Math.Topology.KnotTh.EmbeddedLink.TangleStarGlue
+
+
+kernelBasis :: V.Vector (UV.Vector Int) -> V.Vector (UV.Vector Int)
+kernelBasis =
+    let gaussianElimination h w =
+            let normalize v =
+                    case UV.foldl1 gcd v of
+                        0 -> v
+                        g -> UV.map (`div` g) v
+
+                go y x a | (y >= h) || (x >= w)  = a
+                         | otherwise             =
+                    let lead = a V.! y
+                    in case lead UV.! x of
+                        0     ->
+                            case V.findIndex ((/= 0) . (UV.! x)) $ V.drop (y + 1) a of
+                                Nothing -> go y (x + 1) a
+                                Just dy -> go y x $ V.modify (\ a' -> MV.swap a' y (y + 1 + dy)) a
+
+                        pivot -> go (y + 1) (x + 1) $
+                            V.map normalize $ V.imap
+                                (\ i row ->
+                                    if i == y
+                                        then row
+                                        else let pivot' = row UV.! x
+                                             in UV.zipWith (\ l r -> l * pivot - r * pivot') row lead
+                                ) a
+            in go 0 0
+
+    in \ src ->
+        case V.length src of
+            0 -> V.empty
+            m -> let n = UV.length (src V.! 0)
+                     a = gaussianElimination n m $
+                             V.generate n (\ y ->
+                                 UV.generate m ((UV.! y) . (src V.!)) UV.++
+                                     (UV.replicate n 0 UV.// [(y, 1)])
+                             )
+                 in V.map snd $ V.filter (UV.all (== 0) . fst) $ V.map (UV.splitAt m) a
+
+
+cellularHomology :: SurfaceGraph a -> (Int, A.Array (Dart SurfaceGraph a) (UV.Vector Int))
+cellularHomology graph =
+    let vars = A.array (dartsRange graph) $ do
+            (i, (a, b)) <- [0 ..] `zip` allEdges graph
+            [(a, (i, 1)), (b, (i, -1))]
+
+        basis = kernelBasis $
+            V.fromList $ do
+                f <- allFaces graph
+                return $ UV.accum (+) (UV.replicate (numberOfEdges graph) 0) $
+                    map (vars A.!) (faceTraverseCCW f)
+
+        dim = V.length basis
+
+        homology = A.array (dartsRange graph) $ do
+            (i, (a, b)) <- [0 ..] `zip` allEdges graph
+            let h = UV.generate dim $ \ j -> (basis V.! j) UV.! i
+            [(a, h), (b, UV.map (0 -) h)]
+
+    in (dim, homology)
 
 
 torusDecomposition :: (KauffmanXArg a) => EmbeddedLinkDiagram -> [((Int, Int), a)]
@@ -23,20 +88,7 @@ torusDecomposition link =
     let (tangle, star) = splitIntoTangleAndStar link
         l = numberOfLegs tangle
 
-        border = (V.replicate l undefined V.//) $ do
-            (pair, gr) <-
-                let ds =
-                        let isBigon d = nextCCW (opposite d) == opposite (nextCW d)
-                        in groupBy (const isBigon) $
-                            let (pre, post) = span isBigon (outcomingDarts star)
-                            in post ++ pre
-                in case length ds of
-                    4 -> [[1, 0], [0, 1], [-1, 0], [0, -1]] `zip` ds
-                    6 -> [[1, 0], [1, 1], [0, 1], [-1, 0], [-1, -1], [0, -1]] `zip` ds
-                    _ -> error "internal error"
-
-            d <- gr
-            return (beginPlace d, (endPlace d, pair :: [Int]))
+        (dim, homology) = cellularHomology $ vertexOwner star
 
         homologyClasses a = runST $ do
             visited <- UMV.replicate l False
@@ -44,18 +96,18 @@ torusDecomposition link =
                     vs <- UMV.read visited start
                     if vs
                         then return list
-                        else do
-                            homology <- fix (\ loop hom !i -> do
+                        else fmap (: list) $ fix (\ loop hom !i -> do
                                     c <- UMV.read visited i
                                     if c
                                         then return hom
                                         else do
-                                            let (i', hom') = border V.! i
+                                            let d = nthOutcomingDart star i
+                                                i' = endPlace d
+                                                hom' = homology A.! d
                                             UMV.write visited i True
                                             UMV.write visited i' True
-                                            loop (zipWith (+) hom hom') (a UV.! i')
-                                ) (replicate (2 * genus link) 0) start
-                            return $ homology : list
+                                            loop (UV.zipWith (+) hom hom') (a UV.! i')
+                                ) (UV.replicate dim 0) start
                 ) [] [0 .. l - 1]
 
         tab = filter ((/= 0) . snd) $ M.assocs $
@@ -63,10 +115,10 @@ torusDecomposition link =
                 let KauffmanXStateSum _ list = finalNormalization link $ reduceSkeinStd tangle
                 PlanarChordDiagram a factor <- list
                 let (trivial, nonTrivial) =
-                        partition (all (== 0)) $
-                            map (\ h -> max h $ map (* (-1)) h) $
+                        partition (UV.all (== 0)) $
+                            map (\ h -> max h $ UV.map (0 -) h) $
                                 homologyClasses a
-                    [x, y] = foldl (zipWith (+)) [0, 0] nonTrivial
+                    [x, y] = UV.toList $ foldl (UV.zipWith (+)) (UV.replicate dim 0) nonTrivial
                 return ((x, y), factor * (circleFactor ^ length trivial))
 
     in min (canonicalForm tab)
