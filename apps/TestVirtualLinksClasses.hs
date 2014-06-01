@@ -21,12 +21,12 @@ import TestUtil.Drawing
 
 main :: IO ()
 main = do
-    [maxN] <- fmap (map read) getArgs
+    [targetGenus, maxN] <- fmap (map read) getArgs
 
     let diagrams =
             filter (\ link -> not (isReidemeisterReducible link) && testPrime link) $
                 tangleStarGlue
-                    (filter ((== 1) . genusOfChordDiagram . fst) . listChordDiagrams . generateNonPlanarRaw)
+                    (filter ((== targetGenus) . genusOfChordDiagram . fst) . listChordDiagrams . generateNonPlanarRaw)
                     (forCCP_ $ primeIrreducibleDiagrams maxN)
 
     let classes = map (sortBy (comparing numberOfVertices) . allDiagrams) $
@@ -38,7 +38,7 @@ main = do
             unless (all (== head invs) invs) $
                 putStrLn $ "Class failed: " ++ show (nub invs)
 
-    writeSVGImage (printf "virtual-link-classes-%i.svg" maxN) (Width 500) $ pad 1.05 $
+    writeSVGImage (printf "virtual-link-classes-%i-%i.svg" targetGenus maxN) (Width 500) $ pad 1.05 $
         vcat' with { _sep = 0.6 } $ do
             cls <- classes
             guard $ any (\ l -> numberOfVertices l <= 4 && numberOfThreads l == 1) cls

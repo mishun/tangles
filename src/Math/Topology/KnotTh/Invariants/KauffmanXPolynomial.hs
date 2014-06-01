@@ -4,7 +4,9 @@ module Math.Topology.KnotTh.Invariants.KauffmanXPolynomial
     , minimalKauffmanXPolynomial
     ) where
 
-import Text.Printf
+import Data.List (partition)
+import qualified Data.Map as M
+import qualified Data.Vector.Unboxed as UV
 import Math.Topology.KnotTh.Invariants.Util.Poly
 import Math.Topology.KnotTh.Invariants.KnotPolynomials
 import Math.Topology.KnotTh.Invariants.KnotPolynomials.KauffmanXStateSum
@@ -33,14 +35,33 @@ instance KnottedWithKauffmanXPolynomial Link where
 
 
 instance KnottedWithKauffmanXPolynomial EmbeddedLink where
-    type KauffmanXPolynomial EmbeddedLink = [((Int, Int), Poly2)]
+    type KauffmanXPolynomial EmbeddedLink = Poly2
 
-    kauffmanXPolynomial link
-        | numberOfVertices link == 0  = [((0, 0), 1)]
-        | eulerChar link == 2         = [((0, 0), kauffmanXPolynomial (toLink link))]
-        | eulerChar link == 0         = torusDecomposition link
-        | otherwise  =
-            error $ printf "kauffmanXPolynomial: yet implemented for torus only (%i)\n%s" (eulerChar link) (show $ explode link)
+    kauffmanXPolynomial link | numberOfVertices link == 0  = 1
+                             | otherwise                   =
+        case eulerChar link of
+            2 -> kauffmanXPolynomial (toLink link)
+
+            0 -> sum $ do
+                let (dim, weightedLoopSystems) = homologyDecomposition link
+
+                    tab = filter ((/= 0) . snd) $ M.assocs $
+                        foldl (\ m (k, v) -> M.insertWith' (+) k v m) M.empty $ do
+                            (loopSystem, weight) <- weightedLoopSystems
+                            let (trivial, nonTrivial) = partition (UV.all (== 0)) loopSystem
+                                [x, y] = UV.toList $ foldl (UV.zipWith (+)) (UV.replicate dim 0) nonTrivial
+                            return ((x, y), weight * (circleFactor ^ length trivial))
+
+                ((x, y), weight) <- min (torusMinimization tab)
+                                        (torusMinimization $ map (\ ((x, y), a) -> ((x, -y), a)) tab)
+
+                return $ weight * monomial 1 "g" (fromIntegral x) * monomial 1 "h" (fromIntegral y)
+
+            _ -> sum $ do
+                let (_, weightedLoopSystems) = homologyDecomposition link
+                (loopSystem, weight) <- weightedLoopSystems
+                let (trivial, nonTrivial) = partition (UV.all (== 0)) loopSystem
+                return $ weight * (circleFactor ^ length trivial) * monomial 1 "x" (fromIntegral $ length nonTrivial)
 
     minimalKauffmanXPolynomial link =
         min (kauffmanXPolynomial link) (kauffmanXPolynomial $ invertCrossings link)

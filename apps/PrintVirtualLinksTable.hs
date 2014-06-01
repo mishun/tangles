@@ -23,12 +23,12 @@ import TestUtil.Drawing
 
 main :: IO ()
 main = do
-    [maxN] <- fmap (map read) getArgs
+    [targetGenus, maxN] <- fmap (map read) getArgs
 
     let diagrams =
             filter (\ link -> not (isReidemeisterReducible link) && testPrime link) $
                 tangleStarGlue
-                    (filter ((== 1) . genusOfChordDiagram . fst) . listChordDiagrams . generateNonPlanarRaw)
+                    (filter ((== targetGenus) . genusOfChordDiagram . fst) . listChordDiagrams . generateNonPlanarRaw)
                     (forCCP_ $ primeIrreducibleDiagrams maxN)
 
     let sifted =
@@ -44,7 +44,7 @@ main = do
     putStrLn $ printf "Collision classes: %i" (length $ collisionClasses sifted)
 
     when (length (collisionClasses sifted) > 0) $ do
-        writeSVGImage (printf "torus-links-collisions-%i.svg" maxN) (Width 500) $ pad 1.05 $
+        writeSVGImage (printf "virtual-links-collisions-%i-%i.svg" targetGenus maxN) (Width 500) $ pad 1.05 $
             vcat' with { _sep = 0.5 } $ do
                 cls <- map (map representative) $ collisionClasses sifted
                 return $ hcat' with { _sep = 0.2 } $ do
