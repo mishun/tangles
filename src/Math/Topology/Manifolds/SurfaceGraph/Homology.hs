@@ -13,11 +13,12 @@ kernelBasis :: V.Vector (UV.Vector Int) -> V.Vector (UV.Vector Int)
 kernelBasis =
     let gaussianElimination h w =
             let normalize v =
-                    case UV.foldl1 gcd v of
-                        0 -> v
-                        g -> UV.map (`div` g) v
+                    let g = UV.foldl1 gcd v
+                    in if g <= 1
+                        then v
+                        else UV.map (`div` g) v
 
-                go y x a | (y >= h) || (x >= w)  = a
+                go y x a | (y >= h) || (x >= w)  = V.map normalize a
                          | otherwise             =
                     let lead = a V.! y
                     in case lead UV.! x of
@@ -29,10 +30,12 @@ kernelBasis =
                         pivot -> go (y + 1) (x + 1) $
                             V.map normalize $ V.imap
                                 (\ i row ->
-                                    if i == y
-                                        then row
-                                        else let pivot' = row UV.! x
-                                             in UV.zipWith (\ l r -> l * pivot - r * pivot') row lead
+                                    case i == y of
+                                        True | pivot > 0 -> row
+                                             | otherwise -> UV.map (0 -) row
+                                        False            ->
+                                            let pivot' = row UV.! x
+                                            in UV.zipWith (\ l r -> l * pivot - r * pivot') row lead
                                 ) a
             in go 0 0
 
@@ -41,10 +44,9 @@ kernelBasis =
             0 -> V.empty
             m -> let n = UV.length (src V.! 0)
                      a = gaussianElimination n m $
-                             V.generate n (\ y ->
+                             V.generate n $ \ y ->
                                  UV.generate m ((UV.! y) . (src V.!)) UV.++
                                      (UV.replicate n 0 UV.// [(y, 1)])
-                             )
                  in V.map snd $ V.filter (UV.all (== 0) . fst) $ V.map (UV.splitAt m) a
 
 
