@@ -13,7 +13,7 @@ import Math.Topology.KnotTh.Moves.Moves
 testMovesPictures :: (Renderable (Path R2) b, Renderable Text b, Backend b R2) => [(String, Diagram b R2)]
 testMovesPictures =
     let illustratedMove move knot =
-            let draw = scale 4 . freeze . drawKnotDef
+            let draw = scale 4 . drawKnotDef
                 right = hcat' with { _sep = 0.5 } $ map draw $ move knot
             in draw knot ||| (strutX 8 <> text "->") ||| right
 

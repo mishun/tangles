@@ -1,3 +1,4 @@
+Cabal := cabal-dev
 Bin := bin
 Obj := dist/build
 GHCOpts := -Wall -O -XBangPatterns -threaded
@@ -8,11 +9,15 @@ all: build
 
 .PHONY: config-dev
 config-dev:
-	cabal-dev configure --enable-tests -fenable-test-modules
+	$(Cabal) configure --enable-tests -fenable-test-modules
 
 .PHONY: build
 build:
-	cabal-dev build
+	$(Cabal) build
+
+.PHONY: clean
+clean:
+	$(Cabal) clean
 
 
 AppsBinaries := $(patsubst apps/%.hs,$(Bin)/%, $(wildcard apps/*.hs))

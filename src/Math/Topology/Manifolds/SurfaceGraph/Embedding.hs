@@ -6,21 +6,21 @@ module Math.Topology.Manifolds.SurfaceGraph.Embedding
 
 import Data.Maybe (fromJust)
 import Data.List (find, groupBy)
-import Data.Array.IArray ((!), array, listArray)
-import Data.Array (Array)
+import qualified Data.Array as A
+import qualified Data.Vector.Unboxed as UV
 import Math.Topology.Manifolds.SurfaceGraph.Definition
 import Math.Topology.Manifolds.SurfaceGraph.Barycentric
 import Math.Topology.Manifolds.SurfaceGraph.Embedding.QuadraticInitialization
 import Math.Topology.Manifolds.SurfaceGraph.Embedding.RelaxEmbedding
 
 
-embeddingInCircleWithVertexRooting :: Int -> Vertex SurfaceGraph a -> Array (Dart SurfaceGraph a) [(Double, Double)]
+embeddingInCircleWithVertexRooting :: Int -> Vertex SurfaceGraph a -> A.Array (Dart SurfaceGraph a) [(Double, Double)]
 embeddingInCircleWithVertexRooting smoothing vertex =
     relaxEmbedding 0 (Left vertex) $
         circleEmbeddingInitialization smoothing (Left vertex)
 
 
-embeddingInCircleWithFaceRooting :: Int -> Face SurfaceGraph a -> Array (Dart SurfaceGraph a) [(Double, Double)]
+embeddingInCircleWithFaceRooting :: Int -> Face SurfaceGraph a -> A.Array (Dart SurfaceGraph a) [(Double, Double)]
 embeddingInCircleWithFaceRooting smoothing face =
     relaxEmbedding 0 (Right face) $
         circleEmbeddingInitialization (max 1 smoothing) (Right face)
@@ -28,11 +28,11 @@ embeddingInCircleWithFaceRooting smoothing face =
 
 embeddingInPolygonWithGrouping
     :: (Dart SurfaceGraph a -> Bool) -> Int -> Vertex SurfaceGraph a
-        -> (Int, Array (Dart SurfaceGraph a) [(Double, Double)])
+        -> (Int, UV.Vector (Int, Int), A.Array (Dart SurfaceGraph a) [(Double, Double)])
 
 embeddingInPolygonWithGrouping sameGroupAsCW subdivisionOrder root
     | numberOfGroups < 3  = error "embeddingInPolygonWithGrouping: there are less than 3 groups"
-    | otherwise           = (numberOfGroups, relaxEmbedding numberOfGroups (Left root) embedding)
+    | otherwise           = (numberOfGroups, groupLookup, relaxEmbedding numberOfGroups (Left root) embedding)
     where
         subdivision level v border
             | level <= 1  = quadraticEmbedding v border
@@ -52,16 +52,15 @@ embeddingInPolygonWithGrouping sameGroupAsCW subdivisionOrder root
                          dropWhile sameGroupAsCW $
                              ds ++ ds
 
-        groupLookup :: Array Int (Int, Int)
-        groupLookup = array (0, l - 1) $ do
+        groupLookup = (UV.replicate l (0, 0) UV.//) $ do
             (groupId, group) <- [0 ..] `zip` groups
             (inGroupId, d) <- [0 ..] `zip` group
             return (beginPlace d, (groupId, inGroupId))
 
         numberOfGroups = length groups
 
-        groupSize :: Array Int Int
-        groupSize = listArray (0, numberOfGroups - 1) $ map length groups
+
+        groupSize = UV.fromListN numberOfGroups $ map length groups
 
         embedding =
             let g = vertexOwner root
@@ -77,14 +76,14 @@ embeddingInPolygonWithGrouping sameGroupAsCW subdivisionOrder root
                             in (cos a * x0 - sin a * y0, sin a * x0 + cos a * y0)
 
                     i <- [0 .. l - 1]
-                    let (gi, p) = groupLookup ! i
-                        sz = groupSize ! gi
+                    let (gi, p) = groupLookup UV.! i
+                        sz = groupSize UV.! gi
                     [put gi (2 * sz) (2 * p + 1), put gi (2 * sz) (2 * p + 2)]
 
 
 circleEmbeddingInitialization
     :: Int -> Either (Vertex SurfaceGraph a) (Face SurfaceGraph a)
-        -> Array (Dart SurfaceGraph a) [(Double, Double)]
+        -> A.Array (Dart SurfaceGraph a) [(Double, Double)]
 
 circleEmbeddingInitialization subdivisionOrder root
     | subdivisionOrder <= 0  =
@@ -113,19 +112,19 @@ circleEmbeddingInitialization subdivisionOrder root
 
 barycentricProjection
     :: SurfaceGraph a -> [(Vertex SurfaceGraph b, (Dart SurfaceGraph a, Dart SurfaceGraph a))]
-        -> Array (Dart SurfaceGraph b) [(Double, Double)]
-            -> Array (Dart SurfaceGraph a) [(Double, Double)]
+        -> A.Array (Dart SurfaceGraph b) [(Double, Double)]
+            -> A.Array (Dart SurfaceGraph a) [(Double, Double)]
 
 barycentricProjection g vd be =
-    array (dartsRange g) $ do
+    A.array (dartsRange g) $ do
         (v, (a, b)) <- vd
-        let l = reverse (be ! nthOutcomingDart v 0)
-                ++ tail (be ! nthOutcomingDart v 2)
+        let l = reverse (be A.! nthOutcomingDart v 0)
+                ++ tail (be A.! nthOutcomingDart v 2)
         [(a, l), (b, reverse l)]
 
 
-quadraticEmbedding :: Vertex SurfaceGraph a -> [(Double, Double)] -> Array (Dart SurfaceGraph a) [(Double, Double)]
+quadraticEmbedding :: Vertex SurfaceGraph a -> [(Double, Double)] -> A.Array (Dart SurfaceGraph a) [(Double, Double)]
 quadraticEmbedding v border =
     let g = vertexOwner v
         c = quadraticInitialization 0.99 v border
-    in listArray (dartsRange g) $ map (\ d -> [c ! d, c ! opposite d]) $ allHalfEdges g
+    in A.listArray (dartsRange g) $ map (\ d -> [c A.! d, c A.! opposite d]) $ allHalfEdges g

@@ -1,3 +1,4 @@
+{-# LANGUAGE TypeFamilies #-}
 module Math.Combinatorics.ChordDiagram.Draw
     ( DrawCDSettings(..)
     , drawCDInsideCircle
@@ -33,12 +34,12 @@ defaultDraw = DrawCDSettings
     }
 
 
-styleBorder :: (HasStyle c) => DrawCDSettings -> c -> c
-styleBorder s = dashing (borderDashing s) 0 . lineWidth (borderWidth s) . lineColor (borderColour s)
+styleBorder :: (HasStyle c, V c ~ R2) =>  DrawCDSettings -> c -> c
+styleBorder s = dashingL (borderDashing s) 0 . lwL (borderWidth s) . lc (borderColour s)
 
 
-styleLine :: (HasStyle c) => DrawCDSettings -> c -> c
-styleLine s = lineWidth (threadWidth s) . lineColor (threadColour s)
+styleLine :: (HasStyle c, V c ~ R2) =>  DrawCDSettings -> c -> c
+styleLine s = lwL (threadWidth s) . lc (threadColour s)
 
 
 drawCDInsideCircle :: (Renderable (Path R2) b) => DrawCDSettings -> ChordDiagram -> Diagram b R2
@@ -49,9 +50,8 @@ drawCDInsideCircle s cd =
 
     in execWriter $ do
         when (endpointsRadius s > 0.0) $
-            tell $ fillColor (threadColour s) $ lineWidth 0 $ execWriter $
-                forM_ [0 .. p - 1] $ \ !i ->
-                    tell $ translate (r2 $ polar 1 $ angle i) $ circle (endpointsRadius s)
+            tell $ fc (threadColour s) $ lwL 0 $ mconcat $
+                map (\ i -> translate (r2 $ polar 1 $ angle i) $ circle (endpointsRadius s)) [0 .. p - 1]
 
         when (borderWidth s > 0.0) $
             tell $ styleBorder s $ circle 1

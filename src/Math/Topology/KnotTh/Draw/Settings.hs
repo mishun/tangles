@@ -1,3 +1,4 @@
+{-# LANGUAGE TypeFamilies #-}
 module Math.Topology.KnotTh.Draw.Settings
     ( DrawKnotSettings(..)
     , defaultDraw
@@ -5,8 +6,6 @@ module Math.Topology.KnotTh.Draw.Settings
     , drawThreads
     ) where
 
-import Control.Monad.Writer (execWriter, tell)
-import Control.Monad (forM_)
 import Diagrams.Prelude
 
 
@@ -35,15 +34,16 @@ defaultDraw =
         }
 
 
-styleBorder :: (HasStyle c) => DrawKnotSettings -> c -> c
-styleBorder s = dashing (borderDashing s) 0 . lineWidth (borderWidth s) . lineColor (borderColour s)
+styleBorder :: (HasStyle c, V c ~ R2) => DrawKnotSettings -> c -> c
+styleBorder s = dashingL (borderDashing s) 0 . lwL (borderWidth s) . lineColor (borderColour s)
 
 
 drawThreads :: (Renderable (Path R2) b) => DrawKnotSettings -> [Either [(Double, Double)] [(Double, Double)]] -> Diagram b R2
 drawThreads s threads =
-    lineCap LineCapRound $ lineJoin LineJoinRound $ lineWidth (threadWidth s) $ lineColor (threadColour s) $
-        execWriter $
-            forM_ threads $ \ poly ->
-                    tell $ case poly of
-                        Left vertices  -> cubicSpline False $ map p2 vertices
-                        Right vertices -> cubicSpline True $ map p2 vertices
+    lineCap LineCapRound $ lineJoin LineJoinRound $ lwL (threadWidth s) $ lc (threadColour s) $
+        mconcat $ do
+            poly <- threads
+            return $ case poly of
+                Left vertices  -> cubicSpline False $ map p2 vertices
+                Right vertices -> cubicSpline True $ map p2 vertices
+
