@@ -2,17 +2,17 @@ module Main where
 
 import System.Environment (getArgs)
 import Diagrams.Prelude
+import Diagrams.Backend.Cairo
 import Math.Topology.KnotTh.Link
 import Math.Topology.KnotTh.Tangle
 import Math.Topology.KnotTh.EmbeddedLink
 import Math.Topology.KnotTh.Draw
-import TestUtil.Drawing
 
 
 main :: IO ()
 main = do
-    [file, knotType, representation] <- getArgs
-    writeSVGImage file (Width 500) $ pad 1.05 $
+    [filePath, knotType, representation] <- getArgs
+    renderCairo filePath (Width 512) $ pad 1.05 $
         case knotType of
             "EmbeddedLinkDiagram"    -> drawKnotDef (implode (read representation) :: EmbeddedLinkDiagram)
             "EmbeddedLinkProjection" -> drawKnotDef (implode (read representation) :: EmbeddedLinkProjection)

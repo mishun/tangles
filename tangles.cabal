@@ -145,10 +145,7 @@ library
             QuickCheck ==2.*,
             test-framework,
             test-framework-hunit,
-            test-framework-quickcheck2,
-            diagrams-svg >= 1.0,
-            diagrams-postscript >= 1.0,
-            blaze-svg
+            test-framework-quickcheck2
         exposed-modules:
             Math.Combinatorics.ChordDiagram.Test,
             Math.Combinatorics.Strings.Test,
@@ -158,7 +155,6 @@ library
             Math.Topology.KnotTh.Moves.Test,
             Math.Topology.KnotTh.Tangle.Test,
             Math.Topology.KnotTh.Tabulation.Test,
-            TestUtil.Drawing,
             TestUtil.Table,
             TestUtil.TestCollection
     else

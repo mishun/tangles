@@ -10,6 +10,7 @@ import Text.Printf
 import System.IO (withFile, IOMode(..), hPrint)
 import System.Environment (getArgs)
 import Diagrams.Prelude
+import Diagrams.Backend.Cairo
 import Math.Combinatorics.ChordDiagram (generateNonPlanarRaw, listChordDiagrams, genusOfChordDiagram)
 import Math.Topology.KnotTh.EmbeddedLink
 import Math.Topology.KnotTh.EmbeddedLink.TestPrime
@@ -25,7 +26,6 @@ import Math.Topology.KnotTh.Enumeration.DiagramInfo.MinimalDiagramInfo
 import Math.Topology.KnotTh.Enumeration.DiagramInfo.AllDiagramsInfo
 import Math.Topology.KnotTh.Moves.MovesOfELink
 import TestUtil.Table
-import TestUtil.Drawing
 
 {-
 generateAlternatingSkeletons :: Int -> IO ()
@@ -71,7 +71,7 @@ main = do
                 equivalenceClasses (map (map reidemeisterReduction .) [reidemeisterIII, movesOfELink]) $
                     forM_ diagrams
 
-        writeSVGImage "data/classes.svg" (Width 500) $ pad 1.05 $
+        renderCairo "data/classes.svg" (Width 500) $ pad 1.05 $
             vcat' with { _sep = 0.6 } $ do
                cls <- classes
                guard $ any (\ l -> numberOfVertices l <= 4 && numberOfThreads l == 1) cls
@@ -104,7 +104,7 @@ main = do
     do
         let classes = map (map representative) $ collisionClasses sifted
 
-        writeSVGImage "data/collisions.svg" (Width 500) $ pad 1.05 $
+        renderCairo "data/collisions.svg" (Width 500) $ pad 1.05 $
             vcat' with { _sep = 0.5 } $ do
                 cls <- classes
                 return $ hcat' with { _sep = 0.2 } $ do
@@ -127,7 +127,7 @@ main = do
             links = filter ((> 0) . numberOfVertices) $
                         mapMaybe maybePrimeDiagram $ singleRepresentativeClasses sifted
 
-        writeSVGImage "data/links.svg" (Width 500) $ pad 1.05 $
+        renderCairo "data/links.svg" (Width 500) $ pad 1.05 $
             vcat' with { _sep = 5 } $ do
                 byThreads <- group' numberOfThreads links
                 return $ hcat' with { _sep = 3 } $ do

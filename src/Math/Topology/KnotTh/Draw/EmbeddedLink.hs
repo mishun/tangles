@@ -70,7 +70,7 @@ surfaceLinkImage s _ groups img =
                         , _polyOrient = OrientV
                         }
 
-        , fontSize (Normalized 10) $ mconcat $ do
+        , fontSize (Local 0.1) $ mconcat $ do
             let placeTag i =
                     let a = 2 * pi * fromIntegral i / fromIntegral ng
                         r = 1.2

@@ -6,6 +6,7 @@ import Control.Monad (when, forM_)
 import Text.Printf
 import System.Environment (getArgs)
 import Diagrams.Prelude
+import Diagrams.Backend.Cairo
 import Math.Topology.KnotTh.Link
 import Math.Topology.KnotTh.Tangle
 import Math.Topology.KnotTh.Tabulation.LinkDiagrams
@@ -17,7 +18,6 @@ import Math.Topology.KnotTh.Enumeration.SiftByInvariant
 import Math.Topology.KnotTh.Enumeration.DiagramInfo
 import Math.Topology.KnotTh.Enumeration.DiagramInfo.MinimalDiagramInfo
 import TestUtil.Table
-import TestUtil.Drawing
 
 
 main :: IO ()
@@ -57,7 +57,7 @@ main = do
     putStrLn $ printf "Collision classes: %i" (length $ collisionClasses sifted)
 
     when (length (collisionClasses sifted) > 0) $
-        writeSVGImage (printf "links-collisions-%i.svg" maxN) (Width 500) $ pad 1.05 $
+        renderCairo (printf "links-collisions-%i.svg" maxN) (Width 500) $ pad 1.05 $
             vcat' with { _sep = 0.5 } $ do
                 cls <- map (map representative) $ collisionClasses sifted
                 return $ hcat' with { _sep = 0.2 } $ do
