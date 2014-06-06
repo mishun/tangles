@@ -46,4 +46,3 @@ drawThreads s threads =
             return $ case poly of
                 Left vertices  -> cubicSpline False $ map p2 vertices
                 Right vertices -> cubicSpline True $ map p2 vertices
-

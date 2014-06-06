@@ -4,8 +4,7 @@ module Math.Topology.KnotTh.Draw.DrawCrossing
 
 import Data.Either (lefts)
 import Data.List (groupBy)
-import Data.Array.IArray ((!))
-import Data.Array (Array)
+import qualified Data.Array as A
 import Control.Monad (mfilter)
 import Math.Topology.KnotTh.Crossings.Projection
 import Math.Topology.KnotTh.Crossings.Diagram
@@ -14,7 +13,7 @@ import Math.Topology.KnotTh.Draw.Settings
 
 
 cutThread :: (KnottedPlanar k) => [(Dart k a, Dart k a)]
-    -> Array (Dart k a) (Either [(Double, Double)] ([(Double, Double)], [(Double, Double)]))
+    -> A.Array (Dart k a) (Either [(Double, Double)] ([(Double, Double)], [(Double, Double)]))
         -> (Dart k a -> Bool) -> ((Maybe (Dart k a), Maybe (Dart k a)) -> [(Double, Double)] -> x)
             -> [Either x [(Double, Double)]]
 
@@ -25,7 +24,7 @@ cutThread thread embedding isCut process
         concatMap processCuts $
             let (pre, post) = break (isBreak . fst) thread
                 (h@(a, b)) : t = post
-                Right (_, chainB) = embedding ! a
+                Right (_, chainB) = embedding A.! a
             in matchBreaks [] [((Nothing, Just b), chainB)] (t ++ pre ++ [h])
 
     | hasCuts                        =
@@ -36,17 +35,17 @@ cutThread thread embedding isCut process
                 else thread
 
     | otherwise                      =
-        [ Right $ concat $ zipWith ($) (id : repeat tail) $ lefts $ map ((embedding !) . fst) thread ]
+        [ Right $ concat $ zipWith ($) (id : repeat tail) $ lefts $ map ((embedding A.!) . fst) thread ]
 
     where
-        isBreak = either (const False) (const True) . (embedding !)
+        isBreak = either (const False) (const True) . (embedding A.!)
 
         circleThread = isDart $ fst $ head thread
         hasBreaks = any (\ (a, b) -> isBreak a || isBreak b) thread
         hasCuts = not (isDart $ fst $ head thread) || any (\ (a, b) -> isCut a || isCut b) thread
 
         matchBreaks chunks chunk ((a, b) : rest) =
-            case embedding ! a of
+            case embedding A.! a of
                 Left chain             -> matchBreaks chunks (((Just a, Just b), chain) : chunk) rest
                 Right (chainA, chainB) ->
                     let nextChunk = ((Just a, Nothing), chainA) : chunk
@@ -54,7 +53,7 @@ cutThread thread embedding isCut process
         matchBreaks chunks _ [] = chunks
 
         noBreaks = map (\ (a, b) ->
-                let Left chain = embedding ! a
+                let Left chain = embedding A.! a
                 in ((Just a, Just b), chain)
             )
 
@@ -74,7 +73,7 @@ cutThread thread embedding isCut process
 class (ThreadedCrossing a) => DrawableCrossing a where
     crossingDependentSegmentation
         :: (KnottedPlanar k) => DrawKnotSettings -> k a
-            -> Array (Dart k a) (Either [(Double, Double)] ([(Double, Double)], [(Double, Double)]))
+            -> A.Array (Dart k a) (Either [(Double, Double)] ([(Double, Double)], [(Double, Double)]))
                 -> [Either [(Double, Double)] [(Double, Double)]]
 
 
