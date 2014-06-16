@@ -109,16 +109,18 @@ instance (DrawableCrossing a) => DrawableKnotted (EmbeddedLink a) where
                 return (groupId a, groupId b)
 
         in mconcat
-            [ fontSize (Local 0.18) $ styleBorder s $ mconcat $ do
-                let da = 2 * pi / fromIntegral numberOfGroups
+            [ styleBorder s $ polygon (with & polyType .~ PolyRegular numberOfGroups 1 & polyOrient .~ OrientV)
+
+            , fontSize (Local 0.18) $ styleBorder s $ mconcat $ do
+                let da = -2 * pi / fromIntegral numberOfGroups
                     tagR = cos (da / 2) + 0.16
                     polar r a = (r * cos a, r * sin a)
                 (i, tag) <- zip (filter (\ i -> i < (groups UV.! i)) [0 .. numberOfGroups - 1])
                                 (fix $ \ ts -> [t ++ [h] | t <- "" : ts, h <- ['a' .. 'z']])
-                let put a d = translate (r2 $ polar tagR a) (text tag)
-                                <> arrowBetween' (with & headLength .~ Local 0.05)
+                let put a _ = translate (r2 $ polar tagR a) (text tag)
+                                {- <> arrowBetween' (with & headLength .~ Local 0.05)
                                                  (p2 $ polar 1 $ a - d)
-                                                 (p2 $ polar 1 $ a + d)
+                                                 (p2 $ polar 1 $ a + d) -}
                 [put (da * fromIntegral i) (da / 2), put (da * fromIntegral (groups UV.! i)) (-da / 2)]
 
             , drawThreads s $ crossingDependentSegmentation s link $
