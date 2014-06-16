@@ -6,8 +6,7 @@ module Math.Topology.KnotTh.Moves.MovesOfELink
 import Data.Maybe (mapMaybe)
 import Data.List ((\\), subsequences)
 import qualified Data.Set as S
-import Data.Array.IArray ((!), (//), listArray)
-import Data.Array.Unboxed (UArray)
+import qualified Data.Vector.Unboxed as UV
 import Control.Monad.State (execState, gets, modify)
 import Control.Monad (MonadPlus(..), unless, guard)
 import Math.Topology.KnotTh.EmbeddedLink
@@ -44,13 +43,12 @@ instance MonadPlus (PatternM s a) where
 
 subTangleP :: Int -> PatternM s a ([Dart EmbeddedLink a], [Vertex EmbeddedLink a])
 subTangleP legs =
-    PatternM $ \ (PatternS reorder tangle cs) -> do
+    PatternM $ \ (PatternS reorder link cs) -> do
         subList <- subsequences cs
         guard $ not $ null subList
 
-        let sub :: UArray Int Bool
-            sub = listArray (vertexIndicesRange tangle) (repeat False)
-                    // map (\ d -> (vertexIndex d, True)) subList
+        let sub = UV.replicate (numberOfVertices link + 1) False
+                    UV.// map (\ d -> (vertexIndex d, True)) subList
 
         guard $
             let mask = execState (dfs $ head subList) S.empty
@@ -59,7 +57,7 @@ subTangleP legs =
                     unless visited $ do
                         modify $ S.insert c
                         mapM_ dfs $
-                            filter ((sub !) . vertexIndex) $
+                            filter ((sub UV.!) . vertexIndex) $
                                 mapMaybe endVertexM $ outcomingDarts c
             in all (`S.member` mask) subList
 
@@ -67,7 +65,7 @@ subTangleP legs =
                 let yx = opposite xy
                     x = beginVertex xy
                     y = beginVertex yx
-                in (sub ! vertexIndex x) && not (sub ! vertexIndex y)
+                in (sub UV.! vertexIndex x) && not (sub UV.! vertexIndex y)
 
         let border = filter onBorder $ concatMap outcomingDarts cs
         guard $ legs == length border
@@ -80,17 +78,20 @@ subTangleP legs =
                 in restoreOutcoming [] (opposite $ head border)
 
         guard $ legs == length borderCCW
+        guard $
+            let faces = filter (all (\ d -> sub UV.! vertexIndex (beginVertex d)) . faceTraverseCCW) $ allFaces link
+            in length faces - length subList + (legs `div` 2) == 1
 
         i <- [0 .. legs - 1]
-        return (PatternS reorder tangle (cs \\ subList), (reorder $ drop i borderCCW ++ take i borderCCW, subList))
+        return (PatternS reorder link (cs \\ subList), (reorder $ drop i borderCCW ++ take i borderCCW, subList))
 
 
 crossingP :: PatternM s a ([Dart EmbeddedLink a], Vertex EmbeddedLink a)
 crossingP =
-    PatternM $ \ (PatternS reorder tangle cs) ->
+    PatternM $ \ (PatternS reorder link cs) ->
         let try res _ [] = res
             try res skipped (cur : rest) =
-                let next = PatternS reorder tangle (skipped ++ rest)
+                let next = PatternS reorder link (skipped ++ rest)
                     sh i = let od = outcomingDarts cur
                            in reorder $ drop i od ++ take i od
                 in try ((next, (sh 0, cur)) : (next, (sh 1, cur)) : (next, (sh 2, cur)) : (next, (sh 3, cur)) : res) (cur : skipped) rest
@@ -107,8 +108,8 @@ connectionNonAltP = mapM_ (\ (a, b) -> guard (opposite a == b && passOver a == p
 
 reconnectP :: (Show a) => (forall s. ModifyELinkM a s ()) -> PatternM s' a (EmbeddedLink a)
 reconnectP m =
-    PatternM $ \ s@(PatternS _ tangle _) ->
-        [(s, modifyELink tangle m)]
+    PatternM $ \ s@(PatternS _ link _) ->
+        [(s, modifyELink link m)]
 
 
 movesOfELink :: EmbeddedLinkDiagram -> [EmbeddedLinkDiagram]
