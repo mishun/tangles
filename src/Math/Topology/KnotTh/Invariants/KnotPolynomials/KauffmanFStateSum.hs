@@ -24,19 +24,17 @@ import Math.Topology.KnotTh.Invariants.Util.Poly
 
 
 class (Eq a, Ord a, Num a) => KauffmanFArg a where
-    twistPFactor, twistNFactor  :: a
-    smoothFactor, smoothFactor' :: a
-    circleFactor                :: a
-    swapTwists                  :: a -> a
+    twistFactor  :: Int -> a
+    smoothFactor :: a
+    circleFactor :: a
+    swapTwists   :: a -> a
 
 
 instance KauffmanFArg Poly2 where
-    twistPFactor = monomial2 1 "a" 1
-    twistNFactor = monomial2 1 "a" (-1)
-    smoothFactor = monomial2 1 "z" 1
-    smoothFactor' = monomial2 1 "z" (-1)
-    circleFactor = (twistPFactor + twistNFactor) * smoothFactor' - 1
-    swapTwists = invert2 "a"
+    twistFactor p = monomial2 1 "a" (fromIntegral p / 1)
+    smoothFactor  = monomial2 1 "z" 1
+    circleFactor  = (twistFactor 1 + twistFactor (-1)) * monomial2 1 "z" (-1) - 1
+    swapTwists    = invert2 "a"
 
 
 data ChordDiagram a = ChordDiagram !(UV.Vector Int) !a deriving (Eq, Ord)
@@ -205,13 +203,10 @@ decomposeTangle path !initialFactor !tangle' =
                                 in [(i, j), (j, i)]
                             _                    -> []
 
-                w = selfWrithe tangle
-
             in {- (if length path >= 10 then trace (show $ explode tangle' : path) else id) $ -}
                     (: map (uncurry $ decomposeTangle (explode tangle' : path)) inter) $
-                        singletonStateSum $ ChordDiagram a $ factor *
-                            ((if w >= 0 then twistPFactor else twistNFactor) ^ abs w) *
-                                (circleFactor ^ (n - numberOfLegs tangle `div` 2))
+                        singletonStateSum $ ChordDiagram a $
+                            factor * twistFactor (selfWrithe tangle) * circleFactor ^ (n - numberOfLegs tangle `div` 2)
 
         splices (h : r) toInvert factor inter =
             let a = (factor * smoothFactor, modifyTangle tangle' $ modifyC False invertCrossing toInvert >> smoothA h >> greedy [reduce2nd])
@@ -226,9 +221,7 @@ instance (KauffmanFArg a) => Monoid (ChordDiagramsSum a) where
 
     mappend a b =
        let c = takeAsScalar a * takeAsScalar b
-       in ChordDiagramsSum 0 $ if c == 0
-           then []
-           else [ChordDiagram UV.empty c]
+       in ChordDiagramsSum 0 [ChordDiagram UV.empty c | c /= 0]
 
 
 instance (KauffmanFArg a) => PlanarStateSum (ChordDiagramsSum a) where
@@ -318,12 +311,7 @@ instance (KauffmanFArg a) => SkeinRelation ChordDiagramsSum a where
             ]
 
     finalNormalization tangle =
-        let factor =
-                let writheFactor =
-                        let w = selfWrithe tangle
-                        in (if w <= 0 then twistPFactor else twistNFactor) ^ abs w
-                    loopsFactor = circleFactor ^ numberOfFreeLoops tangle
-                in writheFactor * loopsFactor
+        let factor = twistFactor (-selfWrithe tangle) * circleFactor ^ numberOfFreeLoops tangle
         in fmap (* factor)
 
     invertCrossingsAction = fmap swapTwists

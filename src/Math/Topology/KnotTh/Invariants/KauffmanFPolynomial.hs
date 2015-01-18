@@ -33,6 +33,7 @@ normalizedKauffmanFPolynomialOfLink :: LinkDiagram -> Poly2
 normalizedKauffmanFPolynomialOfLink link
     | isEmptyKnotted link  = error "normalizedKauffmanFPolynomialOfLink: empty link provided"
     | otherwise            =
-        normalizeBy2
-            (twistPFactor * smoothFactor * circleFactor)
-            (twistPFactor * smoothFactor * kauffmanFPolynomial link)
+        let common = twistFactor 1 * smoothFactor
+        in normalizeBy2
+            (common * circleFactor)
+            (common * kauffmanFPolynomial link)
