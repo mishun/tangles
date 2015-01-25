@@ -5,7 +5,7 @@ import Control.Monad (when, forM_)
 import System.Environment (getArgs)
 import Text.Printf
 import Diagrams.Prelude
-import Diagrams.Backend.Cairo
+import Diagrams.Backend.SVG
 import Math.Combinatorics.ChordDiagram
 import Math.Combinatorics.ChordDiagram.Draw
 
@@ -30,7 +30,7 @@ main = do
         putStrLn $ printf "%i\t%i\t%f\t%f" n total time (realToFrac total / time)
 
         when draw $
-            renderCairo (printf "chord-diagrams-%i.svg" n) (Width 512) $ pad 1.05 $
+            renderSVG (printf "chord-diagrams-%i.svg" n) (Width 512) $ pad 1.05 $
                 vcat' with { _sep = 0.2 } $ do
                     (cd, _) <- listChordDiagrams $ generateNonPlanarRaw n
                     return $ drawCDInsideCircleDef cd

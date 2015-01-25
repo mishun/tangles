@@ -14,7 +14,7 @@ import Control.Monad (when, forM_, guard, void)
 import Text.Printf
 import System.Environment (getArgs)
 import Diagrams.Prelude
-import Diagrams.Backend.Cairo
+import Diagrams.Backend.SVG
 import qualified Math.Algebra.RotationDirection as R
 import qualified Math.Algebra.Group.D4 as D4
 import Math.Combinatorics.ChordDiagram (generateNonPlanarRaw, listChordDiagrams, genusOfChordDiagram)
@@ -200,7 +200,7 @@ main = do
         (const 1)
         (forM_ projections')
 
-    renderCairo (printf "torus-links-quads-%i.svg" maxN) (Width 500) $ pad 1.05 $
+    renderSVG (printf "torus-links-quads-%i.svg" maxN) (Width 500) $ pad 1.05 $
         vcat' with { _sep = 0.5 } $ do
             linkGroup <- groupBy (on (==) numberOfVertices) quads
             return $ hcat' with { _sep = 0.4 } $ do

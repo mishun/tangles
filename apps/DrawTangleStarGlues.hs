@@ -8,7 +8,7 @@ import Control.Monad (guard)
 import Text.Printf
 import System.Environment (getArgs)
 import Diagrams.Prelude
-import Diagrams.Backend.Cairo
+import Diagrams.Backend.SVG
 import qualified Math.Algebra.Group.Dn as Dn
 import Math.Combinatorics.ChordDiagram (generateNonPlanarRaw, listChordDiagrams, genusOfChordDiagram)
 import Math.Combinatorics.ChordDiagram.Draw (drawCDInsideCircleDef)
@@ -41,7 +41,7 @@ main = do
                     link = fromTangleAndStar cd $ transformTangle g tangle
                 return (unrootedHomeomorphismInvariant link, (link, [(transformTangle g tangle, cd)]))
 
-    renderCairo (printf "TangleStarGlues-%i-%i.svg" targetGenus maxN) (Width 512) $ pad 1.05 $
+    renderSVG (printf "TangleStarGlues-%i-%i.svg" targetGenus maxN) (Width 512) $ pad 1.05 $
         vcat' with { _sep = 0.8 } $ do
             (link, gluings) <- makeDiagrams (forCCP_ $ primeProjections maxN)
             return $ hcat' with { _sep = 0.8 } $ ((drawKnotDef link ||| strutX 1) :) $ do

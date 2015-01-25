@@ -6,7 +6,7 @@ import Control.Monad (unless, forM_, guard)
 import Text.Printf
 import System.Environment (getArgs)
 import Diagrams.Prelude
-import Diagrams.Backend.Cairo
+import Diagrams.Backend.SVG
 import Math.Combinatorics.ChordDiagram (generateNonPlanarRaw, listChordDiagrams, genusOfChordDiagram)
 import Math.Topology.KnotTh.EmbeddedLink
 import Math.Topology.KnotTh.EmbeddedLink.TestPrime
@@ -38,7 +38,7 @@ main = do
             unless (all (== head invs) invs) $
                 putStrLn $ "Class failed: " ++ show (nub invs)
 
-    renderCairo (printf "virtual-link-classes-%i-%i.svg" targetGenus maxN) (Width 500) $ pad 1.05 $
+    renderSVG (printf "virtual-link-classes-%i-%i.svg" targetGenus maxN) (Width 500) $ pad 1.05 $
         vcat' with { _sep = 0.6 } $ do
             cls <- classes
             guard $ any (\ l -> numberOfVertices l <= 4 && numberOfThreads l == 1) cls

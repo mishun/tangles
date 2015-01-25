@@ -2,7 +2,7 @@ module Main (main) where
 
 import Data.Array.IArray ((!))
 import Diagrams.Prelude
-import Diagrams.Backend.Cairo
+import Diagrams.Backend.SVG
 import Math.Topology.Manifolds.SurfaceGraph
 
 
@@ -12,7 +12,7 @@ main = do
     --let g = constructFromList [[(0, 1), (0, 0)]]
     --let e = embeddingWithFaceRooting (3 :: Int) (head $ graphFaces g)
     let e = embeddingInCircleWithVertexRooting (3 :: Int) (head $ allVertices g)
-    renderCairo "example-graph-drawing.svg" (Width 1000) $ mconcat $ do
+    renderSVG "example-graph-drawing.svg" (Width 1000) $ mconcat $ do
         (a, _) <- allEdges g
         id  [ lwL 0.006 $ fromVertices $ map p2 $ e ! a
             , mconcat $ do

@@ -2,7 +2,7 @@ module Main where
 
 import System.Environment (getArgs)
 import Diagrams.Prelude
-import Diagrams.Backend.Cairo
+import Diagrams.Backend.SVG
 import Math.Topology.KnotTh.Link
 import Math.Topology.KnotTh.Tangle
 import Math.Topology.KnotTh.EmbeddedLink
@@ -12,7 +12,7 @@ import Math.Topology.KnotTh.Draw
 main :: IO ()
 main = do
     [filePath, knotType, representation] <- getArgs
-    renderCairo filePath (Width 512) $ pad 1.05 $
+    renderSVG filePath (Width 512) $ pad 1.05 $
         case knotType of
             "EmbeddedLinkDiagram"    -> drawKnotDef (implode (read representation) :: EmbeddedLinkDiagram)
             "EmbeddedLinkProjection" -> drawKnotDef (implode (read representation) :: EmbeddedLinkProjection)
@@ -21,4 +21,3 @@ main = do
             "TangleDiagram"          -> drawKnotDef (implode (read representation) :: TangleDiagram)
             "TangleProjection"       -> drawKnotDef (implode (read representation) :: TangleProjection)
             _                        -> error "unknown knot type"
-
