@@ -16,7 +16,6 @@ homepage:           http://github.com/mishun/tangles/
 source-repository head
     type:     git
     location: https://github.com/mishun/tangles.git
-    subdir:   code/
 
 
 flag enable-test-modules
