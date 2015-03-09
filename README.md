@@ -15,7 +15,6 @@ See following papers for further details:
 Building
 --------
 
-Sources are located in the code/ subdirectory.
 To build Tangles you will need:
 
   - GCC with g++ at least 4.7
