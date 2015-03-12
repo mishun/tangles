@@ -201,7 +201,7 @@ makeContext alg weight = do
 
     return $! s
 
-
+{-
 dumpStateST :: (Show a) => Context s a -> ST s String
 dumpStateST s = do
     cross <- forM [1 .. size s] $ \ i -> do
@@ -219,7 +219,7 @@ dumpStateST s = do
     alive' <- readSTRef $ alive s
     multiple' <- readSTRef $ multiple s
     return $ printf "\nalive = %i\nmultiple=%s\n%s" alive' (show multiple') $ unlines cross
-
+-}
 
 appendMultipleST :: (PlanarStateSum a) => Context s a -> a -> ST s ()
 appendMultipleST s x =
@@ -296,8 +296,8 @@ setStateSumST :: Context s a -> Int -> a -> ST s ()
 setStateSumST s = MV.write (state s)
 
 
-numberOfAliveVerticesST :: Context s a -> ST s Int
-numberOfAliveVerticesST s = readSTRef $ alive s
+--numberOfAliveVerticesST :: Context s a -> ST s Int
+--numberOfAliveVerticesST s = readSTRef $ alive s
 
 
 aliveVerticesST :: Context s a -> ST s [Int]

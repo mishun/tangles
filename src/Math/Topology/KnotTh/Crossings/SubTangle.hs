@@ -65,7 +65,7 @@ instance (Show a) => Show (SubTangleCrossing a) where
 
 instance Crossing (SubTangleCrossing a) where
     {-# INLINE mirrorCrossing #-}
-    mirrorCrossing s = s { orientation = D4.e D4.<*> orientation s }
+    mirrorCrossing s = s { orientation = D4.e D4.∘ orientation s }
 
     {-# INLINE globalTransformations #-}
     globalTransformations _ = Nothing
@@ -74,14 +74,14 @@ instance Crossing (SubTangleCrossing a) where
     crossingCode dir d =
         let p = beginPlace d
             cr = vertexCrossing $ beginVertex d
-            t = D4.fromReflectionRotation (R.isClockwise dir) (-p) D4.<*> orientation cr
+            t = D4.fromReflectionRotation (R.isClockwise dir) (-p) D4.∘ orientation cr
         in (# code cr, D4.equivalenceClassId (symmetry cr) t #)
 
     {-# INLINE crossingCodeWithGlobal #-}
     crossingCodeWithGlobal global dir d =
         let p = beginPlace d
             cr = vertexCrossing $ beginVertex d
-            t = D4.fromReflectionRotation (R.isClockwise dir) (-p) D4.<*> (orientation cr D4.<*> global)
+            t = D4.fromReflectionRotation (R.isClockwise dir) (-p) D4.∘ (orientation cr D4.∘ global)
         in (# code cr, D4.equivalenceClassId (symmetry cr) t #)
 
 
@@ -238,4 +238,4 @@ possibleSubTangleOrientations base extra =
     in map (\ g -> base { orientation = g }) $
         case extra of
             Nothing -> orient
-            Just h  -> filter (\ g -> D4.equivalenceClassId s g <= D4.equivalenceClassId s (h D4.<*> g)) orient
+            Just h  -> filter (\ g -> D4.equivalenceClassId s g <= D4.equivalenceClassId s (h D4.∘ g)) orient

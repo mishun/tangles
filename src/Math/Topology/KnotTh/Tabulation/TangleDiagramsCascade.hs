@@ -45,12 +45,12 @@ uniqueGlueSites gl (tangle, (symmetry, (adjRot, adjMir))) = do
     let period = Dn.rotationPeriod symmetry
 
         adjointDifferenceForBasis a b
-            | needMirror                    = adjRotation D4.<*> adjMir
+            | needMirror                    = adjRotation D4.∘ adjMir
             | otherwise                     = adjRotation
             where
                 needMirror = Dn.reflection a /= Dn.reflection b
 
-                toRotate | needMirror  = Dn.reflectionBasis symmetry Dn.<*> b
+                toRotate | needMirror  = Dn.reflectionBasis symmetry Dn.∘ b
                          | otherwise   = b
 
                 rotationDiff = Dn.rotation a - Dn.rotation toRotate
@@ -72,7 +72,7 @@ uniqueGlueSites gl (tangle, (symmetry, (adjRot, adjMir))) = do
                             fixup = adjointDifferenceForBasis
                                             (Dn.fromRotationReflection (numberOfLegs tangle) (legIndex - gl + 1, True))
                                             (Dn.fromRotation (numberOfLegs tangle) legIndex)
-                            induced | even doubleIndex  = Just $! fixup D4.<*> (case gl of { 3 -> D4.ec2 ; 2 -> D4.ec3 ; _ -> D4.e })
+                            induced | even doubleIndex  = Just $! fixup D4.∘ (case gl of { 3 -> D4.ec2 ; 2 -> D4.ec3 ; _ -> D4.e })
                                     | otherwise         = Nothing
                         in (legIndex, induced)
 

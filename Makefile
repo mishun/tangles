@@ -1,50 +1,53 @@
-Cabal := cabal-dev
 Bin := bin
-Obj := dist/build
-GHCOpts := -Wall -O -XBangPatterns -threaded
+
 
 .PHONY: all
 all: build
 
 
+.PHONY: deps
+deps:
+	cabal install --dependencies-only
+
 .PHONY: deps-dev
 deps-dev:
-	$(Cabal) install HaskellForMaths \
-	                 IfElse \
-	                 diagrams \
-	                 diagrams-cairo \
-	                 disjoint-set \
-	                 test-framework \
-	                 test-framework-hunit \
-	                 test-framework-quickcheck2
+	cabal install test-framework \
+	              test-framework-hunit \
+	              test-framework-quickcheck2
+
+
+.PHONY: config
+config:
+	cabal configure
 
 .PHONY: config-dev
 config-dev:
-	$(Cabal) configure --enable-tests -fenable-test-modules
+	cabal configure --enable-tests -fenable-test-modules
+
 
 .PHONY: build
 build:
-	$(Cabal) build
+	cabal build
+
 
 .PHONY: clean
 clean:
-	$(Cabal) clean
+	cabal clean
+
 
 .PHONY: test
 test:
-	$(Cabal) test
+	cabal test
 
-
-AppsBinaries := $(patsubst apps/%.hs,$(Bin)/%, $(wildcard apps/*.hs))
 
 .PHONY: apps
-apps: $(AppsBinaries)
+apps: $(patsubst apps/%.hs,$(Bin)/%, $(wildcard apps/*.hs))
 
 $(Bin)/%: apps/%.hs dist/package.conf.inplace
 	mkdir -p $(dir $@)
-	ghc --make -package-db $(wildcard cabal-dev/packages-?.?.?.conf) \
-	           -package-db dist/package.conf.inplace $(GHCOpts) \
-	           -outputdir=$(Obj) \
+	ghc --make -package-db dist/package.conf.inplace \
+	           -Wall -O -XBangPatterns -threaded \
+	           -outputdir=dist/build \
 	           -osuf=$(patsubst apps/%.hs,%.o, $<) \
 	           -hisuf=$(patsubst apps/%.hs,%.hi, $<) \
 	           -o $@ $<

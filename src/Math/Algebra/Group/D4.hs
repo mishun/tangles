@@ -2,7 +2,7 @@ module Math.Algebra.Group.D4
     ( D4
     , i, e, c, ec, c2, ec2, c3, ec3
     , inverse
-    , (<*>)
+    , (∘)
     , power
     , rotation
     , hasReflection
@@ -71,9 +71,9 @@ inverse d@(D4 !x)
     | otherwise     = D4 $! (-x) .&. 7
 
 
-{-# INLINE (<*>) #-}
-(<*>) :: D4 -> D4 -> D4
-(<*>) (D4 !a) (D4 !b)
+{-# INLINE (∘) #-}
+(∘) :: D4 -> D4 -> D4
+(∘) (D4 !a) (D4 !b)
     | b .&. 1 == 1  = D4 $! ((b .&. 6) - (a .&. 6) + ((a `xor` b) .&. 1)) .&. 7
     | otherwise     = D4 $! ((b .&. 6) + (a .&. 6) + ((a `xor` b) .&. 1)) .&. 7
 
@@ -81,7 +81,7 @@ inverse d@(D4 !x)
 power :: Int -> D4 -> D4
 power =
     let go 0 _ accum = accum
-        go n x accum = go (n `div` 2) (x <*> x) (if even n then accum else accum <*> x)
+        go n x accum = go (n `div` 2) (x ∘ x) (if even n then accum else accum ∘ x)
     in \ n x ->
         if n >= 0
             then go n x i

@@ -5,7 +5,7 @@ module Math.Algebra.Group.Dn
     , reflection
     , identity
     , inverse
-    , (<*>)
+    , (∘)
     , fromRotation
     , fromReflectionRotation
     , fromRotationReflection
@@ -55,9 +55,9 @@ inverse g
         }
 
 
-{-# INLINE (<*>) #-}
-(<*>) :: Dn -> Dn -> Dn
-(<*>) g h
+{-# INLINE (∘) #-}
+(∘) :: Dn -> Dn -> Dn
+(∘) g h
     | pointsUnderGroup g /= pointsUnderGroup h  = error $ printf "(*): Dn order conflict: %i and %i" (pointsUnderGroup g) (pointsUnderGroup h)
     | otherwise                                 = Dn
         { pointsUnderGroup = pointsUnderGroup g

@@ -94,7 +94,6 @@ library
         Math.Topology.Manifolds.SurfaceGraph,
         Math.Topology.Manifolds.SurfaceGraph.Homology
     other-modules:
-        Internal.Macro,
         Math.Algebra.PlanarAlgebra.Definition,
         Math.Algebra.PlanarAlgebra.Reduction,
         Math.Combinatorics.ChordDiagram.Definition,
@@ -106,7 +105,7 @@ library
         Math.Topology.KnotTh.Invariants.JonesPolynomial,
         Math.Topology.KnotTh.Invariants.KauffmanFPolynomial,
         Math.Topology.KnotTh.Invariants.KauffmanXPolynomial,
-        Math.Topology.KnotTh.Invariants.KhovanovHomology.CannedCobordism,
+        Math.Topology.KnotTh.Invariants.KhovanovHomology.DottedCobordism,
         Math.Topology.KnotTh.Invariants.KhovanovHomology.PlanarAlgebra,
         Math.Topology.KnotTh.Invariants.KhovanovHomology.PlanarSmoothing,
         Math.Topology.KnotTh.Invariants.KnotPolynomials,
