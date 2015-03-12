@@ -7,6 +7,7 @@ import Data.Maybe (mapMaybe)
 import Data.List ((\\), subsequences)
 import qualified Data.Set as S
 import qualified Data.Vector.Unboxed as UV
+import Control.Applicative (Applicative(..), Alternative(..))
 import Control.Monad.State (execState, gets, modify)
 import Control.Monad (MonadPlus(..), unless, guard)
 import Math.Topology.KnotTh.EmbeddedLink
@@ -29,16 +30,31 @@ instance Functor (PatternM s a) where
     fmap f x = PatternM (map (fmap f) . runPatternMatching x)
 
 
+instance Applicative (PatternM s a) where
+    pure = return
+
+    (<*>) f' x' = do
+        f <- f'
+        x <- x'
+        return $! f x
+
+
 instance Monad (PatternM s a) where
     return x = PatternM (\ s -> [(s, x)])
 
     (>>=) val act = PatternM (concatMap (\ (s', x) -> runPatternMatching (act x) s') . runPatternMatching val)
 
 
-instance MonadPlus (PatternM s a) where
-    mzero = PatternM (const [])
+instance Alternative (PatternM s a) where
+    empty = PatternM (const [])
 
-    mplus a b = PatternM (\ s -> runPatternMatching a s ++ runPatternMatching b s)
+    (<|>) a b = PatternM (\ s -> runPatternMatching a s ++ runPatternMatching b s)
+
+
+instance MonadPlus (PatternM s a) where
+    mzero = empty
+
+    mplus = (<|>)
 
 
 subTangleP :: Int -> PatternM s a ([Dart EmbeddedLink a], [Vertex EmbeddedLink a])
