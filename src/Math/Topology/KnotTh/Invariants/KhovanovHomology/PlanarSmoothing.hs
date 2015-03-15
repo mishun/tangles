@@ -2,6 +2,7 @@ module Math.Topology.KnotTh.Invariants.KhovanovHomology.PlanarSmoothing
     ( PlanarAlgebra'(..)
     , PlanarSmoothing
     , numberOfLoops
+    , connections
     ) where
 
 import Control.Monad (foldM, forM_)
@@ -17,6 +18,10 @@ data PlanarSmoothing = Smoothing {-# UNPACK #-} !Int !(UV.Vector Int)
 
 numberOfLoops :: PlanarSmoothing -> Int
 numberOfLoops (Smoothing ls _) = ls
+
+
+connections :: PlanarSmoothing -> UV.Vector Int
+connections (Smoothing _ c) = c
 
 
 instance PlanarAlgebra' PlanarSmoothing where
