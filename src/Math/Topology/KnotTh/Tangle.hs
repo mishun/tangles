@@ -1,19 +1,26 @@
 module Math.Topology.KnotTh.Tangle
-    ( module X
+    ( module Math.Topology.KnotTh.Knotted
+    , module Math.Topology.KnotTh.Crossings.Projection
+    , module Math.Topology.KnotTh.Crossings.Diagram
+    , module Math.Topology.KnotTh.Tangle.TangleLike
+    , module Math.Topology.KnotTh.Tangle.Tangle
+    , module Math.Topology.KnotTh.Tangle.Braid
+    , module Math.Topology.KnotTh.Tangle.Misc
+    , module Math.Topology.KnotTh.Tangle.CascadeCode
     , lonerProjection
     , lonerOverCrossing
     , lonerUnderCrossing
     , rationalTangle
     ) where
 
-import Math.Topology.KnotTh.Knotted as X
-import Math.Topology.KnotTh.Crossings.Projection as X
-import Math.Topology.KnotTh.Crossings.Diagram as X
-import Math.Topology.KnotTh.Tangle.TangleLike as X
-import Math.Topology.KnotTh.Tangle.Tangle as X
-import Math.Topology.KnotTh.Tangle.Braid as X
-import Math.Topology.KnotTh.Tangle.Misc as X
-import Math.Topology.KnotTh.Tangle.CascadeCode as X
+import Math.Topology.KnotTh.Knotted
+import Math.Topology.KnotTh.Crossings.Projection
+import Math.Topology.KnotTh.Crossings.Diagram
+import Math.Topology.KnotTh.Tangle.TangleLike
+import Math.Topology.KnotTh.Tangle.Tangle
+import Math.Topology.KnotTh.Tangle.Braid
+import Math.Topology.KnotTh.Tangle.Misc
+import Math.Topology.KnotTh.Tangle.CascadeCode
 
 
 lonerProjection :: TangleProjection

@@ -16,7 +16,6 @@ import Math.Topology.Manifolds.SurfaceGraph
 import Math.Topology.KnotTh.Tangle
 import Math.Topology.KnotTh.Link
 import Math.Topology.KnotTh.EmbeddedLink
-import Math.Topology.KnotTh.EmbeddedLink.Construction (toLink)
 import Math.Topology.KnotTh.Draw.Settings
 import Math.Topology.KnotTh.Draw.DrawCrossing
 

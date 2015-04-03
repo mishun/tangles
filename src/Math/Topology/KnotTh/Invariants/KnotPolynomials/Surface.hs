@@ -17,7 +17,6 @@ import Math.Topology.Manifolds.SurfaceGraph.Homology
 import Math.Topology.KnotTh.Invariants.KnotPolynomials
 import Math.Topology.KnotTh.Invariants.KnotPolynomials.KauffmanXStateSum
 import Math.Topology.KnotTh.EmbeddedLink
-import Math.Topology.KnotTh.EmbeddedLink.TangleStarGlue
 
 
 homologyDecomposition :: (KauffmanXArg a) => EmbeddedLinkDiagram -> (Int, [([UV.Vector Int], a)])

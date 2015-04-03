@@ -18,7 +18,7 @@ import Math.Topology.KnotTh.Enumeration.DiagramInfo as X
 import Math.Topology.KnotTh.Enumeration.DiagramInfo.MinimalDiagramInfo
 import Math.Topology.KnotTh.Tangle as X
 import Math.Topology.KnotTh.Tabulation.TangleDiagramsCascade
-import Math.Topology.KnotTh.Link (tangleDoubling)
+import Math.Topology.KnotTh.Link (tangleDoublingLink)
 import Math.Topology.KnotTh.Invariants
 import qualified Math.Topology.KnotTh.Moves.AdHoc as AdHoc
 
@@ -63,9 +63,9 @@ siftTangles = siftByInvariant $ \ tangle ->
 
 siftWeakTangles :: (DiagramInfo info) => [info TangleDiagram] -> SiftResult info TangleDiagram
 siftWeakTangles = siftByInvariant $ \ tangle ->
-    ( jonesPolynomial $ tangleDoubling id tangle
-    , jonesPolynomial $ tangleDoubling id $ twistedDoubleSatellite tangle
-    , kauffmanFPolynomial $ tangleDoubling id tangle
+    ( jonesPolynomial $ tangleDoublingLink id tangle
+    , jonesPolynomial $ tangleDoublingLink id $ twistedDoubleSatellite tangle
+    , kauffmanFPolynomial $ tangleDoublingLink id tangle
     )
 
 

@@ -7,7 +7,6 @@ import Test.Framework (Test, testGroup)
 import Test.Framework.Providers.HUnit (testCase)
 import Test.HUnit hiding (Test, test)
 import Math.Topology.KnotTh.EmbeddedLink
-import Math.Topology.KnotTh.EmbeddedLink.TestPrime
 
 
 test :: Test

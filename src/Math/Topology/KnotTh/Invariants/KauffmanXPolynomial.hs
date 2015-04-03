@@ -13,7 +13,6 @@ import Math.Topology.KnotTh.Invariants.KnotPolynomials.KauffmanXStateSum
 import Math.Topology.KnotTh.Invariants.KnotPolynomials.Surface
 import Math.Topology.KnotTh.Link
 import Math.Topology.KnotTh.EmbeddedLink
-import Math.Topology.KnotTh.EmbeddedLink.Construction
 
 
 class (Knotted k) => KnottedWithKauffmanXPolynomial k where
