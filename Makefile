@@ -11,9 +11,7 @@ deps:
 
 .PHONY: deps-dev
 deps-dev:
-	cabal install test-framework \
-	              test-framework-hunit \
-	              test-framework-quickcheck2
+	cabal install --dependencies-only --enable-tests
 
 
 .PHONY: config
@@ -22,7 +20,7 @@ config:
 
 .PHONY: config-dev
 config-dev:
-	cabal configure --enable-tests -fenable-test-modules
+	cabal configure --enable-tests -finternal-tests
 
 
 .PHONY: build

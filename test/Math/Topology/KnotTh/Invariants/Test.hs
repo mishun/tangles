@@ -2,17 +2,23 @@ module Math.Topology.KnotTh.Invariants.Test
     ( test
     ) where
 
+#ifdef TESTING
 import qualified Data.Map as M
+#endif
 import Text.Printf
 import Test.Framework (Test, testGroup)
 import Test.Framework.Providers.HUnit (testCase)
 import Test.HUnit hiding (Test, test)
+#ifdef TESTING
 import qualified Math.Algebra.Field.Base as B
 import qualified Math.Projects.KnotTheory.LaurentMPoly as LMP
+#endif
 import Math.Topology.KnotTh.Link
 import Math.Topology.KnotTh.Tangle
 import Math.Topology.KnotTh.Invariants
+#ifdef TESTING
 import Math.Topology.KnotTh.Invariants.Util.Poly
+#endif
 
 
 test :: Test
@@ -190,6 +196,7 @@ test = testGroup "Invariants"
             return $ testCase header $
                 show (kauffmanFPolynomial t) @?= target
 
+#ifdef TESTING
         , testCase "Relation to Jones polynomial" $ do
             let z = monomial2 1 "z" 1
                 z' = monomial 1 "t" (-1 / 4) + monomial 1 "t" (1 / 4)
@@ -226,6 +233,7 @@ test = testGroup "Invariants"
                 , ("Conway knot"            , conwayKnot           )
                 , ("Kinoshita-Terasaka knot", kinoshitaTerasakaKnot)
                 ]
+#endif
 
         , testCase "Collision between Conway and Kinoshita-Terasaka knots" $
             kauffmanFPolynomial conwayKnot @?= kauffmanFPolynomial kinoshitaTerasakaKnot
