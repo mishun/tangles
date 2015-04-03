@@ -20,6 +20,7 @@ import Control.Monad.State (execState, gets, modify)
 import Control.Monad (MonadPlus(..), unless, guard)
 import Math.Topology.KnotTh.Tangle
 import Math.Topology.KnotTh.Link
+import Math.Topology.KnotTh.Moves.ModifyDSL
 
 
 data PatternS a =
@@ -127,10 +128,10 @@ connectionP :: [(Dart Tangle a, Dart Tangle a)] -> PatternM s a ()
 connectionP = mapM_ (\ (a, b) -> guard (opposite a == b))
 
 
-reconnectP :: (Show a) => (forall s. ModifyTangleM a s ()) -> PatternM s' a (Tangle a)
+reconnectP :: (Show a) => (forall s. ModifyM Tangle a s ()) -> PatternM s' a (Tangle a)
 reconnectP m =
     PatternM $ \ s@(PatternS _ tangle _) ->
-        [(s, modifyTangle tangle m)]
+        [(s, modifyKnot tangle m)]
 
 
 makePattern :: Bool -> (forall s. PatternM s a x) -> Pattern a x

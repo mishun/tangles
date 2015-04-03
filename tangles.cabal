@@ -111,6 +111,7 @@ library
         Math.Topology.KnotTh.Knotted.Threads,
         Math.Topology.KnotTh.Link.TableOfCodes,
         Math.Topology.KnotTh.Moves.AdHoc.Resting,
+        Math.Topology.KnotTh.Moves.ModifyDSL,
         Math.Topology.KnotTh.Tangle.Braid,
         Math.Topology.KnotTh.Tangle.CascadeCode,
         Math.Topology.KnotTh.Tangle.Misc,

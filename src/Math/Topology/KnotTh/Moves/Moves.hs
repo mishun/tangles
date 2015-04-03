@@ -11,6 +11,7 @@ module Math.Topology.KnotTh.Moves.Moves
 import Control.Monad (mplus, guard)
 import Debug.Trace
 import Math.Topology.KnotTh.Tangle
+import Math.Topology.KnotTh.Moves.ModifyDSL
 import Math.Topology.KnotTh.Moves.PatternMatching
 
 

@@ -1,4 +1,4 @@
-{-# LANGUAGE TypeFamilies, UnboxedTuples, RankNTypes #-}
+{-# LANGUAGE TypeFamilies, UnboxedTuples, RankNTypes, GeneralizedNewtypeDeriving #-}
 module Math.Topology.KnotTh.Tangle.Tangle
     ( Tangle
     , TangleProjection
@@ -7,43 +7,32 @@ module Math.Topology.KnotTh.Tangle.Tangle
     , TangleDiagram
     , TangleDiagramVertex
     , TangleDiagramDart
-
-    , ModifyTangleM
-    , modifyTangle
-    , oppositeC
-    , passOverC
-    , emitCircle
-    , maskC
-    , isMasked
-    , aliveCrossings
-    , modifyC
-    , connectC
-    , substituteC
-    , greedy
     ) where
 
-import Data.Maybe (fromMaybe)
+import Control.Applicative (Applicative)
+import Control.DeepSeq (NFData(..))
+import Control.Monad (void, forM, forM_, when, unless, foldM_, foldM, filterM, (>=>), guard)
+import qualified Control.Monad.ST as ST
+import qualified Control.Monad.Reader as Reader
 import Data.Bits ((.&.), complement, shiftL, shiftR)
 import Data.List (nub, sort, foldl', find)
-import qualified Data.Set as S
+import Data.Maybe (fromMaybe)
 import qualified Data.Map as M
+import qualified Data.Set as S
+import qualified Data.STRef as STRef
 import qualified Data.Vector as V
 import qualified Data.Vector.Mutable as MV
 import qualified Data.Vector.Unboxed as UV
 import qualified Data.Vector.Unboxed.Mutable as UMV
 import qualified Data.Vector.Primitive as PV
 import qualified Data.Vector.Primitive.Mutable as PMV
-import Data.STRef (STRef, newSTRef, readSTRef, writeSTRef, modifySTRef')
-import Control.Monad.ST (ST, runST)
-import Control.Monad.Reader (ReaderT, runReaderT, ask, lift)
-import Control.Monad (void, forM, forM_, when, unless, foldM_, foldM, filterM, (>=>), guard)
-import Control.DeepSeq (NFData(..))
 import Text.Printf
 import qualified Math.Algebra.Group.D4 as D4
 import qualified Math.Algebra.RotationDirection as R
 import Math.Topology.KnotTh.Knotted
 import Math.Topology.KnotTh.Crossings.Projection
 import Math.Topology.KnotTh.Crossings.Diagram
+import Math.Topology.KnotTh.Moves.ModifyDSL
 import Math.Topology.KnotTh.Tangle.TangleLike
 
 
@@ -169,7 +158,7 @@ instance Knotted Tangle where
                 return $! UV.create $ do
                     index <- UMV.replicate (n + 1) 0
                     queue <- MV.new n
-                    free <- newSTRef 1
+                    free <- STRef.newSTRef 1
 
                     let {-# INLINE look #-}
                         look !d | isLeg d    = return 0
@@ -179,8 +168,8 @@ instance Knotted Tangle where
                             if ux > 0
                                 then return $! ux
                                 else do
-                                    nf <- readSTRef free
-                                    writeSTRef free $! nf + 1
+                                    nf <- STRef.readSTRef free
+                                    STRef.writeSTRef free $! nf + 1
                                     UMV.write index (vertexIndex u) nf
                                     MV.write queue (nf - 1) d
                                     return $! nf
@@ -197,7 +186,7 @@ instance Knotted Tangle where
                             return $! c + (s `shiftL` 7)
 
                         bfs !headI = do
-                            tailI <- readSTRef free
+                            tailI <- STRef.readSTRef free
                             when (headI < tailI - 1) $ do
                                 input <- MV.read queue headI
                                 !nb <- foldMAdjacentDartsFrom input dir lookAndAdd 0
@@ -209,13 +198,13 @@ instance Knotted Tangle where
                                         bfs (headI + 1)
 
                     bfs 0
-                    tailI <- readSTRef free
+                    tailI <- STRef.readSTRef free
                     return $ UMV.take (l + 2 * (tailI - 1)) rc
 
             internal | UV.length border >= (l + 2 * n)  = []
                      | otherwise                        = sort $ map compCode comps
                 where
-                    comps = runST $ do
+                    comps = ST.runST $ do
                         visited <- UMV.replicate (n + 1) (-1)
                         let dfs mark v = do
                                 vis <- UMV.read visited (vertexIndex v)
@@ -251,7 +240,7 @@ instance Knotted Tangle where
                         return $! UV.create $ do
                             index <- UMV.replicate (n + 1) 0
                             queue <- MV.new n
-                            free <- newSTRef 1
+                            free <- STRef.newSTRef 1
 
                             let {-# INLINE look #-}
                                 look !d = do
@@ -260,8 +249,8 @@ instance Knotted Tangle where
                                     if ux > 0
                                         then return $! ux
                                         else do
-                                            nf <- readSTRef free
-                                            writeSTRef free $! nf + 1
+                                            nf <- STRef.readSTRef free
+                                            STRef.writeSTRef free $! nf + 1
                                             UMV.write index (vertexIndex u) nf
                                             MV.write queue (nf - 1) d
                                             return $! nf
@@ -275,7 +264,7 @@ instance Knotted Tangle where
                                     return $! c + (s `shiftL` 7)
 
                                 bfs !headI = do
-                                    tailI <- readSTRef free
+                                    tailI <- STRef.readSTRef free
                                     when (headI < tailI - 1) $ do
                                         input <- MV.read queue headI
                                         !nb <- foldMAdjacentDartsFrom input dir lookAndAdd 0
@@ -287,7 +276,7 @@ instance Knotted Tangle where
                                                 bfs (headI + 1)
 
                             bfs 0
-                            tailI <- readSTRef free
+                            tailI <- STRef.readSTRef free
                             return $ UMV.take (2 * (tailI - 1)) rc
 
     isConnected tangle
@@ -311,7 +300,7 @@ instance Knotted Tangle where
         , map (\ v -> (map endPair' $ outcomingDarts v, vertexCrossing v)) $ allVertices tangle
         )
 
-    implode (loops, brd, list) = runST $ do
+    implode (loops, brd, list) = ST.runST $ do
         when (loops < 0) $
             error $ printf "Tangle.implode: number of free loops %i is negative" loops
 
@@ -387,7 +376,7 @@ instance KnottedDiagram Tangle where
 
     tryReduceReidemeisterI tangle =  do
         d <- find (\ d -> opposite d == nextCCW d) (allOutcomingDarts tangle)
-        return $! modifyTangle tangle $ do
+        return $! modifyKnot tangle $ do
             let ac = nextCW d
                 ab = nextCW ac
                 ba = opposite ab
@@ -401,7 +390,7 @@ instance KnottedDiagram Tangle where
                 in isDart bal && passOver abl == passOver bal && opposite abr == nextCW bal
             ) (allOutcomingDarts tangle)
 
-        return $! modifyTangle tangle $ do
+        return $! modifyKnot tangle $ do
             let bal = opposite abl
 
                 ap = threadContinuation abl
@@ -416,17 +405,17 @@ instance KnottedDiagram Tangle where
 
             if qa == ap || rb == bs
                 then if qa == ap && rb == bs
-                    then emitCircle 1
+                    then emitLoopsC 1
                     else do
                         when (qa /= ap) $ connectC [(pa, qa)]
                         when (rb /= bs) $ connectC [(rb, sb)]
                 else do
                     if qa == br
-                        then emitCircle 1
+                        then emitLoopsC 1
                         else connectC [(qa, rb)]
 
                     if pa == bs
-                        then emitCircle 1
+                        then emitLoopsC 1
                         else connectC [(pa, sb)]
 
             maskC [beginVertex abl, beginVertex bal]
@@ -474,7 +463,7 @@ instance KnottedDiagram Tangle where
             br = nextCW bc
             cs = nextCCW cb
 
-        return $! modifyTangle tangle $ do
+        return $! modifyKnot tangle $ do
             substituteC [(ca, ap), (ba, aq), (ab, br), (ac, cs)]
             connectC [(br, aq), (cs, ap)]
 
@@ -570,7 +559,7 @@ instance TangleLike Tangle where
             , crossingsArray = f `fmap` crossingsArray tangle
             }
 
-    glueTangles legsToGlue legA legB = runST $ do
+    glueTangles legsToGlue legA legB = ST.runST $ do
         unless (isLeg legA) $
             fail $ printf "glueTangles: first leg parameter %s is not a leg" (show legA)
         unless (isLeg legB) $
@@ -663,7 +652,7 @@ instance TangleLike Tangle where
             , legsCount       = newL
             }
 
-    glueToBorder leg legsToGlue !crossingToGlue = runST $ do
+    glueToBorder leg legsToGlue !crossingToGlue = ST.runST $ do
         unless (isLeg leg) $
             fail $ printf "glueToBorder: leg expected, but %s received" (show leg)
 
@@ -833,29 +822,114 @@ type TangleDiagramDart = Dart Tangle DiagramCrossing
 
 
 
-data CrossingFlag a = Direct !a
-                    | Flipped !a
-                    | Masked
-
+data CrossingFlag a = Direct !a | Flipped !a | Masked
 
 data MoveState s a =
     MoveState
         { stateSource      :: !(Tangle a)
         , stateMask        :: !(MV.STVector s (CrossingFlag a))
-        , stateCircles     :: !(STRef s Int)
+        , stateCircles     :: !(STRef.STRef s Int)
         , stateConnections :: !(MV.STVector s (Dart Tangle a))
         }
 
 
-readMaskST :: MoveState s a -> Vertex Tangle a -> ST s (CrossingFlag a)
+{-# INLINE withState #-}
+withState :: (MoveState s a -> ST.ST s x) -> ModifyM Tangle a s x
+withState f = ModifyTangleM $ do
+    st <- Reader.ask
+    Reader.lift (f st)
+
+
+instance ModifyDSL Tangle where
+    newtype ModifyM Tangle a s x = ModifyTangleM { unM :: Reader.ReaderT (MoveState s a) (ST.ST s) x }
+        deriving (Functor, Applicative, Monad)
+
+    modifyKnot initial modification = ST.runST $ do
+        st <- disassembleST initial
+        Reader.runReaderT (unM modification) st
+        assembleST st
+
+    aliveCrossings = do
+        tangle <- withState (return . stateSource)
+        filterM (fmap not . isMaskedC) $ allVertices tangle
+
+    emitLoopsC dn =
+        withState $ \ !st ->
+            STRef.modifySTRef' (stateCircles st) (+ dn)
+
+    oppositeC d = do
+        when (isDart d) $ do
+            masked <- isMaskedC $ beginVertex d
+            when masked $
+                fail $ printf "oppositeC: touching masked crossing when taking from %s" (show d)
+        withState $ \ s ->
+            MV.read (stateConnections s) (dartIndex d)
+
+    passOverC d =
+        withState $ \ !st -> do
+            when (isLeg d) $ fail $ printf "passOverC: leg %s passed" (show d)
+            msk <- readMaskST st $ beginVertex d
+            case msk of
+                Masked    -> fail "passOverC: touching masked crossing when taking from %s" (show d)
+                Direct t  -> return $! passOver' t (beginPlace d)
+                Flipped t -> return $! passOver' t (3 - beginPlace d)
+
+    maskC crossings =
+        withState $ \ !st ->
+            forM_ crossings $ \ !c ->
+                writeMaskST st c Masked
+
+    isMaskedC c =
+        withState $ \ !st -> do
+            msk <- readMaskST st c
+            return $! case msk of
+                Masked -> True
+                _      -> False
+
+    modifyC needFlip f crossings =
+        withState $ \ !st ->
+            forM_ crossings $ \ !c -> do
+                msk <- readMaskST st c
+                writeMaskST st c $
+                    case msk of
+                        Direct s  | needFlip  -> Flipped $ f s
+                                  | otherwise -> Direct $ f s
+                        Flipped s | needFlip  -> Direct $ f s
+                                  | otherwise -> Flipped $ f s
+                        Masked                -> error $ printf "modifyC: flipping masked crossing %s" (show c)
+
+    connectC connections =
+        withState $ \ !st ->
+            reconnectST st connections
+
+    substituteC substitutions = do
+        reconnections <- mapM (\ (a, b) -> (,) a `fmap` oppositeC b) substitutions
+        withState $ \ !st -> do
+            let source = stateSource st
+
+            arr <- MV.new (numberOfDarts source)
+            forM_ (allEdges source) $ \ (!a, !b) -> do
+                MV.write arr (dartIndex a) a
+                MV.write arr (dartIndex b) b
+
+            forM_ substitutions $ \ (a, b) ->
+                if a == b
+                    then STRef.modifySTRef' (stateCircles st) (+ 1)
+                    else MV.write arr (dartIndex b) a
+
+            (reconnectST st =<<) $ forM reconnections $ \ (a, b) ->
+                (,) a `fmap` MV.read arr (dartIndex b)
+
+
+readMaskST :: MoveState s a -> Vertex Tangle a -> ST.ST s (CrossingFlag a)
 readMaskST st c = MV.read (stateMask st) (vertexIndex c)
 
 
-writeMaskST :: MoveState s a -> Vertex Tangle a -> CrossingFlag a -> ST s ()
+writeMaskST :: MoveState s a -> Vertex Tangle a -> CrossingFlag a -> ST.ST s ()
 writeMaskST st c = MV.write (stateMask st) (vertexIndex c)
 
 
-reconnectST :: MoveState s a -> [(Dart Tangle a, Dart Tangle a)] -> ST s ()
+reconnectST :: MoveState s a -> [(Dart Tangle a, Dart Tangle a)] -> ST.ST s ()
 reconnectST st connections =
     forM_ connections $ \ (!a, !b) -> do
         when (a == b) $ fail $ printf "reconnect: %s connect to itself" (show a)
@@ -863,7 +937,7 @@ reconnectST st connections =
         MV.write (stateConnections st) (dartIndex b) a
 
 
-disassembleST :: Tangle a -> ST s (MoveState s a)
+disassembleST :: Tangle a -> ST.ST s (MoveState s a)
 disassembleST tangle = do
     connections <- MV.new (numberOfDarts tangle)
     forM_ (allEdges tangle) $ \ (!a, !b) -> do
@@ -874,7 +948,7 @@ disassembleST tangle = do
     forM_ (allVertices tangle) $ \ v ->
         MV.write mask (vertexIndex v) (Direct $ vertexCrossing v)
 
-    circlesCounter <- newSTRef $ numberOfFreeLoops tangle
+    circlesCounter <- STRef.newSTRef $ numberOfFreeLoops tangle
     return MoveState
         { stateSource      = tangle
         , stateMask        = mask
@@ -883,7 +957,7 @@ disassembleST tangle = do
         }
 
 
-assembleST :: (Show a) => MoveState s a -> ST s (Tangle a)
+assembleST :: (Show a) => MoveState s a -> ST.ST s (Tangle a)
 assembleST st = do
     let source = stateSource st
 
@@ -923,122 +997,5 @@ assembleST st = do
                     Flipped s -> (reverse con, s)
                     Masked    -> error "assemble: internal error"
 
-    circles <- readSTRef (stateCircles st)
+    circles <- STRef.readSTRef (stateCircles st)
     return $! implode (circles, border, connections)
-
-
-type ModifyTangleM a s = ReaderT (MoveState s a) (ST s)
-
-
-modifyTangle :: (Show a) => Tangle a -> (forall s. ModifyTangleM a s ()) -> Tangle a
-modifyTangle initial modification = runST $ do
-    st <- disassembleST initial
-    runReaderT modification st
-    assembleST st
-
-
-oppositeC :: Dart Tangle a -> ModifyTangleM a s (Dart Tangle a)
-oppositeC d = do
-    when (isDart d) $ do
-        masked <- isMasked $ beginVertex d
-        when masked $
-            fail $ printf "oppositeC: touching masked crossing when taking from %s" (show d)
-    ask >>= \ s -> lift $
-        MV.read (stateConnections s) (dartIndex d)
-
-
-passOverC :: TangleDiagramDart -> ModifyTangleM DiagramCrossing s Bool
-passOverC d =
-    ask >>= \ st -> lift $ do
-        when (isLeg d) $ fail $ printf "passOverC: leg %s passed" (show d)
-        msk <- readMaskST st $ beginVertex d
-        case msk of
-            Masked    -> fail "passOverC: touching masked crossing when taking from %s" (show d)
-            Direct t  -> return $! passOver' t (beginPlace d)
-            Flipped t -> return $! passOver' t (3 - beginPlace d)
-
-
-emitCircle :: Int -> ModifyTangleM a s ()
-emitCircle dn =
-    ask >>= \ !st -> lift $
-        modifySTRef' (stateCircles st) (+ dn)
-
-
-maskC :: [Vertex Tangle a] -> ModifyTangleM a s ()
-maskC crossings =
-    ask >>= \ !st -> lift $
-        forM_ crossings $ \ !c ->
-            writeMaskST st c Masked
-
-
-isMasked :: Vertex Tangle a -> ModifyTangleM a s Bool
-isMasked c =
-    ask >>= \ !st -> lift $ do
-        msk <- readMaskST st c
-        return $! case msk of
-            Masked -> True
-            _      -> False
-
-
-aliveCrossings :: ModifyTangleM a s [Vertex Tangle a]
-aliveCrossings = do
-    st <- ask
-    filterM (fmap not . isMasked) $ allVertices $ stateSource st
-
-
-modifyC :: (Show a) => Bool -> (a -> a) -> [Vertex Tangle a] -> ModifyTangleM a s ()
-modifyC needFlip f crossings =
-    ask >>= \ !st -> lift $
-        forM_ crossings $ \ !c -> do
-            msk <- readMaskST st c
-            writeMaskST st c $
-                case msk of
-                    Direct s  | needFlip  -> Flipped $ f s
-                              | otherwise -> Direct $ f s
-                    Flipped s | needFlip  -> Direct $ f s
-                              | otherwise -> Flipped $ f s
-                    Masked                -> error $ printf "modifyC: flipping masked crossing %s" (show c)
-
-
-connectC :: [(Dart Tangle a, Dart Tangle a)] -> ModifyTangleM a s ()
-connectC connections =
-    ask >>= \ st -> lift $
-        reconnectST st connections
-
-
-substituteC :: [(Dart Tangle a, Dart Tangle a)] -> ModifyTangleM a s ()
-substituteC substitutions = do
-    reconnections <- mapM (\ (a, b) -> (,) a `fmap` oppositeC b) substitutions
-    st <- ask
-    lift $ do
-        let source = stateSource st
-
-        arr <- MV.new (numberOfDarts source)
-        forM_ (allEdges source) $ \ (!a, !b) -> do
-            MV.write arr (dartIndex a) a
-            MV.write arr (dartIndex b) b
-
-        forM_ substitutions $ \ (a, b) ->
-            if a == b
-                then modifySTRef' (stateCircles st) (+ 1)
-                else MV.write arr (dartIndex b) a
-
-        (reconnectST st =<<) $ forM reconnections $ \ (a, b) ->
-            (,) a `fmap` MV.read arr (dartIndex b)
-
-
-greedy :: [Dart Tangle a -> ModifyTangleM a s Bool] -> ModifyTangleM a s ()
-greedy reductionsList = iteration
-    where
-        iteration = do
-            crs <- aliveCrossings
-            changed <- anyM (\ d -> anyM ($ d) reductionsList) $ crs >>= outcomingDarts
-            when changed iteration
-
-        anyM :: (Monad m) => (a -> m Bool) -> [a] -> m Bool
-        anyM _ [] = return False
-        anyM f (cur : rest) = do
-            res <- f cur
-            if res
-                then return True
-                else anyM f rest

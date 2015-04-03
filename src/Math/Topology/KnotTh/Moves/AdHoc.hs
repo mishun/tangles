@@ -14,6 +14,7 @@ import qualified Data.Vector.Unboxed as UV
 import Control.Monad (when, unless, msum, guard, liftM2)
 import Math.Topology.KnotTh.Tangle
 import Math.Topology.KnotTh.Link
+import Math.Topology.KnotTh.Moves.ModifyDSL
 import Math.Topology.KnotTh.Moves.AdHoc.Resting
 
 
@@ -21,7 +22,7 @@ class (KnottedDiagram k) => AdHocMoves k where
     flype, pass :: k DiagramCrossing -> [k DiagramCrossing] 
 
 
-reduce1st :: TangleDiagramDart -> ModifyTangleM DiagramCrossing s Bool
+reduce1st :: TangleDiagramDart -> ModifyM Tangle DiagramCrossing s Bool
 reduce1st aad = do
     aar <- oppositeC aad
     if aar /= nextCCW aad
@@ -44,7 +45,7 @@ reduce1st aad = do
 --     \a/
 --      \
 --     / \
-reduce2nd :: TangleDiagramDart -> ModifyTangleM DiagramCrossing s Bool
+reduce2nd :: TangleDiagramDart -> ModifyM Tangle DiagramCrossing s Bool
 reduce2nd abl = do
     let a = beginVertex abl
     bal <- oppositeC abl
@@ -70,17 +71,17 @@ reduce2nd abl = do
 
             if qa == ap || rb == bs
                 then if qa == ap && rb == bs
-                    then emitCircle 1
+                    then emitLoopsC 1
                     else do
                         when (qa /= ap) $ connectC [(pa, qa)]
                         when (rb /= bs) $ connectC [(rb, sb)]
                 else do
                     if qa == br
-                        then emitCircle 1
+                        then emitLoopsC 1
                         else connectC [(qa, rb)]
 
                     if pa == bs
-                        then emitCircle 1
+                        then emitLoopsC 1
                         else connectC [(pa, sb)]
 
             maskC [a, b]
@@ -107,7 +108,7 @@ instance AdHocMoves Tangle where
 
             ([rp, sq], sub) <- restingPart tangle [ba, ca]
 
-            return $! modifyTangle tangle $ do
+            return $! modifyKnot tangle $ do
                 substituteC [(ba, ae), (ca, ad), (ab, rp), (ac, sq)]
                 connectC [(rp, ae), (sq, ad)]
                 modifyC True id $ filter ((sub UV.!) . vertexIndex) $ allVertices tangle
@@ -152,7 +153,7 @@ instance AdHocMoves Tangle where
                         tryPass (n + 1) pa' tb (opposite pa' : incoming)
                     ]
 
-            passM incoming outcoming = modifyTangle tangle $ do
+            passM incoming outcoming = modifyKnot tangle $ do
                 let m = length outcoming
                     toRemove = drop m incoming
 
@@ -170,26 +171,26 @@ instance AdHocMoves Link where
     pass = map tangleToLink . pass . linkToTangle
 
 
-smoothA :: TangleDiagramVertex -> ModifyTangleM DiagramCrossing s ()
+smoothA :: TangleDiagramVertex -> ModifyM Tangle DiagramCrossing s ()
 smoothA cs = do
     let dn@[_, d1, d2, d3] = outcomingDarts cs
     [od0, od1, od2, od3] <- mapM oppositeC dn
     case () of
-        _ | od0 == d1 && od3 == d2 -> emitCircle 2
-          | od0 == d3 && od1 == d2 -> emitCircle 1
+        _ | od0 == d1 && od3 == d2 -> emitLoopsC 2
+          | od0 == d3 && od1 == d2 -> emitLoopsC 1
           | od0 == d3              -> connectC [(od1, od2)]
           | od1 == d2              -> connectC [(od0, od3)]
           | otherwise              -> substituteC [(od0, d1), (od3, d2)]
     maskC [cs]
 
 
-smoothB :: TangleDiagramVertex -> ModifyTangleM DiagramCrossing s ()
+smoothB :: TangleDiagramVertex -> ModifyM Tangle DiagramCrossing s ()
 smoothB cs = do
     let dn@[_, d1, d2, d3] = outcomingDarts cs
     [od0, od1, od2, od3] <- mapM oppositeC dn
     case () of
-        _ | od0 == d3 && od1 == d2 -> emitCircle 2
-          | od0 == d1 && od3 == d2 -> emitCircle 1
+        _ | od0 == d3 && od1 == d2 -> emitLoopsC 2
+          | od0 == d1 && od3 == d2 -> emitLoopsC 1
           | od0 == d1              -> connectC [(od2, od3)]
           | od3 == d2              -> connectC [(od0, od1)]
           | otherwise              -> substituteC [(od0, d3), (od1, d2)]
@@ -215,10 +216,10 @@ weak tangle = neighboursBorderCrossing ++ neighboursBorderLoop
                     pa = opposite ap
                     qa = opposite aq
 
-                return $! modifyTangle tangle $ do
+                return $! modifyKnot tangle $ do
                     maskC [a]
                     if qa == ap
-                        then connectC [(xa, ya)] >> emitCircle 1
+                        then connectC [(xa, ya)] >> emitLoopsC 1
                         else connectC [(pa, ya), (qa, xa)]
 
         neighboursBorderLoop =
@@ -242,6 +243,6 @@ weak tangle = neighboursBorderCrossing ++ neighboursBorderLoop
                 guard $ abl == opposite bal
                 guard $ passOver ax /= passOver by
 
-                return $! modifyTangle tangle $ do
+                return $! modifyKnot tangle $ do
                     substituteC [(abl, ap), (bal, bq)]
                     connectC [(ax, by), (ap, xa), (bq, yb)]

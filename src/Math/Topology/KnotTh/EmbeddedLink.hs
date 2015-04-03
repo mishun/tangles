@@ -1,4 +1,4 @@
-{-# LANGUAGE TypeFamilies, UnboxedTuples, RankNTypes #-}
+{-# LANGUAGE TypeFamilies, UnboxedTuples, RankNTypes, GeneralizedNewtypeDeriving #-}
 module Math.Topology.KnotTh.EmbeddedLink
     ( module Math.Topology.KnotTh.Knotted
     , module Math.Topology.KnotTh.Crossings.Projection
@@ -16,38 +16,30 @@ module Math.Topology.KnotTh.EmbeddedLink
     , fromTangleAndStar
     , splitIntoTangleAndStar
     , twistedDoubleSatelliteELink
-
     , testPrime
     , has4LegPlanarPart
-
-    , ModifyELinkM
-    , modifyELink
-    , emitCircle
-    , maskC
-    , modifyC
-    , connectC
-    , substituteC
     ) where
 
+import Control.Applicative (Applicative)
 import Control.Arrow (first)
-import Control.Monad.Reader (ReaderT, runReaderT, ask, lift)
-import Control.Monad (foldM, foldM_, forM, forM_, guard, liftM2, unless, void, when)
-import Control.Monad.IfElse (whenM, whileM)
-import Data.Function (fix)
-import Data.Maybe (fromMaybe, fromJust)
-import Data.List (foldl', find)
+import Control.DeepSeq (NFData(..))
+import Control.Monad (filterM, foldM, foldM_, forM, forM_, guard, liftM2, unless, void, when)
+import Control.Monad.IfElse (unlessM, whileM)
+import qualified Control.Monad.Reader as Reader
+import qualified Control.Monad.ST as ST
+import qualified Data.Array.ST as STArray
+import qualified Data.Array.Unboxed as A
 import Data.Bits ((.&.), shiftL, shiftR, complement)
+import Data.Function (fix)
+import Data.List (foldl', find)
+import Data.Maybe (fromMaybe, fromJust)
+import qualified Data.STRef as STRef
 import qualified Data.Vector as V
 import qualified Data.Vector.Mutable as MV
-import qualified Data.Vector.Unboxed as UV
-import qualified Data.Vector.Unboxed.Mutable as UMV
 import qualified Data.Vector.Primitive as PV
 import qualified Data.Vector.Primitive.Mutable as PMV
-import qualified Data.Array.Unboxed as A
-import qualified Data.Array.ST as STArray
-import qualified Data.STRef as STRef
-import qualified Control.Monad.ST as ST
-import Control.DeepSeq (NFData(..))
+import qualified Data.Vector.Unboxed as UV
+import qualified Data.Vector.Unboxed.Mutable as UMV
 import Text.Printf
 import qualified Math.Combinatorics.ChordDiagram as CD
 import qualified Math.Algebra.Group.D4 as D4
@@ -56,8 +48,9 @@ import qualified Math.Topology.Manifolds.SurfaceGraph as SG
 import Math.Topology.KnotTh.Knotted
 import Math.Topology.KnotTh.Crossings.Projection
 import Math.Topology.KnotTh.Crossings.Diagram
+import Math.Topology.KnotTh.Moves.ModifyDSL
 import Math.Topology.KnotTh.Link
-import Math.Topology.KnotTh.Tangle hiding (connectC, emitCircle, maskC, modifyC, oppositeC, substituteC)
+import Math.Topology.KnotTh.Tangle
 
 
 data EmbeddedLink a =
@@ -357,7 +350,7 @@ instance KnottedDiagram EmbeddedLink where
 
     tryReduceReidemeisterI link = do
         d <- find (\ d -> opposite d == nextCCW d) (allOutcomingDarts link)
-        return $! modifyELink link $ do
+        return $! modifyKnot link $ do
             let ac = nextCW d
                 ab = nextCW ac
                 ba = opposite ab
@@ -390,11 +383,11 @@ instance KnottedDiagram EmbeddedLink where
 
         return $! if rightFace (nextCW abl) == leftFace (nextCCW bal)
             then emptyKnotted
-            else modifyELink link $ do
+            else modifyKnot link $ do
                 case () of
                     _ | qa == ap || rb == bs ->
                         if qa == ap && rb == bs
-                            then emitCircle 1
+                            then emitLoopsC 1
                             else connectC $ [(pa, qa) | qa /= ap] ++ [(rb, sb) | rb /= bs]
 
                       | qa == bs || rb == ap ->
@@ -404,10 +397,10 @@ instance KnottedDiagram EmbeddedLink where
 
                       | otherwise            -> do
                         if qa == br
-                            then emitCircle 1
+                            then emitLoopsC 1
                             else connectC [(qa, rb)]
                         if pa == bs
-                            then emitCircle 1
+                            then emitLoopsC 1
                             else connectC [(pa, sb)]
 
                 maskC [a, b]
@@ -438,7 +431,7 @@ instance KnottedDiagram EmbeddedLink where
             br = nextCW bc
             cs = nextCCW cb
 
-        return $! modifyELink link $ do
+        return $! modifyKnot link $ do
             substituteC [(ca, ap), (ba, aq), (ab, br), (ac, cs)]
             connectC [(br, aq), (cs, ap)]
 
@@ -742,7 +735,7 @@ stoerWagner link = ST.runST $ do
                 n' <- STRef.readSTRef n
                 zj <- STRef.newSTRef (-1)
                 forM_ [2 .. n'] $ \ !j ->
-                    whenM (not `fmap` (STArray.readArray a =<< STArray.readArray v j)) $ do
+                    unlessM (STArray.readArray a =<< STArray.readArray v j) $ do
                         zj' <- STRef.readSTRef zj
                         ok <- if zj' < 1
                                 then return True
@@ -773,7 +766,7 @@ stoerWagner link = ST.runST $ do
                     STRef.writeSTRef prev =<< STArray.readArray v zj
                     n' <- STRef.readSTRef n
                     forM_ [2 .. n'] $ \ !j ->
-                        whenM (not `fmap` (STArray.readArray a =<< STArray.readArray v j)) $ do
+                        unlessM (STArray.readArray a =<< STArray.readArray v j) $ do
                             delta <- STArray.readArray g =<< liftM2 (,) (STArray.readArray v zj) (STArray.readArray v j)
                             tmp <- STArray.readArray w j
                             STArray.writeArray w j $! tmp + delta
@@ -857,11 +850,7 @@ has4LegPlanarPart =
 
 
 
-
-type ModifyELinkM a s r = ReaderT (ModifyState a s) (ST.ST s) r
-
-
-data CrossingMask = Direct | Flipped | Masked
+data CrossingMask a = Direct !a | Flipped !a | Masked
     deriving (Show)
 
 data ModifyState a s =
@@ -869,22 +858,103 @@ data ModifyState a s =
         { stateSource     :: !(EmbeddedLink a)
         , stateCircles    :: !(STRef.STRef s Int)
         , stateInvolution :: !(PMV.STVector s Int)
-        , stateMask       :: !(MV.STVector s CrossingMask)
+        , stateMask       :: !(MV.STVector s (CrossingMask a))
         }
 
 
-modifyELink :: (Show a) => EmbeddedLink a -> (forall s. ModifyELinkM a s ()) -> EmbeddedLink a
-modifyELink link action = ST.runST $ do
-    s <- disassembleST link
-    runReaderT action s
-    assembleST s
+{-# INLINE withState #-}
+withState :: (ModifyState a s -> ST.ST s x) -> ModifyM EmbeddedLink a s x
+withState f = ModifyEmbeddedLinkM $ do
+    st <- Reader.ask
+    Reader.lift (f st)
+
+
+instance ModifyDSL EmbeddedLink where
+    newtype ModifyM EmbeddedLink a s x = ModifyEmbeddedLinkM { unM :: Reader.ReaderT (ModifyState a s) (ST.ST s) x }
+            deriving (Functor, Applicative, Monad)
+
+    modifyKnot link modification = ST.runST $ do
+        s <- disassembleST link
+        Reader.runReaderT (unM modification) s
+        assembleST s
+
+    aliveCrossings = do
+        link <- withState (return . stateSource)
+        filterM (fmap not . isMaskedC) $ allVertices link
+
+    emitLoopsC dn =
+        withState $ \ !s ->
+            STRef.modifySTRef' (stateCircles s) (+ dn)
+
+    oppositeC (Dart link d) =
+        withState $ \ !s ->
+            Dart link `fmap` PMV.read (stateInvolution s) d
+
+    passOverC d =
+        withState $ \ !s -> do
+            msk <- MV.read (stateMask s) $ vertexIndex $ beginVertex d
+            case msk of
+                Masked    -> fail "passOverC: touching masked crossing when taking from %s" (show d)
+                Direct  t -> return $! passOver' t (beginPlace d)
+                Flipped t -> return $! passOver' t (3 - beginPlace d)
+
+    maskC crossings =
+        withState $ \ !s ->
+            forM_ crossings $ \ (Vertex _ i) ->
+                MV.write (stateMask s) i Masked
+
+    isMaskedC (Vertex _ i) =
+        withState $ \ !s -> do
+            msk <- MV.read (stateMask s) i
+            return $! case msk of
+                Masked -> True
+                _      -> False
+
+    modifyC needFlip f crossings =
+        withState $ \ !s ->
+            forM_ crossings $ \ (Vertex _ c) -> do
+                msk <- MV.read (stateMask s) c
+                MV.write (stateMask s) c $
+                    case msk of
+                        Direct t  | needFlip  -> Flipped $ f t
+                                  | otherwise -> Direct $ f t
+                        Flipped t | needFlip  -> Direct $ f t
+                                  | otherwise -> Flipped $ f t
+                        Masked                -> error $ printf "modifyC: flipping masked crossing %s" (show c)
+
+    connectC connections =
+        withState $ \ !s ->
+            forM_ connections $ \ (Dart _ !a, Dart _ !b) -> do
+                when (a == b) $ fail $ printf "reconnect: %s connect to itself" (show a)
+                PMV.write (stateInvolution s) a b
+                PMV.write (stateInvolution s) b a
+
+    substituteC substitutions = do
+        reconnections <- mapM (\ (a, b) -> (,) a `fmap` oppositeC b) substitutions
+        x <- withState $ \ !st -> do
+            let source = stateSource st
+
+            arr <- MV.new (numberOfDarts source)
+            forM_ (allEdges source) $ \ (!a, !b) -> do
+                MV.write arr (dartIndex a) a
+                MV.write arr (dartIndex b) b
+
+            forM_ substitutions $ \ (a, b) ->
+                if a == b
+                    then STRef.modifySTRef' (stateCircles st) (+ 1)
+                    else MV.write arr (dartIndex b) a
+
+            forM reconnections $ \ (a, b) ->
+                (,) a `fmap` MV.read arr (dartIndex b)
+        connectC x
 
 
 disassembleST :: EmbeddedLink a -> ST.ST s (ModifyState a s)
 disassembleST link = do
     circ <- STRef.newSTRef $ numberOfFreeLoops link
     inv <- PV.thaw $ involutionArray link
-    mask <- MV.replicate (numberOfVertices link) Direct
+    mask <- MV.new (numberOfVertices link)
+    V.copy mask $ V.map Direct $ crossingsArray link
     return $! ModifyState
                   { stateSource     = link
                   , stateCircles    = circ
@@ -907,9 +977,9 @@ assembleST s = do
             i <- [0 .. vertexCount src - 1]
             let d = 4 * (offsets UV.! i)
             case mask V.! i of
-                Masked  -> [-1, -1, -1, -1]
-                Direct  -> [d, d + 1, d + 2, d + 3]
-                Flipped -> [d + 3, d + 2, d + 1, d]
+                Masked    -> [-1, -1, -1, -1]
+                Direct _  -> [d, d + 1, d + 2, d + 3]
+                Flipped _ -> [d + 3, d + 2, d + 1, d]
 
     inv <- PV.freeze $ stateInvolution s
     forM_ [0 .. vertexCount src - 1] $ \ !v ->
@@ -932,75 +1002,10 @@ assembleST s = do
                 PV.map (idx UV.!) $ PV.concat $ do
                     i <- [0 .. vertexCount src - 1]
                     return $! case mask V.! i of
-                        Masked  -> PV.empty
-                        Direct  -> PV.slice (4 * i) 4 inv
-                        Flipped -> PV.reverse $ PV.slice (4 * i) 4 inv
+                        Masked    -> PV.empty
+                        Direct _  -> PV.slice (4 * i) 4 inv
+                        Flipped _ -> PV.reverse $ PV.slice (4 * i) 4 inv
             , crossingsArray  = crs
             , faceSystem      = makeFaceSystem link
             }
     return link
-
-
-emitCircle :: Int -> ModifyELinkM a s ()
-emitCircle dn =
-    ask >>= \ !s -> lift $
-        STRef.modifySTRef' (stateCircles s) (+ dn)
-
-
-maskC :: [Vertex EmbeddedLink a] -> ModifyELinkM a s ()
-maskC crossings =
-    ask >>= \ !s -> lift $
-        forM_ crossings $ \ (Vertex _ i) ->
-            MV.write (stateMask s) i Masked
-
-
-modifyC :: (Show a) => Bool -> [Vertex EmbeddedLink a] -> ModifyELinkM a s ()
-modifyC needFlip crossings =
-    ask >>= \ !s -> lift $
-        forM_ crossings $ \ (Vertex _ c) -> do
-            msk <- MV.read (stateMask s) c
-            MV.write (stateMask s) c $
-                case msk of
-                    Direct  | needFlip  -> Flipped
-                            | otherwise -> Direct
-                    Flipped | needFlip  -> Direct
-                            | otherwise -> Flipped
-                    Masked              -> error $ printf "modifyC: flipping masked crossing %s" (show c)
-
-
-connectC :: [(Dart EmbeddedLink a, Dart EmbeddedLink a)] -> ModifyELinkM a s ()
-connectC connections =
-    ask >>= \ !s -> lift $
-        forM_ connections $ \ (Dart _ !a, Dart _ !b) -> do
-            when (a == b) $ fail $ printf "reconnect: %s connect to itself" (show a)
-            PMV.write (stateInvolution s) a b
-            PMV.write (stateInvolution s) b a
-
-
-substituteC :: [(Dart EmbeddedLink a, Dart EmbeddedLink a)] -> ModifyELinkM a s ()
-substituteC substitutions = do
-    reconnections <- mapM (\ (a, b) -> (,) a `fmap` oppositeC b) substitutions
-    st <- ask
-    x <- lift $ do
-        let source = stateSource st
-
-        arr <- MV.new (numberOfDarts source)
-        forM_ (allEdges source) $ \ (!a, !b) -> do
-            MV.write arr (dartIndex a) a
-            MV.write arr (dartIndex b) b
-
-        forM_ substitutions $ \ (a, b) ->
-            if a == b
-                then STRef.modifySTRef' (stateCircles st) (+ 1)
-                else MV.write arr (dartIndex b) a
-
-        forM reconnections $ \ (a, b) ->
-            (,) a `fmap` MV.read arr (dartIndex b)
-
-    connectC x
-
-
-oppositeC :: Dart EmbeddedLink a -> ModifyELinkM a s (Dart EmbeddedLink a)
-oppositeC (Dart link d) =
-    ask >>= \ !s -> lift $
-        Dart link `fmap` PMV.read (stateInvolution s) d

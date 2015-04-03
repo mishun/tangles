@@ -11,6 +11,7 @@ import Control.Applicative (Applicative(..), Alternative(..))
 import Control.Monad.State (execState, gets, modify)
 import Control.Monad (MonadPlus(..), unless, guard)
 import Math.Topology.KnotTh.EmbeddedLink
+import Math.Topology.KnotTh.Moves.ModifyDSL
 
 
 data PatternS a =
@@ -122,10 +123,10 @@ connectionNonAltP :: [(EmbeddedLinkDiagramDart, EmbeddedLinkDiagramDart)] -> Pat
 connectionNonAltP = mapM_ (\ (a, b) -> guard (opposite a == b && passOver a == passOver b))
 
 
-reconnectP :: (Show a) => (forall s. ModifyELinkM a s ()) -> PatternM s' a (EmbeddedLink a)
+reconnectP :: (Show a) => (forall s. ModifyM EmbeddedLink a s ()) -> PatternM s' a (EmbeddedLink a)
 reconnectP m =
     PatternM $ \ s@(PatternS _ link _) ->
-        [(s, modifyELink link m)]
+        [(s, modifyKnot link m)]
 
 
 movesOfELink :: EmbeddedLinkDiagram -> [EmbeddedLinkDiagram]
@@ -155,7 +156,7 @@ flype = do
     reconnectP $ do
         substituteC [(ba, ae), (ca, ad), (ab, rp), (ac, sq)]
         connectC [(rp, ae), (sq, ad)]
-        modifyC True sub
+        modifyC True id sub
 
 
 pass1 :: PatternM s DiagramCrossing EmbeddedLinkDiagram
@@ -238,7 +239,7 @@ handleFlype = do
     reconnectP $ do
         substituteC [(a3, a2), (b2, b3)]
         connectC [(a0, x0), (a1, x1), (a2, x5), (b0, x4), (b3, x3), (b1, x2)]
-        modifyC True sub
+        modifyC True id sub
 
 
 handleTwist :: PatternM s DiagramCrossing EmbeddedLinkDiagram
@@ -256,7 +257,7 @@ handleTwist = do
         substituteC [(b0, c2), (c0, b2)]
         connectC [(x2, b2), (x3, c2)]
         maskC [a]
-        modifyC True sub
+        modifyC True id sub
 
 
 handlePass2 :: PatternM s DiagramCrossing EmbeddedLinkDiagram
@@ -271,4 +272,3 @@ handlePass2 = do
     reconnectP $ do
         substituteC [(x0, a2), (x1, b2), (a0, x4), (b0, x3)]
         connectC [(a2, x4), (b2, x3)]
-
