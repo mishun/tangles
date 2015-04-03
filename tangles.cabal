@@ -9,7 +9,7 @@ synopsis:           Enumeration algorithms for some knot theory objects
 description:        See http://arxiv.org/abs/0712.3859
 category:           Math
 build-type:         Simple
-cabal-version:      >=1.14
+cabal-version:      >=1.18
 homepage:           http://github.com/mishun/tangles/
 
 
@@ -105,9 +105,6 @@ library
         Math.Topology.KnotTh.Invariants.JonesPolynomial,
         Math.Topology.KnotTh.Invariants.KauffmanFPolynomial,
         Math.Topology.KnotTh.Invariants.KauffmanXPolynomial,
-        Math.Topology.KnotTh.Invariants.KhovanovHomology.DottedCobordism,
-        Math.Topology.KnotTh.Invariants.KhovanovHomology.PlanarAlgebra,
-        Math.Topology.KnotTh.Invariants.KhovanovHomology.PlanarSmoothing,
         Math.Topology.KnotTh.Invariants.KnotPolynomials,
         Math.Topology.KnotTh.Invariants.KnotPolynomials.KauffmanFStateSum,
         Math.Topology.KnotTh.Invariants.KnotPolynomials.KauffmanXStateSum,
@@ -150,6 +147,7 @@ library
             Math.Combinatorics.Strings.Test,
             Math.Topology.KnotTh.EmbeddedLink.Test,
             Math.Topology.KnotTh.Enumeration.Applied.Test,
+            Math.Topology.KnotTh.Invariants.KhovanovHomology.Test,
             Math.Topology.KnotTh.Invariants.Test,
             Math.Topology.KnotTh.Moves.Test,
             Math.Topology.KnotTh.Tangle.Test,
