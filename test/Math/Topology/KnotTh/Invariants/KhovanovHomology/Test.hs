@@ -2,9 +2,9 @@ module Math.Topology.KnotTh.Invariants.KhovanovHomology.Test
     ( test
     ) where
 
-import Test.Framework (Test, testGroup)
-import Test.Framework.Providers.HUnit (testCase)
+import Distribution.TestSuite (Test, testGroup)
 import Test.HUnit hiding (Test, test)
+import TestUtil
 import Math.Topology.KnotTh.Invariants.KhovanovHomology
 
 

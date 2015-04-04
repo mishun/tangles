@@ -5,8 +5,8 @@ module Math.Topology.KnotTh.Tabulation.Test
 
 import Control.Arrow ((&&&))
 import Control.Monad (when)
-import Test.Framework (Test, testGroup)
-import Test.Framework.Providers.HUnit (testCase)
+import Distribution.TestSuite (Test, testGroup)
+import TestUtil
 import qualified Math.Algebra.Group.Dn as Dn
 import Math.Topology.KnotTh.Tangle
 import Math.Topology.KnotTh.Tabulation.TangleDiagramsCascade

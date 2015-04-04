@@ -6,9 +6,9 @@ module Math.Topology.KnotTh.Invariants.Test
 import qualified Data.Map as M
 #endif
 import Text.Printf
-import Test.Framework (Test, testGroup)
-import Test.Framework.Providers.HUnit (testCase)
+import Distribution.TestSuite (Test, testGroup)
 import Test.HUnit hiding (Test, test)
+import TestUtil
 #ifdef TESTING
 import qualified Math.Algebra.Field.Base as B
 import qualified Math.Projects.KnotTheory.LaurentMPoly as LMP

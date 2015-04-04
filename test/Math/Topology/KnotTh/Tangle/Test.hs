@@ -3,9 +3,9 @@ module Math.Topology.KnotTh.Tangle.Test
     ) where
 
 import Control.Monad
-import Test.Framework (Test, testGroup)
-import Test.Framework.Providers.HUnit (testCase)
+import Distribution.TestSuite (Test, testGroup)
 import Test.HUnit hiding (Test, test)
+import TestUtil
 import qualified Math.Algebra.RotationDirection as R
 import Math.Topology.KnotTh.Tangle
 

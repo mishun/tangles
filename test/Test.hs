@@ -1,6 +1,6 @@
-module Main (main) where
+module Test (tests) where
 
-import Test.Framework (defaultMain)
+import Distribution.TestSuite
 import qualified Math.Combinatorics.ChordDiagram.Test
 import qualified Math.Combinatorics.Strings.Test
 import qualified Math.Topology.KnotTh.EmbeddedLink.Test
@@ -11,9 +11,9 @@ import qualified Math.Topology.KnotTh.Tabulation.Test
 import qualified Math.Topology.KnotTh.Tangle.Test
 
 
-main :: IO ()
-main =
-    defaultMain
+tests :: IO [Test]
+tests =
+    return
         [ Math.Topology.KnotTh.Invariants.KhovanovHomology.Test.test
         , Math.Combinatorics.Strings.Test.test
         , Math.Topology.KnotTh.EmbeddedLink.Test.test

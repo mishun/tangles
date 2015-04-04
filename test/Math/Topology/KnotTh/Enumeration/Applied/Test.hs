@@ -7,9 +7,9 @@ import Data.Maybe (mapMaybe)
 import Control.Arrow ((&&&))
 import Control.Monad (forM_)
 import Control.Parallel.Strategies
-import Test.Framework (Test, testGroup)
-import Test.Framework.Providers.HUnit (testCase)
+import Distribution.TestSuite (Test, testGroup)
 import Test.HUnit hiding (Test, test)
+import TestUtil
 import Math.Topology.KnotTh.Tangle
 import Math.Topology.KnotTh.Link (tangleDoublingLink)
 import Math.Topology.KnotTh.Enumeration.DiagramInfo.MinimalDiagramInfo

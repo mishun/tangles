@@ -3,10 +3,9 @@ module Math.Combinatorics.Strings.Test
     ) where
 
 import Text.Printf
-import Test.Framework (Test, testGroup)
-import Test.Framework.Providers.QuickCheck2 (testProperty)
-import Test.Framework.Providers.HUnit (testCase)
+import Distribution.TestSuite (Test, testGroup)
 import Test.HUnit hiding (Test, test)
+import TestUtil
 import Math.Combinatorics.Strings.Lyndon
 
 

@@ -132,7 +132,7 @@ library
 
 
 test-suite TestTangles
-    type:               exitcode-stdio-1.0
+    type:               detailed-0.9
     default-language:   Haskell2010
     default-extensions: BangPatterns, CPP
     ghc-options:        -Wall -threaded
@@ -142,14 +142,12 @@ test-suite TestTangles
         containers,
         mtl,
         parallel,
+        Cabal >=1.18,
         HaskellForMaths,
         HUnit,
         QuickCheck ==2.*,
-        test-framework,
-        test-framework-hunit,
-        test-framework-quickcheck2,
         tangles
-    main-is:            TestTangles.hs
+    test-module:        Test
     other-modules:
         Math.Combinatorics.ChordDiagram.Test,
         Math.Combinatorics.Strings.Test,
@@ -157,9 +155,9 @@ test-suite TestTangles
         Math.Topology.KnotTh.Enumeration.Applied.Test,
         Math.Topology.KnotTh.Invariants.KhovanovHomology.Test,
         Math.Topology.KnotTh.Invariants.Test,
-        Math.Topology.KnotTh.Moves.Test,
         Math.Topology.KnotTh.Tabulation.Test,
         Math.Topology.KnotTh.Tangle.Test,
+        TestUtil,
         TestUtil.Table
     hs-source-dirs:     test
     if flag(internal-tests)
