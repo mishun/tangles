@@ -1,5 +1,5 @@
 {-# LANGUAGE UnboxedTuples #-}
-module Math.Topology.KnotTh.Crossings.Diagram
+module Math.Topology.KnotTh.Knotted.Crossings.Diagram
     ( DiagramCrossing
     , overCrossing
     , underCrossing
@@ -28,6 +28,7 @@ import Data.Array.Unboxed (UArray)
 import Control.DeepSeq
 import qualified Math.Algebra.Group.D4 as D4
 import Math.Topology.KnotTh.Knotted
+import Math.Topology.KnotTh.Knotted.Threads
 
 
 newtype DiagramCrossing = DC Int deriving (Eq)

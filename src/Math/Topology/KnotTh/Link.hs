@@ -1,8 +1,8 @@
 {-# LANGUAGE TypeFamilies #-}
 module Math.Topology.KnotTh.Link
     ( module Math.Topology.KnotTh.Knotted
-    , module Math.Topology.KnotTh.Crossings.Projection
-    , module Math.Topology.KnotTh.Crossings.Diagram
+    , module Math.Topology.KnotTh.Knotted.Crossings.Projection
+    , module Math.Topology.KnotTh.Knotted.Crossings.Diagram
     , Link
     , LinkProjection
     , LinkProjectionVertex
@@ -49,8 +49,9 @@ import qualified Data.Map as M
 import qualified Data.STRef as STRef
 import Text.Printf
 import Math.Topology.KnotTh.Knotted
-import Math.Topology.KnotTh.Crossings.Projection
-import Math.Topology.KnotTh.Crossings.Diagram
+import Math.Topology.KnotTh.Knotted.Crossings.Projection
+import Math.Topology.KnotTh.Knotted.Crossings.Diagram
+import Math.Topology.KnotTh.Knotted.Threads
 import Math.Topology.KnotTh.Tangle
 import Math.Topology.KnotTh.Link.TableOfCodes
 

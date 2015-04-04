@@ -1,5 +1,5 @@
 {-# LANGUAGE UnboxedTuples #-}
-module Math.Topology.KnotTh.Crossings.Projection
+module Math.Topology.KnotTh.Knotted.Crossings.Projection
     ( ProjectionCrossing
     , projectionCrossing
     , projectionCrossings
@@ -8,6 +8,7 @@ module Math.Topology.KnotTh.Crossings.Projection
 
 import Control.DeepSeq
 import Math.Topology.KnotTh.Knotted
+import Math.Topology.KnotTh.Knotted.Threads
 
 
 data ProjectionCrossing = ProjectionCrossing deriving (Eq)

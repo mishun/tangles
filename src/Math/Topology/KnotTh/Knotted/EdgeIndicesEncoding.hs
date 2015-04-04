@@ -1,4 +1,4 @@
-module Math.Topology.KnotTh.EdgeIndicesEncoding
+module Math.Topology.KnotTh.Knotted.EdgeIndicesEncoding
     ( edgeIndicesEncoding
     ) where
 

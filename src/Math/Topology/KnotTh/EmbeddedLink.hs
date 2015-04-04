@@ -1,8 +1,8 @@
 {-# LANGUAGE TypeFamilies, UnboxedTuples, RankNTypes, GeneralizedNewtypeDeriving #-}
 module Math.Topology.KnotTh.EmbeddedLink
     ( module Math.Topology.KnotTh.Knotted
-    , module Math.Topology.KnotTh.Crossings.Projection
-    , module Math.Topology.KnotTh.Crossings.Diagram
+    , module Math.Topology.KnotTh.Knotted.Crossings.Projection
+    , module Math.Topology.KnotTh.Knotted.Crossings.Diagram
 
     , EmbeddedLink
     , EmbeddedLinkProjection
@@ -46,8 +46,9 @@ import qualified Math.Algebra.Group.D4 as D4
 import qualified Math.Algebra.RotationDirection as R
 import qualified Math.Topology.Manifolds.SurfaceGraph as SG
 import Math.Topology.KnotTh.Knotted
-import Math.Topology.KnotTh.Crossings.Projection
-import Math.Topology.KnotTh.Crossings.Diagram
+import Math.Topology.KnotTh.Knotted.Crossings.Projection
+import Math.Topology.KnotTh.Knotted.Crossings.Diagram
+import Math.Topology.KnotTh.Knotted.Threads
 import Math.Topology.KnotTh.Moves.ModifyDSL
 import Math.Topology.KnotTh.Link
 import Math.Topology.KnotTh.Tangle

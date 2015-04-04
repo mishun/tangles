@@ -9,9 +9,9 @@ module Math.Topology.KnotTh.Tangle.CascadeCode
 
 import Data.Char (isSpace)
 import Text.Printf
-import Math.Topology.KnotTh.Crossings.Projection
-import Math.Topology.KnotTh.Crossings.Diagram
 import Math.Topology.KnotTh.Knotted
+import Math.Topology.KnotTh.Knotted.Crossings.Projection
+import Math.Topology.KnotTh.Knotted.Crossings.Diagram
 import Math.Topology.KnotTh.Tangle.TangleLike
 import Math.Topology.KnotTh.Tangle.Tangle
 

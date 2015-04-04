@@ -12,7 +12,7 @@ import Data.Array.IArray ((!))
 import Text.Printf
 import qualified Math.Algebra.Group.Dn as Dn
 import Math.Topology.KnotTh.Knotted
-import Math.Topology.KnotTh.Crossings.Diagram
+import Math.Topology.KnotTh.Knotted.Crossings.Diagram
 import Math.Topology.KnotTh.Tangle.TangleLike
 import Math.Topology.KnotTh.Tangle.Tangle
 import Math.Topology.KnotTh.Tangle.Braid

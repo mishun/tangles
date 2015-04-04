@@ -6,7 +6,7 @@ module Math.Topology.KnotTh.Moves.ModifyDSL
 
 import Control.Monad (when)
 import Math.Topology.KnotTh.Knotted
-import Math.Topology.KnotTh.Crossings.Diagram
+import Math.Topology.KnotTh.Knotted.Crossings.Diagram
 
 
 class (Knotted k) => ModifyDSL k where

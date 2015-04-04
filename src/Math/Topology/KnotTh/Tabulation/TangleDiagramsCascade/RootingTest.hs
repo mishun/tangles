@@ -17,7 +17,7 @@ import Control.Monad (when, guard)
 import qualified Math.Algebra.RotationDirection as R
 import qualified Math.Algebra.Group.Dn as Dn
 import qualified Math.Algebra.Group.D4 as D4
-import Math.Topology.KnotTh.Crossings.SubTangle
+import Math.Topology.KnotTh.Knotted.Crossings.SubTangle
 import Math.Topology.KnotTh.Tangle
 
 

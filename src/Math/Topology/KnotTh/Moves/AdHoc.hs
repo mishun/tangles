@@ -12,6 +12,7 @@ import Data.List (sort, nub)
 import Data.Maybe (mapMaybe)
 import qualified Data.Vector.Unboxed as UV
 import Control.Monad (when, unless, msum, guard, liftM2)
+import Math.Topology.KnotTh.Knotted.Threads
 import Math.Topology.KnotTh.Tangle
 import Math.Topology.KnotTh.Link
 import Math.Topology.KnotTh.Moves.ModifyDSL

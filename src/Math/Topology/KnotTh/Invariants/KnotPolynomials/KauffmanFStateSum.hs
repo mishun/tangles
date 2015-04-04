@@ -17,6 +17,7 @@ import Control.Monad.ST (runST)
 import Control.Monad (forM_, when)
 import Control.DeepSeq
 import Text.Printf
+import Math.Topology.KnotTh.Knotted.Threads
 import Math.Topology.KnotTh.Tangle
 import Math.Topology.KnotTh.Moves.AdHoc
 import Math.Topology.KnotTh.Moves.ModifyDSL

@@ -5,7 +5,7 @@ module Math.Topology.KnotTh.Invariants.LinkingNumber
 import Data.List (sort)
 import Data.Array.IArray ((!))
 import Math.Topology.KnotTh.Knotted
-import Math.Topology.KnotTh.Crossings.Diagram
+import Math.Topology.KnotTh.Knotted.Crossings.Diagram
 
 
 linkingNumbersInvariant :: (KnottedPlanar k) => k DiagramCrossing -> [Int]

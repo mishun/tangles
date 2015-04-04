@@ -1,5 +1,5 @@
 {-# LANGUAGE UnboxedTuples #-}
-module Math.Topology.KnotTh.Crossings.SubTangle
+module Math.Topology.KnotTh.Knotted.Crossings.SubTangle
     ( DirectSumDecompositionType(..)
     , SubTangleCrossing
     , SubTangleTangle

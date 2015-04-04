@@ -30,8 +30,9 @@ import Text.Printf
 import qualified Math.Algebra.Group.D4 as D4
 import qualified Math.Algebra.RotationDirection as R
 import Math.Topology.KnotTh.Knotted
-import Math.Topology.KnotTh.Crossings.Projection
-import Math.Topology.KnotTh.Crossings.Diagram
+import Math.Topology.KnotTh.Knotted.Crossings.Projection
+import Math.Topology.KnotTh.Knotted.Crossings.Diagram
+import Math.Topology.KnotTh.Knotted.Threads
 import Math.Topology.KnotTh.Moves.ModifyDSL
 import Math.Topology.KnotTh.Tangle.TangleLike
 

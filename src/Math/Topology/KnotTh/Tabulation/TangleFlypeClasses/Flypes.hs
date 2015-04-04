@@ -9,8 +9,8 @@ import qualified Data.Vector.Unboxed.Mutable as UMV
 import Text.Printf
 import qualified Math.Algebra.RotationDirection as R
 import qualified Math.Algebra.Group.Dn as Dn
-import Math.Topology.KnotTh.Crossings.Projection
-import Math.Topology.KnotTh.Crossings.SubTangle
+import Math.Topology.KnotTh.Knotted.Crossings.Projection
+import Math.Topology.KnotTh.Knotted.Crossings.SubTangle
 import Math.Topology.KnotTh.Tangle
 
 

@@ -22,7 +22,7 @@ import Control.Monad.ST (ST, runST)
 import Control.Monad (when, unless, forM_, forM, filterM)
 import Control.Arrow (first)
 import Text.Printf
-import Math.Algebra.PlanarAlgebra.Definition
+import Math.Algebra.PlanarAlgebra
 
 
 class (Monoid s) => PlanarStateSum s where

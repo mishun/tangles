@@ -6,9 +6,10 @@ import Data.Either (lefts)
 import Data.List (groupBy)
 import qualified Data.Array as A
 import Control.Monad (mfilter)
-import Math.Topology.KnotTh.Crossings.Projection
-import Math.Topology.KnotTh.Crossings.Diagram
 import Math.Topology.KnotTh.Knotted
+import Math.Topology.KnotTh.Knotted.Crossings.Projection
+import Math.Topology.KnotTh.Knotted.Crossings.Diagram
+import Math.Topology.KnotTh.Knotted.Threads
 import Math.Topology.KnotTh.Draw.Settings
 
 

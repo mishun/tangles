@@ -1,7 +1,7 @@
 module Math.Topology.KnotTh.Tangle
     ( module Math.Topology.KnotTh.Knotted
-    , module Math.Topology.KnotTh.Crossings.Projection
-    , module Math.Topology.KnotTh.Crossings.Diagram
+    , module Math.Topology.KnotTh.Knotted.Crossings.Projection
+    , module Math.Topology.KnotTh.Knotted.Crossings.Diagram
     , module Math.Topology.KnotTh.Tangle.TangleLike
     , module Math.Topology.KnotTh.Tangle.Tangle
     , module Math.Topology.KnotTh.Tangle.Braid
@@ -14,8 +14,8 @@ module Math.Topology.KnotTh.Tangle
     ) where
 
 import Math.Topology.KnotTh.Knotted
-import Math.Topology.KnotTh.Crossings.Projection
-import Math.Topology.KnotTh.Crossings.Diagram
+import Math.Topology.KnotTh.Knotted.Crossings.Projection
+import Math.Topology.KnotTh.Knotted.Crossings.Diagram
 import Math.Topology.KnotTh.Tangle.TangleLike
 import Math.Topology.KnotTh.Tangle.Tangle
 import Math.Topology.KnotTh.Tangle.Braid
