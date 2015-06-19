@@ -1,4 +1,4 @@
-{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE TypeFamilies, GeneralizedNewtypeDeriving #-}
 module Math.Topology.KnotTh.Link
     ( module Math.Topology.KnotTh.Knotted
     , module Math.Topology.KnotTh.Knotted.Crossings.Projection
@@ -57,6 +57,7 @@ import Math.Topology.KnotTh.Link.TableOfCodes
 
 
 newtype Link a = L (Tangle a)
+    deriving (Functor, KnottedPlanar, KnottedDiagram)
 
 
 instance PlanarDiagram Link where
@@ -89,11 +90,6 @@ instance PlanarDiagram Link where
     vertexIndicesRange (L t) = vertexIndicesRange t
     dartIndicesRange (L t) = dartIndicesRange t
 
-
-instance Functor Link where
-    fmap f (L t) = L (fmap f t)
-
-
 instance Knotted Link where
     vertexCrossing (V v) = vertexCrossing v
 
@@ -106,20 +102,6 @@ instance Knotted Link where
     unrootedHomeomorphismInvariant (L t) = unrootedHomeomorphismInvariant t
 
     isConnected (L t) = isConnected t
-
-
-instance KnottedPlanar Link where
-    numberOfFreeLoops (L t) = numberOfFreeLoops t
-    changeNumberOfFreeLoops n (L t) = L (changeNumberOfFreeLoops n t)
-    emptyKnotted = L emptyKnotted
-
-
-instance KnottedDiagram Link where
-    isReidemeisterReducible (L t) = isReidemeisterReducible t
-    tryReduceReidemeisterI (L t) = tangleToLink `fmap` tryReduceReidemeisterI t
-    tryReduceReidemeisterII (L t) = tangleToLink `fmap` tryReduceReidemeisterII t
-    reidemeisterIII (L t) = tangleToLink `fmap` reidemeisterIII t
-
 
 instance (Crossing a) => KnotWithPrimeTest Link a where
     isPrime (L t) = isPrime t
