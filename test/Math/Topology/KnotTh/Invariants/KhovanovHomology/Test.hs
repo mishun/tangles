@@ -11,7 +11,32 @@ import Math.Topology.KnotTh.Invariants.KhovanovHomology
 test :: Test
 test = testGroup "Tangle generators"
     [ testCase "Loop from 2 propagators" $ do
-        let (s, _, _) = glue 2 (propagator :: Smoothing, 0) (propagator, 0)
-        numberOfLegs s @?= 0
-        numberOfLoops s @?= 1
+        let loop :: CobordismBorder (DottedCobordism Integer)
+            (loop, _, _) = glue 2 (planarPropagator, 0) (planarPropagator, 0)
+        numberOfLegs loop @?= 0
+        numberOfLoops loop @?= 1
+
+    , testCase "cap ∘ cup" $ do
+        let r :: DottedCobordism Integer
+            r = capCobordism ∘ cupCobordism
+        numberOfLegs r @?= 0
+        numberOfLoops (cobordismBorder0 r) @?= 0
+        numberOfLoops (cobordismBorder1 r) @?= 0
+
+    , testCase "cup ∘ cap" $ do
+            let r :: DottedCobordism Integer
+                r = cupCobordism ∘ capCobordism
+            numberOfLegs r @?= 0
+            numberOfLoops (cobordismBorder0 r) @?= 1
+            numberOfLoops (cobordismBorder1 r) @?= 1
+
+    , testCase "Tube identity" $ do
+        let tube1, tube2 :: DottedCobordism Integer
+            (tube1, _, _) = glue 2 (planarPropagator, 0) (planarPropagator, 0)
+            tube2 = identityCobordism $
+                let (loop, _, _) = glue 2 (planarPropagator, 0) (planarPropagator, 0)
+                in loop
+        tube1 @?= (tube1 ∘ tube1)
+        tube2 @?= (tube2 ∘ tube2)
+        tube1 @?= tube2
     ]
