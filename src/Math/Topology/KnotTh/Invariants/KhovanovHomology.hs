@@ -6,10 +6,12 @@ module Math.Topology.KnotTh.Invariants.KhovanovHomology
     , DottedCobordism
     ) where
 
+import Control.Exception (assert)
 import Control.Monad (foldM, forM_, when)
+import Control.Monad.IfElse (whenM)
 import qualified Control.Monad.ST as ST
 import qualified Data.Map as M
-import qualified Data.Vector as V
+import qualified Data.STRef as STRef
 import qualified Data.Vector.Unboxed as UV
 import qualified Data.Vector.Unboxed.Mutable as UMV
 import Text.Printf
@@ -21,36 +23,69 @@ class PlanarAlgebra' a where
     glue             :: Int -> (a, Int) -> (a, Int) -> (a, UV.Vector Int, UV.Vector Int)
     --rotate         :: Int -> a -> a
 
+class (PlanarAlgebra' c, PlanarAlgebra' (CobordismBorder c)) => CannedCobordism c where
+    data CobordismBorder c :: *
+
+    cobordismBorder0  :: c -> CobordismBorder c
+    cobordismBorder1  :: c -> CobordismBorder c
+    capCobordism      :: c
+    cupCobordism      :: c
+    identityCobordism :: CobordismBorder c -> c
+    (∘)               :: c -> c -> c
 
 
-makeWallMap :: Int -> UV.Vector Int -> UV.Vector Int -> (Int, UV.Vector Int)
-makeWallMap !n !bot !top = ST.runST $ do
-    hid <- UMV.replicate n (-1)
 
-    let mark !free !s0 !s1 !i = do
-            UMV.write hid i free
-            let j = s0 UV.! i
-            vj <- UMV.read hid j
-            when (vj < 0) $
-                mark free s1 s0 j
+data CobordismHeader =
+    CobordismHeader
+        { legsN      :: {-# UNPACK #-} !Int
+        , loops0     :: {-# UNPACK #-} !Int
+        , loops1     :: {-# UNPACK #-} !Int
+        , arcs0      :: !(UV.Vector Int)
+        , arcs1      :: !(UV.Vector Int)
+        , wallHolesN :: {-# UNPACK #-} !Int
+        , wallMap    :: !(UV.Vector Int)
+        }
+    deriving (Eq, Show)
 
-    hn <- foldM (\ !free !i -> do
-            vi <- UMV.read hid i
-            if vi < 0
-                then mark free bot top i >> return (free + 1)
-                else return free
-        ) 0 [0 .. n - 1]
+{-# INLINE makeHeader #-}
+makeHeader :: Int -> (UV.Vector Int, Int) -> (UV.Vector Int, Int) -> CobordismHeader
+makeHeader !legs (!bot, !botLoops) (!top, !topLoops) =
+    ST.runST $ do
+        hid <- UMV.replicate legs (-1)
 
-    hid' <- UV.unsafeFreeze hid
-    return $! (hn, hid')
+        let mark !color !s0 !s1 !i = do
+                UMV.write hid i color
+                let j = s0 UV.! i
+                whenM ((< 0) `fmap` UMV.read hid j) $
+                    mark color s1 s0 j
+
+        hn <- foldM (\ !freeColor !i -> do
+                vi <- UMV.read hid i
+                if vi < 0
+                    then mark freeColor bot top i >> return (freeColor + 1)
+                    else return freeColor
+            ) 0 [0 .. legs - 1]
+
+        hid' <- UV.unsafeFreeze hid
+        return $!
+            CobordismHeader
+                { legsN      = legs
+                , loops0     = botLoops
+                , loops1     = topLoops
+                , arcs0      = bot
+                , arcs1      = top
+                , wallHolesN = hn
+                , wallMap    = hid'
+                }
+
 
 
 
 class (Eq g, Ord g) => CobordismGuts g where
-    capGuts      :: g
-    cupGuts      :: g
-    identityGuts :: Int -> Int -> g
-    composeGuts  :: g -> g -> g
+    capGuts       :: g
+    cupGuts       :: g
+    identityGuts  :: Int -> Int -> g
+    composeGuts   :: CobordismHeader -> (CobordismHeader, g) -> (CobordismHeader, g) -> g
 
 class (CobordismGuts g) => ModuleCobordismGuts g where
     isNormalGuts  :: g -> Bool
@@ -71,12 +106,12 @@ instance (ModuleCobordismGuts g, Eq a, Ord a, Num a) => CobordismGuts (ModuleGut
     identityGuts wallHoles endHoles =
         singletonModuleGuts (identityGuts wallHoles endHoles)
 
-    composeGuts (MG map1) (MG map0) =
+    composeGuts h (h1, MG map1) (h0, MG map0) =
         MG $ M.filter (/= 0) $ M.fromListWith (+) $ do
             (g0, factor0) <- M.toList map0
             (g1, factor1) <- M.toList map1
-            (g, factorNorm) <- normalizeGuts $ composeGuts g1 g0
-            return $! (g, factor0 * factor1 * factorNorm)
+            (g, factorNorm) <- normalizeGuts $ composeGuts h (h1, g1) (h0, g0)
+            return $! assert (isNormalGuts g) (g, factor0 * factor1 * factorNorm)
 
 
 
@@ -85,7 +120,7 @@ data DottedGuts =
         { wallSurfs  :: !(UV.Vector Int)
         , loopSurfs0 :: !(UV.Vector Int)
         , loopSurfs1 :: !(UV.Vector Int)
-        , surfsData  :: !(V.Vector (Int, Int, Bool))
+        , surfsData  :: !(UV.Vector (Int, Int))
         }
     deriving (Eq, Ord, Show)
 
@@ -95,7 +130,7 @@ instance CobordismGuts DottedGuts where
             { wallSurfs  = UV.empty
             , loopSurfs0 = UV.singleton 0
             , loopSurfs1 = UV.empty
-            , surfsData  = V.singleton (1, 0, False)
+            , surfsData  = UV.singleton (1, 0)
             }
 
     cupGuts =
@@ -103,7 +138,7 @@ instance CobordismGuts DottedGuts where
             { wallSurfs  = UV.empty
             , loopSurfs0 = UV.empty
             , loopSurfs1 = UV.singleton 0
-            , surfsData  = V.singleton (1, 0, False)
+            , surfsData  = UV.singleton (1, 0)
             }
 
     identityGuts wallHoles endHoles =
@@ -112,111 +147,128 @@ instance CobordismGuts DottedGuts where
             { wallSurfs  = UV.generate wallHoles id
             , loopSurfs0 = ls
             , loopSurfs1 = ls
-            , surfsData  = V.replicate wallHoles (1, 0, False)
-                            V.++ V.replicate endHoles (2, 0, False)
+            , surfsData  = UV.replicate wallHoles (1, 0)
+                            UV.++ UV.replicate endHoles (2, 0)
             }
 
-    composeGuts _ _ = error "not implemented"
+    composeGuts h (h1, g1) (h0, g0) =
+        ST.runST $ do
+            let legs = legsN h
+
+            (newS0, newS1, surfN) <- do
+                newS0 <- UMV.replicate (UV.length $ surfsData g0) (-1 :: Int)
+                newS1 <- UMV.replicate (UV.length $ surfsData g1) (-1 :: Int)
+
+                let mark0 !color !surf = do
+                        whenM ((< 0) `fmap` UMV.read newS0 surf) $ do
+                            UMV.write newS0 surf color
+                            forM_ [0 .. legs - 1] $ \ !leg ->
+                                when (surf == wallSurfs g0 UV.! (wallMap h0 UV.! leg)) $
+                                    mark1 color $ wallSurfs g1 UV.! (wallMap h1 UV.! leg)
+                            forM_ [0 .. UV.length (loopSurfs1 g0) - 1] $ \ !i ->
+                                when (surf == loopSurfs1 g0 UV.! i) $
+                                    mark1 color $ loopSurfs0 g1 UV.! i
+
+                    mark1 !color !surf =
+                        whenM ((< 0) `fmap` UMV.read newS1 surf) $ do
+                            UMV.write newS1 surf color
+                            forM_ [0 .. legs - 1] $ \ !leg ->
+                                when (surf == wallSurfs g1 UV.! (wallMap h1 UV.! leg)) $
+                                    mark0 color $ wallSurfs g0 UV.! (wallMap h0 UV.! leg)
+                            forM_ [0 .. UV.length (loopSurfs1 g0) - 1] $ \ !i ->
+                                when (surf == loopSurfs0 g1 UV.! i) $
+                                    mark0 color $ loopSurfs1 g0 UV.! i
+
+                freeColor <- STRef.newSTRef 0
+                let tryMark0 !s =
+                        whenM ((< 0) `fmap` UMV.read newS0 s) $ do
+                            color <- STRef.readSTRef freeColor
+                            STRef.writeSTRef freeColor $! color + 1
+                            mark0 color s
+
+                    tryMark1 !s =
+                        whenM ((< 0) `fmap` UMV.read newS1 s) $ do
+                            color <- STRef.readSTRef freeColor
+                            STRef.writeSTRef freeColor $! color + 1
+                            mark1 color s
+
+                -- order is important!
+                UV.forM_ (wallMap h0) $ tryMark0 . (wallSurfs g0 UV.!)
+                UV.forM_ (loopSurfs0 g0) tryMark0
+                UV.forM_ (loopSurfs1 g1) tryMark1
+                UV.forM_ (loopSurfs1 g0) tryMark0
+                forM_ [0 .. UV.length (surfsData g0) - 1] tryMark0
+                forM_ [0 .. UV.length (surfsData g1) - 1] tryMark1
+
+                newS0' <- UV.unsafeFreeze newS0
+                newS1' <- UV.unsafeFreeze newS1
+                surfN <- STRef.readSTRef freeColor
+                return $! (newS0', newS1', surfN)
+
+            sd <- do
+                holes <- UMV.replicate surfN 1
+                handles <- UMV.replicate surfN 0
+                comps <- UMV.replicate surfN (0 :: Int)
+
+                forM_ [0 .. UV.length newS0 - 1] $ \ !s -> do
+                    let ns = newS0 UV.! s
+                    fmap (+ 1) (UMV.read comps ns) >>= UMV.write comps ns
+
+                forM_ [0 .. UV.length newS1 - 1] $ \ !s -> do
+                    let ns = newS1 UV.! s
+                    fmap (+ 1) (UMV.read comps ns) >>= UMV.write comps ns
+
+                holes' <- UV.unsafeFreeze holes
+                handles' <- UV.unsafeFreeze handles
+                return $! UV.zip holes' handles'
+
+            return $!
+                DottedGuts
+                    { wallSurfs  = UV.create $ do
+                        ws <- UMV.new (wallHolesN h)
+                        forM_ [0 .. legs - 1] $ \ !leg -> do
+                            UMV.write ws (wallMap h UV.! leg) $ (newS0 UV.!) $ wallMap h0 UV.! leg
+                        return ws
+                    , loopSurfs0 = UV.map (newS0 UV.!) $ loopSurfs0 g0
+                    , loopSurfs1 = UV.map (newS1 UV.!) $ loopSurfs1 g1
+                    , surfsData  = sd
+                    }
 
 instance ModuleCobordismGuts DottedGuts where
-    isNormalGuts = V.all (\ (borders, handles, _) -> borders == 1 && handles == 0) . surfsData
+    isNormalGuts = UV.all (== (1, 0)) . surfsData
 
     normalizeGuts g | isNormalGuts g  = [(g, 1)]
                     | otherwise       = error "normalize not implemented"
 
 
-data CobordismWalls =
-    Walls
-        { legsN      :: {-# UNPACK #-} !Int
-        , loops0     :: {-# UNPACK #-} !Int
-        , loops1     :: {-# UNPACK #-} !Int
-        , border0    :: !(UV.Vector Int)
-        , border1    :: !(UV.Vector Int)
-        , wallHolesN :: {-# UNPACK #-} !Int
-        , wallMap    :: !(UV.Vector Int)
-        }
+
+data Cobordism g = Cob !CobordismHeader !g
     deriving (Eq, Show)
-
-data Cobordism g = Cob !CobordismWalls !g
-    deriving (Eq, Show)
-
-
-class (PlanarAlgebra' c, PlanarAlgebra' (CobordismBorder c)) => CannedCobordism c where
-    data CobordismBorder c :: *
-
-    cobordismBorder0  :: c -> CobordismBorder c
-    cobordismBorder1  :: c -> CobordismBorder c
-    capCobordism      :: c
-    cupCobordism      :: c
-    identityCobordism :: CobordismBorder c -> c
-    (∘)               :: c -> c -> c
-
 
 instance (CobordismGuts g) => CannedCobordism (Cobordism g) where
     data CobordismBorder (Cobordism g) = Brd {-# UNPACK #-} !Int !(UV.Vector Int)
         deriving (Eq, Ord, Show)
 
-    cobordismBorder0 (Cob c _) = Brd (loops0 c) (border0 c)
-    cobordismBorder1 (Cob c _) = Brd (loops1 c) (border1 c)
+    cobordismBorder0 (Cob h _) = Brd (loops0 h) (arcs0 h)
+    cobordismBorder1 (Cob h _) = Brd (loops1 h) (arcs1 h)
 
-    capCobordism =
-        Cob
-            Walls { legsN      = 0
-                  , loops0     = 1
-                  , loops1     = 0
-                  , border0    = UV.empty
-                  , border1    = UV.empty
-                  , wallHolesN = 0
-                  , wallMap    = UV.empty
-                  }
-            capGuts
+    capCobordism = Cob (makeHeader 0 (UV.empty, 1) (UV.empty, 0)) capGuts
+    cupCobordism = Cob (makeHeader 0 (UV.empty, 0) (UV.empty, 1)) cupGuts
 
-    cupCobordism =
-        Cob
-            Walls { legsN      = 0
-                  , loops0     = 0
-                  , loops1     = 1
-                  , border0    = UV.empty
-                  , border1    = UV.empty
-                  , wallHolesN = 0
-                  , wallMap    = UV.empty
-                  }
-            cupGuts
+    identityCobordism (Brd loops arcs) =
+        let h = makeHeader (UV.length arcs) (arcs, loops) (arcs, loops)
+        in Cob h (identityGuts (wallHolesN h) loops)
 
-    identityCobordism (Brd loops border) =
-        let l = UV.length border
-            (whN, wm) = makeWallMap l border border
-        in Cob
-            Walls { legsN      = l
-                  , loops0     = loops
-                  , loops1     = loops
-                  , border0    = border
-                  , border1    = border
-                  , wallHolesN = whN
-                  , wallMap    = wm
-                  }
-            (identityGuts whN loops)
-
-    (Cob w1 g1) ∘ (Cob w0 g0) | legsN w0   /= legsN w1    = error $ printf "(∘): different leg numbers <%i> and <%i>" (legsN w1) (legsN w0)
-                              | loops1 w0  /= loops0 w1   = error $ printf "(∘): different border loops numbers <%i> and <%i>" (loops0 w1) (loops1 w0)
-                              | border1 w0 /= border0 w1  = error "(∘): different borders"
-                              | otherwise                 =
-        let l = legsN w0
-            (whN, wm) = makeWallMap l (border0 w0) (border1 w1)
-
-            w = Walls { legsN      = legsN w0
-                      , loops0     = loops0 w0
-                      , loops1     = loops1 w1
-                      , border0    = border0 w0
-                      , border1    = border1 w1
-                      , wallHolesN = whN
-                      , wallMap    = wm
-                      }
-        in Cob w (composeGuts g1 g0)
+    (Cob h1 g1) ∘ (Cob h0 g0) | legsN h0  /= legsN h1   = error $ printf "(∘): different leg numbers <%i> and <%i>" (legsN h1) (legsN h0)
+                              | loops1 h0 /= loops0 h1  = error $ printf "(∘): different border loops numbers <%i> and <%i>" (loops0 h1) (loops1 h0)
+                              | arcs1 h0  /= arcs0 h1   = error "(∘): different borders"
+                              | otherwise               =
+        let h = makeHeader (legsN h0) (arcs0 h0, loops0 h0) (arcs1 h1, loops1 h1)
+        in Cob h (composeGuts h (h1, g1) (h0, g0))
 
 
 instance (CobordismGuts g) => PlanarAlgebra' (Cobordism g) where
-    numberOfLegs (Cob w _) = legsN w
+    numberOfLegs (Cob h _) = legsN h
 
     planarPropagator = identityCobordism planarPropagator
 
