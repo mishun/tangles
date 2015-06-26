@@ -7,8 +7,8 @@ module Math.Topology.KnotTh.Invariants.KhovanovHomology
     ) where
 
 import Control.Exception (assert)
-import Control.Monad (foldM, forM_, when)
-import Control.Monad.IfElse (whenM)
+import Control.Monad (foldM, forM_, liftM2, when)
+import Control.Monad.IfElse (unlessM, whenM)
 import qualified Control.Monad.ST as ST
 import qualified Data.Map as M
 import qualified Data.STRef as STRef
@@ -18,21 +18,33 @@ import Text.Printf
 
 
 class PlanarAlgebra' a where
-    numberOfLegs     :: a -> Int
-    planarPropagator :: a
-    glue             :: Int -> (a, Int) -> (a, Int) -> (a, UV.Vector Int, UV.Vector Int)
-    --rotate         :: Int -> a -> a
+    numberOfLegs          :: a -> Int
+    planarPropagator      :: Int -> a
+    planarRotate          :: Int -> a -> a
+    horizontalComposition :: Int -> (a, Int) -> (a, Int) -> a
+    (⊗)                   :: a -> a -> a
+    planarLoop            :: a
 
-class (PlanarAlgebra' c, PlanarAlgebra' (CobordismBorder c)) => CannedCobordism c where
+    planarLoop = horizontalComposition 2 (planarPropagator 1, 0) (planarPropagator 1, 0)
+    a ⊗ b = horizontalComposition 0 (a, 0) (b, 0)
+
+
+class (PlanarAlgebra' c, PlanarAlgebra' (CobordismBorder c), Eq (CobordismBorder c)) => CannedCobordism c where
     data CobordismBorder c :: *
 
     cobordismBorder0  :: c -> CobordismBorder c
     cobordismBorder1  :: c -> CobordismBorder c
+    identityCobordism :: CobordismBorder c -> c
+    flipCobordism     :: c -> c
+    (∘)               :: c -> c -> c
     capCobordism      :: c
     cupCobordism      :: c
-    identityCobordism :: CobordismBorder c -> c
-    (∘)               :: c -> c -> c
+    tubeCobordism     :: c
+    saddleCobordism   :: c
 
+    capCobordism = flipCobordism cupCobordism
+    cupCobordism = flipCobordism capCobordism
+    tubeCobordism = planarLoop
 
 
 data CobordismHeader =
@@ -62,7 +74,7 @@ makeHeader !legs (!bot, !botLoops) (!top, !topLoops) =
         hn <- foldM (\ !freeColor !i -> do
                 vi <- UMV.read hid i
                 if vi < 0
-                    then mark freeColor bot top i >> return (freeColor + 1)
+                    then mark freeColor bot top i >> (return $! freeColor + 1)
                     else return freeColor
             ) 0 [0 .. legs - 1]
 
@@ -79,13 +91,13 @@ makeHeader !legs (!bot, !botLoops) (!top, !topLoops) =
                 }
 
 
-
-
 class (Eq g, Ord g) => CobordismGuts g where
-    capGuts       :: g
-    cupGuts       :: g
-    identityGuts  :: Int -> Int -> g
-    composeGuts   :: CobordismHeader -> (CobordismHeader, g) -> (CobordismHeader, g) -> g
+    capGuts        :: g
+    saddleGuts     :: g
+    identityGuts   :: Int -> Int -> g
+    flipGuts       :: g -> g
+    verComposeGuts :: CobordismHeader -> (CobordismHeader, g) -> (CobordismHeader, g) -> g
+    horComposeGuts :: (CobordismHeader, Int, UV.Vector Int, UV.Vector Int) -> (g, CobordismHeader, Int) -> (g, CobordismHeader, Int) -> g
 
 class (CobordismGuts g) => ModuleCobordismGuts g where
     isNormalGuts  :: g -> Bool
@@ -101,67 +113,88 @@ singletonModuleGuts = MG . M.fromList . normalizeGuts
 instance (ModuleCobordismGuts g, Eq a, Ord a, Num a) => CobordismGuts (ModuleGuts g a) where
     capGuts = singletonModuleGuts capGuts
 
-    cupGuts = singletonModuleGuts cupGuts
+    saddleGuts = singletonModuleGuts saddleGuts
 
     identityGuts wallHoles endHoles =
         singletonModuleGuts (identityGuts wallHoles endHoles)
 
-    composeGuts h (h1, MG map1) (h0, MG map0) =
+    flipGuts (MG m) =
+        MG $ M.filter (/= 0) $ M.fromListWith (+) $ do
+            (g, factor) <- M.toList m
+            (g', factorNorm) <- normalizeGuts $ flipGuts g
+            return $! (g', factor * factorNorm)
+
+    verComposeGuts h (h1, MG map1) (h0, MG map0) =
         MG $ M.filter (/= 0) $ M.fromListWith (+) $ do
             (g0, factor0) <- M.toList map0
             (g1, factor1) <- M.toList map1
-            (g, factorNorm) <- normalizeGuts $ composeGuts h (h1, g1) (h0, g0)
+            (g, factorNorm) <- normalizeGuts $ verComposeGuts h (h1, g1) (h0, g0)
             return $! assert (isNormalGuts g) (g, factor0 * factor1 * factorNorm)
 
+    horComposeGuts tmp (MG mapA, hA, posA) (MG mapB, hB, posB) =
+        MG $ M.filter (/= 0) $ M.fromListWith (+) $ do
+            (gA, factorA) <- M.toList mapA
+            (gB, factorB) <- M.toList mapB
+            (g, factorNorm) <- normalizeGuts $ horComposeGuts tmp (gA, hA, posA) (gB, hB, posB)
+            return $! assert (isNormalGuts g) (g, factorA * factorB * factorNorm)
 
 
 data DottedGuts =
     DottedGuts
-        { wallSurfs  :: !(UV.Vector Int)
-        , loopSurfs0 :: !(UV.Vector Int)
-        , loopSurfs1 :: !(UV.Vector Int)
-        , surfsData  :: !(UV.Vector (Int, Int))
+        { wallSurfs    :: !(UV.Vector Int)
+        , loopSurfs0   :: !(UV.Vector Int)
+        , loopSurfs1   :: !(UV.Vector Int)
+        , surfHolesN   :: !(UV.Vector Int)
+        , surfHandlesN :: !(UV.Vector Int)
         }
     deriving (Eq, Ord, Show)
 
 instance CobordismGuts DottedGuts where
     capGuts =
         DottedGuts
-            { wallSurfs  = UV.empty
-            , loopSurfs0 = UV.singleton 0
-            , loopSurfs1 = UV.empty
-            , surfsData  = UV.singleton (1, 0)
+            { wallSurfs    = UV.empty
+            , loopSurfs0   = UV.singleton 0
+            , loopSurfs1   = UV.empty
+            , surfHolesN   = UV.singleton 1
+            , surfHandlesN = UV.singleton 0
             }
 
-    cupGuts =
+    saddleGuts =
         DottedGuts
-            { wallSurfs  = UV.empty
-            , loopSurfs0 = UV.empty
-            , loopSurfs1 = UV.singleton 0
-            , surfsData  = UV.singleton (1, 0)
+            { wallSurfs    = UV.singleton 0
+            , loopSurfs0   = UV.empty
+            , loopSurfs1   = UV.empty
+            , surfHolesN   = UV.singleton 1
+            , surfHandlesN = UV.singleton 0
             }
 
     identityGuts wallHoles endHoles =
         let ls = UV.generate endHoles (+ wallHoles)
         in DottedGuts
-            { wallSurfs  = UV.generate wallHoles id
-            , loopSurfs0 = ls
-            , loopSurfs1 = ls
-            , surfsData  = UV.replicate wallHoles (1, 0)
-                            UV.++ UV.replicate endHoles (2, 0)
+            { wallSurfs    = UV.generate wallHoles id
+            , loopSurfs0   = ls
+            , loopSurfs1   = ls
+            , surfHolesN   = UV.replicate wallHoles 1 UV.++ UV.replicate endHoles 2
+            , surfHandlesN = UV.replicate (wallHoles + endHoles) 0
             }
 
-    composeGuts h (h1, g1) (h0, g0) =
+    flipGuts g =
+        g { loopSurfs0 = loopSurfs1 g
+          , loopSurfs1 = loopSurfs0 g
+          }
+
+    verComposeGuts h (h1, g1) (h0, g0) =
         ST.runST $ do
             let legs = legsN h
 
             (newS0, newS1, surfN) <- do
-                newS0 <- UMV.replicate (UV.length $ surfsData g0) (-1 :: Int)
-                newS1 <- UMV.replicate (UV.length $ surfsData g1) (-1 :: Int)
+                newS0 <- UMV.replicate (UV.length $ surfHolesN g0) (-1)
+                newS1 <- UMV.replicate (UV.length $ surfHolesN g1) (-1)
 
                 let mark0 !color !surf = do
                         whenM ((< 0) `fmap` UMV.read newS0 surf) $ do
                             UMV.write newS0 surf color
+
                             forM_ [0 .. legs - 1] $ \ !leg ->
                                 when (surf == wallSurfs g0 UV.! (wallMap h0 UV.! leg)) $
                                     mark1 color $ wallSurfs g1 UV.! (wallMap h1 UV.! leg)
@@ -172,6 +205,7 @@ instance CobordismGuts DottedGuts where
                     mark1 !color !surf =
                         whenM ((< 0) `fmap` UMV.read newS1 surf) $ do
                             UMV.write newS1 surf color
+
                             forM_ [0 .. legs - 1] $ \ !leg ->
                                 when (surf == wallSurfs g1 UV.! (wallMap h1 UV.! leg)) $
                                     mark0 color $ wallSurfs g0 UV.! (wallMap h0 UV.! leg)
@@ -192,57 +226,224 @@ instance CobordismGuts DottedGuts where
                             STRef.writeSTRef freeColor $! color + 1
                             mark1 color s
 
-                -- order is important!
+                -- the order is important!
+                -- wall adjacent surfaces:
                 UV.forM_ (wallMap h0) $ tryMark0 . (wallSurfs g0 UV.!)
+                -- bottom loops:
                 UV.forM_ (loopSurfs0 g0) tryMark0
+                -- top loops:
                 UV.forM_ (loopSurfs1 g1) tryMark1
+                -- closed surfaces:
                 UV.forM_ (loopSurfs1 g0) tryMark0
-                forM_ [0 .. UV.length (surfsData g0) - 1] tryMark0
-                forM_ [0 .. UV.length (surfsData g1) - 1] tryMark1
+                forM_ [0 .. UV.length (surfHolesN g0) - 1] tryMark0
+                forM_ [0 .. UV.length (surfHolesN g1) - 1] tryMark1
 
                 newS0' <- UV.unsafeFreeze newS0
                 newS1' <- UV.unsafeFreeze newS1
                 surfN <- STRef.readSTRef freeColor
                 return $! (newS0', newS1', surfN)
 
-            sd <- do
-                holes <- UMV.replicate surfN 1
-                handles <- UMV.replicate surfN 0
-                comps <- UMV.replicate surfN (0 :: Int)
+            let wallS = UV.create $ do
+                    ws <- UMV.new (wallHolesN h)
+                    forM_ [0 .. legs - 1] $ \ !leg ->
+                        UMV.write ws (wallMap h UV.! leg) $ (newS0 UV.!) $ wallMap h0 UV.! leg
+                    return ws
 
-                forM_ [0 .. UV.length newS0 - 1] $ \ !s -> do
-                    let ns = newS0 UV.! s
-                    fmap (+ 1) (UMV.read comps ns) >>= UMV.write comps ns
-
-                forM_ [0 .. UV.length newS1 - 1] $ \ !s -> do
-                    let ns = newS1 UV.! s
-                    fmap (+ 1) (UMV.read comps ns) >>= UMV.write comps ns
-
-                holes' <- UV.unsafeFreeze holes
-                handles' <- UV.unsafeFreeze handles
-                return $! UV.zip holes' handles'
+                loopS0 = UV.map (newS0 UV.!) $ loopSurfs0 g0
+                loopS1 = UV.map (newS1 UV.!) $ loopSurfs1 g1
 
             return $!
                 DottedGuts
-                    { wallSurfs  = UV.create $ do
-                        ws <- UMV.new (wallHolesN h)
-                        forM_ [0 .. legs - 1] $ \ !leg -> do
-                            UMV.write ws (wallMap h UV.! leg) $ (newS0 UV.!) $ wallMap h0 UV.! leg
-                        return ws
-                    , loopSurfs0 = UV.map (newS0 UV.!) $ loopSurfs0 g0
-                    , loopSurfs1 = UV.map (newS1 UV.!) $ loopSurfs1 g1
-                    , surfsData  = sd
+                    { wallSurfs    = wallS
+                    , loopSurfs0   = loopS0
+                    , loopSurfs1   = loopS1
+                    , surfHandlesN = UV.create $ do
+                        handles <- UMV.replicate surfN 0
+                        forM_ [0 .. UV.length (surfHandlesN g0) - 1] $ \ s ->
+                            let s' = newS0 UV.! s
+                                dh = surfHandlesN g0 UV.! s
+                            in UMV.read handles s' >>= (UMV.write handles s' . (+ dh))
+                        forM_ [0 .. UV.length (surfHandlesN g1) - 1] $ \ s ->
+                            let s' = newS1 UV.! s
+                                dh = surfHandlesN g1 UV.! s
+                            in UMV.read handles s' >>= UMV.write handles s' . (+ dh)
+                        return handles
+                    , surfHolesN   = UV.create $ do
+                        holes <- UMV.replicate surfN 0
+                        UV.forM_ (wallS UV.++ loopS0 UV.++ loopS1) $ \ s ->
+                            UMV.read holes s >>= UMV.write holes s . (+ 1)
+                        return holes
                     }
 
+    horComposeGuts (h, !gl, !exLpReps0, !exLpReps1) (!gA, !hA, !posA) (!gB, !hB, !posB) =
+        ST.runST $ do
+            let legsA = legsN hA
+                legsB = legsN hB
+
+            (newSA, newSB, surfN) <- do
+                newSA <- UMV.replicate (UV.length $ surfHolesN gA) (-1)
+                newSB <- UMV.replicate (UV.length $ surfHolesN gB) (-1)
+
+                let markA !color !surf = do
+                        whenM ((< 0) `fmap` UMV.read newSA surf) $ do
+                            UMV.write newSA surf color
+
+                            forM_ [0 .. gl - 1] $ \ !i -> do
+                                let legA = (posA + i) `mod` legsA
+                                    legB = (posB + gl - 1 - i) `mod` legsB
+                                when (surf == wallSurfs gA UV.! (wallMap hA UV.! legA)) $
+                                    markB color $ wallSurfs gB UV.! (wallMap hB UV.! legB)
+
+                    markB !color !surf =
+                        whenM ((< 0) `fmap` UMV.read newSB surf) $ do
+                            UMV.write newSB surf color
+
+                            forM_ [0 .. gl - 1] $ \ !i -> do
+                                let legA = (posA + gl - 1 - i) `mod` legsA
+                                    legB = (posB + i) `mod` legsB
+                                when (surf == wallSurfs gB UV.! (wallMap hB UV.! legB)) $
+                                    markA color $ wallSurfs gA UV.! (wallMap hA UV.! legA)
+
+                freeColor <- STRef.newSTRef 0
+                let tryMarkA !s =
+                        whenM ((< 0) `fmap` UMV.read newSA s) $ do
+                            color <- STRef.readSTRef freeColor
+                            STRef.writeSTRef freeColor $! color + 1
+                            markA color s
+
+                    tryMarkB !s =
+                        whenM ((< 0) `fmap` UMV.read newSB s) $ do
+                            color <- STRef.readSTRef freeColor
+                            STRef.writeSTRef freeColor $! color + 1
+                            markB color s
+
+                -- the order is important!
+                -- wall adjacent surfaces:
+                forM_ [0 .. legsA - gl - 1] $ \ !i -> tryMarkA $ wallMap hA UV.! ((posA + gl + i) `mod` legsA)
+                forM_ [0 .. legsB - gl - 1] $ \ !i -> tryMarkB $ wallMap hB UV.! ((posB + gl + i) `mod` legsB)
+                -- bottom loops:
+                forM_ [0 .. gl - 1] $ \ !i -> tryMarkA $ wallMap hA UV.! ((posA + i) `mod` legsA)
+                UV.forM_ (loopSurfs0 gA) tryMarkA
+                UV.forM_ (loopSurfs0 gB) tryMarkB
+                -- top loops:
+                UV.forM_ (loopSurfs1 gA) tryMarkA
+                UV.forM_ (loopSurfs1 gB) tryMarkB
+                -- closed surfaces:
+                forM_ [0 .. UV.length (surfHolesN gA) - 1] tryMarkA
+                forM_ [0 .. UV.length (surfHolesN gB) - 1] tryMarkB
+
+                newSA' <- UV.unsafeFreeze newSA
+                newSB' <- UV.unsafeFreeze newSB
+                surfN <- STRef.readSTRef freeColor
+                return $! (newSA', newSB', surfN)
+
+            let wallS = UV.create $ do
+                    ws <- UMV.new (wallHolesN h)
+                    forM_ [0 .. legsA - gl - 1] $ \ !i ->
+                        let leg = i
+                            legA = (posA + gl + i) `mod` legsA
+                        in UMV.write ws (wallMap h UV.! leg) $ (newSA UV.!) $ wallMap hA UV.! legA
+                    forM_ [0 .. legsB - gl - 1] $ \ !i ->
+                        let leg = legsA - gl + i
+                            legB = (posB + gl + i) `mod` legsB
+                        in UMV.write ws (wallMap h UV.! leg) $ (newSB UV.!) $ wallMap hB UV.! legB
+                    return ws
+
+                loopS0 =
+                    UV.concat [ UV.map (\ !i -> (newSA UV.!) $ (wallMap hA UV.!) $ (posA + i) `mod` legsA) exLpReps0
+                              , UV.map (newSA UV.!) $ loopSurfs0 gA
+                              , UV.map (newSB UV.!) $ loopSurfs0 gB
+                              ]
+
+                loopS1 =
+                    UV.concat [ UV.map (\ !i -> (newSA UV.!) $ (wallMap hA UV.!) $ (posA + i) `mod` legsA) exLpReps1
+                              , UV.map (newSA UV.!) $ loopSurfs1 gA
+                              , UV.map (newSB UV.!) $ loopSurfs1 gB
+                              ]
+
+            return $!
+                DottedGuts
+                    { wallSurfs    = wallS
+                    , loopSurfs0   = loopS0
+                    , loopSurfs1   = loopS1
+                    , surfHandlesN = UV.create $ do
+                        handles <- UMV.replicate surfN 0
+                        forM_ [0 .. UV.length (surfHandlesN gA) - 1] $ \ s ->
+                            let s' = newSA UV.! s
+                                dh = surfHandlesN gA UV.! s
+                            in UMV.read handles s' >>= UMV.write handles s' . (+ dh)
+                        forM_ [0 .. UV.length (surfHandlesN gB) - 1] $ \ s ->
+                            let s' = newSB UV.! s
+                                dh = surfHandlesN gB UV.! s
+                            in UMV.read handles s' >>= UMV.write handles s' . (+ dh)
+                        return handles
+                    , surfHolesN   = UV.create $ do
+                        holes <- UMV.replicate surfN 0
+                        UV.forM_ (wallS UV.++ loopS0 UV.++ loopS1) $ \ s ->
+                            UMV.read holes s >>= UMV.write holes s . (+ 1)
+                        return holes
+                    }
+
+
+renumerateSurfaces :: DottedGuts -> DottedGuts
+renumerateSurfaces g =
+    ST.runST $ do
+        newIndex <- UMV.replicate (UV.length $ surfHolesN g) (-1)
+        freeIndex <- STRef.newSTRef 0
+
+        let faceIndex !i = do
+                tmp <- UMV.read newIndex i
+                if tmp >= 0 then return tmp
+                          else do
+                    j <- STRef.readSTRef freeIndex
+                    STRef.writeSTRef freeIndex $! j + 1
+                    UMV.write newIndex i j
+                    return j
+
+        wallS <- UV.mapM faceIndex $ wallSurfs g
+        loopS0 <- UV.mapM faceIndex $ loopSurfs0 g
+        loopS1 <- UV.mapM faceIndex $ loopSurfs1 g
+        idx <- UV.unsafeFreeze newIndex
+
+        return $!
+            DottedGuts
+                { wallSurfs    = wallS
+                , loopSurfs0   = loopS0
+                , loopSurfs1   = loopS1
+                , surfHandlesN = UV.backpermute (surfHandlesN g) idx
+                , surfHolesN   = UV.backpermute (surfHolesN g) idx
+                }
+
+rewriteFstHole :: DottedGuts -> Int -> Int -> DottedGuts
+rewriteFstHole g src dst | Just s <- UV.findIndex (== src) (wallSurfs g)   = g { wallSurfs  = wallSurfs g  UV.// [(s, dst)] }
+rewriteFstHole g src dst | Just s <- UV.findIndex (== src) (loopSurfs0 g)  = g { loopSurfs0 = loopSurfs0 g UV.// [(s, dst)] }
+rewriteFstHole g src dst | Just s <- UV.findIndex (== src) (loopSurfs1 g)  = g { loopSurfs1 = loopSurfs1 g UV.// [(s, dst)] }
+rewriteFstHole _ _ _ = error "impossible"
+
 instance ModuleCobordismGuts DottedGuts where
-    isNormalGuts = UV.all (== (1, 0)) . surfsData
+    isNormalGuts g = UV.all (== 1) (surfHolesN g)
+                         && UV.all (\ h -> h == 0 || h == 1) (surfHandlesN g)
 
-    normalizeGuts g | isNormalGuts g  = [(g, 1)]
-                    | otherwise       = error "normalize not implemented"
+    normalizeGuts g | isNormalGuts g                                               = [(renumerateSurfaces g, 1)]
+                    | UV.any (> 1) (surfHandlesN g)                                = []
+                    | UV.any (== (0, 0)) (UV.zip (surfHolesN g) (surfHandlesN g))  = []
+                    | UV.any (== 0) (surfHolesN g)                                 =
+                        let (holes, handles) = UV.unzip $ UV.filter ((> 0) . fst) $ UV.zip (surfHolesN g) (surfHandlesN g)
+                        in normalizeGuts $ g { surfHolesN = holes, surfHandlesN = handles }
+                    | Just s <- UV.findIndex (> 1) (surfHolesN g)                  =
+                        let tmp = (rewriteFstHole g s (UV.length $ surfHandlesN g))
+                                    { surfHolesN = UV.snoc (surfHolesN g) 1 UV.// [(s, (surfHolesN g UV.! s) - 1)] }
+
+                            cobL = tmp { surfHandlesN = UV.snoc (surfHandlesN g) 0 UV.// [(s, 1 + surfHandlesN g UV.! s)]
+                                       }
+                            cobR = tmp { surfHandlesN = UV.snoc (surfHandlesN g) 1
+                                       }
+                        in normalizeGuts cobL ++ normalizeGuts cobR
+                    | otherwise                                                    =
+                        error "impossible"
 
 
-
-data Cobordism g = Cob !CobordismHeader !g
+data Cobordism g = Cob {-# UNPACK #-} !CobordismHeader !g
     deriving (Eq, Show)
 
 instance (CobordismGuts g) => CannedCobordism (Cobordism g) where
@@ -252,105 +453,111 @@ instance (CobordismGuts g) => CannedCobordism (Cobordism g) where
     cobordismBorder0 (Cob h _) = Brd (loops0 h) (arcs0 h)
     cobordismBorder1 (Cob h _) = Brd (loops1 h) (arcs1 h)
 
-    capCobordism = Cob (makeHeader 0 (UV.empty, 1) (UV.empty, 0)) capGuts
-    cupCobordism = Cob (makeHeader 0 (UV.empty, 0) (UV.empty, 1)) cupGuts
-
     identityCobordism (Brd loops arcs) =
         let h = makeHeader (UV.length arcs) (arcs, loops) (arcs, loops)
         in Cob h (identityGuts (wallHolesN h) loops)
 
-    (Cob h1 g1) ∘ (Cob h0 g0) | legsN h0  /= legsN h1   = error $ printf "(∘): different leg numbers <%i> and <%i>" (legsN h1) (legsN h0)
-                              | loops1 h0 /= loops0 h1  = error $ printf "(∘): different border loops numbers <%i> and <%i>" (loops0 h1) (loops1 h0)
-                              | arcs1 h0  /= arcs0 h1   = error "(∘): different borders"
-                              | otherwise               =
+    flipCobordism (Cob h g) =
+        Cob (h { arcs0 = arcs1 h, arcs1 = arcs0 h, loops0 = loops1 h, loops1 = loops0 h })
+            (flipGuts g)
+
+    Cob h1 g1 ∘ Cob h0 g0 | legsN h0  /= legsN h1   = error $ printf "(∘): different leg numbers <%i> and <%i>" (legsN h1) (legsN h0)
+                          | loops1 h0 /= loops0 h1  = error $ printf "(∘): different border loops numbers <%i> and <%i>" (loops0 h1) (loops1 h0)
+                          | arcs1 h0  /= arcs0 h1   = error "(∘): different borders"
+                          | otherwise               =
         let h = makeHeader (legsN h0) (arcs0 h0, loops0 h0) (arcs1 h1, loops1 h1)
-        in Cob h (composeGuts h (h1, g1) (h0, g0))
+        in Cob h (verComposeGuts h (h1, g1) (h0, g0))
+
+    capCobordism = Cob (makeHeader 0 (UV.empty, 1) (UV.empty, 0)) capGuts
+
+    saddleCobordism = Cob (makeHeader 4 (UV.fromList [3, 2, 1, 0], 0) (UV.fromList [1, 0, 3, 2], 0)) saddleGuts
+
+
+{-# INLINE glueArcs #-}
+glueArcs :: Int -> (UV.Vector Int, Int) -> (UV.Vector Int, Int) -> (UV.Vector Int, [Int])
+glueArcs !gl (!a, !posA) (!b, !posB) =
+    ST.runST $ do
+        let legsA = UV.length a
+            legsB = UV.length b
+
+        visited <- UMV.replicate gl False
+
+        !arcs <-
+            let mateA !x | y >= gl    = return $! y - gl
+                         | otherwise  = do
+                             UMV.write visited y True
+                             mateB $ (posB + gl - 1 - y) `mod` legsB
+                    where y = ((a UV.! x) - posA) `mod` legsA
+
+                mateB !x | y >= gl    = return $! legsA + y - 2 * gl
+                         | otherwise  = mateA $ (posA + gl - 1 - y) `mod` legsA
+                    where y = ((b UV.! x) - posB) `mod` legsB
+
+            in liftM2 (UV.++) (UV.generateM (legsA - gl) (\ !i -> mateA $ (posA + gl + i) `mod` legsA))
+                              (UV.generateM (legsB - gl) (\ !i -> mateB $ (posB + gl + i) `mod` legsB))
+
+        loops <-
+            let markA !x = do
+                    unlessM (UMV.read visited x) $ do
+                        UMV.write visited x True
+                        markB $ (`mod` legsA) $ (+ (-posA)) $ (a UV.!) $ (posA + x) `mod` legsA
+
+                markB !x = do
+                    unlessM (UMV.read visited x) $ do
+                        UMV.write visited x True
+                        markA $ (`mod` legsB) $ (\ p -> posB - p + gl - 1) $ (b UV.!) $ (posB + gl - 1 - x) `mod` legsB
+
+            in foldM (\ !lst !i -> do
+                    v <- UMV.read visited i
+                    if v then return $! lst
+                         else do
+                             markA i
+                             return $! i : lst
+                ) [] [0 .. gl - 1]
+
+        return $! (arcs, loops)
 
 
 instance (CobordismGuts g) => PlanarAlgebra' (Cobordism g) where
     numberOfLegs (Cob h _) = legsN h
 
-    planarPropagator = identityCobordism planarPropagator
+    planarPropagator = identityCobordism . planarPropagator
 
-    --glue !gl (!a, !posA) (!b, !posB) =
-    --    undefined
+    planarRotate 0 cob = cob
+    planarRotate _ cob | numberOfLegs cob == 0  = cob
+                       | otherwise              =
+        error "not implemented"
+
+    horizontalComposition !gl (Cob hA gA, !posA) (Cob hB gB, !posB) | gl < 0         = error "horizontalComposition: gl must be non-negative"
+                                                                    | gl > legsN hA  = error "horizontalComposition: gl exceeds number of legs of the first argument"
+                                                                    | gl > legsN hB  = error "horizontalComposition: gl exceeds number of legs of the second argument"
+                                                                    | otherwise       =
+        let (resArcs0, extraLoops0) = glueArcs gl (arcs0 hA, posA) (arcs0 hB, posB)
+            (resArcs1, extraLoops1) = glueArcs gl (arcs1 hA, posA) (arcs1 hB, posB)
+            h = makeHeader (legsN hA + legsN hB - 2 * gl) (resArcs0, length extraLoops0 + loops0 hA + loops0 hB)
+                                                          (resArcs1, length extraLoops1 + loops1 hA + loops1 hB)
+        in Cob h $ horComposeGuts (h, gl, UV.fromList extraLoops0, UV.fromList extraLoops1) (gA, hA, posA) (gB, hB, posB)
 
 instance (CobordismGuts g) => PlanarAlgebra' (CobordismBorder (Cobordism g)) where
     numberOfLegs (Brd _ a) = UV.length a
 
-    planarPropagator = Brd 0 (UV.fromList [1, 0])
+    planarPropagator n | n < 0      = error $ printf "planarPropagator: parameter must be non-negative; %i passed" n
+                       | otherwise  = Brd 0 $ UV.generate (2 * n) (\ i -> 2 * n - 1 - i)
 
-    glue !gl (Brd loopsA a, !posA) (Brd loopsB b, !posB) =
-        let nA = UV.length a
-            substA = UV.create $ do
-                s <- UMV.replicate nA (-1)
-                forM_ [0 .. nA - gl - 1] $ \ !i ->
-                    UMV.write s ((posA + gl + i) `mod` nA) i
-                forM_ [0 .. gl - 1] $ \ !i ->
-                    UMV.write s ((posA + gl - 1 - i) `mod` nA) $! -1 - ((posB + i) `mod` nB)
-                return s
+    planarRotate 0 b = b
+    planarRotate !rot (Brd loops a) =
+        Brd loops $ UV.create $ do
+            let l = UV.length a
+                t i = (i + rot) `mod` l
+            a' <- UMV.new l
+            forM_ [0 .. l - 1] $ \ !i ->
+                UMV.write a' (t i) (t $ a UV.! i)
+            return a'
 
-            nB = UV.length b
-            substB = UV.create $ do
-                s <- UMV.replicate nB (-1)
-                forM_ [0 .. nB - gl - 1] $ \ !i ->
-                    UMV.write s ((posB + gl + i) `mod` nB) (nA - gl + i)
-                forM_ [0 .. gl - 1] $ \ !i ->
-                    UMV.write s ((posB + gl - i - 1) `mod` nB) $! -1 - ((posA + i) `mod` nA)
-                return s
+    horizontalComposition !gl (Brd loopsA a, !posA) (Brd loopsB b, !posB) =
+        let (arcs, extraLoops) = glueArcs gl (a, posA) (b, posB)
+        in Brd (length extraLoops + loopsA + loopsB) arcs
 
-            res = UV.create $ do
-                let mateA x | ys >= 0    = ys
-                            | otherwise  = mateB $! -1 - ys
-                        where ys = substA UV.! (a UV.! x)
-
-                    mateB x | ys >= 0    = ys
-                            | otherwise  = mateA $! -1 - ys
-                        where ys = substB UV.! (b UV.! x)
-
-                r <- UMV.new (nA - gl + nB - gl)
-                forM_ [0 .. nA - gl - 1] $ \ !i ->
-                    UMV.write r i $! mateA $! (posA + gl + i) `mod` nA
-                forM_ [0 .. nB - gl - 1] $ \ !i ->
-                    UMV.write r (nA - gl + i) $! mateB $! (posB + gl + i) `mod` nB
-                return r
-
-            loops = ST.runST $ do
-                vis <- UMV.replicate nA False
-
-                let goUpA target p | p == target  = return True
-                                   | otherwise    = do
-                        visited <- UMV.read vis p
-                        if visited
-                            then return False
-                            else UMV.write vis p True >> (goDownA target $! a UV.! p)
-
-                    goDownA target p | p' >= 0    = return False
-                                     | otherwise  = UMV.write vis p True >> (goUpB target $! -1 - p')
-                        where p' = substA UV.! p
-
-                    goUpB target p = goDownB target $! b UV.! p
-
-                    goDownB target p | p' >= 0    = return False
-                                     | otherwise  = goUpA target $! -1 - p'
-                        where p' = substB UV.! p
-
-                foldM (\ !loopsCount !i -> do
-                        let p = (posA + i) `mod` nA
-                        visited <- UMV.read vis p
-                        if visited
-                            then return loopsCount
-                            else do
-                                UMV.write vis p True
-                                isLoop <- goDownA p
-                                 $! a UV.! p
-                                return $! if isLoop then loopsCount + 1
-                                                    else loopsCount
-                    )
-                    (loopsA + loopsB)
-                    [0 .. gl - 1]
-
-        in (Brd loops res, substA, substB)
 
 numberOfLoops :: CobordismBorder (Cobordism g) -> Int
 numberOfLoops (Brd ls _) = ls
