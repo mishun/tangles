@@ -1,20 +1,50 @@
 {-# LANGUAGE TypeFamilies #-}
 module Math.Topology.KnotTh.Invariants.KhovanovHomology
-    ( PlanarAlgebra'(..)
+    ( Cobordism(..)
+    , PlanarAlgebra'(..)
     , CannedCobordism(..)
-    , numberOfLoops
     , DottedCobordism
     ) where
 
-import Control.Exception (assert)
 import Control.Monad (foldM, forM_, liftM2, when)
 import Control.Monad.IfElse (unlessM, whenM)
 import qualified Control.Monad.ST as ST
 import qualified Data.Map as M
+import Data.Ratio (Ratio)
 import qualified Data.STRef as STRef
 import qualified Data.Vector.Unboxed as UV
 import qualified Data.Vector.Unboxed.Mutable as UMV
 import Text.Printf
+
+
+class (Eq c, Eq (CobordismBorder c)) => Cobordism c where
+    data CobordismBorder c :: *
+
+    cobordismBorder0       :: c -> CobordismBorder c
+    cobordismBorder1       :: c -> CobordismBorder c
+    numberOfLoops          :: CobordismBorder c -> Int
+    (∘)                    :: c -> c -> c
+    (⊗)                    :: c -> c -> c
+    flipCobordism          :: c -> c
+    identityCobordism      :: CobordismBorder c -> c
+    closedSurfaceCobordism :: Int -> c
+    sphereCobordism        :: c
+    torusCobordism         :: c
+    capCobordism           :: c
+    cupCobordism           :: c
+    capCobordism'          :: Int -> c
+    cupCobordism'          :: Int -> c
+    tubeCobordism          :: c
+    pantsCobordism         :: c
+    pantsCobordism'        :: c
+
+    sphereCobordism = closedSurfaceCobordism 0
+    torusCobordism  = closedSurfaceCobordism 1
+    capCobordism    = capCobordism' 0
+    cupCobordism    = cupCobordism' 0
+    capCobordism'   = flipCobordism . cupCobordism'
+    cupCobordism'   = flipCobordism . capCobordism'
+    pantsCobordism' = flipCobordism pantsCobordism
 
 
 class PlanarAlgebra' a where
@@ -22,29 +52,16 @@ class PlanarAlgebra' a where
     planarPropagator      :: Int -> a
     planarRotate          :: Int -> a -> a
     horizontalComposition :: Int -> (a, Int) -> (a, Int) -> a
-    (⊗)                   :: a -> a -> a
     planarLoop            :: a
 
     planarLoop = horizontalComposition 2 (planarPropagator 1, 0) (planarPropagator 1, 0)
-    a ⊗ b = horizontalComposition 0 (a, 0) (b, 0)
 
 
-class (PlanarAlgebra' c, PlanarAlgebra' (CobordismBorder c), Eq (CobordismBorder c)) => CannedCobordism c where
-    data CobordismBorder c :: *
+class (Cobordism c, PlanarAlgebra' c, PlanarAlgebra' (CobordismBorder c)) => CannedCobordism c where
+    saddleCobordism  :: c
+    saddleCobordism' :: c
 
-    cobordismBorder0  :: c -> CobordismBorder c
-    cobordismBorder1  :: c -> CobordismBorder c
-    identityCobordism :: CobordismBorder c -> c
-    flipCobordism     :: c -> c
-    (∘)               :: c -> c -> c
-    capCobordism      :: c
-    cupCobordism      :: c
-    tubeCobordism     :: c
-    saddleCobordism   :: c
-
-    capCobordism = flipCobordism cupCobordism
-    cupCobordism = flipCobordism capCobordism
-    tubeCobordism = planarLoop
+    saddleCobordism' = flipCobordism saddleCobordism
 
 
 data CobordismHeader =
@@ -58,6 +75,18 @@ data CobordismHeader =
         , wallMap    :: !(UV.Vector Int)
         }
     deriving (Eq, Show)
+
+emptyHeader :: Int -> Int -> CobordismHeader
+emptyHeader l0 l1 =
+    CobordismHeader
+        { legsN      = 0
+        , loops0     = l0
+        , loops1     = l1
+        , arcs0      = UV.empty
+        , arcs1      = UV.empty
+        , wallHolesN = 0
+        , wallMap    = UV.empty
+        }
 
 {-# INLINE makeHeader #-}
 makeHeader :: Int -> (UV.Vector Int, Int) -> (UV.Vector Int, Int) -> CobordismHeader
@@ -92,26 +121,32 @@ makeHeader !legs (!bot, !botLoops) (!top, !topLoops) =
 
 
 class (Eq g, Ord g) => CobordismGuts g where
-    capGuts        :: g
-    saddleGuts     :: g
-    identityGuts   :: Int -> Int -> g
-    flipGuts       :: g -> g
-    verComposeGuts :: CobordismHeader -> (CobordismHeader, g) -> (CobordismHeader, g) -> g
-    horComposeGuts :: (CobordismHeader, Int, UV.Vector Int, UV.Vector Int) -> (g, CobordismHeader, Int) -> (g, CobordismHeader, Int) -> g
+    closedSurfaceGuts :: Int -> g
+    capGuts           :: Int -> g
+    pantsGuts         :: g
+    saddleGuts        :: g
+    identityGuts      :: Int -> Int -> g
+    flipGuts          :: g -> g
+    rotateGuts        :: UV.Vector Int -> g -> g
+    verComposeGuts    :: CobordismHeader -> (CobordismHeader, g) -> (CobordismHeader, g) -> g
+    horComposeGuts    :: (CobordismHeader, Int, UV.Vector Int, UV.Vector Int) -> (g, CobordismHeader, Int) -> (g, CobordismHeader, Int) -> g
 
 class (CobordismGuts g) => ModuleCobordismGuts g where
-    isNormalGuts  :: g -> Bool
-    normalizeGuts :: (Eq a, Num a) => g -> [(g, a)]
+    normalizeGuts :: (Integral a) => g -> [(g, Ratio a)]
 
 
-newtype ModuleGuts g a = MG (M.Map g a)
+newtype ModuleGuts g a = MG (M.Map g (Ratio a))
     deriving (Eq, Ord, Show)
 
-singletonModuleGuts :: (ModuleCobordismGuts g, Eq a, Num a) => g -> ModuleGuts g a
+singletonModuleGuts :: (ModuleCobordismGuts g, Integral a) => g -> ModuleGuts g a
 singletonModuleGuts = MG . M.fromList . normalizeGuts
 
-instance (ModuleCobordismGuts g, Eq a, Ord a, Num a) => CobordismGuts (ModuleGuts g a) where
-    capGuts = singletonModuleGuts capGuts
+instance (ModuleCobordismGuts g, Integral a) => CobordismGuts (ModuleGuts g a) where
+    closedSurfaceGuts = singletonModuleGuts . closedSurfaceGuts
+
+    capGuts = singletonModuleGuts . capGuts
+
+    pantsGuts = singletonModuleGuts pantsGuts
 
     saddleGuts = singletonModuleGuts saddleGuts
 
@@ -124,19 +159,25 @@ instance (ModuleCobordismGuts g, Eq a, Ord a, Num a) => CobordismGuts (ModuleGut
             (g', factorNorm) <- normalizeGuts $ flipGuts g
             return $! (g', factor * factorNorm)
 
+    rotateGuts rot (MG m) =
+        MG $ M.filter (/= 0) $ M.fromListWith (+) $ do
+            (g, factor) <- M.toList m
+            (g', factorNorm) <- normalizeGuts $ rotateGuts rot g
+            return $! (g', factor * factorNorm)
+
     verComposeGuts h (h1, MG map1) (h0, MG map0) =
         MG $ M.filter (/= 0) $ M.fromListWith (+) $ do
             (g0, factor0) <- M.toList map0
             (g1, factor1) <- M.toList map1
             (g, factorNorm) <- normalizeGuts $ verComposeGuts h (h1, g1) (h0, g0)
-            return $! assert (isNormalGuts g) (g, factor0 * factor1 * factorNorm)
+            return $! (g, factor0 * factor1 * factorNorm)
 
     horComposeGuts tmp (MG mapA, hA, posA) (MG mapB, hB, posB) =
         MG $ M.filter (/= 0) $ M.fromListWith (+) $ do
             (gA, factorA) <- M.toList mapA
             (gB, factorB) <- M.toList mapB
             (g, factorNorm) <- normalizeGuts $ horComposeGuts tmp (gA, hA, posA) (gB, hB, posB)
-            return $! assert (isNormalGuts g) (g, factorA * factorB * factorNorm)
+            return $! (g, factorA * factorB * factorNorm)
 
 
 data DottedGuts =
@@ -150,12 +191,30 @@ data DottedGuts =
     deriving (Eq, Ord, Show)
 
 instance CobordismGuts DottedGuts where
-    capGuts =
+    closedSurfaceGuts genus =
+        DottedGuts
+            { wallSurfs    = UV.empty
+            , loopSurfs0   = UV.empty
+            , loopSurfs1   = UV.empty
+            , surfHolesN   = UV.singleton 0
+            , surfHandlesN = UV.singleton genus
+            }
+
+    capGuts genus =
         DottedGuts
             { wallSurfs    = UV.empty
             , loopSurfs0   = UV.singleton 0
             , loopSurfs1   = UV.empty
             , surfHolesN   = UV.singleton 1
+            , surfHandlesN = UV.singleton genus
+            }
+
+    pantsGuts =
+        DottedGuts
+            { wallSurfs    = UV.empty
+            , loopSurfs0   = UV.replicate 2 0
+            , loopSurfs1   = UV.singleton 0
+            , surfHolesN   = UV.singleton 3
             , surfHandlesN = UV.singleton 0
             }
 
@@ -169,9 +228,9 @@ instance CobordismGuts DottedGuts where
             }
 
     identityGuts wallHoles endHoles =
-        let ls = UV.generate endHoles (+ wallHoles)
+        let ls = UV.enumFromN wallHoles endHoles
         in DottedGuts
-            { wallSurfs    = UV.generate wallHoles id
+            { wallSurfs    = UV.enumFromN 0 wallHoles
             , loopSurfs0   = ls
             , loopSurfs1   = ls
             , surfHolesN   = UV.replicate wallHoles 1 UV.++ UV.replicate endHoles 2
@@ -182,6 +241,9 @@ instance CobordismGuts DottedGuts where
         g { loopSurfs0 = loopSurfs1 g
           , loopSurfs1 = loopSurfs0 g
           }
+
+    rotateGuts perm g =
+        g { wallSurfs = UV.backpermute (wallSurfs g) perm }
 
     verComposeGuts h (h1, g1) (h0, g0) =
         ST.runST $ do
@@ -258,6 +320,7 @@ instance CobordismGuts DottedGuts where
                     , loopSurfs0   = loopS0
                     , loopSurfs1   = loopS1
                     , surfHandlesN = UV.create $ do
+                        -- TODO: process new handles formation
                         handles <- UMV.replicate surfN 0
                         forM_ [0 .. UV.length (surfHandlesN g0) - 1] $ \ s ->
                             let s' = newS0 UV.! s
@@ -384,93 +447,60 @@ instance CobordismGuts DottedGuts where
                         return holes
                     }
 
-
-renumerateSurfaces :: DottedGuts -> DottedGuts
-renumerateSurfaces g =
-    ST.runST $ do
-        newIndex <- UMV.replicate (UV.length $ surfHolesN g) (-1)
-        freeIndex <- STRef.newSTRef 0
-
-        let faceIndex !i = do
-                tmp <- UMV.read newIndex i
-                if tmp >= 0 then return tmp
-                          else do
-                    j <- STRef.readSTRef freeIndex
-                    STRef.writeSTRef freeIndex $! j + 1
-                    UMV.write newIndex i j
-                    return j
-
-        wallS <- UV.mapM faceIndex $ wallSurfs g
-        loopS0 <- UV.mapM faceIndex $ loopSurfs0 g
-        loopS1 <- UV.mapM faceIndex $ loopSurfs1 g
-        idx <- UV.unsafeFreeze newIndex
-
-        return $!
-            DottedGuts
-                { wallSurfs    = wallS
-                , loopSurfs0   = loopS0
-                , loopSurfs1   = loopS1
-                , surfHandlesN = UV.backpermute (surfHandlesN g) idx
-                , surfHolesN   = UV.backpermute (surfHolesN g) idx
-                }
-
-rewriteFstHole :: DottedGuts -> Int -> Int -> DottedGuts
-rewriteFstHole g src dst | Just s <- UV.findIndex (== src) (wallSurfs g)   = g { wallSurfs  = wallSurfs g  UV.// [(s, dst)] }
-rewriteFstHole g src dst | Just s <- UV.findIndex (== src) (loopSurfs0 g)  = g { loopSurfs0 = loopSurfs0 g UV.// [(s, dst)] }
-rewriteFstHole g src dst | Just s <- UV.findIndex (== src) (loopSurfs1 g)  = g { loopSurfs1 = loopSurfs1 g UV.// [(s, dst)] }
-rewriteFstHole _ _ _ = error "impossible"
-
 instance ModuleCobordismGuts DottedGuts where
-    isNormalGuts g = UV.all (== 1) (surfHolesN g)
-                         && UV.all (\ h -> h == 0 || h == 1) (surfHandlesN g)
+    normalizeGuts =
+        let removeClosed !factor g =
+                let (holes, handles) = UV.unzip $ UV.filter ((> 0) . fst) $ UV.zip (surfHolesN g) (surfHandlesN g)
+                    removedN = UV.length (surfHolesN g) - UV.length holes
+                in cutNecks (factor * 2 ^ removedN) $ g { surfHolesN = holes, surfHandlesN = handles }
 
-    normalizeGuts g | isNormalGuts g                                               = [(renumerateSurfaces g, 1)]
-                    | UV.any (> 1) (surfHandlesN g)                                = []
-                    | UV.any (== (0, 0)) (UV.zip (surfHolesN g) (surfHandlesN g))  = []
-                    | UV.any (== 0) (surfHolesN g)                                 =
-                        let (holes, handles) = UV.unzip $ UV.filter ((> 0) . fst) $ UV.zip (surfHolesN g) (surfHandlesN g)
-                        in normalizeGuts $ g { surfHolesN = holes, surfHandlesN = handles }
-                    | Just s <- UV.findIndex (> 1) (surfHolesN g)                  =
-                        let tmp = (rewriteFstHole g s (UV.length $ surfHandlesN g))
-                                    { surfHolesN = UV.snoc (surfHolesN g) 1 UV.// [(s, (surfHolesN g UV.! s) - 1)] }
+            cutNecks !factor g =
+                case UV.findIndex (> 1) (surfHolesN g) of
+                    Nothing   -> [(renumerateSurfaces g, factor)]
+                    Just surf -> do
+                        let genus = surfHandlesN g UV.! surf
+                            dst = UV.length $ surfHandlesN g
+                            rew | Just i <- UV.findIndex (== surf) (wallSurfs g)   = g { wallSurfs  = wallSurfs g  UV.// [(i, dst)] }
+                                | Just i <- UV.findIndex (== surf) (loopSurfs0 g)  = g { loopSurfs0 = loopSurfs0 g UV.// [(i, dst)] }
+                                | Just i <- UV.findIndex (== surf) (loopSurfs1 g)  = g { loopSurfs1 = loopSurfs1 g UV.// [(i, dst)] }
+                                | otherwise                                        = g
+                        handles <- UV.snoc (surfHandlesN g) 1 : [ UV.snoc (surfHandlesN g) 0 UV.// [(surf, 1)] | genus == 0]
+                        cutNecks (factor / 2) $
+                            rew { surfHolesN   = UV.snoc (surfHolesN g) 1 UV.// [(surf, (surfHolesN g UV.! surf) - 1)]
+                                , surfHandlesN = handles
+                                }
 
-                            cobL = tmp { surfHandlesN = UV.snoc (surfHandlesN g) 0 UV.// [(s, 1 + surfHandlesN g UV.! s)]
-                                       }
-                            cobR = tmp { surfHandlesN = UV.snoc (surfHandlesN g) 1
-                                       }
-                        in normalizeGuts cobL ++ normalizeGuts cobR
-                    | otherwise                                                    =
-                        error "impossible"
+            renumerateSurfaces g =
+                ST.runST $ do
+                    newIndex <- UMV.replicate (UV.length $ surfHolesN g) (-1)
+                    freeIndex <- STRef.newSTRef 0
 
+                    let faceIndex !i = do
+                            tmp <- UMV.read newIndex i
+                            if tmp >= 0 then return tmp
+                                      else do
+                                j <- STRef.readSTRef freeIndex
+                                STRef.writeSTRef freeIndex $! j + 1
+                                UMV.write newIndex i j
+                                return j
 
-data Cobordism g = Cob {-# UNPACK #-} !CobordismHeader !g
-    deriving (Eq, Show)
-
-instance (CobordismGuts g) => CannedCobordism (Cobordism g) where
-    data CobordismBorder (Cobordism g) = Brd {-# UNPACK #-} !Int !(UV.Vector Int)
-        deriving (Eq, Ord, Show)
-
-    cobordismBorder0 (Cob h _) = Brd (loops0 h) (arcs0 h)
-    cobordismBorder1 (Cob h _) = Brd (loops1 h) (arcs1 h)
-
-    identityCobordism (Brd loops arcs) =
-        let h = makeHeader (UV.length arcs) (arcs, loops) (arcs, loops)
-        in Cob h (identityGuts (wallHolesN h) loops)
-
-    flipCobordism (Cob h g) =
-        Cob (h { arcs0 = arcs1 h, arcs1 = arcs0 h, loops0 = loops1 h, loops1 = loops0 h })
-            (flipGuts g)
-
-    Cob h1 g1 ∘ Cob h0 g0 | legsN h0  /= legsN h1   = error $ printf "(∘): different leg numbers <%i> and <%i>" (legsN h1) (legsN h0)
-                          | loops1 h0 /= loops0 h1  = error $ printf "(∘): different border loops numbers <%i> and <%i>" (loops0 h1) (loops1 h0)
-                          | arcs1 h0  /= arcs0 h1   = error "(∘): different borders"
-                          | otherwise               =
-        let h = makeHeader (legsN h0) (arcs0 h0, loops0 h0) (arcs1 h1, loops1 h1)
-        in Cob h (verComposeGuts h (h1, g1) (h0, g0))
-
-    capCobordism = Cob (makeHeader 0 (UV.empty, 1) (UV.empty, 0)) capGuts
-
-    saddleCobordism = Cob (makeHeader 4 (UV.fromList [3, 2, 1, 0], 0) (UV.fromList [1, 0, 3, 2], 0)) saddleGuts
+                    wallS <- UV.mapM faceIndex $ wallSurfs g
+                    loopS0 <- UV.mapM faceIndex $ loopSurfs0 g
+                    loopS1 <- UV.mapM faceIndex $ loopSurfs1 g
+                    idx <- UV.unsafeFreeze newIndex
+                    return $!
+                        DottedGuts
+                            { wallSurfs    = wallS
+                            , loopSurfs0   = loopS0
+                            , loopSurfs1   = loopS1
+                            , surfHandlesN = UV.backpermute (surfHandlesN g) idx
+                            , surfHolesN   = UV.backpermute (surfHolesN g) idx
+                            }
+        in \ g ->
+            case () of
+                _ | UV.any (> 1) (surfHandlesN g)                               -> []
+                  | UV.any (== (0, 0)) (UV.zip (surfHolesN g) (surfHandlesN g)) -> []
+                  | otherwise                                                   -> removeClosed 1 g
 
 
 {-# INLINE glueArcs #-}
@@ -518,49 +548,112 @@ glueArcs !gl (!a, !posA) (!b, !posB) =
         return $! (arcs, loops)
 
 
-instance (CobordismGuts g) => PlanarAlgebra' (Cobordism g) where
+{-# INLINE rotateArcs #-}
+rotateArcs :: Int -> UV.Vector Int -> UV.Vector Int
+rotateArcs rot a =
+    UV.create $ do
+        let l = UV.length a
+            t i = (i + rot) `mod` l
+        a' <- UMV.new l
+        forM_ [0 .. l - 1] $ \ !i ->
+            UMV.write a' (t i) (t $ a UV.! i)
+        return a'
+
+
+data Cobordism' g = Cob {-# UNPACK #-} !CobordismHeader !g
+    deriving (Eq, Show)
+
+instance (CobordismGuts g) => Cobordism (Cobordism' g) where
+    data CobordismBorder (Cobordism' g) = Brd {-# UNPACK #-} !Int !(UV.Vector Int)
+        deriving (Eq, Ord, Show)
+
+    cobordismBorder0 (Cob h _) = Brd (loops0 h) (arcs0 h)
+    cobordismBorder1 (Cob h _) = Brd (loops1 h) (arcs1 h)
+
+    numberOfLoops (Brd ls _) = ls
+
+    Cob h1 g1 ∘ Cob h0 g0 | legsN h0  /= legsN h1   = error $ printf "(∘): different leg numbers <%i> and <%i>" (legsN h1) (legsN h0)
+                          | loops1 h0 /= loops0 h1  = error $ printf "(∘): different border loops numbers <%i> and <%i>" (loops0 h1) (loops1 h0)
+                          | arcs1 h0  /= arcs0 h1   = error "(∘): different border arcs"
+                          | otherwise               =
+        let h = makeHeader (legsN h0) (arcs0 h0, loops0 h0) (arcs1 h1, loops1 h1)
+        in Cob h (verComposeGuts h (h1, g1) (h0, g0))
+
+    a ⊗ b = horizontalComposition 0 (a, 0) (b, 0)
+
+    flipCobordism (Cob h g) =
+        Cob (h { arcs0 = arcs1 h, arcs1 = arcs0 h, loops0 = loops1 h, loops1 = loops0 h })
+            (flipGuts g)
+
+    identityCobordism (Brd loops arcs) =
+        let h = makeHeader (UV.length arcs) (arcs, loops) (arcs, loops)
+        in Cob h (identityGuts (wallHolesN h) loops)
+
+    closedSurfaceCobordism genus | genus < 0  = error $ printf "closedSurfaceCobordism: genus must be non-negative, but %i passed" genus
+                                 | otherwise  = Cob (emptyHeader 0 0) (closedSurfaceGuts genus)
+
+    capCobordism' genus | genus < 0  = error $ printf "capCobordism': genus must be non-negative, but %i passed" genus
+                        | otherwise  = Cob (emptyHeader 1 0) (capGuts genus)
+
+    tubeCobordism = planarLoop
+
+    pantsCobordism = Cob (emptyHeader 2 1) pantsGuts
+
+instance (CobordismGuts g) => CannedCobordism (Cobordism' g) where
+    saddleCobordism =
+        Cob (makeHeader 4 (UV.fromList [3, 2, 1, 0], 0)
+                          (UV.fromList [1, 0, 3, 2], 0)
+            ) saddleGuts
+
+instance (CobordismGuts g) => PlanarAlgebra' (Cobordism' g) where
     numberOfLegs (Cob h _) = legsN h
 
     planarPropagator = identityCobordism . planarPropagator
 
     planarRotate 0 cob = cob
-    planarRotate _ cob | numberOfLegs cob == 0  = cob
-                       | otherwise              =
-        error "not implemented"
+    planarRotate rot (Cob h g) | legsN h == 0  = Cob h g
+                               | otherwise     =
+        let legs = legsN h
+            h' = makeHeader legs (rotateArcs rot (arcs0 h), loops0 h)
+                                 (rotateArcs rot (arcs1 h), loops1 h)
+            subst = UV.create $ do
+                s <- UMV.new (wallHolesN h)
+                forM_ [0 .. legsN h - 1] $ \ !i ->
+                    let newH = wallMap h' UV.! i
+                        oldH = wallMap h UV.! ((i - rot) `mod` legs)
+                    in UMV.write s newH oldH
+                return s
+        in Cob h' (rotateGuts subst g)
 
-    horizontalComposition !gl (Cob hA gA, !posA) (Cob hB gB, !posB) | gl < 0         = error "horizontalComposition: gl must be non-negative"
-                                                                    | gl > legsN hA  = error "horizontalComposition: gl exceeds number of legs of the first argument"
-                                                                    | gl > legsN hB  = error "horizontalComposition: gl exceeds number of legs of the second argument"
-                                                                    | otherwise       =
-        let (resArcs0, extraLoops0) = glueArcs gl (arcs0 hA, posA) (arcs0 hB, posB)
-            (resArcs1, extraLoops1) = glueArcs gl (arcs1 hA, posA) (arcs1 hB, posB)
-            h = makeHeader (legsN hA + legsN hB - 2 * gl) (resArcs0, length extraLoops0 + loops0 hA + loops0 hB)
-                                                          (resArcs1, length extraLoops1 + loops1 hA + loops1 hB)
-        in Cob h $ horComposeGuts (h, gl, UV.fromList extraLoops0, UV.fromList extraLoops1) (gA, hA, posA) (gB, hB, posB)
+    horizontalComposition !gl (Cob hA gA, !posA) (Cob hB gB, !posB)
+        | gl < 0         = error $ printf "horizontalComposition: gl must be non-negative, but %i passed" gl
+        | gl > legsN hA  = error $ printf "horizontalComposition: gl (%i) exceeds number of legs of the first argument (%i)" gl (legsN hA)
+        | gl > legsN hB  = error $ printf "horizontalComposition: gl (%i) exceeds number of legs of the second argument (%i)" gl (legsN hB)
+        | otherwise       =
+            let (resArcs0, extraLoops0) = glueArcs gl (arcs0 hA, posA) (arcs0 hB, posB)
+                (resArcs1, extraLoops1) = glueArcs gl (arcs1 hA, posA) (arcs1 hB, posB)
+                h = makeHeader (legsN hA + legsN hB - 2 * gl) (resArcs0, length extraLoops0 + loops0 hA + loops0 hB)
+                                                              (resArcs1, length extraLoops1 + loops1 hA + loops1 hB)
+            in Cob h $ horComposeGuts (h, gl, UV.fromList extraLoops0, UV.fromList extraLoops1) (gA, hA, posA) (gB, hB, posB)
 
-instance (CobordismGuts g) => PlanarAlgebra' (CobordismBorder (Cobordism g)) where
+instance (CobordismGuts g) => PlanarAlgebra' (CobordismBorder (Cobordism' g)) where
     numberOfLegs (Brd _ a) = UV.length a
 
-    planarPropagator n | n < 0      = error $ printf "planarPropagator: parameter must be non-negative; %i passed" n
+    planarPropagator n | n < 0      = error $ printf "planarPropagator: parameter must be non-negative, but %i passed" n
                        | otherwise  = Brd 0 $ UV.generate (2 * n) (\ i -> 2 * n - 1 - i)
 
     planarRotate 0 b = b
-    planarRotate !rot (Brd loops a) =
-        Brd loops $ UV.create $ do
-            let l = UV.length a
-                t i = (i + rot) `mod` l
-            a' <- UMV.new l
-            forM_ [0 .. l - 1] $ \ !i ->
-                UMV.write a' (t i) (t $ a UV.! i)
-            return a'
+    planarRotate rot (Brd loops a) = Brd loops (rotateArcs rot a)
 
-    horizontalComposition !gl (Brd loopsA a, !posA) (Brd loopsB b, !posB) =
-        let (arcs, extraLoops) = glueArcs gl (a, posA) (b, posB)
-        in Brd (length extraLoops + loopsA + loopsB) arcs
+    horizontalComposition !gl (Brd loopsA a, !posA) (Brd loopsB b, !posB)
+        | gl < 0            = error $ printf "horizontalComposition: gl must be non-negative, but %i passed" gl
+        | gl > UV.length a  = error $ printf "horizontalComposition: gl (%i) exceeds number of legs of the first argument (%i)" gl (UV.length a)
+        | gl > UV.length b  = error $ printf "horizontalComposition: gl (%i) exceeds number of legs of the second argument (%i)" gl (UV.length b)
+        | otherwise         =
+            let (arcs, extraLoops) = glueArcs gl (a, posA) (b, posB)
+            in Brd (length extraLoops + loopsA + loopsB) arcs
 
-
-numberOfLoops :: CobordismBorder (Cobordism g) -> Int
-numberOfLoops (Brd ls _) = ls
+    planarLoop = Brd 1 UV.empty
 
 
-type DottedCobordism a = Cobordism (ModuleGuts DottedGuts a)
+type DottedCobordism a = Cobordism' (ModuleGuts DottedGuts a)
