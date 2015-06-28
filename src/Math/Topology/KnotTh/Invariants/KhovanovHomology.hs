@@ -9,7 +9,7 @@ module Math.Topology.KnotTh.Invariants.KhovanovHomology
 import Control.Monad (foldM, forM_, liftM2, when)
 import Control.Monad.IfElse (unlessM, whenM)
 import qualified Control.Monad.ST as ST
-import qualified Data.Map as M
+import qualified Data.Map.Strict as M
 import Data.Ratio (Ratio)
 import qualified Data.STRef as STRef
 import qualified Data.Vector.Unboxed as UV
@@ -58,10 +58,14 @@ class PlanarAlgebra' a where
 
 
 class (Cobordism c, PlanarAlgebra' c, PlanarAlgebra' (CobordismBorder c)) => CannedCobordism c where
-    saddleCobordism  :: c
-    saddleCobordism' :: c
+    saddleCobordism        :: c
+    saddleCobordism'       :: c
+    sideCutPantsCobordism  :: c
+    sideCutPantsCobordism' :: c
 
-    saddleCobordism' = flipCobordism saddleCobordism
+    saddleCobordism'       = flipCobordism saddleCobordism
+    sideCutPantsCobordism  = horizontalComposition 2 (saddleCobordism', 0) (planarPropagator 1, 0)
+    sideCutPantsCobordism' = horizontalComposition 2 (saddleCobordism, 0) (planarPropagator 1, 0)
 
 
 data CobordismHeader =
@@ -121,6 +125,7 @@ makeHeader !legs (!bot, !botLoops) (!top, !topLoops) =
 
 
 class (Eq g, Ord g) => CobordismGuts g where
+    emptyGuts         :: g
     closedSurfaceGuts :: Int -> g
     capGuts           :: Int -> g
     pantsGuts         :: g
@@ -142,6 +147,8 @@ singletonModuleGuts :: (ModuleCobordismGuts g, Integral a) => g -> ModuleGuts g 
 singletonModuleGuts = MG . M.fromList . normalizeGuts
 
 instance (ModuleCobordismGuts g, Integral a) => CobordismGuts (ModuleGuts g a) where
+    emptyGuts = MG M.empty
+
     closedSurfaceGuts = singletonModuleGuts . closedSurfaceGuts
 
     capGuts = singletonModuleGuts . capGuts
@@ -191,6 +198,15 @@ data DottedGuts =
     deriving (Eq, Ord, Show)
 
 instance CobordismGuts DottedGuts where
+    emptyGuts =
+        DottedGuts
+            { wallSurfs    = UV.empty
+            , loopSurfs0   = UV.empty
+            , loopSurfs1   = UV.empty
+            , surfHolesN   = UV.empty
+            , surfHandlesN = UV.empty
+            }
+
     closedSurfaceGuts genus =
         DottedGuts
             { wallSurfs    = UV.empty
@@ -530,7 +546,7 @@ glueArcs !gl (!a, !posA) (!b, !posB) =
             let markA !x = do
                     unlessM (UMV.read visited x) $ do
                         UMV.write visited x True
-                        markB $ (`mod` legsA) $ (+ (-posA)) $ (a UV.!) $ (posA + x) `mod` legsA
+                        markB $ (`mod` legsA) $ (+ negate posA) $ (a UV.!) $ (posA + x) `mod` legsA
 
                 markB !x = do
                     unlessM (UMV.read visited x) $ do
@@ -655,5 +671,19 @@ instance (CobordismGuts g) => PlanarAlgebra' (CobordismBorder (Cobordism' g)) wh
 
     planarLoop = Brd 1 UV.empty
 
+instance (ModuleCobordismGuts g, Integral a) => Num (Cobordism' (ModuleGuts g a)) where
+    Cob h0 (MG m0) + Cob h1 (MG m1) | h0 /= h1   = error "(+): can not sum"
+                                    | otherwise  =
+        Cob h0 $ MG $ M.filter (/= 0) $ M.unionWith (+) m0 m1
+
+    negate (Cob h (MG m)) =
+        Cob h $ MG $ M.map negate m
+
+    fromInteger 0 = Cob (emptyHeader 0 0) $ MG $ M.empty
+    fromInteger n = Cob (emptyHeader 0 0) $ MG $ M.singleton emptyGuts (fromIntegral n)
+
+    (*) = (∘)
+    abs = id
+    signum x = identityCobordism (cobordismBorder0 x)
 
 type DottedCobordism a = Cobordism' (ModuleGuts DottedGuts a)
