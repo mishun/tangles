@@ -16,8 +16,7 @@ test :: Test
 test =
     let testGenerator gen list =
             forM_ list $ \ (n, expected) ->
-                let total :: Int
-                    total = countChordDiagrams $ gen n
+                let total = countChordDiagrams (gen n) :: Int
                 in assertEqual (printf "for n = %i" n) expected total
 
     in testGroup "Chord Diagrams"

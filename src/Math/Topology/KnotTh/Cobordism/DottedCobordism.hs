@@ -75,16 +75,17 @@ makeHeader !legs (!bot, !botLoops) (!top, !topLoops) =
 
 
 class (Eq g, Ord g) => CobordismGuts g where
-    emptyGuts         :: g
-    closedSurfaceGuts :: Int -> g
-    capGuts           :: Int -> g
-    pantsGuts         :: g
-    saddleGuts        :: g
-    identityGuts      :: Int -> Int -> g
-    flipGuts          :: g -> g
-    rotateGuts        :: UV.Vector Int -> g -> g
-    verComposeGuts    :: CobordismHeader -> (CobordismHeader, g) -> (CobordismHeader, g) -> g
-    horComposeGuts    :: (CobordismHeader, Int, UV.Vector Int, UV.Vector Int) -> (g, CobordismHeader, Int) -> (g, CobordismHeader, Int) -> g
+    emptyGuts      :: g
+    surfGuts       :: Int -> g
+    capGuts        :: Int -> g
+    swapGuts       :: g
+    pantsGuts      :: g
+    saddleGuts     :: g
+    identityGuts   :: Int -> Int -> g
+    flipGuts       :: g -> g
+    rotateGuts     :: UV.Vector Int -> g -> g
+    verComposeGuts :: CobordismHeader -> (CobordismHeader, g) -> (CobordismHeader, g) -> g
+    horComposeGuts :: (CobordismHeader, Int, UV.Vector Int, UV.Vector Int) -> (g, CobordismHeader, Int) -> (g, CobordismHeader, Int) -> g
 
 class (CobordismGuts g) => ModuleCobordismGuts g where
     normalizeGuts :: (Integral a) => g -> [(g, Ratio a)]
@@ -99,12 +100,10 @@ singletonModuleGuts = MG . M.fromList . normalizeGuts
 instance (ModuleCobordismGuts g, Integral a) => CobordismGuts (ModuleGuts g a) where
     emptyGuts = MG M.empty
 
-    closedSurfaceGuts = singletonModuleGuts . closedSurfaceGuts
-
-    capGuts = singletonModuleGuts . capGuts
-
-    pantsGuts = singletonModuleGuts pantsGuts
-
+    surfGuts   = singletonModuleGuts . surfGuts
+    capGuts    = singletonModuleGuts . capGuts
+    swapGuts   = singletonModuleGuts swapGuts
+    pantsGuts  = singletonModuleGuts pantsGuts
     saddleGuts = singletonModuleGuts saddleGuts
 
     identityGuts wallHoles endHoles =
@@ -157,7 +156,7 @@ instance CobordismGuts DottedGuts where
             , surfHandlesN = UV.empty
             }
 
-    closedSurfaceGuts genus =
+    surfGuts genus =
         DottedGuts
             { wallSurfs    = UV.empty
             , loopSurfs0   = UV.empty
@@ -173,6 +172,15 @@ instance CobordismGuts DottedGuts where
             , loopSurfs1   = UV.empty
             , surfHolesN   = UV.singleton 1
             , surfHandlesN = UV.singleton genus
+            }
+
+    swapGuts =
+        DottedGuts
+            { wallSurfs    = UV.empty
+            , loopSurfs0   = UV.fromList [0, 1]
+            , loopSurfs1   = UV.fromList [1, 0]
+            , surfHolesN   = UV.replicate 2 2
+            , surfHandlesN = UV.replicate 2 0
             }
 
     pantsGuts =
@@ -463,10 +471,9 @@ instance ModuleCobordismGuts DottedGuts where
                             , surfHolesN   = UV.backpermute (surfHolesN g) idx
                             }
         in \ g ->
-            case () of
-                _ | UV.any (> 1) (surfHandlesN g)                               -> []
-                  | UV.any (== (0, 0)) (UV.zip (surfHolesN g) (surfHandlesN g)) -> []
-                  | otherwise                                                   -> removeClosed 1 g
+            if | UV.any (> 1) (surfHandlesN g)                               -> []
+               | UV.any (== (0, 0)) (UV.zip (surfHolesN g) (surfHandlesN g)) -> []
+               | otherwise                                                   -> removeClosed 1 g
 
 
 {-# INLINE glueArcs #-}
@@ -536,7 +543,13 @@ instance (CobordismGuts g) => Cobordism (Cobordism' g) where
     cobordismBorder0 (Cob h _) = Brd (loops0 h) (arcs0 h)
     cobordismBorder1 (Cob h _) = Brd (loops1 h) (arcs1 h)
 
-    numberOfLoops (Brd ls _) = ls
+    identityCobordism (Brd loops arcs) =
+        let h = makeHeader (UV.length arcs) (arcs, loops) (arcs, loops)
+        in Cob h (identityGuts (wallHolesN h) loops)
+
+    flipCobordism (Cob h g) =
+        Cob (h { arcs0 = arcs1 h, arcs1 = arcs0 h, loops0 = loops1 h, loops1 = loops0 h })
+            (flipGuts g)
 
     Cob h1 g1 ∘ Cob h0 g0 | legsN h0  /= legsN h1   = error $ printf "(∘): different leg numbers <%i> and <%i>" (legsN h1) (legsN h0)
                           | loops1 h0 /= loops0 h1  = error $ printf "(∘): different border loops numbers <%i> and <%i>" (loops0 h1) (loops1 h0)
@@ -547,21 +560,18 @@ instance (CobordismGuts g) => Cobordism (Cobordism' g) where
 
     a ⊗ b = horizontalComposition 0 (a, 0) (b, 0)
 
-    flipCobordism (Cob h g) =
-        Cob (h { arcs0 = arcs1 h, arcs1 = arcs0 h, loops0 = loops1 h, loops1 = loops0 h })
-            (flipGuts g)
+instance (CobordismGuts g) => Cobordism3 (Cobordism' g) where
+    numberOfLoops (Brd ls _) = ls
 
-    identityCobordism (Brd loops arcs) =
-        let h = makeHeader (UV.length arcs) (arcs, loops) (arcs, loops)
-        in Cob h (identityGuts (wallHolesN h) loops)
+    surfOfGenusCobordism genus | genus < 0  = error $ printf "closedSurfaceCobordism: genus must be non-negative, but %i passed" genus
+                               | otherwise  = Cob (emptyHeader 0 0) (surfGuts genus)
 
-    closedSurfaceCobordism genus | genus < 0  = error $ printf "closedSurfaceCobordism: genus must be non-negative, but %i passed" genus
-                                 | otherwise  = Cob (emptyHeader 0 0) (closedSurfaceGuts genus)
-
-    capCobordism' genus | genus < 0  = error $ printf "capCobordism': genus must be non-negative, but %i passed" genus
-                        | otherwise  = Cob (emptyHeader 1 0) (capGuts genus)
+    capOfGenusCobordism genus | genus < 0  = error $ printf "capCobordism': genus must be non-negative, but %i passed" genus
+                              | otherwise  = Cob (emptyHeader 1 0) (capGuts genus)
 
     tubeCobordism = planarLoop
+
+    swapCobordism = Cob (emptyHeader 2 2) swapGuts
 
     pantsCobordism = Cob (emptyHeader 2 1) pantsGuts
 
@@ -629,11 +639,17 @@ instance (ModuleCobordismGuts g, Integral a) => Num (Cobordism' (ModuleGuts g a)
     negate (Cob h (MG m)) =
         Cob h $ MG $ M.map negate m
 
-    fromInteger 0 = Cob (emptyHeader 0 0) $ MG $ M.empty
+    fromInteger 0 = Cob (emptyHeader 0 0) $ MG M.empty
     fromInteger n = Cob (emptyHeader 0 0) $ MG $ M.singleton emptyGuts (fromIntegral n)
 
     (*) = (∘)
     abs = id
     signum x = identityCobordism (cobordismBorder0 x)
+
+instance (ModuleCobordismGuts g, Integral a) => PreadditiveCobordism (Cobordism' (ModuleGuts g a)) where
+    zeroCobordism (Brd l0 a0) (Brd l1 a1) | UV.length a0 /= UV.length a1  = error "zeroCobordism: different number of legs"
+                                          | otherwise                     =
+        Cob (makeHeader (UV.length a0) (a0, l0) (a1, l1)) (MG M.empty)
+
 
 type DottedCobordism a = Cobordism' (ModuleGuts DottedGuts a)

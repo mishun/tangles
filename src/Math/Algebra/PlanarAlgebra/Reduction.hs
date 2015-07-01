@@ -390,18 +390,18 @@ contract s (!v, !p) (!u, !q) = do
         forM_ [0 .. degreeV - 1] $ \ !i ->
             when (i /= p) $ do
                 (w, k) <- MV.read prevV i
-                connectST s (v, substV UV.! i) $ case () of
-                    _ | w == v    -> (v, substV UV.! k)
-                      | w == u    -> (v, substU UV.! k)
-                      | otherwise -> (w, k)
+                connectST s (v, substV UV.! i) $
+                    if | w == v    -> (v, substV UV.! k)
+                       | w == u    -> (v, substU UV.! k)
+                       | otherwise -> (w, k)
 
         forM_ [0 .. degreeU - 1] $ \ !i ->
             when (i /= q) $ do
                 (w, k) <- MV.read prevU i
-                connectST s (v, substU UV.! i) $ case () of
-                    _ | w == v    -> (v, substV UV.! k)
-                      | w == u    -> (v, substU UV.! k)
-                      | otherwise -> (w, k)
+                connectST s (v, substU UV.! i) $
+                    if | w == v    -> (v, substV UV.! k)
+                       | w == u    -> (v, substU UV.! k)
+                       | otherwise -> (w, k)
 
     killVertexST s u
     return $! v

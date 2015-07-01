@@ -385,18 +385,17 @@ instance KnottedDiagram EmbeddedLink where
         return $! if rightFace (nextCW abl) == leftFace (nextCCW bal)
             then emptyKnotted
             else modifyKnot link $ do
-                case () of
-                    _ | qa == ap || rb == bs ->
+                if | qa == ap || rb == bs ->
                         if qa == ap && rb == bs
                             then emitLoopsC 1
                             else connectC $ [(pa, qa) | qa /= ap] ++ [(rb, sb) | rb /= bs]
 
-                      | qa == bs || rb == ap ->
+                   | qa == bs || rb == ap ->
                         if qa == bs && rb == ap
                             then error "strange configuration"
                             else connectC $ [(sb, qa) | qa /= bs] ++ [(rb, pa) | rb /= ap]
 
-                      | otherwise            -> do
+                   | otherwise            -> do
                         if qa == br
                             then emitLoopsC 1
                             else connectC [(qa, rb)]

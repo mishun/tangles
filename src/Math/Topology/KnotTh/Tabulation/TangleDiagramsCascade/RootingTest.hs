@@ -110,29 +110,27 @@ analyseSymmetry lastCrossing skipCrossing = do
             in (skipCrossing `UV.unsafeIndex` vertexIndex v) || (v == v')
 
     (period, periodG) <- fix (\ loop !li !leg ->
-            case () of
-                _ | li >= l           -> return (l, D4.i)
-                  | skip rootDir' leg -> loop (li + 1) (nextCCW leg)
-                  | otherwise         ->
-                      let (g, cmp) = compareRootCodeUnsafe leg rootDir rootCode
-                      in case cmp of
-                          LT -> Nothing
-                          GT -> loop (li + 1) (nextCCW leg)
-                          EQ -> return (li, g D4.∘ D4.inverse rootG)
+            if | li >= l           -> return (l, D4.i)
+               | skip rootDir' leg -> loop (li + 1) (nextCCW leg)
+               | otherwise         ->
+                   let (g, cmp) = compareRootCodeUnsafe leg rootDir rootCode
+                   in case cmp of
+                       LT -> Nothing
+                       GT -> loop (li + 1) (nextCCW leg)
+                       EQ -> return (li, g D4.∘ D4.inverse rootG)
         ) 1 (nextCCW rootLeg)
 
     mirror <- case compareRoots of
         EQ -> return $ Just (legPlace rootLegCW, rootGCW D4.∘ D4.inverse rootGCCW)
         _  -> fix (\ loop !li !leg ->
-                case () of
-                    _ | li >= period     -> return Nothing
-                      | skip rootDir leg -> loop (li + 1) (nextCCW leg)
-                      | otherwise        ->
-                          let (g, cmp) = compareRootCodeUnsafe leg rootDir' rootCode
-                          in case cmp of
-                              LT -> Nothing
-                              GT -> loop (li + 1) (nextCCW leg)
-                              EQ -> return $ Just (li + 2 * legPlace rootLeg, g D4.∘ D4.inverse rootG)
+                if | li >= period     -> return Nothing
+                   | skip rootDir leg -> loop (li + 1) (nextCCW leg)
+                   | otherwise        ->
+                       let (g, cmp) = compareRootCodeUnsafe leg rootDir' rootCode
+                       in case cmp of
+                           LT -> Nothing
+                           GT -> loop (li + 1) (nextCCW leg)
+                           EQ -> return $ Just (li + 2 * legPlace rootLeg, g D4.∘ D4.inverse rootG)
             ) 0 rootLeg
 
     return $ case mirror of

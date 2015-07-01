@@ -30,7 +30,8 @@ library
         FlexibleContexts,
         FlexibleInstances,
         FunctionalDependencies,
-        MultiParamTypeClasses
+        MultiParamTypeClasses,
+        MultiWayIf
     ghc-options:        -Wall
     ghc-prof-options:   -prof -auto-all -caf-all
     cc-options:         -Wall -std=c++11

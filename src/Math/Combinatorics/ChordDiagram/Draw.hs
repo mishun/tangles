@@ -64,8 +64,7 @@ drawCDInsideCircle s cd =
         tell $ styleLine s $ execWriter $
             forM_ [0 .. p - 1] $ \ !i ->
                 let j = chordEnd cd i
-                in case () of
-                    _ | i > j                -> return ()
+                in if | i > j                -> return ()
                       | isDiameterChord cd i -> tell $ fromVertices $ map (p2 . polar 1 . angle) [i, j]
                       | j - i >= p `div` 2   -> tell $ putArc (angle j) (angle i + 2 * pi)
                       | otherwise            -> tell $ putArc (angle i) (angle j)

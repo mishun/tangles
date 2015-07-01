@@ -51,8 +51,7 @@ directSumDescendants crossings (tangle, symmetry) = do
             let t = dartOwner leg
                 lp = directSumDecompositionTypeOfCrossing cr
                 rp = directSumDecompositionTypeInVertex (opposite leg)
-            in case () of
-                _ | numberOfLegs t /= 4     -> False
+            in if | numberOfLegs t /= 4     -> False
                   | testNoMultiEdges leg 2  -> False
                   | lp == DirectSum01x23    -> False
                   | numberOfVertices t == 1 -> rp /= DirectSum12x30

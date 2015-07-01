@@ -1,6 +1,6 @@
 {-# LANGUAGE ScopedTypeVariables, FlexibleContexts #-}
 module Math.Topology.KnotTh.Cobordism.Test
-    ( generalCobordismTests
+    ( generalCobordism3Tests
     , generalCannedCobordismTests
     ) where
 
@@ -11,8 +11,8 @@ import Math.Topology.KnotTh.Cobordism
 import Math.Topology.KnotTh.PlanarAlgebra
 
 
-generalCobordismTests :: forall cob. (Cobordism cob, Show cob, Show (CobordismBorder cob)) => cob -> Test
-generalCobordismTests _ =
+generalCobordism3Tests :: forall cob. (Cobordism3 cob, Show cob, Show (CobordismBorder cob)) => cob -> Test
+generalCobordism3Tests _ =
     let (=?~=) = (@?=) :: cob -> cob -> Assertion
         (=~?=) = (@=?) :: cob -> cob -> Assertion
     in testGroup "General cobordism properties tests"
@@ -46,6 +46,10 @@ generalCobordismTests _ =
             cobordismBorder1 pants @?= cobordismBorder1 cup
             cobordismBorder0 pants @?= cobordismBorder0 (cap ⊗ cap)
 
+            let swap = swapCobordism :: cob
+            cobordismBorder0 swap @?= cobordismBorder0 pants
+            cobordismBorder1 swap @?= cobordismBorder0 pants
+
         , testCase "Flip" $ do
             flipCobordism capCobordism =?~= cupCobordism
             flipCobordism cupCobordism =?~= capCobordism
@@ -68,6 +72,9 @@ generalCobordismTests _ =
             (capCobordism ∘ tubeCobordism ∘ cupCobordism) =?~= (capCobordism ∘ cupCobordism)
             (tubeCobordism ∘ pantsCobordism ∘ (tubeCobordism ⊗ tubeCobordism)) =?~= pantsCobordism
             ((tubeCobordism ⊗ tubeCobordism) ∘ (tubeCobordism ⊗ tubeCobordism)) =?~= (tubeCobordism ⊗ tubeCobordism)
+
+        , testCase "Swap is idempotent" $ do
+            (swapCobordism ∘ swapCobordism) =?~= (tubeCobordism ⊗ tubeCobordism)
 
         , testCase "Torus from pants and caps/cups" $ do
             torusCobordism =~?=

@@ -124,22 +124,21 @@ restoreBasicTangle !chordDiagram =
 
         restore :: UV.Vector Int -> V.Vector (Int, Int) -> [Int] -> TangleDiagram
         restore _ _ [] = error "impossible happened"
-        restore a h (i : rest) = case () of
-            _ | l == 0                           -> emptyTangle
-              | l == 2                           -> identityTangle
-              | i' == j                          ->
-                  let tangle = restore
-                          (UV.generate (l - 2) (\ x -> ((a UV.! ((i + 2 + x) `mod` l)) - i - 2) `mod` l))
-                          (V.generate (l - 2) $ \ x -> h V.! ((i + 2 + x) `mod` l))
-                          [0 .. l - 3]
-                  in rotateTangle i $ glueTangles 0 (firstLeg identityTangle) (lastLeg tangle)
-              | haveIntersection (i, i') (j, j') ->
-                  let tangle = restore (a UV.// [(i, j'), (j, i'), (i', j), (j', i)]) (h V.// [(i, h V.! j), (j, h V.! i)]) [0 .. l - 1]
-                  in rotateTangle i $ vertexOwner $ glueToBorder (nthLeg tangle j) 2 $
-                      if canonicalOver cdl (h V.! i) (h V.! j)
-                          then overCrossing
-                          else underCrossing
-              | otherwise                        -> restore a h rest
+        restore a h (i : rest) =
+            if | l == 0                           -> emptyTangle
+               | l == 2                           -> identityTangle
+               | i' == j                          ->
+                   let tangle = restore (UV.generate (l - 2) (\ x -> ((a UV.! ((i + 2 + x) `mod` l)) - i - 2) `mod` l))
+                                        (V.generate (l - 2) $ \ x -> h V.! ((i + 2 + x) `mod` l))
+                                        [0 .. l - 3]
+                   in rotateTangle i $ glueTangles 0 (firstLeg identityTangle) (lastLeg tangle)
+               | haveIntersection (i, i') (j, j') ->
+                   let tangle = restore (a UV.// [(i, j'), (j, i'), (i', j), (j', i)]) (h V.// [(i, h V.! j), (j, h V.! i)]) [0 .. l - 1]
+                   in rotateTangle i $ vertexOwner $ glueToBorder (nthLeg tangle j) 2 $
+                       if canonicalOver cdl (h V.! i) (h V.! j)
+                           then overCrossing
+                           else underCrossing
+               | otherwise                        -> restore a h rest
             where
                 l = UV.length a
                 i' = a UV.! i
