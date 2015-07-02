@@ -222,6 +222,9 @@ instance CobordismGuts DottedGuts where
     verComposeGuts h (h1, g1) (h0, g0) =
         ST.runST $ do
             let legs = legsN h
+                segmsToGlue = UV.generate legs $ \ leg ->
+                    (wallSurfs g0 UV.! (wallMap h0 UV.! leg), wallSurfs g1 UV.! (wallMap h1 UV.! leg))
+                loopsToGlue = UV.zip (loopSurfs1 g0) (loopSurfs0 g1)
 
             (newS0, newS1, surfN) <- do
                 newS0 <- UMV.replicate (UV.length $ surfHolesN g0) (-1)
@@ -230,24 +233,14 @@ instance CobordismGuts DottedGuts where
                 let mark0 !color !surf = do
                         whenM ((< 0) `fmap` UMV.read newS0 surf) $ do
                             UMV.write newS0 surf color
-
-                            forM_ [0 .. legs - 1] $ \ !leg ->
-                                when (surf == wallSurfs g0 UV.! (wallMap h0 UV.! leg)) $
-                                    mark1 color $ wallSurfs g1 UV.! (wallMap h1 UV.! leg)
-                            forM_ [0 .. UV.length (loopSurfs1 g0) - 1] $ \ !i ->
-                                when (surf == loopSurfs1 g0 UV.! i) $
-                                    mark1 color $ loopSurfs0 g1 UV.! i
+                            UV.forM_ segmsToGlue $ \ (s0, s1) -> when (surf == s0) $ mark1 color s1
+                            UV.forM_ loopsToGlue $ \ (s0, s1) -> when (surf == s0) $ mark1 color s1
 
                     mark1 !color !surf =
                         whenM ((< 0) `fmap` UMV.read newS1 surf) $ do
                             UMV.write newS1 surf color
-
-                            forM_ [0 .. legs - 1] $ \ !leg ->
-                                when (surf == wallSurfs g1 UV.! (wallMap h1 UV.! leg)) $
-                                    mark0 color $ wallSurfs g0 UV.! (wallMap h0 UV.! leg)
-                            forM_ [0 .. UV.length (loopSurfs1 g0) - 1] $ \ !i ->
-                                when (surf == loopSurfs0 g1 UV.! i) $
-                                    mark0 color $ loopSurfs1 g0 UV.! i
+                            UV.forM_ segmsToGlue $ \ (s0, s1) -> when (surf == s1) $ mark0 color s0
+                            UV.forM_ loopsToGlue $ \ (s0, s1) -> when (surf == s1) $ mark0 color s0
 
                 freeColor <- STRef.newSTRef 0
                 let tryMark0 !s =
@@ -317,6 +310,11 @@ instance CobordismGuts DottedGuts where
             let legsA = legsN hA
                 legsB = legsN hB
 
+                segmsToGlue = UV.generate gl $ \ i ->
+                    let legA = (posA + i) `mod` legsA
+                        legB = (posB + gl - 1 - i) `mod` legsB
+                    in (wallSurfs gA UV.! (wallMap hA UV.! legA), wallSurfs gB UV.! (wallMap hB UV.! legB))
+
             (newSA, newSB, surfN) <- do
                 newSA <- UMV.replicate (UV.length $ surfHolesN gA) (-1)
                 newSB <- UMV.replicate (UV.length $ surfHolesN gB) (-1)
@@ -324,22 +322,12 @@ instance CobordismGuts DottedGuts where
                 let markA !color !surf = do
                         whenM ((< 0) `fmap` UMV.read newSA surf) $ do
                             UMV.write newSA surf color
-
-                            forM_ [0 .. gl - 1] $ \ !i -> do
-                                let legA = (posA + i) `mod` legsA
-                                    legB = (posB + gl - 1 - i) `mod` legsB
-                                when (surf == wallSurfs gA UV.! (wallMap hA UV.! legA)) $
-                                    markB color $ wallSurfs gB UV.! (wallMap hB UV.! legB)
+                            UV.forM_ segmsToGlue $ \ (sA, sB) -> when (surf == sA) $ markB color sB
 
                     markB !color !surf =
                         whenM ((< 0) `fmap` UMV.read newSB surf) $ do
                             UMV.write newSB surf color
-
-                            forM_ [0 .. gl - 1] $ \ !i -> do
-                                let legA = (posA + gl - 1 - i) `mod` legsA
-                                    legB = (posB + i) `mod` legsB
-                                when (surf == wallSurfs gB UV.! (wallMap hB UV.! legB)) $
-                                    markA color $ wallSurfs gA UV.! (wallMap hA UV.! legA)
+                            UV.forM_ segmsToGlue $ \ (sA, sB) -> when (surf == sB) $ markA color sA
 
                 freeColor <- STRef.newSTRef 0
                 let tryMarkA !s =
