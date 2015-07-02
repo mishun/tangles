@@ -139,4 +139,7 @@ generalCannedCobordismTests _ =
         , testCase "Handle formation" $ do
             let g = horizontalComposition 2 (saddleCobordism, 0) (planarPropagator 1, 0)
             capCobordism ∘ horizontalComposition 2 (planarPropagator 1, 0) (flipCobordism g ∘ g, 0) ∘ cupCobordism =?~= torusCobordism
+
+        , testCase "Triple pants" $ do
+            (pantsCobordism ∘ (tubeCobordism ⊗ pantsCobordism)) =?~= horizontalComposition 2 (sideCutPantsCobordism, 0) (sideCutPantsCobordism, 0)
         ]
