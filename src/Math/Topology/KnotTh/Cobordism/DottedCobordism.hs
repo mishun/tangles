@@ -440,7 +440,7 @@ instance ModuleCobordismGuts DottedGuts where
                     let faceIndex !i = do
                             tmp <- UMV.read newIndex i
                             if tmp >= 0 then return tmp
-                                      else do
+                                        else do
                                 j <- STRef.readSTRef freeIndex
                                 STRef.writeSTRef freeIndex $! j + 1
                                 UMV.write newIndex i j
@@ -547,6 +547,7 @@ instance (CobordismGuts g) => Cobordism (Cobordism' g) where
         in Cob h (verComposeGuts h (h1, g1) (h0, g0))
 
     a ⊗ b = horizontalComposition 0 (a, 0) (b, 0)
+    a ⊕ b = horizontalComposition 0 (a, 0) (b, 0)
 
 instance (CobordismGuts g) => Cobordism3 (Cobordism' g) where
     numberOfLoops (Brd ls _) = ls
@@ -627,10 +628,11 @@ instance (ModuleCobordismGuts g, Integral a) => Num (Cobordism' (ModuleGuts g a)
     negate (Cob h (MG m)) =
         Cob h $ MG $ M.map negate m
 
+    (*) = (∘)
+
     fromInteger 0 = Cob (emptyHeader 0 0) $ MG M.empty
     fromInteger n = Cob (emptyHeader 0 0) $ MG $ M.singleton emptyGuts (fromIntegral n)
 
-    (*) = (∘)
     abs = id
     signum x = identityCobordism (cobordismBorder0 x)
 
@@ -638,6 +640,8 @@ instance (ModuleCobordismGuts g, Integral a) => PreadditiveCobordism (Cobordism'
     zeroCobordism (Brd l0 a0) (Brd l1 a1) | UV.length a0 /= UV.length a1  = error "zeroCobordism: different number of legs"
                                           | otherwise                     =
         Cob (makeHeader (UV.length a0) (a0, l0) (a1, l1)) (MG M.empty)
+
+    isZeroCobordism (Cob _ (MG m)) = M.null m
 
 
 type DottedCobordism a = Cobordism' (ModuleGuts DottedGuts a)

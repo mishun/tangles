@@ -65,6 +65,7 @@ library
         Math.Combinatorics.Generation.CanonicalConstructionPath,
         Math.Combinatorics.Strings.Lyndon,
         Math.Topology.KnotTh.Cobordism,
+        Math.Topology.KnotTh.Cobordism.CobordismMatrix,
         Math.Topology.KnotTh.Cobordism.DottedCobordism,
         Math.Topology.KnotTh.Draw,
         Math.Topology.KnotTh.EmbeddedLink,
@@ -158,6 +159,7 @@ test-suite TestTangles
     other-modules:
         Math.Combinatorics.ChordDiagram.Test,
         Math.Combinatorics.Strings.Test,
+        Math.Topology.KnotTh.Cobordism.CobordismMatrix.Test,
         Math.Topology.KnotTh.Cobordism.DottedCobordism.Test,
         Math.Topology.KnotTh.Cobordism.Test,
         Math.Topology.KnotTh.EmbeddedLink.Test,

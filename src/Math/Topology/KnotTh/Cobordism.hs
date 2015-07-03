@@ -18,6 +18,7 @@ class (Eq c, Eq (CobordismBorder c)) => Cobordism c where
     flipCobordism     :: c -> c
     (∘)               :: c -> c -> c
     (⊗)               :: c -> c -> c
+    (⊕)               :: CobordismBorder c -> CobordismBorder c -> CobordismBorder c
 
 class (Cobordism c) => Cobordism3 c where
     numberOfLoops        :: CobordismBorder c -> Int
@@ -42,7 +43,10 @@ class (Cobordism c) => Cobordism3 c where
     pantsCobordism'     = flipCobordism pantsCobordism
 
 class (Cobordism c, Num c) => PreadditiveCobordism c where
-    zeroCobordism :: CobordismBorder c -> CobordismBorder c -> c
+    zeroCobordism   :: CobordismBorder c -> CobordismBorder c -> c
+    isZeroCobordism :: c -> Bool
+
+    isZeroCobordism c = c == zeroCobordism (cobordismBorder0 c) (cobordismBorder1 c)
 
 class (Cobordism3 c, PlanarAlgebra' c, PlanarAlgebra' (CobordismBorder c)) => CannedCobordism c where
     saddleCobordism        :: c
