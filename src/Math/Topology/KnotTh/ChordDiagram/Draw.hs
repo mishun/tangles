@@ -1,5 +1,5 @@
 {-# LANGUAGE TypeFamilies #-}
-module Math.Combinatorics.ChordDiagram.Draw
+module Math.Topology.KnotTh.ChordDiagram.Draw
     ( DrawCDSettings(..)
     , drawCDInsideCircle
     , drawCDInsideCircleDef
@@ -8,30 +8,32 @@ module Math.Combinatorics.ChordDiagram.Draw
 import Control.Monad.Writer (execWriter, tell)
 import Control.Monad (when, forM_)
 import Diagrams.Prelude
-import Math.Combinatorics.ChordDiagram
+import Math.Topology.KnotTh.ChordDiagram
 
 
-data DrawCDSettings = DrawCDSettings
-    { threadWidth      :: Double
-    , threadColour     :: Colour Double
-    , borderWidth      :: Double
-    , borderColour     :: Colour Double
-    , borderDashing    :: [Double]
-    , backgroundColour :: Colour Double
-    , endpointsRadius  :: Double
-    }
+data DrawCDSettings =
+    DrawCDSettings
+        { threadWidth      :: Double
+        , threadColour     :: Colour Double
+        , borderWidth      :: Double
+        , borderColour     :: Colour Double
+        , borderDashing    :: [Double]
+        , backgroundColour :: Colour Double
+        , endpointsRadius  :: Double
+        }
 
 
 defaultDraw :: DrawCDSettings
-defaultDraw = DrawCDSettings
-    { threadWidth      = 0.03
-    , threadColour     = black
-    , borderWidth      = 0.02
-    , borderColour     = black
-    , borderDashing    = [0.08, 0.08]
-    , backgroundColour = white
-    , endpointsRadius  = 0.04
-    }
+defaultDraw =
+    DrawCDSettings
+        { threadWidth      = 0.03
+        , threadColour     = black
+        , borderWidth      = 0.02
+        , borderColour     = black
+        , borderDashing    = [0.08, 0.08]
+        , backgroundColour = white
+        , endpointsRadius  = 0.04
+        }
 
 
 styleBorder :: (HasStyle c, V c ~ R2) =>  DrawCDSettings -> c -> c
@@ -42,9 +44,9 @@ styleLine :: (HasStyle c, V c ~ R2) =>  DrawCDSettings -> c -> c
 styleLine s = lwL (threadWidth s) . lc (threadColour s)
 
 
-drawCDInsideCircle :: (Renderable (Path R2) b) => DrawCDSettings -> ChordDiagram -> Diagram b R2
+drawCDInsideCircle :: (Renderable (Path R2) b, ChordDiagram cd) => DrawCDSettings -> cd -> Diagram b R2
 drawCDInsideCircle s cd =
-    let p = numberOfPoints cd
+    let p = numberOfChordEnds cd
         polar r a = (r * cos a, r * sin a)
         angle i = 2 * pi * fromIntegral i / fromIntegral p
 
@@ -63,12 +65,12 @@ drawCDInsideCircle s cd =
 
         tell $ styleLine s $ execWriter $
             forM_ [0 .. p - 1] $ \ !i ->
-                let j = chordEnd cd i
+                let j = chordMate cd i
                 in if | i > j                -> return ()
                       | isDiameterChord cd i -> tell $ fromVertices $ map (p2 . polar 1 . angle) [i, j]
                       | j - i >= p `div` 2   -> tell $ putArc (angle j) (angle i + 2 * pi)
                       | otherwise            -> tell $ putArc (angle i) (angle j)
 
 
-drawCDInsideCircleDef :: (Renderable (Path R2) b) => ChordDiagram -> Diagram b R2
+drawCDInsideCircleDef :: (Renderable (Path R2) b, ChordDiagram cd) => cd -> Diagram b R2
 drawCDInsideCircleDef = drawCDInsideCircle defaultDraw

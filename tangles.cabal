@@ -60,10 +60,10 @@ library
         Math.Algebra.Group.Dn,
         Math.Algebra.PlanarAlgebra,
         Math.Algebra.RotationDirection,
-        Math.Combinatorics.ChordDiagram,
-        Math.Combinatorics.ChordDiagram.Draw,
         Math.Combinatorics.Generation.CanonicalConstructionPath,
         Math.Combinatorics.Strings.Lyndon,
+        Math.Topology.KnotTh.ChordDiagram,
+        Math.Topology.KnotTh.ChordDiagram.Draw,
         Math.Topology.KnotTh.Cobordism,
         Math.Topology.KnotTh.Cobordism.CobordismMatrix,
         Math.Topology.KnotTh.Cobordism.DottedCobordism,
@@ -99,8 +99,6 @@ library
         Math.Topology.Manifolds.SurfaceGraph.Homology
     other-modules:
         Math.Algebra.PlanarAlgebra.Reduction,
-        Math.Combinatorics.ChordDiagram.Definition,
-        Math.Combinatorics.ChordDiagram.Generator,
         Math.Topology.KnotTh.Draw.DrawCrossing,
         Math.Topology.KnotTh.Draw.Settings,
         Math.Topology.KnotTh.Invariants.HomflyPolynomial,
@@ -157,8 +155,8 @@ test-suite TestTangles
         tangles
     main-is:            TestTangles.hs
     other-modules:
-        Math.Combinatorics.ChordDiagram.Test,
         Math.Combinatorics.Strings.Test,
+        Math.Topology.KnotTh.ChordDiagram.Test,
         Math.Topology.KnotTh.Cobordism.CobordismMatrix.Test,
         Math.Topology.KnotTh.Cobordism.DottedCobordism.Test,
         Math.Topology.KnotTh.Cobordism.Test,

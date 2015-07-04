@@ -1,6 +1,11 @@
 {-# LANGUAGE RankNTypes #-}
-module Math.Combinatorics.ChordDiagram.Generator
-    ( generateWithCheckerRaw
+module Math.Topology.KnotTh.ChordDiagram
+    ( ChordDiagram(..)
+    , isDiameterChord
+    , numberOfCopoints
+    , genusOfChordDiagram
+    , eulerCharOfChordDiagram
+    , DiffChordDiagram
     , generateAllRaw
     , generateNonPlanarRaw
     , generateBicolourableNonPlanarRaw
@@ -9,24 +14,87 @@ module Math.Combinatorics.ChordDiagram.Generator
     , listChordDiagrams
     ) where
 
+import Control.Monad (foldM, forM_, when)
+import Control.Monad.IfElse (unlessM)
+import qualified Control.Monad.ST as ST
 import Data.List (find)
-import Data.Maybe (fromJust, isJust, isNothing)
+import Data.Maybe (isJust, isNothing)
+import Data.STRef (modifySTRef', newSTRef, readSTRef, writeSTRef)
 import qualified Data.Vector.Unboxed as UV
 import qualified Data.Vector.Unboxed.Mutable as UMV
-import Data.STRef (newSTRef, readSTRef, writeSTRef, modifySTRef')
-import Control.Applicative ((<$>))
-import Control.Monad (when, forM_)
-import Control.Monad.ST (ST, runST)
 import Math.Combinatorics.Strings.Lyndon
-import Math.Combinatorics.ChordDiagram.Definition
 
 
-generateWithCheckerRaw
-    :: Int -> (forall s. Int -> UMV.STVector s Int -> Int -> Int -> ST s Bool) ->
-        Int -> (forall s. st -> UMV.STVector s Int -> (Bool, Int) -> ST s st)
-            -> st -> st
+class ChordDiagram cd where
+    numberOfChords     :: cd -> Int
+    numberOfChordEnds  :: cd -> Int
+    chordMate          :: cd -> Int -> Int
+    chordSpan          :: cd -> Int -> Int
+    chordMateArray     :: cd -> UV.Vector Int
+    chordDiffArray     :: cd -> UV.Vector Int
+    rotateChordDiagram :: Int -> cd -> cd
+    mirrorChordDiagram :: cd -> cd
 
-generateWithCheckerRaw minimalChordLength checker n yield initial = runST $ do
+
+isDiameterChord :: (ChordDiagram cd) => cd -> Int -> Bool
+isDiameterChord cd x = chordSpan cd x == numberOfChords cd
+
+
+numberOfCopoints :: (ChordDiagram cd) => cd -> Int
+numberOfCopoints cd = ST.runST $ do
+    let p = numberOfChordEnds cd
+    visited <- UMV.replicate p False
+    let mark !i =
+            unlessM (UMV.read visited i) $ do
+                UMV.write visited i True
+                mark $ (1 + chordMate cd i) `mod` p
+    foldM (\ !faces !i -> do
+            v <- UMV.read visited i
+            if v then return faces
+                 else mark i >> return (faces + 1)
+        ) 0 [0 .. p - 1]
+
+
+genusOfChordDiagram :: (ChordDiagram cd) => cd -> Int
+genusOfChordDiagram cd = (1 + numberOfChords cd - numberOfCopoints cd) `div` 2
+
+
+eulerCharOfChordDiagram :: (ChordDiagram cd) => cd -> Int
+eulerCharOfChordDiagram cd = 1 + numberOfCopoints cd - numberOfChords cd
+
+
+newtype DiffChordDiagram = DCD (UV.Vector Int)
+    deriving (Eq, Ord, Show)
+
+instance ChordDiagram DiffChordDiagram where
+    numberOfChords (DCD a)    = UV.length a `div` 2
+    numberOfChordEnds (DCD a) = UV.length a
+
+    chordMate (DCD a) x = (x + a UV.! x) `mod` UV.length a
+    chordSpan (DCD a) x = a UV.! x
+
+    chordMateArray (DCD a) = UV.imap (\ i d -> (i + d) `mod` UV.length a) a
+    chordDiffArray (DCD a) = a
+
+    rotateChordDiagram 0 cd = cd
+    rotateChordDiagram rot (DCD a) =
+        let p = UV.length a
+        in DCD $ UV.generate p $ \ !i ->
+            let i' = (i - rot) `mod` p
+            in a UV.! i'
+
+    mirrorChordDiagram (DCD a) =
+        let p = UV.length a
+        in DCD $ UV.generate p $ \ !i ->
+            let i' = (-i) `mod` p
+            in p - (a UV.! i')
+
+
+-- See www.cis.uoguelph.ca/~sawada/papers/chord.pdf
+generateWithCheckerRaw :: Int -> (forall s. Int -> UMV.STVector s Int -> Int -> Int -> ST.ST s Bool) ->
+                              Int -> (forall s. st -> UMV.STVector s Int -> (Bool, Int) -> ST.ST s st)
+                                  -> st -> st
+generateWithCheckerRaw minimalChordLength checker n yield initial = ST.runST $ do
     let p = 2 * n
 
     a <- UMV.replicate p 0
@@ -95,7 +163,7 @@ generateWithCheckerRaw minimalChordLength checker n yield initial = runST $ do
                         dir <- mapM (UMV.unsafeRead code) [0 .. codeLen - 1]
                         rev <- do
                             let base = mod (mirrorBase + p - chordLength) period
-                            let start = snd $ fromJust $ find ((> base) . fst) $ zip dir (codeLen - 1 : [0 ..])
+                            let Just (_, start) = find ((> base) . fst) $ zip dir (codeLen - 1 : [0 ..])
 
                             tmp <- newSTRef []
                             let push !x = modifySTRef' tmp (x :)
@@ -112,9 +180,8 @@ generateWithCheckerRaw minimalChordLength checker n yield initial = runST $ do
                                                 iter (i + 1) ncross
                                             else iter (i + 1) True
 
-
                             iter 0 False
-                            reverse <$> readSTRef tmp
+                            reverse `fmap` readSTRef tmp
 
                         let (shift, minRev) = minimumCyclicShift rev
 
@@ -129,9 +196,10 @@ generateWithCheckerRaw minimalChordLength checker n yield initial = runST $ do
             let placeChords !pos !lyn !chunk !lower
                     | chunk == div p period  = when (mod pos lyn == 0) $ checkMirror pos (div (p * lyn) pos)
                     | otherwise              = do
-                        lyndonPrev <- if pos == 0
-                            then return 0
-                            else UMV.unsafeRead code (pos - lyn)
+                        lyndonPrev <-
+                            if pos == 0
+                                then return 0
+                                else UMV.unsafeRead code (pos - lyn)
 
                         let iteration j = do
                                 UMV.unsafeWrite code pos j
@@ -154,54 +222,48 @@ generateWithCheckerRaw minimalChordLength checker n yield initial = runST $ do
                         let bottom = max lyndonPrev lower
                         when (bottom <= period) (iteration bottom)
 
-            full <- (>= p) <$> readSTRef begin
-            if full
-                then yieldAction (isJust mirror, period)
-                else if ((period == p) && isNothing mirror) || (chordLength >= n)
-                    then matchRest (isJust mirror, period) chordLength
-                    else placeChords 0 1 0 0
+            full <- (>= p) `fmap` readSTRef begin
+            if | full                                                      -> yieldAction (isJust mirror, period)
+               | ((period == p) && isNothing mirror) || (chordLength >= n) -> matchRest (isJust mirror, period) chordLength
+               | otherwise                                                 -> placeChords 0 1 0 0
 
     backtrack (max 1 minimalChordLength) 1 (Just 0)
     readSTRef result
 
 
-generateAllRaw :: Int -> (forall s. st -> UMV.STVector s Int -> (Bool, Int) -> ST s st) -> st -> st
-generateAllRaw =
-    generateWithCheckerRaw 1 (\ _ _ _ _ -> return True)
+generateAllRaw :: Int -> (forall s. st -> UMV.STVector s Int -> (Bool, Int) -> ST.ST s st) -> st -> st
+generateAllRaw = generateWithCheckerRaw 1 (\ _ _ _ _ -> return True)
 
 
-generateNonPlanarRaw :: Int -> (forall s. st -> UMV.STVector s Int -> (Bool, Int) -> ST s st) -> st -> st
-generateNonPlanarRaw =
-    generateWithCheckerRaw 2 (\ _ _ _ _ -> return True)
+generateNonPlanarRaw :: Int -> (forall s. st -> UMV.STVector s Int -> (Bool, Int) -> ST.ST s st) -> st -> st
+generateNonPlanarRaw = generateWithCheckerRaw 2 (\ _ _ _ _ -> return True)
 
 
-generateBicolourableNonPlanarRaw :: Int -> (forall s. st -> UMV.STVector s Int -> (Bool, Int) -> ST s st) -> st -> st
-generateBicolourableNonPlanarRaw =
-    generateWithCheckerRaw 2 (\ _ _ u v -> return $! odd (u + v))
+generateBicolourableNonPlanarRaw :: Int -> (forall s. st -> UMV.STVector s Int -> (Bool, Int) -> ST.ST s st) -> st -> st
+generateBicolourableNonPlanarRaw = generateWithCheckerRaw 2 (\ _ _ u v -> return $! odd (u + v))
 
 
-generateQuasiTreesRaw :: Int -> (forall s. st -> UMV.STVector s Int -> (Bool, Int) -> ST s st) -> st -> st
+generateQuasiTreesRaw :: Int -> (forall s. st -> UMV.STVector s Int -> (Bool, Int) -> ST.ST s st) -> st -> st
 generateQuasiTreesRaw =
     generateWithCheckerRaw 2
         (\ p a u v -> do
             let len = v - u
             pu <- UMV.unsafeRead a $ (u - 1) `mod` p
             nu <- UMV.unsafeRead a (u + 1)
-            return $! (pu /= len + 2) && ((nu == 0) || (nu /= len - 2))  
+            return $! (pu /= len + 2) && ((nu == 0) || (nu /= len - 2))
         )
 
 
-countChordDiagrams :: (Integral i) => ((forall s. i -> UMV.STVector s Int -> (Bool, Int) -> ST s i) -> i -> i) -> i
-countChordDiagrams generator =
-    generator (\ c _ _ -> return $! c + 1) 0
+countChordDiagrams :: (Integral i) => ((forall s. i -> UMV.STVector s Int -> (Bool, Int) -> ST.ST s i) -> i -> i) -> i
+countChordDiagrams generator = generator (\ !c _ _ -> return $! c + 1) 0
 
 
-type CD = (ChordDiagram, (Bool, Int))
+type CD = (DiffChordDiagram, (Bool, Int))
 
 
-listChordDiagrams :: ((forall s. [CD] -> UMV.STVector s Int -> (Bool, Int) -> ST s [CD]) -> [CD] -> [CD]) -> [CD]
+listChordDiagrams :: ((forall s. [CD] -> UMV.STVector s Int -> (Bool, Int) -> ST.ST s [CD]) -> [CD] -> [CD]) -> [CD]
 listChordDiagrams generator =
-    generator  (\ lst diagramST !symmetry -> do
+    generator (\ lst diagramST !symmetry -> do
             diagram <- UV.freeze diagramST
-            return $! (ChordDiagram diagram, symmetry) : lst
+            return $! (DCD diagram, symmetry) : lst
         ) []

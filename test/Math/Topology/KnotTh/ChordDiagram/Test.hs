@@ -1,15 +1,15 @@
-module Math.Combinatorics.ChordDiagram.Test
+module Math.Topology.KnotTh.ChordDiagram.Test
     ( test
     ) where
 
-import Data.Maybe (fromJust, isJust)
-import Data.List (elemIndex)
 import Control.Monad (forM_)
+import Data.List (elemIndex)
+import Data.Maybe (fromJust, isJust)
 import Text.Printf
 import Test.Framework (Test, testGroup)
 import Test.Framework.Providers.HUnit (testCase)
 import Test.HUnit hiding (Test, test)
-import Math.Combinatorics.ChordDiagram
+import Math.Topology.KnotTh.ChordDiagram
 
 
 test :: Test
@@ -35,7 +35,7 @@ test =
         , testCase "Symmetry group information" $
             forM_ [1 .. 9] $ \ !n ->
                 forM_ (listChordDiagrams $ generateNonPlanarRaw n) $ \ (cd, (mirror, period)) -> do
-                    let p = numberOfPoints cd
+                    let p = numberOfChordEnds cd
                         expectedPeriod = 1 + fromJust (elemIndex cd $ map (`rotateChordDiagram` cd) [1 .. p])
                         expectedMirror = isJust (elemIndex (mirrorChordDiagram cd) $ map (`rotateChordDiagram` cd) [0 .. p - 1])
 

@@ -1,8 +1,8 @@
 module Main (main) where
 
 import Test.Framework (defaultMain)
-import qualified Math.Combinatorics.ChordDiagram.Test
 import qualified Math.Combinatorics.Strings.Test
+import qualified Math.Topology.KnotTh.ChordDiagram.Test
 import qualified Math.Topology.KnotTh.Cobordism.CobordismMatrix.Test
 import qualified Math.Topology.KnotTh.Cobordism.DottedCobordism.Test
 import qualified Math.Topology.KnotTh.EmbeddedLink.Test
@@ -23,7 +23,7 @@ main =
         , Math.Topology.KnotTh.Tangle.Test.test
         , Math.Topology.KnotTh.Invariants.KhovanovHomology.Test.test
         , Math.Topology.KnotTh.Invariants.Test.test
-        , Math.Combinatorics.ChordDiagram.Test.test
+        , Math.Topology.KnotTh.ChordDiagram.Test.test
         , Math.Topology.KnotTh.Tabulation.Test.test
         , Math.Topology.KnotTh.Enumeration.Applied.Test.test
         ]
