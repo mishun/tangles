@@ -7,6 +7,7 @@ module Math.Topology.KnotTh.Invariants.KhovanovHomology
 
 import Math.Topology.KnotTh.Cobordism.CobordismMatrix
 import Math.Topology.KnotTh.Cobordism.DottedCobordism
+import Math.Topology.KnotTh.PlanarAlgebra
 
 
 data KhovanovComplex c =

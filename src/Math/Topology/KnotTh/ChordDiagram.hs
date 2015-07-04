@@ -31,9 +31,18 @@ class ChordDiagram cd where
     chordMate          :: cd -> Int -> Int
     chordSpan          :: cd -> Int -> Int
     chordMateArray     :: cd -> UV.Vector Int
-    chordDiffArray     :: cd -> UV.Vector Int
+    chordSpanArray     :: cd -> UV.Vector Int
     rotateChordDiagram :: Int -> cd -> cd
     mirrorChordDiagram :: cd -> cd
+
+    numberOfChords    cd = numberOfChordEnds cd `div` 2
+    numberOfChordEnds cd = 2 * numberOfChords cd
+
+    chordMate cd x = (x + chordSpan cd x) `mod` numberOfChordEnds cd
+    chordSpan cd x = (chordMate cd x - x) `mod` numberOfChordEnds cd
+
+    chordMateArray cd = UV.generate (numberOfChordEnds cd) (chordMate cd)
+    chordSpanArray cd = UV.generate (numberOfChordEnds cd) (chordSpan cd)
 
 
 isDiameterChord :: (ChordDiagram cd) => cd -> Int -> Bool
@@ -67,14 +76,12 @@ newtype DiffChordDiagram = DCD (UV.Vector Int)
     deriving (Eq, Ord, Show)
 
 instance ChordDiagram DiffChordDiagram where
-    numberOfChords (DCD a)    = UV.length a `div` 2
     numberOfChordEnds (DCD a) = UV.length a
 
-    chordMate (DCD a) x = (x + a UV.! x) `mod` UV.length a
     chordSpan (DCD a) x = a UV.! x
 
     chordMateArray (DCD a) = UV.imap (\ i d -> (i + d) `mod` UV.length a) a
-    chordDiffArray (DCD a) = a
+    chordSpanArray (DCD a) = a
 
     rotateChordDiagram 0 cd = cd
     rotateChordDiagram rot (DCD a) =

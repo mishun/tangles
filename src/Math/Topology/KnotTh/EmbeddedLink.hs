@@ -41,10 +41,10 @@ import qualified Data.Vector.Primitive.Mutable as PMV
 import qualified Data.Vector.Unboxed as UV
 import qualified Data.Vector.Unboxed.Mutable as UMV
 import Text.Printf
-import qualified Math.Combinatorics.ChordDiagram as CD
 import qualified Math.Algebra.Group.D4 as D4
 import qualified Math.Algebra.RotationDirection as R
 import qualified Math.Topology.Manifolds.SurfaceGraph as SG
+import Math.Topology.KnotTh.ChordDiagram
 import Math.Topology.KnotTh.Knotted
 import Math.Topology.KnotTh.Knotted.Crossings.Projection
 import Math.Topology.KnotTh.Knotted.Crossings.Diagram
@@ -510,19 +510,10 @@ toLink sl | eulerChar sl == 2         = l
         l = implode $ explode sl
 
 
-fromTangleAndStar :: CD.ChordDiagram -> Tangle a -> EmbeddedLink a
+fromTangleAndStar :: (ChordDiagram cd) => cd -> Tangle a -> EmbeddedLink a
 fromTangleAndStar cd tangle
-    | p /= l     = error "fromTangleAndStar: size conflict"
-    | otherwise  = fromTangleAndStar' changeLeg tangle
-    where
-        p = CD.numberOfPoints cd
-        l = numberOfLegs tangle
-        a = CD.chordOffsetArray cd
-
-        changeLeg d =
-            let i = legPlace d
-                j = (i + a UV.! i) `mod` l
-            in nthLeg tangle j
+    | numberOfChordEnds cd /= numberOfLegs tangle  = error "fromTangleAndStar: size conflict"
+    | otherwise                                    = fromTangleAndStar' (nthLeg tangle . chordMate cd . legPlace) tangle
 
 
 {-# INLINE fromTangleAndStar' #-}

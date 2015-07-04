@@ -14,6 +14,7 @@ import qualified Data.STRef as STRef
 import qualified Data.Vector.Unboxed as UV
 import qualified Data.Vector.Unboxed.Mutable as UMV
 import Text.Printf
+import Math.Topology.KnotTh.ChordDiagram
 import Math.Topology.KnotTh.Cobordism
 import Math.Topology.KnotTh.PlanarAlgebra
 
@@ -619,6 +620,15 @@ instance (CobordismGuts g) => PlanarAlgebra' (CobordismBorder (Cobordism' g)) wh
             in Brd (length extraLoops + loopsA + loopsB) arcs
 
     planarLoop = Brd 1 UV.empty
+
+instance (CobordismGuts g) => ChordDiagram (CobordismBorder (Cobordism' g)) where
+    numberOfChordEnds = numberOfLegs
+
+    chordMate (Brd _ a) x = a UV.! x
+    chordMateArray (Brd _ a) = a
+
+    rotateChordDiagram = planarRotate
+    mirrorChordDiagram = error "mirror is not implemeted"
 
 instance (ModuleCobordismGuts g, Integral a) => Num (Cobordism' (ModuleGuts g a)) where
     Cob h0 (MG m0) + Cob h1 (MG m1) | h0 /= h1   = error "(+): can not sum"
