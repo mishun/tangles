@@ -6,8 +6,6 @@ module Math.Topology.KnotTh.Tangle
     , TangleLike(..)
     , (|=|)
     , (⊗)
-    , transformTangle
-    , allOrientationsOfTangle
     , identityBraidTangle
     , braidGeneratorTangle
     , braidTangle
@@ -54,9 +52,8 @@ import qualified Data.Vector.Unboxed.Mutable as UMV
 import qualified Data.Vector.Primitive as PV
 import qualified Data.Vector.Primitive.Mutable as PMV
 import Text.Printf
-import qualified Math.Algebra.Group.D4 as D4
-import qualified Math.Algebra.Group.Dn as Dn
-import qualified Math.Algebra.RotationDirection as R
+import Math.Topology.KnotTh.Dihedral.D4
+import Math.Topology.KnotTh.Dihedral.Dn
 import Math.Topology.KnotTh.Knotted
 import Math.Topology.KnotTh.Knotted.Crossings.Projection
 import Math.Topology.KnotTh.Knotted.Crossings.Diagram
@@ -132,24 +129,22 @@ class (KnottedPlanar t, PlanarAlgebra t) => TangleLike t where
     in rotateTangle (-k) $ glueTangles 0 (nthLeg a k) (firstLeg b)
 
 
-transformTangle :: (Crossing a, TangleLike t) => Dn.Dn -> t a -> t a
-transformTangle g tangle
-    | l /= l'          = error $ printf "transformTangle: order conflict: %i legs, %i order of group" l l'
-    | Dn.reflection g  = mirrorTangle $ rotateTangle r tangle
-    | otherwise        = rotateTangle r tangle
-    where
-        l = numberOfLegs tangle
-        l' = Dn.pointsUnderGroup g
-        r = Dn.rotation g
+instance RotationAction (Tangle a) where
+    rotationOrder = numberOfLegs
+    rotate        = rotateTangle
 
+instance (Crossing a) => DihedralAction (Tangle a) where
+    mirror = mirrorTangle
 
-allOrientationsOfTangle :: (Crossing a, TangleLike t) => t a -> [t a]
-allOrientationsOfTangle tangle = do
-    t <- let l = numberOfLegs tangle
-         in if l == 0
-             then [tangle]
-             else map (`rotateTangle` tangle) [0 .. l]
-    [t, mirrorTangle t]
+instance (Crossing a) => GroupAction (Tangle a) where
+    type TransformGroup (Tangle a) = Dn
+
+    transform g tangle | l /= l'       = error $ printf "transformTangle: order conflict: %i legs, %i order of group" l l'
+                       | reflection g  = mirrorTangle $ rotateTangle (rotation g) tangle
+                       | otherwise     = rotateTangle (rotation g) tangle
+        where
+            l = numberOfLegs tangle
+            l' = pointsUnderGroup g
 
 
 identityBraidTangle :: Int -> Tangle a
@@ -389,8 +384,8 @@ instance Knotted Tangle where
             border | l == 0    = UV.empty
                    | otherwise = minimum $ do
                 leg <- allLegs tangle
-                dir <- R.bothDirections
-                globalG <- fromMaybe [D4.i] $ globalTransformations tangle
+                dir <- bothDirections
+                globalG <- fromMaybe [d4I] $ globalTransformations tangle
 
                 return $! UV.create $ do
                     index <- UMV.replicate (n + 1) 0
@@ -471,8 +466,8 @@ instance Knotted Tangle where
                     compCode comp = minimum $ do
                         start <- comp
                         root <- outcomingDarts start
-                        dir <- R.bothDirections
-                        globalG <- fromMaybe [D4.i] $ globalTransformations tangle
+                        dir <- bothDirections
+                        globalG <- fromMaybe [d4I] $ globalTransformations tangle
 
                         return $! UV.create $ do
                             index <- UMV.replicate (n + 1) 0

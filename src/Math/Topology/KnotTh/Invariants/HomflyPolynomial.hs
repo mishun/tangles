@@ -7,6 +7,7 @@ module Math.Topology.KnotTh.Invariants.HomflyPolynomial
 import Math.Topology.KnotTh.Invariants.Util.Poly
 import Math.Topology.KnotTh.Invariants.KnotPolynomials
 import Math.Topology.KnotTh.Invariants.KnotPolynomials.KauffmanFStateSum
+import Math.Topology.KnotTh.Tangle
 
 
 class (Knotted k) => KnottedWithHomflyPolynomial k where

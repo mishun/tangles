@@ -41,8 +41,7 @@ import qualified Data.Vector.Primitive.Mutable as PMV
 import qualified Data.Vector.Unboxed as UV
 import qualified Data.Vector.Unboxed.Mutable as UMV
 import Text.Printf
-import qualified Math.Algebra.Group.D4 as D4
-import qualified Math.Algebra.RotationDirection as R
+import Math.Topology.KnotTh.Dihedral.D4
 import qualified Math.Topology.Manifolds.SurfaceGraph as SG
 import Math.Topology.KnotTh.ChordDiagram
 import Math.Topology.KnotTh.Knotted
@@ -158,8 +157,8 @@ instance Knotted EmbeddedLink where
             internal | numberOfVertices link == 0  = UV.empty
                      | otherwise                   = minimum $ do
                 dart <- allHalfEdges link
-                dir <- R.bothDirections
-                globalG <- fromMaybe [D4.i] $ globalTransformations link
+                dir <- bothDirections
+                globalG <- fromMaybe [d4I] $ globalTransformations link
                 return $! codeWithDirection globalG dir dart
 
             codeWithDirection !globalG !dir !start = UV.create $ do
@@ -177,7 +176,7 @@ instance Knotted EmbeddedLink where
                         if ux > 0
                             then do
                                 up <- UMV.unsafeRead incoming u
-                                return $! (ux `shiftL` 2) + (((beginPlace d - up) * R.directionSign dir) .&. 3)
+                                return $! (ux `shiftL` 2) + (((beginPlace d - up) * directionSign dir) .&. 3)
                             else do
                                 nf <- STRef.readSTRef free
                                 STRef.writeSTRef free $! nf + 1

@@ -29,7 +29,7 @@ module Math.Algebra.PlanarAlgebra
 import Data.Ix (Ix(..))
 import Data.Bits (shiftL, shiftR)
 import Control.Arrow (first, (***))
-import qualified Math.Algebra.RotationDirection as R
+import Math.Topology.KnotTh.Dihedral
 
 
 -- Laws:
@@ -135,9 +135,9 @@ hasVertices = (> 0) . numberOfVertices
 
 
 {-# INLINE nextDir #-}
-nextDir :: (PlanarDiagram a) => R.RotationDirection -> Dart a t -> Dart a t
-nextDir dir | R.isClockwise dir  = nextCW
-            | otherwise          = nextCCW
+nextDir :: (PlanarDiagram a) => RotationDirection -> Dart a t -> Dart a t
+nextDir dir | isClockwise dir  = nextCW
+            | otherwise        = nextCCW
 
 
 {-# INLINE endVertex #-}

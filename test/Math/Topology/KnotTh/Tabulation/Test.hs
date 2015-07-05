@@ -7,7 +7,7 @@ import Control.Arrow ((&&&))
 import Control.Monad (when)
 import Test.Framework (Test, testGroup)
 import Test.Framework.Providers.HUnit (testCase)
-import qualified Math.Algebra.Group.Dn as Dn
+import Math.Topology.KnotTh.Dihedral.Dn
 import Math.Topology.KnotTh.Tangle
 import Math.Topology.KnotTh.Tabulation.TangleDiagramsCascade
 import Math.Topology.KnotTh.Tabulation.TangleFlypeClasses
@@ -78,7 +78,7 @@ test = testGroup "Tangle generators"
         testTable
             (\ n -> generateTable'
                 ((numberOfVertices &&& numberOfLegs) . fst)
-                (\ (_, symmetry) -> Dn.rotationPeriod symmetry * (if Dn.hasReflectionPart symmetry then 1 else 2))
+                (\ (_, symmetry) -> rotationPeriod symmetry * (if hasReflectionPart symmetry then 1 else 2))
                 (\ yield -> generateFlypeEquivalentInTriangle n
                     (\ (t, s) -> when (numberOfLegs t == 4) $
                         yield (t, s)

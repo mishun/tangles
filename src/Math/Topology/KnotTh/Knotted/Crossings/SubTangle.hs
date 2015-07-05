@@ -15,12 +15,11 @@ module Math.Topology.KnotTh.Knotted.Crossings.SubTangle
     , possibleSubTangleOrientations
     ) where
 
-import Data.Array.Unboxed (UArray, (!), listArray)
 import Control.DeepSeq
+import Data.Array.Unboxed (UArray, (!), listArray)
 import Text.Printf
-import qualified Math.Algebra.RotationDirection as R
-import qualified Math.Algebra.Group.Dn as Dn
-import qualified Math.Algebra.Group.D4 as D4
+import Math.Topology.KnotTh.Dihedral.D4
+import qualified Math.Topology.KnotTh.Dihedral.Dn as Dn
 import Math.Topology.KnotTh.Knotted
 import Math.Topology.KnotTh.Tangle
 
@@ -40,8 +39,8 @@ changeSumType DirectSum12x30 = DirectSum01x23
 data SubTangleCrossing a =
     SubTangleCrossing
         { code         :: {-# UNPACK #-} !Int
-        , orientation  :: {-# UNPACK #-} !D4.D4
-        , symmetry     :: !D4.D4SubGroup
+        , orientation  :: {-# UNPACK #-} !D4
+        , symmetry     :: !(SubGroup D4)
         , sumType      :: !DirectSumDecompositionType
         , subTangle    :: Tangle a
         }
@@ -65,7 +64,7 @@ instance (Show a) => Show (SubTangleCrossing a) where
 
 instance Crossing (SubTangleCrossing a) where
     {-# INLINE mirrorCrossing #-}
-    mirrorCrossing s = s { orientation = D4.e D4.∘ orientation s }
+    mirrorCrossing s = s { orientation = d4E ∘ orientation s }
 
     {-# INLINE globalTransformations #-}
     globalTransformations _ = Nothing
@@ -74,18 +73,18 @@ instance Crossing (SubTangleCrossing a) where
     crossingCode dir d =
         let p = beginPlace d
             cr = vertexCrossing $ beginVertex d
-            t = D4.fromReflectionRotation (R.isClockwise dir) (-p) D4.∘ orientation cr
-        in (# code cr, D4.equivalenceClassId (symmetry cr) t #)
+            t = fromReflectionRotation (isClockwise dir) (-p) ∘ orientation cr
+        in (# code cr, equivalenceClassId (symmetry cr) t #)
 
     {-# INLINE crossingCodeWithGlobal #-}
     crossingCodeWithGlobal global dir d =
         let p = beginPlace d
             cr = vertexCrossing $ beginVertex d
-            t = D4.fromReflectionRotation (R.isClockwise dir) (-p) D4.∘ (orientation cr D4.∘ global)
-        in (# code cr, D4.equivalenceClassId (symmetry cr) t #)
+            t = fromReflectionRotation (isClockwise dir) (-p) ∘ (orientation cr ∘ global)
+        in (# code cr, equivalenceClassId (symmetry cr) t #)
 
 
-makeSubTangle :: Tangle a -> Dn.DnSubGroup -> DirectSumDecompositionType -> Int -> SubTangleCrossing a
+makeSubTangle :: Tangle a -> SubGroup Dn.Dn -> DirectSumDecompositionType -> Int -> SubTangleCrossing a
 makeSubTangle tangle newSymmetry newSumType newCode
     | l /= 4     = error $ printf "crossingFromTangle: tangle must have 4 legs, %i found" l
     | l' /= 4    = error $ printf "crossingFromTangle: symmetry group must have 4 points, %i found" l'
@@ -93,18 +92,18 @@ makeSubTangle tangle newSymmetry newSumType newCode
     | otherwise  =
         SubTangleCrossing
             { code        = newCode
-            , orientation = D4.i
-            , symmetry    = D4.fromDnSubGroup newSymmetry
+            , orientation = d4I
+            , symmetry    = fromDnSubGroup newSymmetry
             , sumType     = newSumType
             , subTangle   = tangle
             }
     where
         l = numberOfLegs tangle
-        l' = Dn.pointsUnderSubGroup newSymmetry
+        l' = pointsUnderSub newSymmetry
         lp = numberOfFreeLoops tangle
 
 
-makeSubTangle' :: (Crossing a) => SubTangleTangle a -> Dn.DnSubGroup -> DirectSumDecompositionType -> Int -> SubTangleCrossing a
+makeSubTangle' :: (Crossing a) => SubTangleTangle a -> SubGroup Dn.Dn -> DirectSumDecompositionType -> Int -> SubTangleCrossing a
 makeSubTangle' tangle = makeSubTangle (substituteTangles tangle)
 
 
@@ -113,7 +112,7 @@ substituteTangles tangle =
 {-    tensorSubst 1 (\ v ->
             let c = vertexCrossing v
                 g = orientation c
-            in transformTangle (Dn.fromReflectionRotation 4 (D4.hasReflection g, D4.rotation g)) $
+            in transformTangle (Dn.fromReflectionRotation 4 (hasReflection g, rotation g)) $
                 subTangle $ crossingType c
         ) tangle-}
     implode
@@ -151,7 +150,7 @@ substituteTangles tangle =
 
 {-# INLINE isCrossingOrientationInverted #-}
 isCrossingOrientationInverted :: SubTangleCrossing a -> Bool
-isCrossingOrientationInverted = D4.hasReflection . orientation
+isCrossingOrientationInverted = reflection . orientation
 
 
 {-# INLINE numberOfCrossingVertices #-}
@@ -175,12 +174,12 @@ directSumDecompositionTypeOfCrossing c
 
 {-# INLINE crossingLegIdByDartId #-}
 crossingLegIdByDartId :: SubTangleCrossing a -> Int -> Int
-crossingLegIdByDartId cr = D4.permute (D4.inverse $ orientation cr)
+crossingLegIdByDartId cr = permutePoint (inverse $ orientation cr)
 
 
 {-# INLINE dartIdByCrossingLegId #-}
 dartIdByCrossingLegId :: SubTangleCrossing a -> Int -> Int
-dartIdByCrossingLegId cr = D4.permute (orientation cr)
+dartIdByCrossingLegId cr = permutePoint (orientation cr)
 
 
 {-# INLINE crossingLegIdByDart #-}
@@ -214,9 +213,8 @@ isLonerInVertex = (== 1) . numberOfVerticesInVertex
 
 
 directSumDecompositionTypeInVertex :: (Knotted k) => Dart k (SubTangleCrossing a) -> DirectSumDecompositionType
-directSumDecompositionTypeInVertex d
-    | f          = changeSumType st
-    | otherwise  = st
+directSumDecompositionTypeInVertex d | f          = changeSumType st
+                                     | otherwise  = st
     where
         st = sumType $ vertexCrossing $ beginVertex d
         f = isVertexCrossingOrientationInverted (beginVertex d) /= odd (crossingLegIdByDart d)
@@ -231,11 +229,11 @@ numberOfVerticesAfterSubstitution :: (Knotted k) => k (SubTangleCrossing a) -> I
 numberOfVerticesAfterSubstitution = sum . map numberOfVerticesInVertex . allVertices
 
 
-possibleSubTangleOrientations :: SubTangleCrossing a -> Maybe D4.D4 -> [SubTangleCrossing a]
+possibleSubTangleOrientations :: SubTangleCrossing a -> Maybe D4 -> [SubTangleCrossing a]
 possibleSubTangleOrientations base extra =
     let s = symmetry base
-        orient = D4.equvalenceClassRepresentatives s
+        orient = equvalenceClassRepresentatives s
     in map (\ g -> base { orientation = g }) $
         case extra of
             Nothing -> orient
-            Just h  -> filter (\ g -> D4.equivalenceClassId s g <= D4.equivalenceClassId s (h D4.∘ g)) orient
+            Just h  -> filter (\ g -> equivalenceClassId s g <= equivalenceClassId s (h ∘ g)) orient

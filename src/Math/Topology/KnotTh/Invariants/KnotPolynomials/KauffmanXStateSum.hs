@@ -14,6 +14,8 @@ import Data.STRef (newSTRef, readSTRef, modifySTRef')
 import Control.Monad.ST (runST)
 import Control.Monad (forM_, when, foldM_)
 import Text.Printf
+import Math.Topology.KnotTh.Knotted
+import Math.Topology.KnotTh.Knotted.Crossings.Diagram
 import Math.Topology.KnotTh.Invariants.KnotPolynomials
 import Math.Topology.KnotTh.Invariants.Util.Poly
 

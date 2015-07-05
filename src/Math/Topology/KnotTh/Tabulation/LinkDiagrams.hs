@@ -3,16 +3,15 @@ module Math.Topology.KnotTh.Tabulation.LinkDiagrams
     ( nextGeneration
     ) where
 
-import Data.Function (on)
+import Control.Monad (guard, when)
 import Data.Bits (shiftL)
+import Data.Function (on)
 import Data.List (nubBy)
+import Data.STRef (newSTRef, readSTRef, writeSTRef)
 import qualified Data.Vector.Mutable as MV
 import qualified Data.Vector.Unboxed as UV
 import qualified Data.Vector.Unboxed.Mutable as UMV
-import Data.STRef (newSTRef, readSTRef, writeSTRef)
-import Control.Monad (when, guard)
-import qualified Math.Algebra.RotationDirection as R
-import qualified Math.Algebra.Group.D4 as D4
+import Math.Topology.KnotTh.Dihedral.D4
 import Math.Topology.KnotTh.Link
 
 
@@ -36,8 +35,8 @@ p0 cross ab =
             )
 
         rc = let v = nthVertex res n
-             in min (rootCode' (nthOutcomingDart v 3) R.ccw)
-                    (rootCode' (nthOutcomingDart v 0) R.cw)
+             in min (rootCode' (nthOutcomingDart v 3) ccw)
+                    (rootCode' (nthOutcomingDart v 0) cw)
 
     in ((2, rc), res)
 
@@ -64,8 +63,8 @@ p1 cross ab =
             )
 
         rc = let v = nthVertex res n
-             in min (rootCode' (nthOutcomingDart v 0) R.ccw)
-                    (rootCode' (nthOutcomingDart v 1) R.cw)
+             in min (rootCode' (nthOutcomingDart v 0) ccw)
+                    (rootCode' (nthOutcomingDart v 1) cw)
 
     in ((3, rc), res)
 
@@ -78,25 +77,25 @@ nextGeneration cross link =
             d <- allHalfEdges link
             p0 c d : [p1 c d | opposite (nextCCW d) /= nextCW (opposite d)]
 
-        let rc' = minimum [rootCode r dir | r <- allHalfEdges child, dir <- R.bothDirections]
+        let rc' = minimum [rootCode r dir | r <- allHalfEdges child, dir <- bothDirections]
         guard $ rc <= rc'
         return (rc, child)
 
 
-rootCode :: (Crossing a) => Dart Link a -> R.RotationDirection -> (Int, UV.Vector Int)
+rootCode :: (Crossing a) => Dart Link a -> RotationDirection -> (Int, UV.Vector Int)
 rootCode ab dir | ac == opposite bd                         = (2, rootCode' ab dir)
                 | nextDir dir (opposite ac) == opposite bd  = (3, rootCode' ab dir)
                 | otherwise                                 = (4, UV.empty)
     where
         ba = opposite ab
         ac = nextDir dir ab
-        bd = nextDir (R.oppositeDirection dir) ba
+        bd = nextDir (oppositeDirection dir) ba
 
 
-rootCode' :: (Crossing a) => Dart Link a -> R.RotationDirection -> UV.Vector Int
+rootCode' :: (Crossing a) => Dart Link a -> RotationDirection -> UV.Vector Int
 rootCode' root dir =
     case globalTransformations link of
-        Nothing      -> codeWithGlobal D4.i
+        Nothing      -> codeWithGlobal d4I
         Just globals -> minimum $ map codeWithGlobal globals
     where 
         link = dartOwner root

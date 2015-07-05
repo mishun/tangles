@@ -9,11 +9,10 @@ import Text.Printf
 import System.Environment (getArgs)
 import Diagrams.Prelude
 import Diagrams.Backend.SVG
-import qualified Math.Algebra.Group.Dn as Dn
-import Math.Combinatorics.ChordDiagram (generateNonPlanarRaw, listChordDiagrams, genusOfChordDiagram)
-import Math.Combinatorics.ChordDiagram.Draw (drawCDInsideCircleDef)
+import Math.Topology.KnotTh.Dihedral.Dn
+import Math.Topology.KnotTh.ChordDiagram (generateNonPlanarRaw, listChordDiagrams, genusOfChordDiagram)
+import Math.Topology.KnotTh.ChordDiagram.Draw (drawCDInsideCircleDef)
 import Math.Topology.KnotTh.EmbeddedLink
-import Math.Topology.KnotTh.EmbeddedLink.Construction
 import Math.Topology.KnotTh.Tangle
 import Math.Topology.KnotTh.Tabulation.TangleDiagramsCascade
 import Math.Topology.KnotTh.Draw
@@ -34,9 +33,7 @@ main = do
                 guard $ targetGenus == genusOfChordDiagram cd
 
                 rot <- [0 .. gcd starPeriod (Dn.rotationPeriod tangleSymmetry) - 1]
-                mir <- if not starMirror && not (Dn.hasReflectionPart tangleSymmetry)
-                           then [False, True]
-                           else [False]
+                mir <- False : [True | not starMirror && not (Dn.hasReflectionPart tangleSymmetry)]
                 let g = Dn.fromReflectionRotation l (mir, rot)
                     link = fromTangleAndStar cd $ transformTangle g tangle
                 return (unrootedHomeomorphismInvariant link, (link, [(transformTangle g tangle, cd)]))

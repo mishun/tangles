@@ -14,17 +14,16 @@ import qualified Data.Vector.Unboxed.Mutable as UMV
 import Data.STRef (newSTRef, readSTRef, writeSTRef)
 import Control.Monad.ST (runST)
 import Control.Monad (when, guard)
-import qualified Math.Algebra.RotationDirection as R
-import qualified Math.Algebra.Group.Dn as Dn
-import qualified Math.Algebra.Group.D4 as D4
+import Math.Topology.KnotTh.Dihedral.Dn
+import Math.Topology.KnotTh.Dihedral.D4
 import Math.Topology.KnotTh.Knotted.Crossings.SubTangle
 import Math.Topology.KnotTh.Tangle
 
 
-{-# SPECIALIZE rootingSymmetryTest :: Vertex Tangle ProjectionCrossing -> Maybe (Dn.DnSubGroup, (D4.D4, D4.D4), UV.Vector Int) #-}
-{-# SPECIALIZE rootingSymmetryTest :: Vertex Tangle DiagramCrossing -> Maybe (Dn.DnSubGroup, (D4.D4, D4.D4), UV.Vector Int) #-}
-{-# SPECIALIZE rootingSymmetryTest :: Vertex Tangle (SubTangleCrossing a) -> Maybe (Dn.DnSubGroup, (D4.D4, D4.D4), UV.Vector Int) #-}
-rootingSymmetryTest :: (Crossing a) => Vertex Tangle a -> Maybe (Dn.DnSubGroup, (D4.D4, D4.D4), UV.Vector Int)
+{-# SPECIALIZE rootingSymmetryTest :: Vertex Tangle ProjectionCrossing    -> Maybe (SubGroup Dn, (D4, D4), UV.Vector Int) #-}
+{-# SPECIALIZE rootingSymmetryTest :: Vertex Tangle DiagramCrossing       -> Maybe (SubGroup Dn, (D4, D4), UV.Vector Int) #-}
+{-# SPECIALIZE rootingSymmetryTest :: Vertex Tangle (SubTangleCrossing a) -> Maybe (SubGroup Dn, (D4, D4), UV.Vector Int) #-}
+rootingSymmetryTest :: (Crossing a) => Vertex Tangle a -> Maybe (SubGroup Dn, (D4, D4), UV.Vector Int)
 rootingSymmetryTest lastCrossing = do
     let tangle = vertexOwner lastCrossing
     guard $ numberOfLegs tangle >= 4
@@ -32,7 +31,7 @@ rootingSymmetryTest lastCrossing = do
     analyseSymmetry lastCrossing cp
 
 
-rootCodeLeg :: (Crossing a) => Dart Tangle a -> R.RotationDirection -> (D4.D4, UV.Vector Int)
+rootCodeLeg :: (Crossing a) => Dart Tangle a -> RotationDirection -> (D4, UV.Vector Int)
 rootCodeLeg root dir
     | isDart root                     = error "rootCodeLeg: leg expected"
     | numberOfFreeLoops tangle /= 0   = error "rootCodeLeg: free loops present"
@@ -82,27 +81,27 @@ investigateConnectivity lastCrossing = runST $ do
             (Just $!) `fmap` UV.unsafeFreeze cp
 
 
-{-# SPECIALIZE analyseSymmetry :: Vertex Tangle ProjectionCrossing -> UV.Vector Bool -> Maybe (Dn.DnSubGroup, (D4.D4, D4.D4), UV.Vector Int) #-}
-{-# SPECIALIZE analyseSymmetry :: Vertex Tangle DiagramCrossing -> UV.Vector Bool -> Maybe (Dn.DnSubGroup, (D4.D4, D4.D4), UV.Vector Int) #-}
-{-# SPECIALIZE analyseSymmetry :: Vertex Tangle (SubTangleCrossing a) -> UV.Vector Bool -> Maybe (Dn.DnSubGroup, (D4.D4, D4.D4), UV.Vector Int) #-}
-analyseSymmetry :: (Crossing a) => Vertex Tangle a -> UV.Vector Bool -> Maybe (Dn.DnSubGroup, (D4.D4, D4.D4), UV.Vector Int)
+{-# SPECIALIZE analyseSymmetry :: Vertex Tangle ProjectionCrossing    -> UV.Vector Bool -> Maybe (SubGroup Dn, (D4, D4), UV.Vector Int) #-}
+{-# SPECIALIZE analyseSymmetry :: Vertex Tangle DiagramCrossing       -> UV.Vector Bool -> Maybe (SubGroup Dn, (D4, D4), UV.Vector Int) #-}
+{-# SPECIALIZE analyseSymmetry :: Vertex Tangle (SubTangleCrossing a) -> UV.Vector Bool -> Maybe (SubGroup Dn, (D4, D4), UV.Vector Int) #-}
+analyseSymmetry :: (Crossing a) => Vertex Tangle a -> UV.Vector Bool -> Maybe (SubGroup Dn, (D4, D4), UV.Vector Int)
 analyseSymmetry lastCrossing skipCrossing = do
     let tangle = vertexOwner lastCrossing
         l = numberOfLegs tangle
 
         rootLegCCW = firstLeg tangle
         rootLegCW = opposite $ nthOutcomingDart lastCrossing 3
-        (rootGCCW, rootCodeCCW) = rootCodeLegUnsafe rootLegCCW R.ccw
-        (rootGCW, rootCodeCW) = rootCodeLegUnsafe rootLegCW R.cw
+        (rootGCCW, rootCodeCCW) = rootCodeLegUnsafe rootLegCCW ccw
+        (rootGCW, rootCodeCW) = rootCodeLegUnsafe rootLegCW cw
 
         compareRoots = compare rootCodeCCW rootCodeCW
 
         (rootG, rootCode, rootLeg, rootDir) =
             case compareRoots of
-                GT -> (rootGCW, rootCodeCW, rootLegCW, R.cw)
-                _  -> (rootGCCW, rootCodeCCW, rootLegCCW, R.ccw)
+                GT -> (rootGCW, rootCodeCW, rootLegCW, cw)
+                _  -> (rootGCCW, rootCodeCCW, rootLegCCW, ccw)
 
-        rootDir' = R.oppositeDirection rootDir
+        rootDir' = oppositeDirection rootDir
 
     let skip dir leg =
             let v = endVertex leg
@@ -110,18 +109,18 @@ analyseSymmetry lastCrossing skipCrossing = do
             in (skipCrossing `UV.unsafeIndex` vertexIndex v) || (v == v')
 
     (period, periodG) <- fix (\ loop !li !leg ->
-            if | li >= l           -> return (l, D4.i)
+            if | li >= l           -> return (l, d4I)
                | skip rootDir' leg -> loop (li + 1) (nextCCW leg)
                | otherwise         ->
                    let (g, cmp) = compareRootCodeUnsafe leg rootDir rootCode
                    in case cmp of
                        LT -> Nothing
                        GT -> loop (li + 1) (nextCCW leg)
-                       EQ -> return (li, g D4.∘ D4.inverse rootG)
+                       EQ -> return (li, g ∘ inverse rootG)
         ) 1 (nextCCW rootLeg)
 
-    mirror <- case compareRoots of
-        EQ -> return $ Just (legPlace rootLegCW, rootGCW D4.∘ D4.inverse rootGCCW)
+    refl <- case compareRoots of
+        EQ -> return $ Just (legPlace rootLegCW, rootGCW ∘ inverse rootGCCW)
         _  -> fix (\ loop !li !leg ->
                 if | li >= period     -> return Nothing
                    | skip rootDir leg -> loop (li + 1) (nextCCW leg)
@@ -130,21 +129,21 @@ analyseSymmetry lastCrossing skipCrossing = do
                        in case cmp of
                            LT -> Nothing
                            GT -> loop (li + 1) (nextCCW leg)
-                           EQ -> return $ Just (li + 2 * legPlace rootLeg, g D4.∘ D4.inverse rootG)
+                           EQ -> return $ Just (li + 2 * legPlace rootLeg, g ∘ inverse rootG)
             ) 0 rootLeg
 
-    return $ case mirror of
-        Just (mirrorZ, mirrorG) -> (Dn.fromPeriodAndMirroredZero l period mirrorZ, (periodG, mirrorG), rootCode)
-        Nothing                 -> (Dn.fromPeriod l period, (periodG, D4.i), rootCode)
+    return $ case refl of
+        Just (mirrorZ, mirrorG) -> (fromPeriodAndMirroredZero l period mirrorZ, (periodG, mirrorG), rootCode)
+        Nothing                 -> (fromPeriod l period, (periodG, d4I), rootCode)
 
 
-{-# SPECIALIZE compareRootCodeUnsafe :: Dart Tangle ProjectionCrossing -> R.RotationDirection -> UV.Vector Int -> (D4.D4, Ordering) #-}
-{-# SPECIALIZE compareRootCodeUnsafe :: Dart Tangle DiagramCrossing -> R.RotationDirection -> UV.Vector Int -> (D4.D4, Ordering) #-}
-{-# SPECIALIZE compareRootCodeUnsafe :: Dart Tangle (SubTangleCrossing a) -> R.RotationDirection -> UV.Vector Int -> (D4.D4, Ordering) #-}
-compareRootCodeUnsafe :: (Crossing a) => Dart Tangle a -> R.RotationDirection -> UV.Vector Int -> (D4.D4, Ordering)
+{-# SPECIALIZE compareRootCodeUnsafe :: Dart Tangle ProjectionCrossing    -> RotationDirection -> UV.Vector Int -> (D4, Ordering) #-}
+{-# SPECIALIZE compareRootCodeUnsafe :: Dart Tangle DiagramCrossing       -> RotationDirection -> UV.Vector Int -> (D4, Ordering) #-}
+{-# SPECIALIZE compareRootCodeUnsafe :: Dart Tangle (SubTangleCrossing a) -> RotationDirection -> UV.Vector Int -> (D4, Ordering) #-}
+compareRootCodeUnsafe :: (Crossing a) => Dart Tangle a -> RotationDirection -> UV.Vector Int -> (D4, Ordering)
 compareRootCodeUnsafe root dir rootCode =
     case globalTransformations tangle of
-        Nothing      -> (D4.i, rawCompare)
+        Nothing      -> (d4I, rawCompare)
         Just globals -> minimumBy (comparing snd) $ map (\ g -> (g, rawCompareWithGlobal g)) globals
     where
         tangle = dartOwner root
@@ -225,13 +224,13 @@ compareRootCodeUnsafe root dir rootCode =
             bfs 0
 
 
-{-# SPECIALIZE rootCodeLegUnsafe :: Dart Tangle ProjectionCrossing -> R.RotationDirection -> (D4.D4, UV.Vector Int) #-}
-{-# SPECIALIZE rootCodeLegUnsafe :: Dart Tangle DiagramCrossing -> R.RotationDirection -> (D4.D4, UV.Vector Int) #-}
-{-# SPECIALIZE rootCodeLegUnsafe :: Dart Tangle (SubTangleCrossing a) -> R.RotationDirection -> (D4.D4, UV.Vector Int) #-}
-rootCodeLegUnsafe :: (Crossing a) => Dart Tangle a -> R.RotationDirection -> (D4.D4, UV.Vector Int)
+{-# SPECIALIZE rootCodeLegUnsafe :: Dart Tangle ProjectionCrossing    -> RotationDirection -> (D4, UV.Vector Int) #-}
+{-# SPECIALIZE rootCodeLegUnsafe :: Dart Tangle DiagramCrossing       -> RotationDirection -> (D4, UV.Vector Int) #-}
+{-# SPECIALIZE rootCodeLegUnsafe :: Dart Tangle (SubTangleCrossing a) -> RotationDirection -> (D4, UV.Vector Int) #-}
+rootCodeLegUnsafe :: (Crossing a) => Dart Tangle a -> RotationDirection -> (D4, UV.Vector Int)
 rootCodeLegUnsafe root dir =
     case globalTransformations tangle of
-        Nothing      -> (D4.i, code)
+        Nothing      -> (d4I, code)
         Just globals -> minimumBy (comparing snd) $ map (\ g -> (g, codeWithGlobal g)) globals
     where 
         tangle = dartOwner root

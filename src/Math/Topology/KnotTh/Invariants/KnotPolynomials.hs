@@ -1,6 +1,6 @@
 {-# LANGUAGE RankNTypes #-}
 module Math.Topology.KnotTh.Invariants.KnotPolynomials
-    ( module X
+    ( module Math.Algebra.PlanarAlgebra.Reduction
     , SkeinRelation(..)
     , reduceSkeinWithStrategy
     , reduceSkeinStd
@@ -10,8 +10,8 @@ module Math.Topology.KnotTh.Invariants.KnotPolynomials
     , skeinRelationPreMinimization
     ) where
 
-import Math.Algebra.PlanarAlgebra.Reduction as X
-import Math.Topology.KnotTh.Tangle as X
+import Math.Algebra.PlanarAlgebra.Reduction
+import Math.Topology.KnotTh.Tangle
 
 
 class (Functor f, PlanarStateSum (f p)) => SkeinRelation f p where
@@ -53,10 +53,11 @@ skeinRelationPostMinimization :: (Ord (f p), SkeinRelation f p) => (TangleDiagra
 skeinRelationPostMinimization invariant tangle = minimum $ do
     let l = numberOfLegs tangle
         p = invariant tangle
-    rotation <- if l == 0 then [id] else map rotateState [0 .. l - 1]
-    reflection <- [id, mirrorState]
+    rot <- if l == 0 then [id]
+                     else map rotateState [0 .. l - 1]
+    refl <- [id, mirrorState]
     inv <- [id, invertCrossingsAction]
-    return $ inv $ reflection $ rotation p
+    return $ inv $ refl $ rot p
 
 
 skeinRelationMidMinimization :: (Ord (f p), SkeinRelation f p) => (TangleDiagram -> f p) -> TangleDiagram -> f p
@@ -64,13 +65,14 @@ skeinRelationMidMinimization invariant tangle = minimum $ do
     let l = numberOfLegs tangle
     tangle' <- [tangle, invertCrossings tangle]
     let p = invariant tangle'
-    rotation <- if l == 0 then [id] else map rotateState [0 .. l - 1]
-    reflection <- [id, mirrorState]
-    return $ reflection $ rotation p
+    rot <- if l == 0 then [id]
+                     else map rotateState [0 .. l - 1]
+    refl <- [id, mirrorState]
+    return $ refl $ rot p
 
 
 skeinRelationPreMinimization :: (Ord (f p), SkeinRelation f p) => (TangleDiagram -> f p) -> TangleDiagram -> f p 
 skeinRelationPreMinimization invariant tangle = minimum $ do
     inv <- [id, invertCrossings]
-    tangle' <- allOrientationsOfTangle tangle
+    tangle' <- allOrientationsOf tangle
     return $ invariant $ inv tangle'

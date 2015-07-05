@@ -26,7 +26,7 @@ import Data.Bits ((.&.), xor)
 import Data.Array.IArray (listArray, accumArray, (!), elems)
 import Data.Array.Unboxed (UArray)
 import Control.DeepSeq
-import qualified Math.Algebra.Group.D4 as D4
+import Math.Topology.KnotTh.Dihedral.D4
 import Math.Topology.KnotTh.Knotted
 import Math.Topology.KnotTh.Knotted.Threads
 
@@ -56,7 +56,7 @@ instance Crossing DiagramCrossing where
     mirrorCrossing = id
 
     {-# INLINE globalTransformations #-}
-    globalTransformations _ = Just [D4.i, D4.ec]
+    globalTransformations _ = Just [d4I, d4EC]
 
     {-# INLINE crossingCode #-}
     crossingCode !_ !d =
@@ -66,7 +66,7 @@ instance Crossing DiagramCrossing where
 
     {-# INLINE crossingCodeWithGlobal #-}
     crossingCodeWithGlobal !g !_ !d =
-        let t = D4.equivalenceClassId D4.subGroupDS g
+        let t = equivalenceClassId subGroupDS g
             DC x = vertexCrossing $ beginVertex d
             p = beginPlace d
         in (# 1, (x `xor` t) `xor` (p .&. 1) #)
@@ -130,12 +130,12 @@ passUnder' :: DiagramCrossing -> Int -> Bool
 passUnder' (DC x) p = (x `xor` (p .&. 1)) == 1
 
 
-possibleDiagramOrientations :: Maybe D4.D4 -> [DiagramCrossing]
+possibleDiagramOrientations :: Maybe D4 -> [DiagramCrossing]
 possibleDiagramOrientations induced =
     case induced of
-        Nothing                                             -> bothDiagramCrossings
-        Just g | D4.equivalenceClassId D4.subGroupDS g == 0 -> bothDiagramCrossings
-               | otherwise                                  -> overCrossingOnly
+        Nothing                                       -> bothDiagramCrossings
+        Just g | equivalenceClassId subGroupDS g == 0 -> bothDiagramCrossings
+               | otherwise                            -> overCrossingOnly
 
 
 class (Knotted k) => KnottedDiagram k where

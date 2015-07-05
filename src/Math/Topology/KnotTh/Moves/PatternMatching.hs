@@ -135,11 +135,9 @@ reconnectP m =
 
 
 makePattern :: Bool -> (forall s. PatternM s a x) -> Pattern a x
-makePattern mirror pattern =
+makePattern mirrored pattern =
     Pattern $ \ tangle -> do
-        reorder <- if mirror
-                       then [id, reverse]
-                       else [id]
+        reorder <- id : [reverse | mirrored]
         let initial = PatternS reorder tangle (allVertices tangle)
         (_, res) <- runPatternMatching pattern initial
         return res

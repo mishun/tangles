@@ -7,7 +7,7 @@ import qualified Data.Map as M
 import Control.Monad.State.Strict (execState, modify)
 import Control.DeepSeq
 import Control.Parallel.Strategies (parMap, rdeepseq)
-import qualified Math.Algebra.Group.Dn as Dn
+import Math.Topology.KnotTh.Dihedral.Dn
 import Math.Topology.KnotTh.ChordDiagram
 import Math.Topology.KnotTh.Tangle
 import Math.Topology.KnotTh.EmbeddedLink
@@ -15,7 +15,7 @@ import Math.Topology.KnotTh.EmbeddedLink
 
 tangleStarGlue
     :: (NFData a, Crossing a, ChordDiagram cd) => (Int -> [(cd, (Bool, Int))])
-        -> (forall m'. (Monad m') => ((Tangle a, (Dn.DnSubGroup, x)) -> m' ()) -> m' ())
+        -> (forall m'. (Monad m') => ((Tangle a, (SubGroup Dn, x)) -> m' ()) -> m' ())
             -> [EmbeddedLink a]
 
 tangleStarGlue starGenerator tangleGenerator =
@@ -26,9 +26,9 @@ tangleStarGlue starGenerator tangleGenerator =
             M.fromList $ do
                 let l = numberOfLegs tangle
                 (star, (starMirror, starPeriod)) <- diagrams !! (l `div` 2)
-                rot <- [0 .. gcd starPeriod (Dn.rotationPeriod tangleSymmetry) - 1]
-                mir <- False : [True | not starMirror && not (Dn.hasReflectionPart tangleSymmetry)]
-                let g = Dn.fromReflectionRotation l (mir, rot)
-                    link = fromTangleAndStar star $ transformTangle g tangle
+                rot <- [0 .. gcd starPeriod (rotationPeriod tangleSymmetry) - 1]
+                mir <- False : [True | not starMirror && not (hasReflectionPart tangleSymmetry)]
+                let g = fromReflectionRotation l (mir, rot)
+                    link = fromTangleAndStar star $ transform g tangle
                 return (unrootedHomeomorphismInvariant link, link)
         ) tangles

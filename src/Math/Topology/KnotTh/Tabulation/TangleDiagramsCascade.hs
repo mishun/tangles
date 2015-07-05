@@ -1,5 +1,7 @@
 module Math.Topology.KnotTh.Tabulation.TangleDiagramsCascade
-    ( module X
+    ( module Math.Combinatorics.Generation.CanonicalConstructionPath
+    , module Math.Topology.KnotTh.Tabulation.TangleDiagramsCascade.IncrementalTests
+    , module Math.Topology.KnotTh.Tabulation.TangleDiagramsCascade.RootingTest
     , nextNumberOfLegs
     , diagonalIndex
     , uniqueGlueSites
@@ -14,12 +16,12 @@ module Math.Topology.KnotTh.Tabulation.TangleDiagramsCascade
 
 import Control.Arrow (first)
 import Control.Monad (guard)
-import qualified Math.Algebra.Group.Dn as Dn
-import qualified Math.Algebra.Group.D4 as D4
-import Math.Combinatorics.Generation.CanonicalConstructionPath as X
+import Math.Topology.KnotTh.Dihedral.D4
+import Math.Topology.KnotTh.Dihedral.Dn
+import Math.Combinatorics.Generation.CanonicalConstructionPath
 import Math.Topology.KnotTh.Tangle
-import Math.Topology.KnotTh.Tabulation.TangleDiagramsCascade.IncrementalTests as X
-import Math.Topology.KnotTh.Tabulation.TangleDiagramsCascade.RootingTest as X
+import Math.Topology.KnotTh.Tabulation.TangleDiagramsCascade.IncrementalTests
+import Math.Topology.KnotTh.Tabulation.TangleDiagramsCascade.RootingTest
 
 
 {-# INLINE nextNumberOfLegs #-}
@@ -40,39 +42,39 @@ cutInTriangle maxN (gl, leg, _) =
     in diagonalIndex (1 + v) (nextNumberOfLegs l gl) <= diagonalIndex maxN 4
 
 
-uniqueGlueSites :: Int -> (Tangle a, (Dn.DnSubGroup, (D4.D4, D4.D4))) -> [(Dart Tangle a, Maybe D4.D4)]
+uniqueGlueSites :: Int -> (Tangle a, (SubGroup Dn, (D4, D4))) -> [(Dart Tangle a, Maybe D4)]
 uniqueGlueSites gl (tangle, (symmetry, (adjRot, adjMir))) = do
-    let period = Dn.rotationPeriod symmetry
+    let period = rotationPeriod symmetry
 
         adjointDifferenceForBasis a b
-            | needMirror                    = adjRotation D4.∘ adjMir
+            | needMirror                    = adjRotation ∘ adjMir
             | otherwise                     = adjRotation
             where
-                needMirror = Dn.reflection a /= Dn.reflection b
+                needMirror = reflection a /= reflection b
 
-                toRotate | needMirror  = Dn.reflectionBasis symmetry Dn.∘ b
+                toRotate | needMirror  = reflectionBasis symmetry ∘ b
                          | otherwise   = b
 
-                rotationDiff = Dn.rotation a - Dn.rotation toRotate
+                rotationDiff = rotation a - rotation toRotate
 
                 rotationNum =
                     let d = rotationDiff `div` period
-                    in if Dn.reflection a then -d else d
+                    in if reflection a then -d else d
 
-                adjRotation = D4.power rotationNum adjRot
+                adjRotation = power rotationNum adjRot
 
     (!legIndex, !inducedSymmetry) <-
-        if not $ Dn.hasReflectionPart symmetry
-            then [(x, Nothing) | x <- [0 .. period - 1]]
-            else
-                let mz = (Dn.mirroredZero symmetry + gl - 1) `mod` period
+        case mirroredZero symmetry of
+            Nothing  -> [(x, Nothing) | x <- [0 .. period - 1]]
+            Just mz0 ->
+                let mz = (mz0 + gl - 1) `mod` period
 
                     getEndpoint doubleIndex =
                         let legIndex = doubleIndex `quot` 2
                             fixup = adjointDifferenceForBasis
-                                            (Dn.fromRotationReflection (numberOfLegs tangle) (legIndex - gl + 1, True))
-                                            (Dn.fromRotation (numberOfLegs tangle) legIndex)
-                            induced | even doubleIndex  = Just $! fixup D4.∘ (case gl of { 3 -> D4.ec2 ; 2 -> D4.ec3 ; _ -> D4.e })
+                                            (fromRotationReflection (numberOfLegs tangle) (legIndex - gl + 1, True))
+                                            (fromRotation (numberOfLegs tangle) legIndex)
+                            induced | even doubleIndex  = Just $! fixup ∘ (case gl of { 3 -> d4EC2 ; 2 -> d4EC3 ; _ -> d4E })
                                     | otherwise         = Nothing
                         in (legIndex, induced)
 
@@ -83,20 +85,20 @@ uniqueGlueSites gl (tangle, (symmetry, (adjRot, adjMir))) = do
                             | c == fst leftB   = leftB : fill (c + 1)
                             | otherwise        = (c, Nothing) : fill (c + 1)
 
-                in fill $ fst leftB 
+                in fill $ fst leftB
 
     return (nthLeg tangle legIndex, inducedSymmetry)
 
 
-uniqueGlueSites' :: Int -> (Tangle a, Dn.DnSubGroup) -> [(Dart Tangle a, Maybe D4.D4)]
-uniqueGlueSites' gl (tangle, symmetry) = uniqueGlueSites gl (tangle, (symmetry, (D4.i, D4.i)))
+uniqueGlueSites' :: Int -> (Tangle a, SubGroup Dn) -> [(Dart Tangle a, Maybe D4)]
+uniqueGlueSites' gl (tangle, symmetry) = uniqueGlueSites gl (tangle, (symmetry, (d4I, d4I)))
 
 
 primeProjections, reducedProjections, templateProjections
     :: Int -> CanonicalConstructionPathI
-        (TangleProjection, (Dn.DnSubGroup, (D4.D4, D4.D4)))
+        (TangleProjection, (SubGroup Dn, (D4, D4)))
         (Int, TangleProjectionDart, ProjectionCrossing)
-        (TangleProjectionVertex, (Dn.DnSubGroup, (D4.D4, D4.D4)))
+        (TangleProjectionVertex, (SubGroup Dn, (D4, D4)))
 
 primeProjections maxN =
     CanonicalConstructionPathClean
@@ -111,7 +113,7 @@ primeProjections maxN =
             (sym, adj, _) <- rootingSymmetryTest root
             return (root, (sym, adj))
         , lowerProjection  = first vertexOwner
-        , roots = [(lonerProjection, (Dn.fromPeriodAndMirroredZero 4 1 0, (D4.i, D4.i)))]
+        , roots = [(lonerProjection, (fromPeriodAndMirroredZero 4 1 0, (d4I, d4I)))]
         }
 
 reducedProjections maxN =
@@ -126,9 +128,9 @@ templateProjections maxN =
 
 primeDiagrams, primeIrreducibleDiagrams, primeIrreducibleDiagramsTriangle
     :: Int -> CanonicalConstructionPathI
-        (TangleDiagram, (Dn.DnSubGroup, (D4.D4, D4.D4)))
+        (TangleDiagram, (SubGroup Dn, (D4, D4)))
         (Int, TangleDiagramDart, DiagramCrossing)
-        (TangleDiagramVertex, (Dn.DnSubGroup, (D4.D4, D4.D4)))
+        (TangleDiagramVertex, (SubGroup Dn, (D4, D4)))
 
 primeDiagrams maxN =
     CanonicalConstructionPathClean
@@ -144,7 +146,7 @@ primeDiagrams maxN =
             (sym, adj, _) <- rootingSymmetryTest root
             return (root, (sym, adj))
         , lowerProjection  = first vertexOwner
-        , roots = [(lonerOverCrossing, (Dn.fromPeriodAndMirroredZero 4 1 0, (D4.ec, D4.e)))]
+        , roots = [(lonerOverCrossing, (fromPeriodAndMirroredZero 4 1 0, (d4EC, d4E)))]
         }
 
 primeIrreducibleDiagrams maxN =

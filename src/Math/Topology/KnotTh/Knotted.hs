@@ -1,6 +1,7 @@
 {-# LANGUAGE TypeFamilies, UnboxedTuples #-}
 module Math.Topology.KnotTh.Knotted
-    ( module X
+    ( module Math.Algebra.PlanarAlgebra
+    , module Math.Topology.KnotTh.Dihedral
     , Crossing(..)
     , Knotted(..)
     , KnottedPlanar(..)
@@ -14,16 +15,16 @@ module Math.Topology.KnotTh.Knotted
 
 import Data.Bits ((.&.))
 import Data.Vector.Unboxed (Vector)
-import qualified Math.Algebra.RotationDirection as R
-import qualified Math.Algebra.Group.D4 as D4
-import Math.Algebra.PlanarAlgebra as X
+import Math.Algebra.PlanarAlgebra
+import Math.Topology.KnotTh.Dihedral
+import Math.Topology.KnotTh.Dihedral.D4
 
 
 class Crossing a where
     mirrorCrossing         :: a -> a
-    globalTransformations  :: (Knotted k) => k a -> Maybe [D4.D4]
-    crossingCode           :: (Knotted k) => R.RotationDirection -> Dart k a -> (# Int, Int #)
-    crossingCodeWithGlobal :: (Knotted k) => D4.D4 -> R.RotationDirection -> Dart k a -> (# Int, Int #)
+    globalTransformations  :: (Knotted k) => k a -> Maybe [D4]
+    crossingCode           :: (Knotted k) => RotationDirection -> Dart k a -> (# Int, Int #)
+    crossingCodeWithGlobal :: (Knotted k) => D4 -> RotationDirection -> Dart k a -> (# Int, Int #)
 
 
 class (Functor k, PlanarDiagram k) => Knotted k where
@@ -40,7 +41,7 @@ class (Functor k, PlanarDiagram k) => Knotted k where
 
     forMIncidentDarts      :: (Monad m) => Vertex k a -> (Dart k a -> m ()) -> m ()
     foldMIncidentDarts     :: (Monad m) => Vertex k a -> (Dart k a -> s -> m s) -> s -> m s
-    foldMIncidentDartsFrom :: (Monad m) => Dart k a -> R.RotationDirection -> (Dart k a -> s -> m s) -> s -> m s
+    foldMIncidentDartsFrom :: (Monad m) => Dart k a -> RotationDirection -> (Dart k a -> s -> m s) -> s -> m s
 
     forMIncidentDarts c f =
         f (nthOutcomingDart c 0)
@@ -57,7 +58,7 @@ class (Functor k, PlanarDiagram k) => Knotted k where
     foldMIncidentDartsFrom dart !dir f s =
         let c = beginVertex dart
             p = beginPlace dart
-            d = R.directionSign dir
+            d = directionSign dir
         in f dart s
             >>= f (nthOutcomingDart c $ (p + d) .&. 3)
             >>= f (nthOutcomingDart c $ (p + 2 * d) .&. 3)
@@ -96,5 +97,5 @@ foldMAdjacentDarts c f = foldMIncidentDarts c (f . opposite)
 
 
 {-# INLINE foldMAdjacentDartsFrom #-}
-foldMAdjacentDartsFrom :: (Monad m, Knotted k) => Dart k a -> R.RotationDirection -> (Dart k a -> s -> m s) -> s -> m s
+foldMAdjacentDartsFrom :: (Monad m, Knotted k) => Dart k a -> RotationDirection -> (Dart k a -> s -> m s) -> s -> m s
 foldMAdjacentDartsFrom dart direction f = foldMIncidentDartsFrom dart direction (f . opposite)

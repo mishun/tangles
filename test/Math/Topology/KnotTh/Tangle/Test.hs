@@ -6,7 +6,6 @@ import Control.Monad
 import Test.Framework (Test, testGroup)
 import Test.Framework.Providers.HUnit (testCase)
 import Test.HUnit hiding (Test, test)
-import qualified Math.Algebra.RotationDirection as R
 import Math.Topology.KnotTh.Tangle
 
 
@@ -26,7 +25,7 @@ test = testGroup "Basic tangle tests"
             nextCW (nthLeg t i) @?= nthLeg t ((i - 1) `mod` 6)
             nextCCW (nthLeg t i) @?= nthLeg t ((i + 1) `mod` 6)
 
-        foldMIncidentDartsFrom (nthOutcomingDart c1 2) R.ccw (\ _ s -> return $! s + 1) (0 :: Int) >>= (@?= 4)
+        foldMIncidentDartsFrom (nthOutcomingDart c1 2) ccw (\ _ s -> return $! s + 1) (0 :: Int) >>= (@?= 4)
 
     , testCase "Show tangle" $ do
         assertEqual "empty tangle" "implode (0,[],[])" $

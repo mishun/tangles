@@ -15,9 +15,8 @@ import Text.Printf
 import System.Environment (getArgs)
 import Diagrams.Prelude
 import Diagrams.Backend.SVG
-import qualified Math.Algebra.RotationDirection as R
-import qualified Math.Algebra.Group.D4 as D4
-import Math.Combinatorics.ChordDiagram (generateNonPlanarRaw, listChordDiagrams, genusOfChordDiagram)
+import Math.Topology.KnotTh.Dihedral.D4
+import Math.Topology.KnotTh.ChordDiagram (generateNonPlanarRaw, listChordDiagrams, genusOfChordDiagram)
 import Math.Topology.KnotTh.EmbeddedLink
 import Math.Topology.KnotTh.EmbeddedLink.TestPrime
 import Math.Topology.KnotTh.EmbeddedLink.TangleStarGlue
@@ -107,7 +106,7 @@ rootCode ab dir | ac == opposite bd                         = (2, rootCode' ab d
 rootCode' :: (Crossing a) => Dart EmbeddedLink a -> R.RotationDirection -> UV.Vector Int
 rootCode' root dir =
     case globalTransformations link of
-        Nothing      -> codeWithGlobal D4.i
+        Nothing      -> codeWithGlobal d4I
         Just globals -> minimum $ map codeWithGlobal globals
     where 
         link = dartOwner root
