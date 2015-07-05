@@ -10,6 +10,7 @@ import Test.Framework (Test, testGroup)
 import Test.Framework.Providers.HUnit (testCase)
 import Test.HUnit hiding (Test, test)
 import Math.Topology.KnotTh.ChordDiagram
+import Math.Topology.KnotTh.Dihedral
 
 
 test :: Test
@@ -36,8 +37,8 @@ test =
             forM_ [1 .. 9] $ \ !n ->
                 forM_ (listChordDiagrams $ generateNonPlanarRaw n) $ \ (cd, (mirror, period)) -> do
                     let p = numberOfChordEnds cd
-                        expectedPeriod = 1 + fromJust (elemIndex cd $ map (`rotateChordDiagram` cd) [1 .. p])
-                        expectedMirror = isJust (elemIndex (mirrorChordDiagram cd) $ map (`rotateChordDiagram` cd) [0 .. p - 1])
+                        expectedPeriod = 1 + fromJust (elemIndex cd $ map (flip rotateBy cd) [1 .. p])
+                        expectedMirror = isJust (elemIndex (mirrorIt cd) $ map (flip rotateBy cd) [0 .. p - 1])
 
                     assertEqual (printf "%s period" (show cd)) expectedPeriod period
                     assertEqual (printf "%s mirror" (show cd)) expectedMirror mirror

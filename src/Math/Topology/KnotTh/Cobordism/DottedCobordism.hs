@@ -16,6 +16,7 @@ import qualified Data.Vector.Unboxed.Mutable as UMV
 import Text.Printf
 import Math.Topology.KnotTh.ChordDiagram
 import Math.Topology.KnotTh.Cobordism
+import Math.Topology.KnotTh.Dihedral (RotationAction(..), DihedralAction(..))
 import Math.Topology.KnotTh.PlanarAlgebra
 
 
@@ -571,13 +572,11 @@ instance (CobordismGuts g) => CannedCobordism (Cobordism' g) where
                           (UV.fromList [1, 0, 3, 2], 0)
             ) saddleGuts
 
-instance (CobordismGuts g) => PlanarAlgebra' (Cobordism' g) where
-    numberOfLegs (Cob h _) = legsN h
+instance (CobordismGuts g) => RotationAction (Cobordism' g) where
+    rotationOrder = numberOfLegs
 
-    planarPropagator = identityCobordism . planarPropagator
-
-    planarRotate 0 cob = cob
-    planarRotate rot (Cob h g) | legsN h == 0  = Cob h g
+    rotateBy 0 cob = cob
+    rotateBy rot (Cob h g) | legsN h == 0  = Cob h g
                                | otherwise     =
         let legs = legsN h
             h' = makeHeader legs (rotateArcs rot (arcs0 h), loops0 h)
@@ -591,6 +590,11 @@ instance (CobordismGuts g) => PlanarAlgebra' (Cobordism' g) where
                 return s
         in Cob h' (rotateGuts subst g)
 
+instance (CobordismGuts g) => PlanarAlgebra' (Cobordism' g) where
+    numberOfLegs (Cob h _) = legsN h
+
+    planarPropagator = identityCobordism . planarPropagator
+
     horizontalComposition !gl (Cob hA gA, !posA) (Cob hB gB, !posB)
         | gl < 0         = error $ printf "horizontalComposition: gl must be non-negative, but %i passed" gl
         | gl > legsN hA  = error $ printf "horizontalComposition: gl (%i) exceeds number of legs of the first argument (%i)" gl (legsN hA)
@@ -602,14 +606,20 @@ instance (CobordismGuts g) => PlanarAlgebra' (Cobordism' g) where
                                                               (resArcs1, length extraLoops1 + loops1 hA + loops1 hB)
             in Cob h $ horComposeGuts (h, gl, UV.fromList extraLoops0, UV.fromList extraLoops1) (gA, hA, posA) (gB, hB, posB)
 
+instance (CobordismGuts g) => RotationAction (CobordismBorder (Cobordism' g)) where
+    rotationOrder = numberOfLegs
+
+    rotateBy 0 b = b
+    rotateBy rot (Brd loops a) = Brd loops (rotateArcs rot a)
+
+instance (CobordismGuts g) => DihedralAction (CobordismBorder (Cobordism' g)) where
+    mirrorIt = error "mirror is not implemeted"
+
 instance (CobordismGuts g) => PlanarAlgebra' (CobordismBorder (Cobordism' g)) where
     numberOfLegs (Brd _ a) = UV.length a
 
     planarPropagator n | n < 0      = error $ printf "planarPropagator: parameter must be non-negative, but %i passed" n
                        | otherwise  = Brd 0 $ UV.generate (2 * n) (\ i -> 2 * n - 1 - i)
-
-    planarRotate 0 b = b
-    planarRotate rot (Brd loops a) = Brd loops (rotateArcs rot a)
 
     horizontalComposition !gl (Brd loopsA a, !posA) (Brd loopsB b, !posB)
         | gl < 0            = error $ printf "horizontalComposition: gl must be non-negative, but %i passed" gl
@@ -626,9 +636,6 @@ instance (CobordismGuts g) => ChordDiagram (CobordismBorder (Cobordism' g)) wher
 
     chordMate (Brd _ a) x = a UV.! x
     chordMateArray (Brd _ a) = a
-
-    rotateChordDiagram = planarRotate
-    mirrorChordDiagram = error "mirror is not implemeted"
 
 instance (ModuleCobordismGuts g, Integral a) => Num (Cobordism' (ModuleGuts g a)) where
     Cob h0 (MG m0) + Cob h1 (MG m1) | h0 /= h1   = error "(+): can not sum"

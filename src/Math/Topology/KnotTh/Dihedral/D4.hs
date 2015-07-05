@@ -3,6 +3,7 @@ module Math.Topology.KnotTh.Dihedral.D4
     ( module Math.Topology.KnotTh.Dihedral
     , D4
     , d4I, d4E, d4C, d4EC, d4C2, d4EC2, d4C3, d4EC3
+    , fromRotation
     , fromReflectionRotation
     , subGroupD4, subGroupC4, subGroupGS, subGroupDS, subGroupC2, subGroupES, subGroupECS, subGroupEC2S, subGroupEC3S, subGroupID
     , equivalenceClassId
@@ -94,6 +95,11 @@ d4C2  = D4 4
 d4EC2 = D4 5
 d4C3  = D4 6
 d4EC3 = D4 7
+
+
+{-# INLINE fromRotation #-}
+fromRotation :: Int -> D4
+fromRotation x = D4 $ ((x .&. 3) `shiftL` 1)
 
 
 {-# INLINE fromReflectionRotation #-}

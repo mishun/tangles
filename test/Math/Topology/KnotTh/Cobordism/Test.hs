@@ -8,6 +8,7 @@ import Test.Framework (Test, testGroup)
 import Test.Framework.Providers.HUnit (testCase)
 import Test.HUnit hiding (Test, test)
 import Math.Topology.KnotTh.Cobordism
+import Math.Topology.KnotTh.Dihedral (RotationAction(..))
 import Math.Topology.KnotTh.PlanarAlgebra
 
 
@@ -114,7 +115,7 @@ generalCannedCobordismTests _ =
             numberOfLoops (cobordismBorder0 saddle) @?= 0
             numberOfLoops (cobordismBorder1 saddle) @?= 0
             cobordismBorder0 saddle @?= planarPropagator 2
-            cobordismBorder1 saddle @?= planarRotate 1 (planarPropagator 2)
+            cobordismBorder1 saddle @?= rotateBy 1 (planarPropagator 2)
 
         , testCase "Tube in many ways" $ do
             identityCobordism (horizontalComposition 2 (planarPropagator 1, 0) (planarPropagator 1, 0)) =?~= tubeCobordism
@@ -126,11 +127,11 @@ generalCannedCobordismTests _ =
             flipCobordism sideCutPantsCobordism =?~= sideCutPantsCobordism'
 
         , testCase "Rotate saddle" $ do
-            planarRotate 1 saddleCobordism =?~= saddleCobordism'
-            planarRotate 2 saddleCobordism =?~= saddleCobordism
+            rotateBy 1 saddleCobordism =?~= saddleCobordism'
+            rotateBy 2 saddleCobordism =?~= saddleCobordism
 
         , testCase "Saddle and identity" $ do
-            identityCobordism (planarRotate 1 $ planarPropagator 2) ∘ saddleCobordism ∘ planarPropagator 2 =?~= saddleCobordism
+            identityCobordism (rotateBy 1 $ planarPropagator 2) ∘ saddleCobordism ∘ planarPropagator 2 =?~= saddleCobordism
 
         , testCase "Pants from saddle" $ do
             horizontalComposition 4 (saddleCobordism, 0) (planarPropagator 2, 0) =?~= pantsCobordism

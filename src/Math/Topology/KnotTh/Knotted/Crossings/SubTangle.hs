@@ -48,10 +48,8 @@ data SubTangleCrossing a =
 
 type SubTangleTangle a = Tangle (SubTangleCrossing a)
 
-
 instance (NFData a) => NFData (SubTangleCrossing a) where
     rnf s = rnf (subTangle s) `seq` s `seq` ()
-
 
 instance (Show a) => Show (SubTangleCrossing a) where
     show s =
@@ -61,11 +59,17 @@ instance (Show a) => Show (SubTangleCrossing a) where
             (show $ subTangle s)
             (show $ sumType s)
 
+instance RotationAction (SubTangleCrossing a) where
+    rotationOrder _ = 4
+
+    {-# INLINE rotateBy #-}
+    rotateBy rot s = s { orientation = fromRotation rot ∘ orientation s }
+
+instance DihedralAction (SubTangleCrossing a) where
+    {-# INLINE mirrorIt #-}
+    mirrorIt s = s { orientation = d4E ∘ orientation s }
 
 instance Crossing (SubTangleCrossing a) where
-    {-# INLINE mirrorCrossing #-}
-    mirrorCrossing s = s { orientation = d4E ∘ orientation s }
-
     {-# INLINE globalTransformations #-}
     globalTransformations _ = Nothing
 
@@ -124,7 +128,7 @@ substituteTangles tangle =
             c <- allVertices $ tangleInVertex b
             let nb = map (oppositeInt b) $ outcomingDarts c
             return $ if rev
-                then (head nb : reverse (tail nb), mirrorCrossing $ vertexCrossing c)
+                then (head nb : reverse (tail nb), mirrorIt $ vertexCrossing c)
                 else (nb, vertexCrossing c)
         )
     where
@@ -164,9 +168,8 @@ isLonerCrossing = (== 1) . numberOfCrossingVertices
 
 
 directSumDecompositionTypeOfCrossing :: SubTangleCrossing a -> DirectSumDecompositionType
-directSumDecompositionTypeOfCrossing c
-    | f          = changeSumType st
-    | otherwise  = st
+directSumDecompositionTypeOfCrossing c | f          = changeSumType st
+                                       | otherwise  = st
     where
         st = sumType c
         f = isCrossingOrientationInverted c /= odd (crossingLegIdByDartId c 0)

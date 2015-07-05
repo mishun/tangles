@@ -154,7 +154,7 @@ tangleToLink t | l == 0     = L t
 tangleDoublingLink :: (Crossing a) => (a -> a) -> Tangle a -> Link a
 tangleDoublingLink f t =
     let l = numberOfLegs t
-        t' = mirrorTangle $ fmap f t
+        t' = mirrorIt $ fmap f t
     in tangleToLink $ glueTangles l (firstLeg t) (firstLeg t')
 
 

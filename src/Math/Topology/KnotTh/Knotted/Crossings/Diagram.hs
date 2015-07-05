@@ -33,11 +33,9 @@ import Math.Topology.KnotTh.Knotted.Threads
 
 newtype DiagramCrossing = DC Int deriving (Eq)
 
-
 instance Show DiagramCrossing where
     show s | isOverCrossing s  = "overCrossing"
            | otherwise         = "underCrossing"
-
 
 instance Read DiagramCrossing where
     readsPrec _ s = do
@@ -47,14 +45,20 @@ instance Read DiagramCrossing where
             "underCrossing" -> [(underCrossing, t)]
             _               -> []
 
-
 instance NFData DiagramCrossing
 
+instance RotationAction DiagramCrossing where
+    rotationOrder _ = 4
+
+    {-# INLINE rotateBy #-}
+    rotateBy rot | even rot   = id
+                 | otherwise  = invertCrossing
+
+instance DihedralAction DiagramCrossing where
+    {-# INLINE mirrorIt #-}
+    mirrorIt = id
 
 instance Crossing DiagramCrossing where
-    {-# INLINE mirrorCrossing #-}
-    mirrorCrossing = id
-
     {-# INLINE globalTransformations #-}
     globalTransformations _ = Just [d4I, d4EC]
 

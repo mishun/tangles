@@ -5,7 +5,6 @@ module Math.Topology.KnotTh.Tangle
     , module Math.Topology.KnotTh.Knotted.Crossings.Diagram
     , TangleLike(..)
     , (|=|)
-    , (⊗)
     , identityBraidTangle
     , braidGeneratorTangle
     , braidTangle
@@ -83,11 +82,7 @@ class (KnottedPlanar t, PlanarAlgebra t) => TangleLike t where
 
     lonerTangle :: a -> t a
 
-    rotateTangle     :: Int -> t a -> t a
     mirrorTangleWith :: (a -> a) -> t a -> t a
-    mirrorTangle     :: (Crossing a) => t a -> t a
-
-    mirrorTangle = mirrorTangleWith mirrorCrossing
 
     -- |           legsToGlue = 2
     --  ..............|
@@ -115,51 +110,24 @@ class (KnottedPlanar t, PlanarAlgebra t) => TangleLike t where
 
 
 (|=|) :: (TangleLike t) => t a -> t a -> t a
-(|=|) a b | al /= bl   = error $ printf "braidLikeGlue: different numbers of legs (%i and %i)" al bl
-          | otherwise  = glueTangles n (nthLeg a n) (nthLeg b (n - 1))
+a |=| b | al /= bl   = error $ printf "braidLikeGlue: different numbers of legs (%i and %i)" al bl
+        | otherwise  = glueTangles n (nthLeg a n) (nthLeg b (n - 1))
     where
         al = numberOfLegs a
         bl = numberOfLegs b
         n = al `div` 2
 
 
-(⊗) :: (TangleLike t) => t a -> t a -> t a
-(⊗) a b =
-    let k = numberOfLegs a `div` 2
-    in rotateTangle (-k) $ glueTangles 0 (nthLeg a k) (firstLeg b)
-
-
-instance RotationAction (Tangle a) where
-    rotationOrder = numberOfLegs
-    rotate        = rotateTangle
-
-instance (Crossing a) => DihedralAction (Tangle a) where
-    mirror = mirrorTangle
-
-instance (Crossing a) => GroupAction (Tangle a) where
-    type TransformGroup (Tangle a) = Dn
-
-    transform g tangle | l /= l'       = error $ printf "transformTangle: order conflict: %i legs, %i order of group" l l'
-                       | reflection g  = mirrorTangle $ rotateTangle (rotation g) tangle
-                       | otherwise     = rotateTangle (rotation g) tangle
-        where
-            l = numberOfLegs tangle
-            l' = pointsUnderGroup g
-
-
 identityBraidTangle :: Int -> Tangle a
-identityBraidTangle n
-    | n < 0      = error $ printf "identityBraidTangle: requested number of strands %i is negative" n
-    | otherwise  =
-        let n' = 2 * n - 1
-        in implode (0, [(0, n' - i) | i <- [0 .. n']], [])
+identityBraidTangle n | n < 0      = error $ printf "identityBraidTangle: requested number of strands %i is negative" n
+                      | otherwise  = let n' = 2 * n - 1
+                                     in implode (0, [(0, n' - i) | i <- [0 .. n']], [])
 
 
 braidGeneratorTangle :: Int -> (Int, a) -> Tangle a
-braidGeneratorTangle n (k, s)
-    | n < 2               = error $ printf "braidGeneratorTangle: braid must have at least 2 strands, but %i requested" n
-    | k < 0 || k > n - 2  = error $ printf "braidGeneratorTangle: generator offset %i is out of bounds (0, %i)" k (n - 2)
-    | otherwise           =
+braidGeneratorTangle n (k, s) | n < 2               = error $ printf "braidGeneratorTangle: braid must have at least 2 strands, but %i requested" n
+                              | k < 0 || k > n - 2  = error $ printf "braidGeneratorTangle: generator offset %i is out of bounds (0, %i)" k (n - 2)
+                              | otherwise           =
         let n' = 2 * n - 1
             k' = n' - k - 1
             b = map $ \ i -> (0, n' - i)
@@ -243,11 +211,10 @@ twistedTripleSatellite = twistedNSatellite 3
 
 
 twistedNSatellite :: Int -> TangleDiagram -> TangleDiagram
-twistedNSatellite n tangle
-    | n < 0      = error "twistedNSattelite: negative order"
-    | n == 0     = emptyTangle
-    | n == 1     = tangle
-    | otherwise  = tensorSubst n wrap tangle
+twistedNSatellite n tangle | n < 0      = error "twistedNSattelite: negative order"
+                           | n == 0     = emptyTangle
+                           | n == 1     = tangle
+                           | otherwise  = tensorSubst n wrap tangle
     where
         w = selfWritheArray tangle
 
@@ -264,8 +231,6 @@ twistedNSatellite n tangle
                 wc = w A.! v
                 s = vertexCrossing v
                 cross = gridTangle (n, n) (const s)
-
-
 
 
 data Tangle a =
@@ -720,6 +685,43 @@ instance PlanarAlgebra Tangle where
     isLeg = not . isDart
 
 
+instance RotationAction (Tangle a) where
+    rotationOrder = numberOfLegs
+
+    rotateBy !rot tangle | l == 0 || rot == 0  = tangle
+                         | otherwise           =
+            tangle
+                { involutionArray = PV.create $ do
+                    let n = 4 * numberOfVertices tangle
+                        a = involutionArray tangle
+                        modify i | i < n      = i
+                                 | otherwise  = n + mod (i - n + rot) l
+                    a' <- PMV.new (n + l)
+                    forM_ [0 .. n - 1] $ \ !i ->
+                        PMV.unsafeWrite a' i $ modify (a `PV.unsafeIndex` i)
+                    forM_ [0 .. l - 1] $ \ !i ->
+                        PMV.unsafeWrite a' (n + mod (i + rot) l) $ modify (a `PV.unsafeIndex` (n + i))
+                    return a'
+                }
+        where
+            l = numberOfLegs tangle
+
+
+instance (Crossing a) => DihedralAction (Tangle a) where
+    mirrorIt = mirrorTangleWith mirrorIt
+
+
+instance (Crossing a) => GroupAction (Tangle a) where
+    type TransformGroup (Tangle a) = Dn
+
+    transform g tangle | l /= l'       = error $ printf "transformTangle: order conflict: %i legs, %i order of group" l l'
+                       | reflection g  = mirrorIt $ rotateBy (rotation g) tangle
+                       | otherwise     = rotateBy (rotation g) tangle
+        where
+            l = numberOfLegs tangle
+            l' = pointsUnderGroup g
+
+
 instance TangleLike Tangle where
     zeroTangle =
         Tangle
@@ -756,25 +758,6 @@ instance TangleLike Tangle where
             , crossingsArray  = V.singleton cr
             , legsCount       = 4
             }
-
-    rotateTangle !rot tangle
-        | l == 0 || rot == 0  = tangle
-        | otherwise           =
-            tangle
-                { involutionArray = PV.create $ do
-                    let n = 4 * numberOfVertices tangle
-                        a = involutionArray tangle
-                        modify i | i < n      = i
-                                 | otherwise  = n + mod (i - n + rot) l
-                    a' <- PMV.new (n + l)
-                    forM_ [0 .. n - 1] $ \ !i ->
-                        PMV.unsafeWrite a' i $ modify (a `PV.unsafeIndex` i)
-                    forM_ [0 .. l - 1] $ \ !i ->
-                        PMV.unsafeWrite a' (n + mod (i + rot) l) $ modify (a `PV.unsafeIndex` (n + i))
-                    return a'
-                }
-        where
-            l = numberOfLegs tangle
 
     mirrorTangleWith f tangle =
         tangle
@@ -1275,7 +1258,7 @@ decodeCascadeCode =
     foldl (\ prev (pattern, offset) ->
             let (gl, shift, rot, c) = decodeCrossing pattern
                 p | rot == 0   = id
-                  | otherwise  = rotateTangle rot
+                  | otherwise  = rotateBy rot
             in p $ vertexOwner $ glueToBorder
                 (nthLeg prev $ offset + shift)
                 (case gl of { W -> 3 ; X -> 2 ; M -> 1 })

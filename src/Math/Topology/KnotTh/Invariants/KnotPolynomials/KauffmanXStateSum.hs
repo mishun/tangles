@@ -96,6 +96,30 @@ instance (KauffmanXArg a) => Monoid (KauffmanXStateSum a) where
            then []
            else [PlanarChordDiagram UV.empty c]
 
+instance (KauffmanXArg a) => RotationAction (KauffmanXStateSum a) where
+    rotationOrder (KauffmanXStateSum d _) = d
+
+    rotateBy 0 = id
+    rotateBy rot =
+        mapStateSum $ \ (PlanarChordDiagram x f) ->
+            let x' = UV.create $ do
+                    let l = UV.length x
+                    a <- UMV.new l
+                    forM_ [0 .. l - 1] $ \ !i ->
+                        UMV.write a ((i + rot) `mod` l) (((x UV.! i) + rot) `mod` l)
+                    return a
+            in singletonStateSum $ PlanarChordDiagram x' f
+
+instance (KauffmanXArg a) => DihedralAction (KauffmanXStateSum a) where
+    mirrorIt =
+        mapStateSum $ \ (PlanarChordDiagram x f) ->
+            let x' = UV.create $ do
+                    let l = UV.length x
+                    a <- UMV.new l
+                    forM_ [0 .. l - 1] $ \ !i ->
+                        UMV.write a ((-i) `mod` l) ((-(x UV.! i)) `mod` l)
+                    return a
+            in singletonStateSum $ PlanarChordDiagram x' f
 
 instance (KauffmanXArg a) => PlanarStateSum (KauffmanXStateSum a) where
     stateDegree (KauffmanXStateSum d _) = d
@@ -189,29 +213,6 @@ instance (KauffmanXArg a) => PlanarStateSum (KauffmanXStateSum a) where
 
         substState (takeAsScalar global) [1 .. n]
         (concatStateSums . map singletonStateSum) `fmap` readSTRef result
-
-    rotateState rot
-        | rot == 0   = id
-        | otherwise  =
-            mapStateSum $ \ (PlanarChordDiagram x f) ->
-                let x' = UV.create $ do
-                        let l = UV.length x
-                        a <- UMV.new l
-                        forM_ [0 .. l - 1] $ \ !i ->
-                            UMV.write a ((i + rot) `mod` l) (((x UV.! i) + rot) `mod` l)
-                        return a
-                in singletonStateSum $ PlanarChordDiagram x' f
-
-    mirrorState =
-        mapStateSum $ \ (PlanarChordDiagram x f) ->
-            let x' = UV.create $ do
-                    let l = UV.length x
-                    a <- UMV.new l
-                    forM_ [0 .. l - 1] $ \ !i ->
-                        UMV.write a ((-i) `mod` l) ((-(x UV.! i)) `mod` l)
-                    return a
-            in singletonStateSum $ PlanarChordDiagram x' f
-
 
 instance (KauffmanXArg a) => SkeinRelation KauffmanXStateSum a where
     skeinLPlus =

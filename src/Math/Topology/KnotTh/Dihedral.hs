@@ -52,20 +52,20 @@ class (RotationGroup g) => DihedralGroup g where
 
 class RotationAction a where
     rotationOrder :: a -> Int
-    rotate        :: Int -> a -> a
+    rotateBy      :: Int -> a -> a
 
 allRotationsOf :: (RotationAction a) => a -> [a]
 allRotationsOf a =
     case rotationOrder a of
         0 -> [a]
-        n -> map (flip rotate a) [0 .. n - 1]
+        n -> map (flip rotateBy a) [0 .. n - 1]
 
 
 class (RotationAction a) => DihedralAction a where
-    mirror :: a -> a
+    mirrorIt :: a -> a
 
 allOrientationsOf :: (DihedralAction a) => a -> [a]
-allOrientationsOf = allRotationsOf >=> (\ t -> [t, mirror t])
+allOrientationsOf = allRotationsOf >=> (\ t -> [t, mirrorIt t])
 
 
 class GroupAction a where

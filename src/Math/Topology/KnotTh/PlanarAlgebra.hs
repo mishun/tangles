@@ -2,11 +2,12 @@ module Math.Topology.KnotTh.PlanarAlgebra
     ( PlanarAlgebra'(..)
     ) where
 
+import Math.Topology.KnotTh.Dihedral
 
-class PlanarAlgebra' a where
+
+class (RotationAction a) => PlanarAlgebra' a where
     numberOfLegs          :: a -> Int
     planarPropagator      :: Int -> a
-    planarRotate          :: Int -> a -> a
     horizontalComposition :: Int -> (a, Int) -> (a, Int) -> a
     planarLoop            :: a
 

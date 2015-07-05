@@ -20,8 +20,7 @@ import Math.Topology.KnotTh.Dihedral
 import Math.Topology.KnotTh.Dihedral.D4
 
 
-class Crossing a where
-    mirrorCrossing         :: a -> a
+class (DihedralAction a) => Crossing a where
     globalTransformations  :: (Knotted k) => k a -> Maybe [D4]
     crossingCode           :: (Knotted k) => RotationDirection -> Dart k a -> (# Int, Int #)
     crossingCodeWithGlobal :: (Knotted k) => D4 -> RotationDirection -> Dart k a -> (# Int, Int #)

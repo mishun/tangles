@@ -22,15 +22,12 @@ import Control.Monad.ST (ST, runST)
 import Control.Monad (when, unless, forM_, forM, filterM)
 import Control.Arrow (first)
 import Text.Printf
+import Math.Topology.KnotTh.Dihedral
 import Math.Algebra.PlanarAlgebra
 
 
-class (Monoid s) => PlanarStateSum s where
+class (DihedralAction s, Monoid s) => PlanarStateSum s where
     stateDegree   :: s -> Int
-
-    rotateState   :: Int -> s -> s
-    mirrorState   :: s -> s
-
     loopState     :: Int -> (s, Int) -> (s, UV.Vector Int)
     connectStates :: Int -> (s, Int) -> (s, Int) -> (s, UV.Vector Int, UV.Vector Int)
     assemble      :: V.Vector (Int, Int) -> V.Vector (UV.Vector Int) -> V.Vector s -> s -> s

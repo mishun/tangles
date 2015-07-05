@@ -51,24 +51,14 @@ standardReductionStrategy =
 
 skeinRelationPostMinimization :: (Ord (f p), SkeinRelation f p) => (TangleDiagram -> f p) -> TangleDiagram -> f p 
 skeinRelationPostMinimization invariant tangle = minimum $ do
-    let l = numberOfLegs tangle
-        p = invariant tangle
-    rot <- if l == 0 then [id]
-                     else map rotateState [0 .. l - 1]
-    refl <- [id, mirrorState]
-    inv <- [id, invertCrossingsAction]
-    return $ inv $ refl $ rot p
+    p <- allOrientationsOf $ invariant tangle
+    [p, invertCrossingsAction p]
 
 
 skeinRelationMidMinimization :: (Ord (f p), SkeinRelation f p) => (TangleDiagram -> f p) -> TangleDiagram -> f p
 skeinRelationMidMinimization invariant tangle = minimum $ do
-    let l = numberOfLegs tangle
-    tangle' <- [tangle, invertCrossings tangle]
-    let p = invariant tangle'
-    rot <- if l == 0 then [id]
-                     else map rotateState [0 .. l - 1]
-    refl <- [id, mirrorState]
-    return $ refl $ rot p
+    p <- map invariant [tangle, invertCrossings tangle]
+    allOrientationsOf p
 
 
 skeinRelationPreMinimization :: (Ord (f p), SkeinRelation f p) => (TangleDiagram -> f p) -> TangleDiagram -> f p 

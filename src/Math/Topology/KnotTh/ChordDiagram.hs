@@ -23,17 +23,16 @@ import Data.STRef (modifySTRef', newSTRef, readSTRef, writeSTRef)
 import qualified Data.Vector.Unboxed as UV
 import qualified Data.Vector.Unboxed.Mutable as UMV
 import Math.Combinatorics.Strings.Lyndon
+import Math.Topology.KnotTh.Dihedral
 
 
-class ChordDiagram cd where
+class (DihedralAction cd) => ChordDiagram cd where
     numberOfChords     :: cd -> Int
     numberOfChordEnds  :: cd -> Int
     chordMate          :: cd -> Int -> Int
     chordSpan          :: cd -> Int -> Int
     chordMateArray     :: cd -> UV.Vector Int
     chordSpanArray     :: cd -> UV.Vector Int
-    rotateChordDiagram :: Int -> cd -> cd
-    mirrorChordDiagram :: cd -> cd
 
     numberOfChords    cd = numberOfChordEnds cd `div` 2
     numberOfChordEnds cd = 2 * numberOfChords cd
@@ -75,6 +74,23 @@ eulerCharOfChordDiagram cd = 1 + numberOfCopoints cd - numberOfChords cd
 newtype DiffChordDiagram = DCD (UV.Vector Int)
     deriving (Eq, Ord, Show)
 
+instance RotationAction DiffChordDiagram where
+    rotationOrder = numberOfChordEnds
+
+    rotateBy 0 cd = cd
+    rotateBy rot (DCD a) =
+        let p = UV.length a
+        in DCD $ UV.generate p $ \ !i ->
+            let i' = (i - rot) `mod` p
+            in a UV.! i'
+
+instance DihedralAction DiffChordDiagram where
+    mirrorIt (DCD a) =
+        let p = UV.length a
+        in DCD $ UV.generate p $ \ !i ->
+            let i' = (-i) `mod` p
+            in p - (a UV.! i')
+
 instance ChordDiagram DiffChordDiagram where
     numberOfChordEnds (DCD a) = UV.length a
 
@@ -82,19 +98,6 @@ instance ChordDiagram DiffChordDiagram where
 
     chordMateArray (DCD a) = UV.imap (\ i d -> (i + d) `mod` UV.length a) a
     chordSpanArray (DCD a) = a
-
-    rotateChordDiagram 0 cd = cd
-    rotateChordDiagram rot (DCD a) =
-        let p = UV.length a
-        in DCD $ UV.generate p $ \ !i ->
-            let i' = (i - rot) `mod` p
-            in a UV.! i'
-
-    mirrorChordDiagram (DCD a) =
-        let p = UV.length a
-        in DCD $ UV.generate p $ \ !i ->
-            let i' = (-i) `mod` p
-            in p - (a UV.! i')
 
 
 -- See www.cis.uoguelph.ca/~sawada/papers/chord.pdf

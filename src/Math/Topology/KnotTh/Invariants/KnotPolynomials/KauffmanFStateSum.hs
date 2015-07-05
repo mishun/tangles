@@ -131,10 +131,10 @@ restoreBasicTangle !chordDiagram =
                    let tangle = restore (UV.generate (l - 2) (\ x -> ((a UV.! ((i + 2 + x) `mod` l)) - i - 2) `mod` l))
                                         (V.generate (l - 2) $ \ x -> h V.! ((i + 2 + x) `mod` l))
                                         [0 .. l - 3]
-                   in rotateTangle i $ glueTangles 0 (firstLeg identityTangle) (lastLeg tangle)
+                   in rotateBy i $ glueTangles 0 (firstLeg identityTangle) (lastLeg tangle)
                | haveIntersection (i, i') (j, j') ->
                    let tangle = restore (a UV.// [(i, j'), (j, i'), (i', j), (j', i)]) (h V.// [(i, h V.! j), (j, h V.! i)]) [0 .. l - 1]
-                   in rotateTangle i $ vertexOwner $ glueToBorder (nthLeg tangle j) 2 $
+                   in rotateBy i $ vertexOwner $ glueToBorder (nthLeg tangle j) 2 $
                        if canonicalOver cdl (h V.! i) (h V.! j)
                            then overCrossing
                            else underCrossing
@@ -224,6 +224,18 @@ instance (KauffmanFArg a) => Monoid (ChordDiagramsSum a) where
        let c = takeAsScalar a * takeAsScalar b
        in ChordDiagramsSum 0 [ChordDiagram UV.empty c | c /= 0]
 
+instance (KauffmanFArg a) => RotationAction (ChordDiagramsSum a) where
+    rotationOrder (ChordDiagramsSum d _) = d
+
+    rotateBy 0 = id
+    rotateBy rot =
+        mapStateSum $ \ (ChordDiagram a factor) ->
+            decomposeTangle [] factor $ rotateBy rot $ restoreBasicTangle a
+
+instance (KauffmanFArg a) => DihedralAction (ChordDiagramsSum a) where
+    mirrorIt =
+        mapStateSum $ \ (ChordDiagram a factor) ->
+            decomposeTangle [] factor $ mirrorIt $ restoreBasicTangle a
 
 instance (KauffmanFArg a) => PlanarStateSum (ChordDiagramsSum a) where
     stateDegree (ChordDiagramsSum d _) = d
@@ -239,7 +251,7 @@ instance (KauffmanFArg a) => PlanarStateSum (ChordDiagramsSum a) where
             !postSum = flip mapStateSum preSum $ \ (ChordDiagram x k) ->
                 let t = restoreBasicTangle x
                 in decomposeTangle [explode t] k $
-                    rotateTangle (if p == 0 || p' == 0 then 0 else p' + 1 - degree) $
+                    rotateBy (if p == 0 || p' == 0 then 0 else p' + 1 - degree) $
                         glueTangles 2 (nthLeg t p) (firstLeg identityTangle)
         in (postSum, subst)
 
@@ -253,7 +265,7 @@ instance (KauffmanFArg a) => PlanarStateSum (ChordDiagramsSum a) where
                 in flip mapStateSum sumU $ \ (ChordDiagram xb kb) ->
                     let tb = restoreBasicTangle xb
                     in decomposeTangle [explode ta, explode tb] (ka * kb) $
-                        rotateTangle (p + 1 - degreeV) $
+                        rotateBy (p + 1 - degreeV) $
                             glueTangles 1 (nthLeg ta p) (nthLeg tb q)
         in (result, substV, substU)
 
@@ -279,7 +291,7 @@ instance (KauffmanFArg a) => PlanarStateSum (ChordDiagramsSum a) where
 
             substState factor (v : rest) = do
                 r <- UMV.read rot v
-                forAllSummands (rotateState (-r) $ internals V.! v) $ \ (ChordDiagram x f) -> do
+                forAllSummands (rotateBy (-r) $ internals V.! v) $ \ (ChordDiagram x f) -> do
                     let k = UV.length x
                     forM_ [0 .. k - 1] $ \ !i -> do
                         let a = (connections V.! v) UV.! ((i + r) `mod` k)
@@ -289,16 +301,6 @@ instance (KauffmanFArg a) => PlanarStateSum (ChordDiagramsSum a) where
 
         substState (takeAsScalar global) [1 .. n]
         (concatStateSums . map singletonStateSum) `fmap` readSTRef result
-
-    rotateState rot
-        | rot == 0   = id
-        | otherwise  = mapStateSum $ \ (ChordDiagram a factor) ->
-            decomposeTangle [] factor $ rotateTangle rot $ restoreBasicTangle a
-
-    mirrorState =
-        mapStateSum $ \ (ChordDiagram a factor) ->
-            decomposeTangle [] factor $ mirrorTangle $ restoreBasicTangle a
-
 
 instance (KauffmanFArg a) => SkeinRelation ChordDiagramsSum a where
     skeinLPlus =
