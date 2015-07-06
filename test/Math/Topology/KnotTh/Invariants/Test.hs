@@ -139,8 +139,8 @@ test = testGroup "Invariants"
             (header, t, target) <-
                 [ ("empty"         , emptyTangle                , "(1)[]"                              )
                 , ("identity"      , identityTangle             , "(1)[1,0]"                           )
-                , ("zero"          , zeroTangle                 , "(1)[3,2,1,0]"                       )
-                , ("infinity"      , infinityTangle             , "(1)[1,0,3,2]"                       )
+                , ("0"             , zeroTangle                 , "(1)[3,2,1,0]"                       )
+                , ("∞"             , infinityTangle             , "(1)[1,0,3,2]"                       )
                 , ("over crossing" , lonerOverCrossing          , "(t^1/4)[1,0,3,2]+(t^-1/4)[3,2,1,0]" )
                 , ("under crossing", lonerUnderCrossing         , "(t^-1/4)[1,0,3,2]+(t^1/4)[3,2,1,0]" )
                 , ("group 2"       , rationalTangle [2]         , "(1-t)[1,0,3,2]+(t^-1/2)[3,2,1,0]"   )
@@ -187,8 +187,8 @@ test = testGroup "Invariants"
             (header, t, target) <-
                 [ ("empty"         , emptyTangle        , "(1)[]"                                  )
                 , ("identity"      , identityTangle     , "(1)[1,0]"                               )
-                , ("zero"          , zeroTangle         , "(1)[3,2,1,0]"                           )
-                , ("infinity"      , infinityTangle     , "(1)[1,0,3,2]"                           )
+                , ("0"             , zeroTangle         , "(1)[3,2,1,0]"                           )
+                , ("∞"             , infinityTangle     , "(1)[1,0,3,2]"                           )
                 , ("over crossing" , lonerOverCrossing  , "(1)[2,3,0,1]"                           )
                 , ("under crossing", lonerUnderCrossing , "(z)[1,0,3,2]+(-1)[2,3,0,1]+(z)[3,2,1,0]")
                 ]
@@ -197,41 +197,51 @@ test = testGroup "Invariants"
                 show (kauffmanFPolynomial t) @?= target
 
 #ifdef TESTING
-        , testCase "Relation to Jones polynomial" $ do
-            let z = monomial2 1 "z" 1
-                z' = monomial 1 "t" (-1 / 4) + monomial 1 "t" (1 / 4)
+        , testGroup "Relation to Jones polynomial" $
+            let testJonesRelation =
+                    let z = monomial2 1 "z" 1
+                        z' = monomial 1 "t" (-1 / 4) + monomial 1 "t" (1 / 4)
 
-                toJones (LMP.LP monomials) =
-                    sum $ flip map monomials $ \ (LMP.LM m, f) ->
-                        (fromIntegral f *) $ product $ flip map (M.toList m) $ \ (var, p) ->
-                            let x = case var of
-                                    "a" | p >= 0    -> monomial (-1) "t" (-3 / 4)
-                                        | otherwise -> monomial (-1) "t" (3 / 4)
-                                    "z"             -> z'
-                                    _               -> undefined
-                            in x ^ abs (B.numeratorQ p)
+                        toJones (LMP.LP monomials) =
+                            sum $ flip map monomials $ \ (LMP.LM m, f) ->
+                                (fromIntegral f *) $ product $ flip map (M.toList m) $ \ (var, p) ->
+                                    let x = case var of
+                                            "a" | p >= 0    -> monomial (-1) "t" (-3 / 4)
+                                                | otherwise -> monomial (-1) "t" (3 / 4)
+                                            "z"             -> z'
+                                            _               -> undefined
+                                    in x ^ abs (B.numeratorQ p)
+                    in \ (name, l) ->
+                        let kf = kauffmanFPolynomial l
+                            j = jonesPolynomial l
+                            n = 10 :: Int -- To get rid of negative z exponents
+                        in assertEqual (printf "on %s: %s vs %s" name (show kf) (show j)) (j * z' ^ n) (toJones $ kf * z ^ n)
 
-            mapM_ (\ (name, l) ->
-                    let kf = kauffmanFPolynomial l
-                        j = jonesPolynomial l
-                        n = 10 :: Int -- To get rid of negative z exponents
-                    in assertEqual (printf "on %s: %s vs %s" name (show kf) (show j)) (j * z' ^ n) (toJones $ kf * z ^ n)
-                )
-                [ ("right trefoil knot"     , rightTrefoilKnot     )
-                , ("left trefoil knot"      , leftTrefoilKnot      )
-                , ("figure eight knot"      , figureEightKnot      )
-                , ("hopf link"              , hopfLink             )
-                , ("solomon's seal knot"    , rightCinquefoilKnot  )
-                , ("granny knot"            , grannyKnot           )
-                , ("square knot"            , squareKnot           )
-                , ("whitehead link"         , whiteheadLink        )
-                , ("three-twist knot"       , threeTwistKnot       )
-                , ("stevedore knot"         , stevedoreKnot        )
-                , ("6_2 knot"               , knotTable 6 !! 1     )
-                , ("6_3 kont"               , knotTable 6 !! 2     )
-                , ("borromean rings"        , borromeanRingsLink   )
-                , ("Conway knot"            , conwayKnot           )
-                , ("Kinoshita-Terasaka knot", kinoshitaTerasakaKnot)
+            in  [ testCase "A few special knots" $
+                    mapM_ testJonesRelation
+                        [ ("right trefoil knot"     , rightTrefoilKnot     )
+                        , ("left trefoil knot"      , leftTrefoilKnot      )
+                        , ("figure eight knot"      , figureEightKnot      )
+                        , ("hopf link"              , hopfLink             )
+                        , ("solomon's seal knot"    , rightCinquefoilKnot  )
+                        , ("granny knot"            , grannyKnot           )
+                        , ("square knot"            , squareKnot           )
+                        , ("whitehead link"         , whiteheadLink        )
+                        , ("three-twist knot"       , threeTwistKnot       )
+                        , ("stevedore knot"         , stevedoreKnot        )
+                        , ("6_2 knot"               , knotTable 6 !! 1     )
+                        , ("6_3 kont"               , knotTable 6 !! 2     )
+                        , ("borromean rings"        , borromeanRingsLink   )
+                        , ("Conway knot"            , conwayKnot           )
+                        , ("Kinoshita-Terasaka knot", kinoshitaTerasakaKnot)
+                        ]
+
+                , testCase "Links from table" $
+                    mapM_ testJonesRelation $ do
+                        n <- [0 .. 10]
+                        l <- [0 .. n `div` 2]
+                        (link, i) <- linkTable n l `zip` [1 :: Int ..]
+                        return $! (printf "link %i^%i_%i" n l i, link)
                 ]
 #endif
 
