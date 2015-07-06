@@ -593,6 +593,10 @@ instance (CobordismGuts g) => RotationAction (Cobordism' g) where
 instance (CobordismGuts g) => PlanarAlgebra (Cobordism' g) where
     planarDegree (Cob h _) = legsN h
 
+    planarEmpty = identityCobordism planarEmpty
+
+    planarLoop = identityCobordism planarLoop
+
     planarPropagator = identityCobordism . planarPropagator
 
     horizontalComposition !gl (Cob hA gA, !posA) (Cob hB gB, !posB)
@@ -618,6 +622,10 @@ instance (CobordismGuts g) => DihedralAction (CobordismBorder (Cobordism' g)) wh
 instance (CobordismGuts g) => PlanarAlgebra (CobordismBorder (Cobordism' g)) where
     planarDegree (Brd _ a) = UV.length a
 
+    planarEmpty = Brd 0 UV.empty
+
+    planarLoop = Brd 1 UV.empty
+
     planarPropagator n | n < 0      = error $ printf "planarPropagator: parameter must be non-negative, but %i passed" n
                        | otherwise  = Brd 0 $ UV.generate (2 * n) (\ i -> 2 * n - 1 - i)
 
@@ -628,8 +636,6 @@ instance (CobordismGuts g) => PlanarAlgebra (CobordismBorder (Cobordism' g)) whe
         | otherwise         =
             let (arcs, extraLoops) = glueArcs gl (a, posA) (b, posB)
             in Brd (length extraLoops + loopsA + loopsB) arcs
-
-    planarLoop = Brd 1 UV.empty
 
 instance (CobordismGuts g) => ChordDiagram (CobordismBorder (Cobordism' g)) where
     numberOfChordEnds (Brd _ a) = UV.length a

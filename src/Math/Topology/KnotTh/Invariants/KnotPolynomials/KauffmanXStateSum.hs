@@ -4,15 +4,13 @@ module Math.Topology.KnotTh.Invariants.KnotPolynomials.KauffmanXStateSum
     , KauffmanXStateSum(..)
     ) where
 
+import Control.Monad (foldM, forM_, liftM2, when)
+import Control.Monad.IfElse (unlessM)
+import qualified Control.Monad.ST as ST
 import Data.List (foldl', intercalate)
-import Data.Monoid (Monoid(..))
 import qualified Data.Map as M
-import qualified Data.Vector as V
 import qualified Data.Vector.Unboxed as UV
 import qualified Data.Vector.Unboxed.Mutable as UMV
-import Data.STRef (newSTRef, readSTRef, modifySTRef')
-import Control.Monad.ST (runST)
-import Control.Monad (forM_, when, foldM_)
 import Text.Printf
 import Math.Topology.KnotTh.Knotted
 import Math.Topology.KnotTh.Knotted.Crossings.Diagram
@@ -21,10 +19,10 @@ import Math.Topology.KnotTh.Invariants.Util.Poly
 
 
 class (Eq a, Ord a, Num a) => KauffmanXArg a where
-    aFactor, bFactor, circleFactor :: a
-    swapFactors                    :: a -> a
+    aFactor, bFactor, loopFactor :: a
+    swapFactors                  :: a -> a
 
-    circleFactor = -(aFactor * aFactor + bFactor * bFactor)
+    loopFactor = -(aFactor * aFactor + bFactor * bFactor)
 
 
 instance KauffmanXArg Poly where
@@ -83,19 +81,6 @@ mapStateSum _ (KauffmanXStateSum order []) = KauffmanXStateSum order []
 mapStateSum f (KauffmanXStateSum _ list) = concatStateSums $ map f list
 
 
-forAllSummands :: (Monad m) => KauffmanXStateSum a -> (PlanarChordDiagram a -> m ()) -> m ()
-forAllSummands (KauffmanXStateSum _ list) = forM_ list
-
-
-instance (KauffmanXArg a) => Monoid (KauffmanXStateSum a) where
-    mempty = KauffmanXStateSum 0 [PlanarChordDiagram UV.empty 1]
-
-    mappend a b =
-       let c = takeAsScalar a * takeAsScalar b
-       in KauffmanXStateSum 0 $ if c == 0
-           then []
-           else [PlanarChordDiagram UV.empty c]
-
 instance (KauffmanXArg a) => RotationAction (KauffmanXStateSum a) where
     rotationOrder (KauffmanXStateSum d _) = d
 
@@ -121,98 +106,84 @@ instance (KauffmanXArg a) => DihedralAction (KauffmanXStateSum a) where
                     return a
             in singletonStateSum $ PlanarChordDiagram x' f
 
-instance (KauffmanXArg a) => PlanarStateSum (KauffmanXStateSum a) where
-    stateDegree (KauffmanXStateSum d _) = d
+instance (KauffmanXArg a) => PlanarAlgebra (KauffmanXStateSum a) where
+    planarDegree (KauffmanXStateSum d _) = d
 
-    loopState _ (preSum@(KauffmanXStateSum !degree _), !p) =
+    planarEmpty = KauffmanXStateSum 0 [PlanarChordDiagram UV.empty 1]
+
+    planarLoop = KauffmanXStateSum 0 [PlanarChordDiagram UV.empty loopFactor]
+
+    planarPropagator n | n < 0      = error $ printf "planarPropagator: parameter must be non-negative, but %i passed" n
+                       | otherwise  = KauffmanXStateSum (2 * n) [PlanarChordDiagram (UV.generate (2 * n) $ \ i -> 2 * n - 1 - i) 1]
+
+    horizontalComposition !gl (sumA@(KauffmanXStateSum !legsA _), !posA) (sumB@(KauffmanXStateSum !legsB _), !posB)
+        | gl < 0      = error $ printf "horizontalComposition: gl must be non-negative, but %i passed" gl
+        | gl > legsA  = error $ printf "horizontalComposition: gl (%i) exceeds number of legs of the first argument (%i)" gl legsA
+        | gl > legsB  = error $ printf "horizontalComposition: gl (%i) exceeds number of legs of the second argument (%i)" gl legsB
+        | otherwise   =
+            flip mapStateSum sumA $ \ (PlanarChordDiagram a factorA) ->
+                flip mapStateSum sumB $ \ (PlanarChordDiagram b factorB) ->
+                    ST.runST $ do
+                        visited <- UMV.replicate gl False
+
+                        arcs <-
+                            let mateA !x | y >= gl    = return $! y - gl
+                                         | otherwise  = do
+                                             UMV.write visited y True
+                                             mateB $ (posB + gl - 1 - y) `mod` legsB
+                                    where y = ((a UV.! x) - posA) `mod` legsA
+
+                                mateB !x | y >= gl    = return $! legsA + y - 2 * gl
+                                         | otherwise  = mateA $ (posA + gl - 1 - y) `mod` legsA
+                                    where y = ((b UV.! x) - posB) `mod` legsB
+
+                            in liftM2 (UV.++) (UV.generateM (legsA - gl) (\ !i -> mateA $ (posA + gl + i) `mod` legsA))
+                                              (UV.generateM (legsB - gl) (\ !i -> mateB $ (posB + gl + i) `mod` legsB))
+
+                        loops <-
+                            let markA !x = do
+                                    unlessM (UMV.read visited x) $ do
+                                        UMV.write visited x True
+                                        markB $ (`mod` legsA) $ (+ negate posA) $ (a UV.!) $ (posA + x) `mod` legsA
+
+                                markB !x = do
+                                    unlessM (UMV.read visited x) $ do
+                                        UMV.write visited x True
+                                        markA $ (`mod` legsB) $ (\ p -> posB - p + gl - 1) $ (b UV.!) $ (posB + gl - 1 - x) `mod` legsB
+
+                            in foldM (\ !loops !i -> do
+                                    v <- UMV.read visited i
+                                    if v then return loops
+                                         else do
+                                             markA i
+                                             return $! 1 + loops
+                                ) (0 :: Int) [0 .. gl - 1]
+
+                        return $! singletonStateSum (PlanarChordDiagram arcs (factorA * factorB * loopFactor ^ loops))
+
+    horizontalLooping 1 (preSum@(KauffmanXStateSum !degree _), !p) =
         let !p' = (p + 1) `mod` degree
 
-            !subst = UV.create $ do
+            subst = UV.create $ do
                 a <- UMV.replicate degree (-1)
-                foldM_ (\ !k !i ->
-                    if i == p' || i == p
-                        then return $! k
-                        else UMV.write a i k >> (return $! k + 1)
-                    ) 0 [0 .. degree - 1]
+                forM_ [0 .. degree - 3] $ \ !i ->
+                    UMV.write a ((p + 2 + i) `mod` degree) i
                 return a
 
-            !result = flip mapStateSum preSum $ \ (PlanarChordDiagram x k) ->
+        in flip mapStateSum preSum $ \ (PlanarChordDiagram x k) ->
                 let x' = UV.create $ do
                         xm <- UMV.new (degree - 2)
                         forM_ [0 .. degree - 1] $ \ !i ->
-                            when (i /= p' && i /= p) $ do
+                            when (i /= p' && i /= p) $
                                 let j | (x UV.! i) == p   = x UV.! p'
                                       | (x UV.! i) == p'  = x UV.! p
                                       | otherwise         = x UV.! i
-                                UMV.write xm (subst UV.! i) (subst UV.! j)
+                                in UMV.write xm (subst UV.! i) (subst UV.! j)
                         return xm
-
-                    k' | x UV.! p == p'  = k * circleFactor
-                       | otherwise       = k
-
-                in singletonStateSum $ PlanarChordDiagram x' k'
-        in (result, subst)
-
-    connectStates _ (sumV@(KauffmanXStateSum !degreeV _), !p) (sumU@(KauffmanXStateSum !degreeU _), !q) =
-        let !substV = UV.create $ do
-                a <- UMV.replicate degreeV (-1)
-                forM_ [0 .. p - 1] $ \ !i ->
-                    UMV.write a i i
-                forM_ [p + 1 .. degreeV - 1] $ \ !i ->
-                    UMV.write a i $ i + degreeU - 2
-                return a
-
-            !substU = UV.create $ do
-                a <- UMV.replicate degreeU (-1)
-                forM_ [q + 1 .. degreeU - 1] $ \ !i ->
-                    UMV.write a i $ i - q - 1 + p
-                forM_ [0 .. q - 1] $ \ !i ->
-                    UMV.write a i $ i + degreeU - q + p - 1
-                return a
-
-            !result = flip mapStateSum sumV $ \ (PlanarChordDiagram xa ka) ->
-                flip mapStateSum sumU $ \ (PlanarChordDiagram xb kb) ->
-                    let x = UV.create $ do
-                            xm <- UMV.new (degreeV + degreeU - 2)
-                            forM_ [0 .. degreeV - 1] $ \ !i -> when (i /= p) $
-                                UMV.write xm (substV UV.! i) $
-                                    if (xa UV.! i) == p
-                                        then substU UV.! (xb UV.! q)
-                                        else substV UV.! (xa UV.! i)
-                            forM_ [0 .. degreeU - 1] $ \ !i -> when (i /= q) $
-                                UMV.write xm (substU UV.! i) $
-                                    if (xb UV.! i) == q
-                                        then substV UV.! (xa UV.! p)
-                                        else substU UV.! (xb UV.! i)
-                            return xm
-                    in singletonStateSum $ PlanarChordDiagram x (ka * kb)
-        in (result, substV, substU)
-
-    assemble border connections internals global = runST $ do
-        let l = V.length border
-        let n = V.length internals - 1
-
-        cd <- UMV.new l
-        forM_ [0 .. l - 1] $ \ !i -> do
-            let (v, p) = border V.! i
-            when (v == 0) $ UMV.write cd i p
-
-        result <- newSTRef []
-        let substState factor [] = do
-                x <- UV.freeze cd
-                modifySTRef' result (PlanarChordDiagram x factor :)
-
-            substState factor (v : rest) =
-                forAllSummands (internals V.! v) $ \ (PlanarChordDiagram x f) -> do
-                    let k = UV.length x
-                    forM_ [0 .. k - 1] $ \ !i -> do
-                        let a = (connections V.! v) UV.! i
-                        let b = (connections V.! v) UV.! (x UV.! i)
-                        UMV.write cd a b
-                    substState (factor * f) rest
-
-        substState (takeAsScalar global) [1 .. n]
-        (concatStateSums . map singletonStateSum) `fmap` readSTRef result
+                in singletonStateSum $ PlanarChordDiagram x' $
+                    if | x UV.! p == p' -> k * loopFactor
+                       | otherwise      -> k
+    horizontalLooping n _ = error $ printf "KauffmanXStateSum.horizontalLooping: not implemented for %i" n
 
 instance (KauffmanXArg a) => SkeinRelation KauffmanXStateSum a where
     skeinLPlus =
@@ -232,7 +203,7 @@ instance (KauffmanXArg a) => SkeinRelation KauffmanXStateSum a where
                 let writheFactor =
                         let w = selfWrithe tangle
                         in (if w <= 0 then -aFactor else -bFactor) ^ abs (3 * w)
-                    loopsFactor = circleFactor ^ numberOfFreeLoops tangle
+                    loopsFactor = loopFactor ^ numberOfFreeLoops tangle
                 in writheFactor * loopsFactor
         in fmap (* factor)
 

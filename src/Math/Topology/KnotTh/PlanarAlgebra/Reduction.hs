@@ -1,7 +1,6 @@
 {-# LANGUAGE RankNTypes #-}
 module Math.Topology.KnotTh.PlanarAlgebra.Reduction
-    ( PlanarStateSum(..)
-    , PlanarM
+    ( PlanarM
     , VertexM
     , StrategyResult(..)
     , Strategy
@@ -10,27 +9,19 @@ module Math.Topology.KnotTh.PlanarAlgebra.Reduction
     , reduceWithStrategy
     ) where
 
+import Control.Arrow (first)
+import Control.Exception (assert)
+import Control.Monad (filterM, foldM, forM, forM_, unless, when)
+import Control.Monad.Reader (ReaderT, runReaderT, ask, lift)
+import qualified Control.Monad.ST as ST
 import Data.Function (fix)
-import Data.Monoid (Monoid(..))
-import qualified Data.Vector as V
 import qualified Data.Vector.Mutable as MV
 import qualified Data.Vector.Unboxed as UV
 import qualified Data.Vector.Unboxed.Mutable as UMV
 import Data.STRef (STRef, newSTRef, readSTRef, writeSTRef, modifySTRef')
-import Control.Monad.Reader (ReaderT, runReaderT, ask, lift)
-import Control.Monad.ST (ST, runST)
-import Control.Monad (when, unless, forM_, forM, filterM)
-import Control.Arrow (first)
 import Text.Printf
 import Math.Topology.KnotTh.Dihedral
 import Math.Topology.KnotTh.PlanarAlgebra
-
-
-class (DihedralAction s, Monoid s) => PlanarStateSum s where
-    stateDegree   :: s -> Int
-    loopState     :: Int -> (s, Int) -> (s, UV.Vector Int)
-    connectStates :: Int -> (s, Int) -> (s, Int) -> (s, UV.Vector Int, UV.Vector Int)
-    assemble      :: V.Vector (Int, Int) -> V.Vector (UV.Vector Int) -> V.Vector s -> s -> s
 
 
 {-
@@ -106,7 +97,7 @@ nextCWM (DartM v p) =
 -}
 
 
-type PlanarM s a = ReaderT (Context s a) (ST s)
+type PlanarM s a = ReaderT (Context s a) (ST.ST s)
 
 newtype VertexM a = VertexM Int deriving (Eq, Show)
 
@@ -130,9 +121,9 @@ oppositeM (VertexM !v, p) = ask >>= \ !s -> lift $ do
     return (VertexM u, q)
 
 
-reduceWithStrategy :: (LeggedDiagram a, VertexDiagram a, PlanarStateSum t) => a x -> (Vertex a x -> t) -> Strategy t -> t
+reduceWithStrategy :: (LeggedDiagram d, VertexDiagram d, PlanarAlgebra a) => d x -> (Vertex d x -> a) -> Strategy a -> a
 reduceWithStrategy alg weight strategy =
-    runST $ do
+    ST.runST $ do
         s <- makeContext alg weight
         fix $ \ continue -> do
             greedyReductionST s
@@ -159,7 +150,7 @@ data Context s a =
         }
 
 
-makeContext :: (LeggedDiagram a, VertexDiagram a, PlanarStateSum t) => a x -> (Vertex a x -> t) -> ST s (Context s t)
+makeContext :: (LeggedDiagram d, VertexDiagram d, PlanarAlgebra a) => d x -> (Vertex d x -> a) -> ST.ST s (Context s a)
 makeContext alg weight = do
     s <- do
         let n = numberOfVertices alg
@@ -174,7 +165,7 @@ makeContext alg weight = do
         state' <- MV.new (n + 1)
         queue' <- newSTRef [1 .. n]
         queued' <- UMV.replicate (n + 1) True
-        multiple' <- newSTRef mempty
+        multiple' <- newSTRef planarEmpty
 
         return Context
             { size     = n
@@ -189,8 +180,8 @@ makeContext alg weight = do
 
     forM_ (allVertices alg) $ \ v -> do
         let w = weight v
-        unless (stateDegree w == vertexDegree v) $
-            fail $ printf "Bad state degree: %i instead of %i" (stateDegree w) (vertexDegree v)
+        unless (planarDegree w == vertexDegree v) $
+            fail $ printf "Bad state degree: %i instead of %i" (planarDegree w) (vertexDegree v)
         setStateSumST s (vertexIndex v) w
 
     forM_ (allEdges alg) $ \ (a, b) ->
@@ -218,29 +209,30 @@ dumpStateST s = do
     return $ printf "\nalive = %i\nmultiple=%s\n%s" alive' (show multiple') $ unlines cross
 -}
 
-appendMultipleST :: (PlanarStateSum a) => Context s a -> a -> ST s ()
-appendMultipleST s x =
-    modifySTRef' (multiple s) (mappend x)
+appendMultipleST :: (PlanarAlgebra a) => Context s a -> a -> ST.ST s ()
+appendMultipleST s b =
+    modifySTRef' (multiple s) $ \ !a ->
+        horizontalComposition 0 (a, 0) (b, 0)
 
 
-connectST :: Context s a -> (Int, Int) -> (Int, Int) -> ST s ()
+connectST :: Context s a -> (Int, Int) -> (Int, Int) -> ST.ST s ()
 connectST s a@(!v, !p) b@(!u, !q) = do
     MV.read (adjacent s) v >>= \ d -> MV.write d p b
     MV.read (adjacent s) u >>= \ d -> MV.write d q a
 
 
-vertexDegreeST :: Context s a -> Int -> ST s Int
+vertexDegreeST :: Context s a -> Int -> ST.ST s Int
 vertexDegreeST s v = do
     MV.length `fmap` MV.read (adjacent s) v
 
 
-neighbourST :: Context s a -> (Int, Int) -> ST s (Int, Int)
+neighbourST :: Context s a -> (Int, Int) -> ST.ST s (Int, Int)
 neighbourST s (!v, !p) = do
     x <- MV.read (adjacent s) v
     MV.read x $ p `mod` MV.length x
 
 
-killVertexST :: Context s a -> Int -> ST s ()
+killVertexST :: Context s a -> Int -> ST.ST s ()
 killVertexST s v = do
     a <- UMV.read (active s) v
     unless a $ fail "killVertexST: vertex is already dead"
@@ -250,7 +242,7 @@ killVertexST s v = do
     modifySTRef' (alive s) (+ (-1))
 
 
-enqueueST :: Context s a -> Int -> ST s ()
+enqueueST :: Context s a -> Int -> ST.ST s ()
 enqueueST s v = do
     a <- UMV.read (active s) v
     e <- UMV.read (queued s) v
@@ -259,7 +251,7 @@ enqueueST s v = do
         modifySTRef' (queue s) (v :)
 
 
-dequeueST :: Context s a -> ST s (Maybe Int)
+dequeueST :: Context s a -> ST.ST s (Maybe Int)
 dequeueST s = do
     l <- readSTRef $ queue s
     case l of
@@ -273,11 +265,11 @@ dequeueST s = do
                 else dequeueST s
 
 
-getAdjListST :: Context s a -> Int -> ST s (MV.STVector s (Int, Int))
+getAdjListST :: Context s a -> Int -> ST.ST s (MV.STVector s (Int, Int))
 getAdjListST s = MV.read (adjacent s)
 
 
-resizeAdjListST :: Context s a -> Int -> Int -> ST s (MV.STVector s (Int, Int))
+resizeAdjListST :: Context s a -> Int -> Int -> ST.ST s (MV.STVector s (Int, Int))
 resizeAdjListST s v degree = do
     prev <- MV.read (adjacent s) v
     next <- MV.new degree
@@ -285,54 +277,51 @@ resizeAdjListST s v degree = do
     return prev
 
 
-getStateSumST :: Context s a -> Int -> ST s a
+getStateSumST :: Context s a -> Int -> ST.ST s a
 getStateSumST s = MV.read (state s)
 
 
-setStateSumST :: Context s a -> Int -> a -> ST s ()
+setStateSumST :: Context s a -> Int -> a -> ST.ST s ()
 setStateSumST s = MV.write (state s)
 
 
---numberOfAliveVerticesST :: Context s a -> ST s Int
---numberOfAliveVerticesST s = readSTRef $ alive s
-
-
-aliveVerticesST :: Context s a -> ST s [Int]
+aliveVerticesST :: Context s a -> ST.ST s [Int]
 aliveVerticesST s = filterM (UMV.read $ active s) [1 .. size s]
 
 
-extractStateSumST :: (PlanarStateSum a) => Context s a -> ST s a
+extractStateSumST :: (PlanarAlgebra a) => Context s a -> ST.ST s a
 extractStateSumST s = do
-    vertices <- aliveVerticesST s
-    let n = length vertices
+    brd <- MV.read (adjacent s) 0
+    globalFactor <- readSTRef (multiple s)
+    let legsN = MV.length brd
 
-    border <- do
-        let ix = (UV.replicate (size s + 1) 0) UV.// (vertices `zip` [1 ..])
-        b <- MV.read (adjacent s) 0
-        let l = MV.length b
-        list <- forM [0 .. l - 1] $ \ !i -> do
-            (v, p) <- MV.read b i
-            return $! if v == 0 then (0, p) else (ix UV.! v, p)
-        return $! V.fromListN l list
+    visited <- UMV.replicate legsN False
+    res <- foldM (\ !part !leg -> do
+                vis <- UMV.read visited leg
+                if vis
+                    then return $! rotateBy (-1) part
+                    else do
+                        (v, pos) <- MV.read brd leg
+                        ex <- case v of
+                            0 -> do
+                                UMV.write visited leg True
+                                UMV.write visited pos True
+                                return $! planarPropagator 1
 
-    connections <- do
-        conns <- forM vertices $ \ !v -> do
-            a <- MV.read (adjacent s) v
-            let k = MV.length a
-            fmap (UV.fromListN k) $ forM [0 .. k - 1] $ \ !i -> do
-                (0, p) <- MV.read a i
-                return $! p
-        return $ V.fromListN (n + 1) $ undefined : conns
+                            _ -> do
+                                adj <- MV.read (adjacent s) v
+                                forM_ [0 .. MV.length adj - 1] $ \ !i -> do
+                                    (0, p') <- MV.read adj i
+                                    UMV.write visited p' True
+                                rotateBy (-pos) `fmap` MV.read (state s) v
 
-    internals <- do
-         states <- forM vertices (MV.read (state s))
-         return $ V.fromListN (n + 1) (undefined : states)
+                        return $! horizontalComposition 0 (ex, 0) (part, 1)
+            ) globalFactor [0 .. legsN - 1]
 
-    global <- readSTRef (multiple s)
-    return $! assemble border connections internals global
+    return $! assert (planarDegree res == legsN) $ rotateBy (-1) res
 
 
-tryGreedyContract :: (PlanarStateSum a) => Context s a -> Int -> ST s Bool
+tryGreedyContract :: (PlanarAlgebra a) => Context s a -> Int -> ST.ST s Bool
 tryGreedyContract s v = do
     vd <- vertexDegreeST s v
     let tryContract !p
@@ -356,7 +345,7 @@ tryGreedyContract s v = do
     tryContract 0
 
 
-contractEdgeST :: (PlanarStateSum a) => Context s a -> (Int, Int) -> ST s ()
+contractEdgeST :: (PlanarAlgebra a) => Context s a -> (Int, Int) -> ST.ST s ()
 contractEdgeST s (!v, !p) = do
     (!u, !q) <- neighbourST s (v, p)
     when (v == 0 || u == 0 || v == u) $ fail $
@@ -370,15 +359,28 @@ contractEdgeST s (!v, !p) = do
             else contract s (u, q) (v, p)
 
 
-contract :: (PlanarStateSum a) => Context s a -> (Int, Int) -> (Int, Int) -> ST s Int
+contract :: (PlanarAlgebra a) => Context s a -> (Int, Int) -> (Int, Int) -> ST.ST s Int
 contract s (!v, !p) (!u, !q) = do
     degreeV <- vertexDegreeST s v
     degreeU <- vertexDegreeST s u
 
     sumV <- getStateSumST s v
     sumU <- getStateSumST s u
-    let (resultSum, substV, substU) = connectStates 1 (sumV, p) (sumU, q)
-    setStateSumST s v resultSum
+
+    let gl = 1
+    setStateSumST s v $! horizontalComposition gl (sumV, p) (sumU, q)
+
+    let !substV = UV.create $ do
+            a <- UMV.replicate degreeV (-1)
+            forM_ [0 .. degreeV - 2] $ \ !i ->
+                UMV.write a ((p + 1 + i) `mod` degreeV) i
+            return a
+
+        !substU = UV.create $ do
+            a <- UMV.replicate degreeU (-1)
+            forM_ [0 .. degreeU - 2] $ \ !i ->
+                UMV.write a ((q + 1 + i) `mod` degreeU) (degreeV - 1 + i)
+            return a
 
     do
         prevV <- resizeAdjListST s v $ degreeV + degreeU - 2
@@ -404,7 +406,7 @@ contract s (!v, !p) (!u, !q) = do
     return $! v
 
 
-tryRelaxVertex :: (PlanarStateSum a) => Context s a -> Int -> ST s Bool
+tryRelaxVertex :: (PlanarAlgebra a) => Context s a -> Int -> ST.ST s Bool
 tryRelaxVertex s v = do
     degree <- vertexDegreeST s v
     case degree of
@@ -423,14 +425,14 @@ tryRelaxVertex s v = do
             findLoop [0 .. degree - 1]
 
 
-dissolveVertexST :: (PlanarStateSum a) => Context s a -> Int -> ST s ()
+dissolveVertexST :: (PlanarAlgebra a) => Context s a -> Int -> ST.ST s ()
 dissolveVertexST s v = do
     stateSum <- getStateSumST s v
     appendMultipleST s stateSum
     killVertexST s v
 
 
-contractLoopST :: (PlanarStateSum a) => Context s a -> (Int, Int) -> ST s ()
+contractLoopST :: (PlanarAlgebra a) => Context s a -> (Int, Int) -> ST.ST s ()
 contractLoopST s (!v, !p) = do
     degree <- vertexDegreeST s v
     (!v', !p') <- neighbourST s (v, p)
@@ -438,8 +440,13 @@ contractLoopST s (!v, !p) = do
         fail $ printf "contractLoopST: not loop (%i, %i) <-> (%i, %i) / %i" v p v' p' degree
 
     preSum <- getStateSumST s v
-    let (postSum, subst) = loopState 1 (preSum, p)
-    setStateSumST s v postSum
+    setStateSumST s v $! horizontalLooping 1 (preSum, p)
+
+    let subst = UV.create $ do
+                a <- UMV.replicate degree (-1)
+                forM_ [0 .. degree - 3] $ \ !i ->
+                    UMV.write a ((p + 2 + i) `mod` degree) i
+                return a
 
     prev <- resizeAdjListST s v $ degree - 2
     forM_ [0 .. degree - 1] $ \ !i -> when (i /= p' && i /= p) $ do
@@ -450,7 +457,7 @@ contractLoopST s (!v, !p) = do
                 else (v, subst UV.! j)
 
 
-internalEdgesST :: (PlanarStateSum a) => Context s a -> ST s [(Int, Int)]
+internalEdgesST :: (PlanarAlgebra a) => Context s a -> ST.ST s [(Int, Int)]
 internalEdgesST s = do
     vs <- aliveVerticesST s
     fmap concat $ forM vs $ \ v -> do
@@ -460,7 +467,7 @@ internalEdgesST s = do
             return [(v, p) | u > v || (u == v && q > p)]
 
 
-greedyReductionST :: (PlanarStateSum a) => Context s a -> ST s ()
+greedyReductionST :: (PlanarAlgebra a) => Context s a -> ST.ST s ()
 greedyReductionST s = do
     mv <- dequeueST s
     case mv of

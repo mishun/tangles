@@ -1,7 +1,6 @@
 {-# LANGUAGE RankNTypes #-}
 module Math.Topology.KnotTh.Invariants.KnotPolynomials
-    ( module Math.Topology.KnotTh.PlanarAlgebra.Reduction
-    , SkeinRelation(..)
+    ( SkeinRelation(..)
     , reduceSkeinWithStrategy
     , reduceSkeinStd
     , standardReductionStrategy
@@ -14,7 +13,7 @@ import Math.Topology.KnotTh.PlanarAlgebra.Reduction
 import Math.Topology.KnotTh.Tangle
 
 
-class (Functor f, PlanarStateSum (f p)) => SkeinRelation f p where
+class (Functor f, PlanarAlgebra (f p)) => SkeinRelation f p where
     skeinLPlus, skeinLMinus :: f p
     finalNormalization      :: (KnottedPlanar k) => k DiagramCrossing -> f p -> f p
     invertCrossingsAction   :: f p -> f p
@@ -49,13 +48,13 @@ standardReductionStrategy =
     in try
 
 
-skeinRelationPostMinimization :: (Ord (f p), SkeinRelation f p) => (TangleDiagram -> f p) -> TangleDiagram -> f p 
+skeinRelationPostMinimization :: (Ord (f p), DihedralAction (f p), SkeinRelation f p) => (TangleDiagram -> f p) -> TangleDiagram -> f p
 skeinRelationPostMinimization invariant tangle = minimum $ do
     p <- allOrientationsOf $ invariant tangle
     [p, invertCrossingsAction p]
 
 
-skeinRelationMidMinimization :: (Ord (f p), SkeinRelation f p) => (TangleDiagram -> f p) -> TangleDiagram -> f p
+skeinRelationMidMinimization :: (Ord (f p), DihedralAction (f p), SkeinRelation f p) => (TangleDiagram -> f p) -> TangleDiagram -> f p
 skeinRelationMidMinimization invariant tangle = minimum $ do
     p <- map invariant [tangle, invertCrossings tangle]
     allOrientationsOf p

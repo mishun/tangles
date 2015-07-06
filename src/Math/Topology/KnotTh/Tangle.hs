@@ -211,7 +211,7 @@ twistedTripleSatellite = twistedNSatellite 3
 
 
 twistedNSatellite :: Int -> TangleDiagram -> TangleDiagram
-twistedNSatellite n tangle | n < 0      = error "twistedNSattelite: negative order"
+twistedNSatellite n tangle | n < 0      = error $ printf "twistedNSattelite: negative order %i" n
                            | n == 0     = emptyTangle
                            | n == 1     = tangle
                            | otherwise  = tensorSubst n wrap tangle
@@ -295,8 +295,7 @@ instance VertexDiagram Tangle where
 
     nthVertex t i | i < 1 || i > b  = error $ printf "nthVertex: index %i is out of bounds [1, %i]" i b
                   | otherwise       = Vertex t (i - 1)
-        where
-             b = numberOfVertices t
+        where b = numberOfVertices t
 
     allVertices t = map (Vertex t) [0 .. numberOfVertices t - 1]
 
@@ -1219,8 +1218,6 @@ assembleST st = do
 
     circles <- STRef.readSTRef (stateCircles st)
     return $! implode (circles, border, connections)
-
-
 
 
 data ProjectionPattern = W | X | M

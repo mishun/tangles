@@ -36,5 +36,5 @@ normalizedKauffmanFPolynomialOfLink link
     | otherwise            =
         let common = twistFactor 1 * smoothFactor
         in normalizeBy2
-            (common * circleFactor)
+            (common * loopFactor)
             (common * kauffmanFPolynomial link)

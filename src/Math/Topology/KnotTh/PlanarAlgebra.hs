@@ -6,6 +6,7 @@ module Math.Topology.KnotTh.PlanarAlgebra
     , hasVertices
     , allOutcomingDarts
     , LeggedDiagram(..)
+    , hasLegs
     , firstLeg
     , lastLeg
     , nextLegBy
@@ -27,13 +28,16 @@ import Math.Topology.KnotTh.Dihedral
 
 class (RotationAction a) => PlanarAlgebra a where
     planarDegree          :: a -> Int
-    planarPropagator      :: Int -> a
+    planarEmpty           :: a
     planarLoop            :: a
+    planarPropagator      :: Int -> a
     horizontalComposition :: Int -> (a, Int) -> (a, Int) -> a
     horizontalLooping     :: Int -> (a, Int) -> a
 
     planarLoop = horizontalComposition 2 (planarPropagator 1, 0) (planarPropagator 1, 0)
-    horizontalLooping gl (x, pos) = horizontalComposition (2 * gl) (x, pos) (planarPropagator gl, 0)
+
+    horizontalLooping gl (x, pos) =
+        horizontalComposition (2 * gl) (x, pos) (planarPropagator gl, 0)
 
 
 class DartDiagram d where
@@ -169,6 +173,12 @@ class (DartDiagram d) => LeggedDiagram d where
     allLegs       :: d a -> [Dart d a]
 
     allLegs d = map (nthLeg d) [0 .. numberOfLegs d - 1]
+
+
+{-# INLINE hasLegs #-}
+hasLegs :: (LeggedDiagram d) => d a -> Bool
+hasLegs = (> 0) . numberOfLegs
+
 
 {-# INLINE firstLeg #-}
 {-# INLINE lastLeg #-}

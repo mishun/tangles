@@ -50,7 +50,7 @@ instance KnottedWithKauffmanXPolynomial EmbeddedLink where
                             (loopSystem, weight) <- weightedLoopSystems
                             let (trivial, nonTrivial) = partition (UV.all (== 0)) loopSystem
                                 [x, y] = UV.toList $ foldl (UV.zipWith (+)) (UV.replicate dim 0) nonTrivial
-                            return ((x, y), weight * (circleFactor ^ length trivial))
+                            return ((x, y), weight * (loopFactor ^ length trivial))
 
                 ((x, y), weight) <- min (torusMinimization tab)
                                         (torusMinimization $ map (\ ((x, y), a) -> ((x, -y), a)) tab)
@@ -61,7 +61,7 @@ instance KnottedWithKauffmanXPolynomial EmbeddedLink where
                 let (_, weightedLoopSystems) = homologyDecomposition link
                 (loopSystem, weight) <- weightedLoopSystems
                 let (trivial, nonTrivial) = partition (UV.all (== 0)) loopSystem
-                return $ weight * (circleFactor ^ length trivial) * monomial 1 "x" (fromIntegral $ length nonTrivial)
+                return $ weight * (loopFactor ^ length trivial) * monomial 1 "x" (fromIntegral $ length nonTrivial)
 
     minimalKauffmanXPolynomial link =
         min (kauffmanXPolynomial link) (kauffmanXPolynomial $ invertCrossings link)

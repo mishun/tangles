@@ -3,19 +3,13 @@ module Math.Topology.KnotTh.Invariants.KnotPolynomials.KauffmanFStateSum
     , ChordDiagramsSum
     ) where
 
-import qualified Data.Map as M
+import Control.DeepSeq
+import Data.Array (Array, (!), array)
 import Data.Function (on)
-import Data.Monoid (Monoid(..))
 import Data.List (intercalate, foldl')
+import qualified Data.Map as M
 import qualified Data.Vector as V
 import qualified Data.Vector.Unboxed as UV
-import qualified Data.Vector.Unboxed.Mutable as UMV
-import Data.Array.IArray ((!), array)
-import Data.Array (Array)
-import Data.STRef (newSTRef, readSTRef, modifySTRef')
-import Control.Monad.ST (runST)
-import Control.Monad (forM_, when)
-import Control.DeepSeq
 import Text.Printf
 import Math.Topology.KnotTh.Knotted.Threads
 import Math.Topology.KnotTh.Tangle
@@ -28,14 +22,14 @@ import Math.Topology.KnotTh.Invariants.Util.Poly
 class (Eq a, Ord a, Num a) => KauffmanFArg a where
     twistFactor  :: Int -> a
     smoothFactor :: a
-    circleFactor :: a
+    loopFactor   :: a
     swapTwists   :: a -> a
 
 
 instance KauffmanFArg Poly2 where
     twistFactor p = monomial2 1 "a" (fromIntegral p / 1)
     smoothFactor  = monomial2 1 "z" 1
-    circleFactor  = (twistFactor 1 + twistFactor (-1)) * monomial2 1 "z" (-1) - 1
+    loopFactor    = (twistFactor 1 + twistFactor (-1)) * monomial2 1 "z" (-1) - 1
     swapTwists    = invert2 "a"
 
 
@@ -97,10 +91,6 @@ mapStateSum _ (ChordDiagramsSum order []) = ChordDiagramsSum order []
 mapStateSum f (ChordDiagramsSum _ list) = concatStateSums $ map f list
 
 
-forAllSummands :: (Monad m) => ChordDiagramsSum a -> (ChordDiagram a -> m ()) -> m ()
-forAllSummands (ChordDiagramsSum _ list) = forM_ list
-
-
 {-# INLINE haveIntersection #-}
 haveIntersection :: (Int, Int) -> (Int, Int) -> Bool
 haveIntersection (!a', !b') (!c', !d') =
@@ -123,7 +113,7 @@ restoreBasicTangle !chordDiagram =
     let cdl = UV.length chordDiagram
 
         restore :: UV.Vector Int -> V.Vector (Int, Int) -> [Int] -> TangleDiagram
-        restore _ _ [] = error "impossible happened"
+        restore _ _ [] = error "restoreBasicTangle: impossible happened"
         restore a h (i : rest) =
             if | l == 0                           -> emptyTangle
                | l == 2                           -> identityTangle
@@ -145,10 +135,8 @@ restoreBasicTangle !chordDiagram =
                 j = (i + 1) `mod` l
                 j' = a UV.! j
 
-    in restore
-        chordDiagram
-        (V.generate cdl $ \ i -> (i, chordDiagram UV.! i))
-        [0 .. cdl - 1]
+    in if | cdl == 0  -> emptyTangle
+          | otherwise -> restore chordDiagram (V.generate cdl $ \ i -> (i, chordDiagram UV.! i)) [0 .. cdl - 1]
 
 
 data ThreadTag = BorderThread {-# UNPACK #-} !(Int, Int) {-# UNPACK #-} !Int
@@ -207,7 +195,7 @@ decomposeTangle path !initialFactor !tangle' =
             in {- (if length path >= 10 then trace (show $ explode tangle' : path) else id) $ -}
                     (: map (uncurry $ decomposeTangle (explode tangle' : path)) inter) $
                         singletonStateSum $ ChordDiagram a $
-                            factor * twistFactor (selfWrithe tangle) * circleFactor ^ (n - numberOfLegs tangle `div` 2)
+                            factor * twistFactor (selfWrithe tangle) * loopFactor ^ (n - numberOfLegs tangle `div` 2)
 
         splices (h : r) toInvert factor inter =
             let a = (factor * smoothFactor, modifyKnot tangle' $ modifyC False invertCrossing toInvert >> smoothA h >> greedy [reduce2nd])
@@ -216,13 +204,6 @@ decomposeTangle path !initialFactor !tangle' =
 
     in concatStateSums $ splices (irregularCrossings tangle') [] initialFactor []
 
-
-instance (KauffmanFArg a) => Monoid (ChordDiagramsSum a) where
-    mempty = ChordDiagramsSum 0 [ChordDiagram UV.empty 1]
-
-    mappend a b =
-       let c = takeAsScalar a * takeAsScalar b
-       in ChordDiagramsSum 0 [ChordDiagram UV.empty c | c /= 0]
 
 instance (KauffmanFArg a) => RotationAction (ChordDiagramsSum a) where
     rotationOrder (ChordDiagramsSum d _) = d
@@ -237,70 +218,25 @@ instance (KauffmanFArg a) => DihedralAction (ChordDiagramsSum a) where
         mapStateSum $ \ (ChordDiagram a factor) ->
             decomposeTangle [] factor $ mirrorIt $ restoreBasicTangle a
 
-instance (KauffmanFArg a) => PlanarStateSum (ChordDiagramsSum a) where
-    stateDegree (ChordDiagramsSum d _) = d
+instance (KauffmanFArg a) => PlanarAlgebra (ChordDiagramsSum a) where
+    planarDegree (ChordDiagramsSum d _) = d
 
-    loopState _ (preSum@(ChordDiagramsSum !degree _), !p) = {- trace (printf "%i[%i] ) %i" degree (complexityRank preSum) p) $ -}
-        let !p' = (p + 1) `mod` degree
+    planarEmpty = ChordDiagramsSum 0 [ChordDiagram UV.empty 1]
 
-            !subst = UV.fromListN degree $
-                if p' == 0
-                    then [-1] ++ [0 .. degree - 3] ++ [-1]
-                    else [0 .. p - 1] ++ [-1, -1] ++ [p .. degree - 3]
+    planarLoop = ChordDiagramsSum 0 [ChordDiagram UV.empty loopFactor]
 
-            !postSum = flip mapStateSum preSum $ \ (ChordDiagram x k) ->
-                let t = restoreBasicTangle x
-                in decomposeTangle [explode t] k $
-                    rotateBy (if p == 0 || p' == 0 then 0 else p' + 1 - degree) $
-                        glueTangles 2 (nthLeg t p) (firstLeg identityTangle)
-        in (postSum, subst)
+    planarPropagator n | n < 0      = error $ printf "planarPropagator: parameter must be non-negative, but %i passed" n
+                       | otherwise  = ChordDiagramsSum (2 * n) [ChordDiagram (UV.generate (2 * n) $ \ i -> 2 * n - 1 - i) 1]
 
-    connectStates _ (sumV@(ChordDiagramsSum !degreeV _), !p) (sumU@(ChordDiagramsSum !degreeU _), !q) = {- trace (printf "%i[%i] -- %i[%i]" degreeV (complexityRank sumV) degreeU (complexityRank sumU)) $ -}
-        let !substV = UV.fromListN degreeV $ [0 .. p - 1] ++ [-1] ++ [ i + degreeU - 2 | i <- [p + 1 .. degreeV - 1]]
-
-            !substU = UV.fromListN degreeU $ [ i + degreeU - q + p - 1 | i <- [0 .. q - 1]] ++ [-1] ++ [ i - q - 1 + p | i <- [q + 1 .. degreeU - 1]]
-
-            !result = flip mapStateSum sumV $ \ (ChordDiagram xa ka) ->
-                let ta = restoreBasicTangle xa
-                in flip mapStateSum sumU $ \ (ChordDiagram xb kb) ->
-                    let tb = restoreBasicTangle xb
-                    in decomposeTangle [explode ta, explode tb] (ka * kb) $
-                        rotateBy (p + 1 - degreeV) $
-                            glueTangles 1 (nthLeg ta p) (nthLeg tb q)
-        in (result, substV, substU)
-
-    assemble border connections internals global = {- trace "assemble" $ -} runST $ do
-        let l = V.length border
-        let n = V.length internals - 1
-
-        cd <- UMV.new l
-        rot <- UMV.replicate (n + 1) (-1)
-
-        forM_ [0 .. l - 1] $ \ !i -> do
-            let (v, p) = border V.! i
-            if v == 0
-                then UMV.write cd i p
-                else do
-                    r <- UMV.read rot v
-                    when (r < 0) $ UMV.write rot v p
-
-        result <- newSTRef []
-        let substState factor [] = do
-                x <- UV.freeze cd
-                modifySTRef' result (ChordDiagram x factor :)
-
-            substState factor (v : rest) = do
-                r <- UMV.read rot v
-                forAllSummands (rotateBy (-r) $ internals V.! v) $ \ (ChordDiagram x f) -> do
-                    let k = UV.length x
-                    forM_ [0 .. k - 1] $ \ !i -> do
-                        let a = (connections V.! v) UV.! ((i + r) `mod` k)
-                        let b = (connections V.! v) UV.! (((x UV.! i) + r) `mod` k)
-                        UMV.write cd a b
-                    substState (factor * f) rest
-
-        substState (takeAsScalar global) [1 .. n]
-        (concatStateSums . map singletonStateSum) `fmap` readSTRef result
+    horizontalComposition gl (sumA, !posA) (!sumB, !posB) =
+        flip mapStateSum sumA $ \ (ChordDiagram xa ka) ->
+            let ta = restoreBasicTangle xa
+            in flip mapStateSum sumB $ \ (ChordDiagram xb kb) ->
+                let tb = restoreBasicTangle xb
+                in decomposeTangle [explode ta, explode tb] (ka * kb) $
+                    if | not (hasLegs ta) -> rotateBy (-(posB + 1)) tb
+                       | not (hasLegs tb) -> rotateBy (-posA) ta
+                       | otherwise        -> glueTangles gl (nthLeg ta posA) (nthLeg tb $ posB - gl + 1)
 
 instance (KauffmanFArg a) => SkeinRelation ChordDiagramsSum a where
     skeinLPlus =
@@ -314,7 +250,7 @@ instance (KauffmanFArg a) => SkeinRelation ChordDiagramsSum a where
             ]
 
     finalNormalization tangle =
-        let factor = twistFactor (-selfWrithe tangle) * circleFactor ^ numberOfFreeLoops tangle
+        let factor = twistFactor (-selfWrithe tangle) * loopFactor ^ numberOfFreeLoops tangle
         in fmap (* factor)
 
     invertCrossingsAction = fmap swapTwists
