@@ -439,7 +439,7 @@ instance ModuleCobordismGuts DottedGuts where
                     newIndex <- UMV.replicate (UV.length $ surfHolesN g) (-1)
                     freeIndex <- STRef.newSTRef 0
 
-                    let faceIndex !i = do
+                    let faceId !i = do
                             tmp <- UMV.read newIndex i
                             if tmp >= 0 then return tmp
                                         else do
@@ -448,9 +448,9 @@ instance ModuleCobordismGuts DottedGuts where
                                 UMV.write newIndex i j
                                 return j
 
-                    wallS <- UV.mapM faceIndex $ wallSurfs g
-                    loopS0 <- UV.mapM faceIndex $ loopSurfs0 g
-                    loopS1 <- UV.mapM faceIndex $ loopSurfs1 g
+                    wallS <- UV.mapM faceId $ wallSurfs g
+                    loopS0 <- UV.mapM faceId $ loopSurfs0 g
+                    loopS1 <- UV.mapM faceId $ loopSurfs1 g
                     idx <- UV.unsafeFreeze newIndex
                     return $!
                         DottedGuts
@@ -590,7 +590,7 @@ instance (CobordismGuts g) => RotationAction (Cobordism' g) where
                 return s
         in Cob h' (rotateGuts subst g)
 
-instance (CobordismGuts g) => PlanarAlgebra' (Cobordism' g) where
+instance (CobordismGuts g) => PlanarAlgebra (Cobordism' g) where
     planarDegree (Cob h _) = legsN h
 
     planarPropagator = identityCobordism . planarPropagator
@@ -615,7 +615,7 @@ instance (CobordismGuts g) => RotationAction (CobordismBorder (Cobordism' g)) wh
 instance (CobordismGuts g) => DihedralAction (CobordismBorder (Cobordism' g)) where
     mirrorIt = error "mirror is not implemeted"
 
-instance (CobordismGuts g) => PlanarAlgebra' (CobordismBorder (Cobordism' g)) where
+instance (CobordismGuts g) => PlanarAlgebra (CobordismBorder (Cobordism' g)) where
     planarDegree (Brd _ a) = UV.length a
 
     planarPropagator n | n < 0      = error $ printf "planarPropagator: parameter must be non-negative, but %i passed" n

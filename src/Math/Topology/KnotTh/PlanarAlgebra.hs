@@ -1,6 +1,6 @@
 {-# LANGUAGE TypeFamilies #-}
 module Math.Topology.KnotTh.PlanarAlgebra
-    ( PlanarAlgebra'(..)
+    ( PlanarAlgebra(..)
     , DartDiagram(..)
     , VertexDiagram(..)
     , hasVertices
@@ -25,13 +25,15 @@ import qualified Data.Ix as Ix
 import Math.Topology.KnotTh.Dihedral
 
 
-class (RotationAction a) => PlanarAlgebra' a where
+class (RotationAction a) => PlanarAlgebra a where
     planarDegree          :: a -> Int
     planarPropagator      :: Int -> a
     planarLoop            :: a
     horizontalComposition :: Int -> (a, Int) -> (a, Int) -> a
+    horizontalLooping     :: Int -> (a, Int) -> a
 
     planarLoop = horizontalComposition 2 (planarPropagator 1, 0) (planarPropagator 1, 0)
+    horizontalLooping gl (x, pos) = horizontalComposition (2 * gl) (x, pos) (planarPropagator gl, 0)
 
 
 class DartDiagram d where

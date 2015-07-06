@@ -49,7 +49,7 @@ class (Cobordism c, Num c) => PreadditiveCobordism c where
 
     isZeroCobordism c = c == zeroCobordism (cobordismBorder0 c) (cobordismBorder1 c)
 
-class (Cobordism3 c, PlanarAlgebra' c, PlanarAlgebra' (CobordismBorder c), ChordDiagram (CobordismBorder c)) => CannedCobordism c where
+class (Cobordism3 c, PlanarAlgebra c, PlanarAlgebra (CobordismBorder c), ChordDiagram (CobordismBorder c)) => CannedCobordism c where
     saddleCobordism        :: c
     saddleCobordism'       :: c
     sideCutPantsCobordism  :: c
