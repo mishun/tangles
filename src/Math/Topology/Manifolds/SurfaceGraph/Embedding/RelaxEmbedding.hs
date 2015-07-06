@@ -2,14 +2,14 @@ module Math.Topology.Manifolds.SurfaceGraph.Embedding.RelaxEmbedding
     ( relaxEmbedding
     ) where
 
-import Data.Ix (Ix)
-import System.IO.Unsafe (unsafePerformIO)
-import Data.IORef (newIORef, readIORef, writeIORef, modifyIORef)
+import Control.Monad (unless, forM_, forM)
 import Data.Array.IArray ((!), listArray)
 import Data.Array.MArray (newArray, newArray_, readArray, writeArray, freeze)
 import Data.Array (Array)
 import Data.Array.IO (IOArray, IOUArray)
-import Control.Monad (unless, forM_, forM)
+import Data.IORef (newIORef, readIORef, writeIORef, modifyIORef)
+import Data.Ix (Ix)
+import System.IO.Unsafe (unsafePerformIO)
 import Math.Topology.Manifolds.SurfaceGraph.Definition
 import Math.Topology.Manifolds.SurfaceGraph.Embedding.Optimization
 
@@ -20,9 +20,9 @@ relaxEmbedding :: Int
             -> Array (Dart SurfaceGraph a) [(Double, Double)]
 
 relaxEmbedding borderSegments root initial
-    | not $ all (even . vertexDegree) $ allVertices g            = error "relaxEmbedding: all vertices must have even degree"
-    | not $ all ((> 1) . length . (initial !)) $ allHalfEdges g  = error "relaxEmbedding: there must be at least 2 point at every dart"
-    | otherwise                                                  = unsafePerformIO $ do
+    | not $ all (even . vertexDegree) $ allVertices g        = error "relaxEmbedding: all vertices must have even degree"
+    | not $ all ((> 1) . length . (initial !)) $ allDarts g  = error "relaxEmbedding: there must be at least 2 point at every dart"
+    | otherwise                                              = unsafePerformIO $ do
         let numberOfFrozenPoints =
                 case root of
                     Left v  -> vertexDegree v
@@ -36,7 +36,7 @@ relaxEmbedding borderSegments root initial
 
         dartBeginIndex <- do
             dartBeginIndex <- (newArray_ :: (Ix i) => (i, i) -> IO (IOUArray i Int)) (dartsRange g)
-            forM_ (allHalfEdges g) $ \ !d ->
+            forM_ (allDarts g) $ \ !d ->
                 writeArray dartBeginIndex d $
                     let v = beginVertex d
                     in case root of
@@ -86,7 +86,7 @@ relaxEmbedding borderSegments root initial
             case root of
                 Left v -> forM_ (outcomingDarts v) tryWalk
                 _      -> return ()
-            forM_ (allHalfEdges g) tryWalk
+            forM_ (allDarts g) tryWalk
 
             dartIndices' <- (freeze :: (Ix i) => IOArray i a -> IO (Array i a)) dartIndices
             threads' <- readIORef threads
@@ -111,10 +111,11 @@ relaxEmbedding borderSegments root initial
             let aliveVertices = filter ((/= root) . Left) $! allVertices g
             in map (map ((!! 1) . (dartIndices !)) . outcomingDarts) aliveVertices
 
-        fmap (listArray (dartsRange g)) $ forM (allHalfEdges g) $ \ d -> forM (dartIndices ! d) $ \ i -> do
-            x <- readArray coords (2 * i)
-            y <- readArray coords (2 * i + 1)
-            return (realToFrac x, realToFrac y)
+        fmap (listArray (dartsRange g)) $ forM (allDarts g) $ \ d ->
+            forM (dartIndices ! d) $ \ i -> do
+                x <- readArray coords (2 * i)
+                y <- readArray coords (2 * i + 1)
+                return (realToFrac x, realToFrac y)
 
     where
         g = case root of

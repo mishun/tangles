@@ -60,7 +60,7 @@ import Math.Topology.KnotTh.Knotted.Threads
 import Math.Topology.KnotTh.Moves.ModifyDSL
 
 
-class (KnottedPlanar t, PlanarAlgebra t) => TangleLike t where
+class (KnottedPlanar t, LeggedDiagram t) => TangleLike t where
     emptyTangle :: t a
     emptyTangle = emptyKnotted
 
@@ -243,26 +243,34 @@ data Tangle a =
         }
 
 
-instance PlanarDiagram Tangle where
-    numberOfVertices = vertexCount
+instance DartDiagram Tangle where
+    data Dart Tangle a = Dart !(Tangle a) {-# UNPACK #-} !Int
 
-    numberOfEdges t = PV.length (involutionArray t) `shiftR` 1
+    dartOwner (Dart t _) = t
+    dartIndex (Dart _ i) = i
+
+    opposite (Dart t d) = Dart t (involutionArray t `PV.unsafeIndex` d)
+
+    nextCCW (Dart t d) | d >= n     = Dart t (n + (d - n + 1) `mod` legsCount t)
+                       | otherwise  = Dart t ((d .&. complement 3) + ((d + 1) .&. 3))
+        where n = vertexCount t `shiftL` 2
+
+    nextCW (Dart t d) | d >= n     = Dart t (n + (d - n - 1) `mod` legsCount t)
+                      | otherwise  = Dart t ((d .&. complement 3) + ((d - 1) .&. 3))
+        where n = vertexCount t `shiftL` 2
+
+    nextBy delta (Dart t d) | d >= n     = Dart t (n + (d - n + delta) `mod` legsCount t)
+                            | otherwise  = Dart t ((d .&. complement 3) + ((d + delta) .&. 3))
+        where n = vertexCount t `shiftL` 2
 
     numberOfDarts t = PV.length (involutionArray t)
-
-    nthVertex t i | i < 1 || i > b  = error $ printf "nthVertex: index %i is out of bounds [1, %i]" i b
-                  | otherwise       = Vertex t (i - 1)
-        where
-             b = numberOfVertices t
+    numberOfEdges t = PV.length (involutionArray t) `shiftR` 1
 
     nthDart t i | i < 0 || i >= b  = error $ printf "nthDart: index %i is out of bounds [0, %i)" i b
                 | otherwise        = Dart t i
-        where
-            b = PV.length (involutionArray t)
+        where b = PV.length (involutionArray t)
 
-    allVertices t = map (Vertex t) [0 .. numberOfVertices t - 1]
-
-    allHalfEdges t = map (Dart t) [0 .. PV.length (involutionArray t) - 1]
+    allDarts t = map (Dart t) [0 .. PV.length (involutionArray t) - 1]
 
     allEdges t =
         foldl' (\ !es !i ->
@@ -272,51 +280,48 @@ instance PlanarDiagram Tangle where
                     else es
             ) [] [0 .. PV.length (involutionArray t) - 1]
 
+    dartIndicesRange t = (0, numberOfDarts t - 1)
+
+
+instance VertexDiagram Tangle where
     data Vertex Tangle a = Vertex !(Tangle a) {-# UNPACK #-} !Int
 
-    vertexDegree _ = 4
     vertexOwner (Vertex t _) = t
     vertexIndex (Vertex _ i) = i + 1
+
+    vertexDegree _ = 4
+
+    numberOfVertices = vertexCount
+
+    nthVertex t i | i < 1 || i > b  = error $ printf "nthVertex: index %i is out of bounds [1, %i]" i b
+                  | otherwise       = Vertex t (i - 1)
+        where
+             b = numberOfVertices t
+
+    allVertices t = map (Vertex t) [0 .. numberOfVertices t - 1]
 
     nthOutcomingDart (Vertex t c) i = Dart t ((c `shiftL` 2) + (i .&. 3))
 
     outcomingDarts c = map (nthOutcomingDart c) [0 .. 3]
 
-    data Dart Tangle a = Dart !(Tangle a) {-# UNPACK #-} !Int
-
-    dartOwner (Dart t _) = t
-    dartIndex (Dart _ i) = i
-
-    opposite (Dart t d) = Dart t (involutionArray t `PV.unsafeIndex` d)
+    maybeBeginVertex (Dart t d) | d >= n     = Nothing
+                                | otherwise  = Just $! Vertex t (d `shiftR` 2)
+        where n = vertexCount t `shiftL` 2
 
     beginVertex (Dart t d) | d >= n     = error $ printf "beginVertex: taken from %i-th leg" (d - n)
                            | otherwise  = Vertex t (d `shiftR` 2)
-        where
-            n = vertexCount t `shiftL` 2
+        where n = vertexCount t `shiftL` 2
 
     beginPlace (Dart t d) | d >= n     = error $ printf "beginPlace: taken from %i-th leg" (d - n)
                           | otherwise  = d .&. 3
-        where
-            n = vertexCount t `shiftL` 2
+        where n = vertexCount t `shiftL` 2
 
     beginPair' d | isDart d   = (vertexIndex $ beginVertex d, beginPlace d)
                  | otherwise  = (0, legPlace d)
 
-    nextCCW (Dart t d) | d >= n     = Dart t (n + (d - n + 1) `mod` legsCount t)
-                       | otherwise  = Dart t ((d .&. complement 3) + ((d + 1) .&. 3))
-        where
-            n = vertexCount t `shiftL` 2
-
-    nextCW (Dart t d) | d >= n     = Dart t (n + (d - n - 1) `mod` legsCount t)
-                      | otherwise  = Dart t ((d .&. complement 3) + ((d - 1) .&. 3))
-        where
-            n = vertexCount t `shiftL` 2
-
     isDart (Dart t i) = i < (vertexCount t `shiftL` 2)
 
     vertexIndicesRange t = (1, numberOfVertices t)
-
-    dartIndicesRange t = (0, numberOfDarts t - 1)
 
 
 instance (NFData a) => NFData (Tangle a) where
@@ -665,7 +670,7 @@ instance KnottedDiagram Tangle where
             connectC [(br, aq), (cs, ap)]
 
 
-instance PlanarAlgebra Tangle where
+instance LeggedDiagram Tangle where
     numberOfLegs = legsCount
 
     nthLeg t i | l == 0     = error "nthLeg: tangle has no legs"
@@ -1004,7 +1009,7 @@ instance (Crossing a) => KnotWithPrimeTest Tangle a where
                         where
                             path = containingDirectedPath continue d
                             nextS = foldl' (flip S.insert) s path
-                in fst $ foldl' processDart ([], S.empty) $ allHalfEdges tangle
+                in fst $ foldl' processDart ([], S.empty) $ allDarts tangle
 
             containingDirectedPath (adjForward, adjBackward) start
                 | isCycle    = forward

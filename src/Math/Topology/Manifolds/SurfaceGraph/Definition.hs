@@ -1,6 +1,6 @@
 {-# LANGUAGE TypeFamilies #-}
 module Math.Topology.Manifolds.SurfaceGraph.Definition
-    ( module X
+    ( module Math.Topology.KnotTh.PlanarAlgebra
     , SurfaceGraph
     , dual
     , constructFromList
@@ -13,7 +13,7 @@ import qualified Data.Vector.Unboxed.Mutable as UMV
 import Control.Monad.ST (runST)
 import Control.Monad (forM_, foldM)
 import Text.Printf
-import Math.Algebra.PlanarAlgebra as X
+import Math.Topology.KnotTh.PlanarAlgebra
 
 
 data SurfaceGraph a =
@@ -26,57 +26,55 @@ data SurfaceGraph a =
         }
 
 
-instance PlanarDiagram SurfaceGraph where
-    numberOfVertices g = V.length (_vertices g)
+instance DartDiagram SurfaceGraph where
+    data Dart SurfaceGraph a = Dart !(SurfaceGraph a) {-# UNPACK #-} !Int
+
+    dartOwner (Dart g _) = g
+    dartIndex (Dart _ i) = i
+
+    opposite (Dart g i) = Dart g (_opposite g `UV.unsafeIndex` i)
+
+    nextBy n d = let (v, p) = beginPair d
+                 in nthOutcomingDart v $ (p + n) `mod` vertexDegree v
 
     numberOfDarts g = UV.length (_opposite g)
+
+    allDarts g = map (Dart g) [0 .. numberOfDarts g - 1]
+
+    nthDart g i | i >= 0 && i < l  = Dart g i
+                | otherwise        = error $ printf "nthDart: index %i is out of bounds [0, %i)" i l
+        where l = UV.length (_opposite g)
+
+    dartIndicesRange g = (0, numberOfDarts g - 1)
+
+instance VertexDiagram SurfaceGraph where
+    data Vertex SurfaceGraph a = Vertex !(SurfaceGraph a) {-# UNPACK #-} !Int
+
+    vertexOwner (Vertex g _) = g
+    vertexIndex (Vertex _ i) = i
+
+    vertexDegree (Vertex g i) = UV.length (_vertices g V.! i)
+
+    nthOutcomingDart v@(Vertex g i) j =
+        let jj = j `mod` vertexDegree v
+        in Dart g $ (_vertices g V.! i) UV.! jj
+
+    numberOfVertices g = V.length (_vertices g)
 
     nthVertex g i | i >= 0 && i < l  = Vertex g i
                   | otherwise        = error $ printf "nthVertex: index %i is out of bounds [0, %i)" i l
         where
             l = V.length (_vertices g)
 
-    nthDart g i | i >= 0 && i < l  = Dart g i
-                | otherwise        = error $ printf "nthDart: index %i is out of bounds [0, %i)" i l
-        where
-            l = UV.length (_opposite g)
-
     allVertices g = map (Vertex g) [0 .. numberOfVertices g - 1]
 
-    allHalfEdges g = map (Dart g) [0 .. numberOfDarts g - 1]
-
-    data Vertex SurfaceGraph a = Vertex !(SurfaceGraph a) {-# UNPACK #-} !Int
-
-    vertexDegree (Vertex g i) = UV.length (_vertices g V.! i)
-
-    vertexOwner (Vertex g _) = g
-
-    vertexIndex (Vertex _ i) = i
-
-    nthOutcomingDart v@(Vertex g i) j =
-        let jj = j `mod` vertexDegree v
-        in Dart g $ (_vertices g V.! i) UV.! jj
-
-    outcomingDarts v = map (nthOutcomingDart v) [0 .. vertexDegree v - 1]
-
-    data Dart SurfaceGraph a = Dart !(SurfaceGraph a) {-# UNPACK #-} !Int
-
-    dartOwner (Dart g _) = g
-
-    dartIndex (Dart _ i) = i
+    maybeBeginVertex d = Just $! beginVertex d
 
     beginPair (Dart g i) =
         let (vi, p) = _connToVert g UV.! i
         in (Vertex g vi, p)
 
-    opposite (Dart g i) = Dart g (_opposite g `UV.unsafeIndex` i)
-
-    isDart _ = True
-
     vertexIndicesRange g = (0, numberOfVertices g - 1)
-
-    dartIndicesRange g = (0, numberOfDarts g - 1)
-
 
 instance SurfaceDiagram SurfaceGraph where
     numberOfFaces g = V.length (_faces g)
@@ -105,7 +103,6 @@ instance SurfaceDiagram SurfaceGraph where
         in Dart g $ (_faces g V.! i) UV.! jj
 
     faceIndicesRange g = (0, numberOfFaces g - 1)
-
 
 instance Show (SurfaceGraph a) where
     show graph =

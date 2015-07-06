@@ -127,4 +127,4 @@ quadraticEmbedding :: Vertex SurfaceGraph a -> [(Double, Double)] -> A.Array (Da
 quadraticEmbedding v border =
     let g = vertexOwner v
         c = quadraticInitialization 0.99 v border
-    in A.listArray (dartsRange g) $ map (\ d -> [c A.! d, c A.! opposite d]) $ allHalfEdges g
+    in A.listArray (dartsRange g) $ map (\ d -> [c A.! d, c A.! opposite d]) $ allDarts g

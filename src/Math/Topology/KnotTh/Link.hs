@@ -60,15 +60,28 @@ newtype Link a = L (Tangle a)
     deriving (Functor, KnottedPlanar, KnottedDiagram)
 
 
-instance PlanarDiagram Link where
-    numberOfVertices (L t) = numberOfVertices t
+instance DartDiagram Link where
+    newtype Dart Link a = D (Dart Tangle a)
+    dartOwner (D d) = L (dartOwner d)
+    dartIndex (D d) = dartIndex d
+    opposite (D d) = D (opposite d)
+
+    nextCCW (D d) = D (nextCCW d)
+    nextCW (D d) = D (nextCW d)
+    nextBy n (D d) = D (nextBy n d)
+
     numberOfEdges (L t) = numberOfEdges t
     numberOfDarts (L t) = numberOfDarts t
-    nthVertex (L t) n = V (nthVertex t n)
     nthDart (L t) n = D (nthDart t n)
-    allVertices (L t) = map V (allVertices t)
     allEdges (L t) = map (D *** D) (allEdges t)
-    allHalfEdges (L t) = map D (allHalfEdges t)
+    allDarts (L t) = map D (allDarts t)
+
+    dartIndicesRange (L t) = dartIndicesRange t
+
+instance VertexDiagram Link where
+    numberOfVertices (L t) = numberOfVertices t
+    nthVertex (L t) n = V (nthVertex t n)
+    allVertices (L t) = map V (allVertices t)
 
     newtype Vertex Link a = V (Vertex Tangle a)
     vertexDegree (V v) = vertexDegree v
@@ -77,18 +90,11 @@ instance PlanarDiagram Link where
     nthOutcomingDart (V v) n = D (nthOutcomingDart v n)
     outcomingDarts (V v) = map D (outcomingDarts v)
 
-    newtype Dart Link a = D (Dart Tangle a)
-    dartOwner (D d) = L (dartOwner d)
-    dartIndex (D d) = dartIndex d
-    opposite (D d) = D (opposite d)
+    maybeBeginVertex (D d) = V `fmap` maybeBeginVertex d
     beginVertex (D d) = V (beginVertex d)
     beginPlace (D d) = beginPlace d
-    nextCCW (D d) = D (nextCCW d)
-    nextCW (D d) = D (nextCW d)
-    nextBy n (D d) = D (nextBy n d)
 
     vertexIndicesRange (L t) = vertexIndicesRange t
-    dartIndicesRange (L t) = dartIndicesRange t
 
 instance Knotted Link where
     vertexCrossing (V v) = vertexCrossing v

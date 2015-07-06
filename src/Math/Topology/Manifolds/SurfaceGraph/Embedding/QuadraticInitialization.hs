@@ -68,7 +68,7 @@ quadraticInitialization seed s brd
                                 let !i = vi ! v
                                     !w = sum $ map dartWeight $ outcomingDarts v
                                 in (i, i, w)
-                        b = flip map (filter (\ !d -> beginVertex d /= s && endVertex d /= s) $ allHalfEdges g) $ \ !d ->
+                        b = flip map (filter (\ !d -> beginVertex d /= s && endVertex d /= s) $ allDarts g) $ \ !d ->
                                 let !i = vi ! beginVertex d
                                     !j = vi ! endVertex d
                                     !w = -(dartWeight d)
@@ -84,7 +84,7 @@ quadraticInitialization seed s brd
 
         let border :: Array Int (Double, Double)
             border = listArray (0, length brd - 1) brd
-        result <- forM (allHalfEdges g) $ \ !d -> do
+        result <- forM (allDarts g) $ \ !d -> do
                 let (v, p) = beginPair d
                 if v == s
                     then return $! border ! p

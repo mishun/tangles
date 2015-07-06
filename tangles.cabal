@@ -56,7 +56,6 @@ library
     extra-libraries:    stdc++ gsl gslcblas
     include-dirs:       src/
     exposed-modules:
-        Math.Algebra.PlanarAlgebra,
         Math.Combinatorics.Generation.CanonicalConstructionPath,
         Math.Combinatorics.Strings.Lyndon,
         Math.Topology.KnotTh.ChordDiagram,
@@ -98,7 +97,6 @@ library
         Math.Topology.Manifolds.SurfaceGraph,
         Math.Topology.Manifolds.SurfaceGraph.Homology
     other-modules:
-        Math.Algebra.PlanarAlgebra.Reduction,
         Math.Topology.KnotTh.Draw.DrawCrossing,
         Math.Topology.KnotTh.Draw.Settings,
         Math.Topology.KnotTh.Invariants.HomflyPolynomial,

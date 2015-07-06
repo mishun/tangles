@@ -1,6 +1,6 @@
 {-# LANGUAGE RankNTypes #-}
 module Math.Topology.KnotTh.Invariants.KnotPolynomials
-    ( module Math.Algebra.PlanarAlgebra.Reduction
+    ( module Math.Topology.KnotTh.PlanarAlgebra.Reduction
     , SkeinRelation(..)
     , reduceSkeinWithStrategy
     , reduceSkeinStd
@@ -10,7 +10,7 @@ module Math.Topology.KnotTh.Invariants.KnotPolynomials
     , skeinRelationPreMinimization
     ) where
 
-import Math.Algebra.PlanarAlgebra.Reduction
+import Math.Topology.KnotTh.PlanarAlgebra.Reduction
 import Math.Topology.KnotTh.Tangle
 
 

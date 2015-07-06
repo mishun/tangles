@@ -28,7 +28,7 @@ restingPart tangle incoming
 
         starts = map beginVertex incoming
 
-        ends = mapMaybe endVertexM incoming
+        ends = mapMaybe maybeEndVertex incoming
 
         startsDifferent = all (uncurry (/=)) $ zip starts (tail starts)
 
@@ -69,7 +69,7 @@ restingPart tangle incoming
                     visited <- gets $ S.member c
                     unless visited $ do
                         modify $ S.insert c
-                        mapM_ dfs $ filter ((sub UV.!) . vertexIndex) $ mapMaybe endVertexM $ outcomingDarts c
+                        mapM_ dfs $ filter ((sub UV.!) . vertexIndex) $ mapMaybe maybeEndVertex $ outcomingDarts c
 
         outcoming (sub, flowValue)
             | any (not . onBorder) incoming  = Nothing

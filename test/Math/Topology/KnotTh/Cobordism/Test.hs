@@ -103,15 +103,15 @@ generalCannedCobordismTests _ =
     let (=?~=) = (@?=) :: cob -> cob -> Assertion
     in testGroup "General canned cobordism properties tests"
         [ testCase "numberOfLegs" $ do
-            numberOfLegs (capCobordism :: cob) @?= 0
-            numberOfLegs (cupCobordism :: cob) @?= 0
-            numberOfLegs (tubeCobordism :: cob) @?= 0
-            numberOfLegs (sphereCobordism :: cob) @?= 0
-            numberOfLegs (torusCobordism :: cob) @?= 0
-            numberOfLegs (pantsCobordism :: cob) @?= 0
+            planarDegree (capCobordism :: cob) @?= 0
+            planarDegree (cupCobordism :: cob) @?= 0
+            planarDegree (tubeCobordism :: cob) @?= 0
+            planarDegree (sphereCobordism :: cob) @?= 0
+            planarDegree (torusCobordism :: cob) @?= 0
+            planarDegree (pantsCobordism :: cob) @?= 0
 
             let saddle = saddleCobordism :: cob
-            numberOfLegs saddle @?= 4
+            planarDegree saddle @?= 4
             numberOfLoops (cobordismBorder0 saddle) @?= 0
             numberOfLoops (cobordismBorder1 saddle) @?= 0
             cobordismBorder0 saddle @?= planarPropagator 2

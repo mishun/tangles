@@ -71,26 +71,29 @@ data FaceSystem =
         }
 
 
-instance PlanarDiagram EmbeddedLink where
-    numberOfVertices = vertexCount
+instance DartDiagram EmbeddedLink where
+    data Dart EmbeddedLink a = Dart !(EmbeddedLink a) {-# UNPACK #-} !Int
+
+    dartOwner (Dart k _) = k
+    dartIndex (Dart _ i) = i
+
+    opposite (Dart k d) = Dart k (involutionArray k `PV.unsafeIndex` d)
+
+    nextCCW (Dart k d) = Dart k ((d .&. complement 3) + ((d + 1) .&. 3))
+
+    nextCW (Dart k d) = Dart k ((d .&. complement 3) + ((d - 1) .&. 3))
+
+    nextBy delta (Dart k d) = Dart k ((d .&. complement 3) + ((d + delta) .&. 3))
 
     numberOfEdges l = PV.length (involutionArray l) `shiftR` 1
 
     numberOfDarts l = PV.length (involutionArray l)
 
-    nthVertex k i | i < 1 || i > b  = error $ printf "nthVertex: index %i is out of bounds (1, %i)" i b
-                  | otherwise       = Vertex k (i - 1)
-        where
-             b = numberOfVertices k
-
     nthDart k i | i < 0 || i >= b  = error $ printf "nthDart: index %i is out of bounds (0, %i)" i b
                 | otherwise        = Dart k i
-        where
-            b = PV.length (involutionArray k)
+        where b = PV.length (involutionArray k)
 
-    allVertices k = map (Vertex k) [0 .. numberOfVertices k - 1]
-
-    allHalfEdges k = map (Dart k) [0 .. PV.length (involutionArray k) - 1]
+    allDarts k = map (Dart k) [0 .. PV.length (involutionArray k) - 1]
 
     allEdges k =
         foldl' (\ !es !i ->
@@ -100,36 +103,38 @@ instance PlanarDiagram EmbeddedLink where
                     else es
             ) [] [0 .. PV.length (involutionArray k) - 1]
 
+    dartIndicesRange k = (0, numberOfDarts k - 1)
+
+
+instance VertexDiagram EmbeddedLink where
     data Vertex EmbeddedLink a = Vertex !(EmbeddedLink a) {-# UNPACK #-} !Int
 
-    vertexDegree _ = 4
     vertexOwner (Vertex k _) = k
     vertexIndex (Vertex _ i) = i + 1
+
+    vertexDegree _ = 4
+
+    numberOfVertices = vertexCount
+
+    nthVertex k i | i < 1 || i > b  = error $ printf "nthVertex: index %i is out of bounds (1, %i)" i b
+                  | otherwise       = Vertex k (i - 1)
+        where b = numberOfVertices k
+
+    allVertices k = map (Vertex k) [0 .. numberOfVertices k - 1]
 
     nthOutcomingDart (Vertex k c) i = Dart k ((c `shiftL` 2) + (i .&. 3))
 
     outcomingDarts c = map (nthOutcomingDart c) [0 .. 3]
 
-    data Dart EmbeddedLink a = Dart !(EmbeddedLink a) {-# UNPACK #-} !Int
-
-    dartOwner (Dart k _) = k
-    dartIndex (Dart _ i) = i
-
-    opposite (Dart k d) = Dart k (involutionArray k `PV.unsafeIndex` d)
+    maybeBeginVertex (Dart k d) = Just $! Vertex k (d `shiftR` 2)
 
     beginVertex (Dart k d) = Vertex k (d `shiftR` 2)
 
     beginPlace (Dart _ d) = d .&. 3
 
-    nextCCW (Dart k d) = Dart k ((d .&. complement 3) + ((d + 1) .&. 3))
-
-    nextCW (Dart k d) = Dart k ((d .&. complement 3) + ((d - 1) .&. 3))
-
     isDart _ = True
 
     vertexIndicesRange k = (1, numberOfVertices k)
-
-    dartIndicesRange k = (0, numberOfDarts k - 1)
 
 
 instance (NFData a) => NFData (EmbeddedLink a) where
@@ -156,7 +161,7 @@ instance Knotted EmbeddedLink where
         where
             internal | numberOfVertices link == 0  = UV.empty
                      | otherwise                   = minimum $ do
-                dart <- allHalfEdges link
+                dart <- allDarts link
                 dir <- bothDirections
                 globalG <- fromMaybe [d4I] $ globalTransformations link
                 return $! codeWithDirection globalG dir dart
@@ -502,7 +507,7 @@ fromLink = implode . explode
 
 
 toLink :: EmbeddedLink a -> Link a
-toLink sl | eulerChar sl == 2         = l
+toLink sl | eulerCharOf sl == 2       = l
           | numberOfVertices sl == 0  = l
           | otherwise                 = error "toLink: euler char must be 2"
     where

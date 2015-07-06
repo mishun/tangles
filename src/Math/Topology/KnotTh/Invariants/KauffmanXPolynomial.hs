@@ -39,7 +39,7 @@ instance KnottedWithKauffmanXPolynomial EmbeddedLink where
 
     kauffmanXPolynomial link | numberOfVertices link == 0  = 1
                              | otherwise                   =
-        case eulerChar link of
+        case eulerCharOf link of
             2 -> kauffmanXPolynomial (toLink link)
 
             0 -> sum $ do

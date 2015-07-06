@@ -1,6 +1,6 @@
 {-# LANGUAGE TypeFamilies, UnboxedTuples #-}
 module Math.Topology.KnotTh.Knotted
-    ( module Math.Algebra.PlanarAlgebra
+    ( module Math.Topology.KnotTh.PlanarAlgebra
     , module Math.Topology.KnotTh.Dihedral
     , Crossing(..)
     , Knotted(..)
@@ -15,7 +15,7 @@ module Math.Topology.KnotTh.Knotted
 
 import Data.Bits ((.&.))
 import Data.Vector.Unboxed (Vector)
-import Math.Algebra.PlanarAlgebra
+import Math.Topology.KnotTh.PlanarAlgebra
 import Math.Topology.KnotTh.Dihedral
 import Math.Topology.KnotTh.Dihedral.D4
 
@@ -26,7 +26,7 @@ class (DihedralAction a) => Crossing a where
     crossingCodeWithGlobal :: (Knotted k) => D4 -> RotationDirection -> Dart k a -> (# Int, Int #)
 
 
-class (Functor k, PlanarDiagram k) => Knotted k where
+class (Functor k, VertexDiagram k) => Knotted k where
     vertexCrossing :: Vertex k a -> a
     mapCrossings :: (Vertex k a -> b) -> k a -> k b
 

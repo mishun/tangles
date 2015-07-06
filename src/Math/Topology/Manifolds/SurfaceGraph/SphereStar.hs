@@ -23,7 +23,7 @@ sphereStarDecomposition
 
 sphereStarDecomposition graph
     | numberOfVertices graph == 0  = error "sphereStarDecomposition: undefined for empty graph"
-    | eulerChar graph == 2         = error "sphereStarDecomposition: undefined for planar graphs"
+    | eulerCharOf graph == 2       = error "sphereStarDecomposition: undefined for planar graphs"
     | otherwise                    = runST $ do
         let (_, edgeTreeMarks) = backtrack graph
 
@@ -41,7 +41,7 @@ sphereStarDecomposition graph
                             loop (nextCCW d, rest, reductionSteps)
                         _                          -> loop (nextCCW d, d : stack, depth - 1)
 
-        externalEdges <- filterM (fmap not . readArray edgeMarks) $ allHalfEdges graph
+        externalEdges <- filterM (fmap not . readArray edgeMarks) $ allDarts graph
         let numberOfExternalEdges = length externalEdges
 
         borderPlace <- (newArray :: (Ix i) => (i, i) -> Int -> ST s (STUArray s i Int)) (dartsRange graph) (-1)

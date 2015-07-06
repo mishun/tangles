@@ -573,7 +573,7 @@ instance (CobordismGuts g) => CannedCobordism (Cobordism' g) where
             ) saddleGuts
 
 instance (CobordismGuts g) => RotationAction (Cobordism' g) where
-    rotationOrder = numberOfLegs
+    rotationOrder (Cob h _) = legsN h
 
     rotateBy 0 cob = cob
     rotateBy rot (Cob h g) | legsN h == 0  = Cob h g
@@ -591,7 +591,7 @@ instance (CobordismGuts g) => RotationAction (Cobordism' g) where
         in Cob h' (rotateGuts subst g)
 
 instance (CobordismGuts g) => PlanarAlgebra' (Cobordism' g) where
-    numberOfLegs (Cob h _) = legsN h
+    planarDegree (Cob h _) = legsN h
 
     planarPropagator = identityCobordism . planarPropagator
 
@@ -607,7 +607,7 @@ instance (CobordismGuts g) => PlanarAlgebra' (Cobordism' g) where
             in Cob h $ horComposeGuts (h, gl, UV.fromList extraLoops0, UV.fromList extraLoops1) (gA, hA, posA) (gB, hB, posB)
 
 instance (CobordismGuts g) => RotationAction (CobordismBorder (Cobordism' g)) where
-    rotationOrder = numberOfLegs
+    rotationOrder (Brd _ a) = UV.length a
 
     rotateBy 0 b = b
     rotateBy rot (Brd loops a) = Brd loops (rotateArcs rot a)
@@ -616,7 +616,7 @@ instance (CobordismGuts g) => DihedralAction (CobordismBorder (Cobordism' g)) wh
     mirrorIt = error "mirror is not implemeted"
 
 instance (CobordismGuts g) => PlanarAlgebra' (CobordismBorder (Cobordism' g)) where
-    numberOfLegs (Brd _ a) = UV.length a
+    planarDegree (Brd _ a) = UV.length a
 
     planarPropagator n | n < 0      = error $ printf "planarPropagator: parameter must be non-negative, but %i passed" n
                        | otherwise  = Brd 0 $ UV.generate (2 * n) (\ i -> 2 * n - 1 - i)
@@ -632,7 +632,7 @@ instance (CobordismGuts g) => PlanarAlgebra' (CobordismBorder (Cobordism' g)) wh
     planarLoop = Brd 1 UV.empty
 
 instance (CobordismGuts g) => ChordDiagram (CobordismBorder (Cobordism' g)) where
-    numberOfChordEnds = numberOfLegs
+    numberOfChordEnds (Brd _ a) = UV.length a
 
     chordMate (Brd _ a) x = a UV.! x
     chordMateArray (Brd _ a) = a

@@ -51,7 +51,7 @@ instance (DrawableCrossing a) => DrawableKnotted (Link a) where
                         in nthOutcomingDart (nthVertex g $ vertexIndex c - 1) p
 
                 in A.array (dartsRange link) $ do
-                    d <- allHalfEdges link
+                    d <- allDarts link
                     return (d, Left $ embedding A.! toGraphDart d)
             ]
 
@@ -80,14 +80,14 @@ instance (DrawableCrossing a) => DrawableKnotted (Tangle a) where
                                   | otherwise  = nthOutcomingDart (nthVertex g $ beginVertexIndex d) (beginPlace d)
 
                 in A.array (dartsRange tangle) $ do
-                    d <- allHalfEdges tangle
+                    d <- allDarts tangle
                     return (d, Left $ embedding A.! toGraphDart d)
             ]
 
 
 instance (DrawableCrossing a) => DrawableKnotted (EmbeddedLink a) where
-    drawKnot s link | numberOfVertices link == 0 || eulerChar link == 2  = drawKnot s $ toLink link
-                    | otherwise                                          =
+    drawKnot s link | numberOfVertices link == 0 || eulerCharOf link == 2  = drawKnot s $ toLink link
+                    | otherwise                                            =
         let (sphereRoot, starRoot, sphereToStarProjection, _) =
                 sphereStarDecomposition $
                     constructFromList $
@@ -128,7 +128,7 @@ instance (DrawableCrossing a) => DrawableKnotted (EmbeddedLink a) where
                         linkToSphereDart d =
                             let (c, p) = beginPair d
                             in nthOutcomingDart (nthVertex spherePart $ vertexIndex c) p
-                    d <- allHalfEdges link
+                    d <- allDarts link
                     let gd = linkToSphereDart d
                     return $ (,) d $
                         if beginVertex (opposite gd) == sphereRoot

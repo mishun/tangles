@@ -74,10 +74,10 @@ nextGeneration cross link =
     map snd $ nubBy ((==) `on` fst) $ do
         (rc, child) <- do
             c <- cross
-            d <- allHalfEdges link
+            d <- allDarts link
             p0 c d : [p1 c d | opposite (nextCCW d) /= nextCW (opposite d)]
 
-        let rc' = minimum [rootCode r dir | r <- allHalfEdges child, dir <- bothDirections]
+        let rc' = minimum [rootCode r dir | r <- allDarts child, dir <- bothDirections]
         guard $ rc <= rc'
         return (rc, child)
 

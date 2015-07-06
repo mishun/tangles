@@ -1,19 +1,19 @@
 module Math.Topology.KnotTh.Knotted.Threads
     ( ThreadList
     , ThreadedCrossing(..)
-    , maybeThreadContinuation
     , allThreads
     , numberOfThreads
     , allThreadsWithMarks
     ) where
 
-import Data.Ix (Ix)
-import Data.STRef (newSTRef, readSTRef, modifySTRef')
+import Control.Monad (foldM)
+import qualified Control.Monad.ST as ST
 import Data.Array.Unboxed (UArray)
 import Data.Array.Unsafe (unsafeFreeze)
 import Data.Array.ST (STUArray, newArray, readArray, writeArray)
-import Control.Monad.ST
-import Control.Monad (foldM)
+import Data.Ix (Ix)
+import Data.Maybe (fromJust)
+import Data.STRef (newSTRef, readSTRef, modifySTRef')
 import Math.Topology.KnotTh.Knotted
 
 
@@ -21,16 +21,11 @@ type ThreadList d = (Int, UArray d Int, [(Int, [(d, d)])])
 
 
 class ThreadedCrossing a where
+    maybeThreadContinuation :: (Knotted k) => Dart k a -> Maybe (Dart k a)
+    maybeThreadContinuation d = maybeBeginVertex d >> return (nextCCW $ nextCCW d)
+
     threadContinuation :: (Knotted k) => Dart k a -> Dart k a
-
-    threadContinuation d | isDart d   = nextCCW $ nextCCW d
-                         | otherwise  = error "continuation: from endpoint"
-
-
-{-# INLINE maybeThreadContinuation #-}
-maybeThreadContinuation :: (ThreadedCrossing a, Knotted k) => Dart k a -> Maybe (Dart k a)
-maybeThreadContinuation d | isDart d   = Just $! threadContinuation d
-                          | otherwise  = Nothing
+    threadContinuation = fromJust . maybeThreadContinuation
 
 
 allThreads :: (ThreadedCrossing a, KnottedPlanar k) => k a -> [[(Dart k a, Dart k a)]]
@@ -46,14 +41,14 @@ numberOfThreads knot =
 
 
 allThreadsWithMarks :: (ThreadedCrossing a, KnottedPlanar k) => k a -> ThreadList (Dart k a)
-allThreadsWithMarks knot = runST $ do
+allThreadsWithMarks knot = ST.runST $ do
     let lp = numberOfFreeLoops knot
     threads <- newSTRef $ replicate lp (0, [])
 
     (n, visited) <- if numberOfEdges knot == 0
         then return (1, undefined)
         else do
-            visited <- (newArray :: (Ix i) => (i, i) -> Int -> ST s (STUArray s i Int)) (dartsRange knot) 0
+            visited <- (newArray :: (Ix i) => (i, i) -> Int -> ST.ST s (STUArray s i Int)) (dartsRange knot) 0
             n <- foldM (\ !i (!startA, !startB) -> do
                     v <- readArray visited startA
                     if v /= 0
@@ -64,22 +59,19 @@ allThreadsWithMarks knot = runST $ do
                                     writeArray visited a i
                                     writeArray visited b (-i)
                                     let !next = (a, b) : prev
-                                    if not (isDart a)
-                                        then return $! Right $! next
-                                        else do
-                                            let b' = threadContinuation a
-                                            if b' == startB
-                                                then return $! Left $! next
-                                                else traceBack next b'
+                                    case maybeThreadContinuation a of
+                                        Nothing                -> return $! Right $! next
+                                        Just b' | b' == startB -> return $! Left $! next
+                                                | otherwise    -> traceBack next b'
 
-                                traceFront !prev !b'
-                                    | not (isDart b')  = return $! reverse prev
-                                    | otherwise        = do
-                                        let !a = threadContinuation b'
-                                        let !b = opposite a
-                                        writeArray visited a i
-                                        writeArray visited b (-i)
-                                        traceFront ((a, b) : prev) b
+                                traceFront !prev !b' =
+                                    case maybeThreadContinuation b' of
+                                        Nothing -> return $! reverse prev
+                                        Just !a -> do
+                                            let !b = opposite a
+                                            writeArray visited a i
+                                            writeArray visited b (-i)
+                                            traceFront ((a, b) : prev) b
 
                             tb <- traceBack [] startB
                             thread <- case tb of

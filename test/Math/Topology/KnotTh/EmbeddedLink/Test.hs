@@ -12,12 +12,12 @@ import Math.Topology.KnotTh.EmbeddedLink
 test :: Test
 test =
     let testCorr link = do
-            forM_ (allHalfEdges link) $ \ d -> do
+            forM_ (allDarts link) $ \ d -> do
                 let f = leftFace d
                     p = leftPlace d
                 nthDartInCCWTraverse f p @?= d
 
-            forM_ (allHalfEdges link) $ \ d -> do
+            forM_ (allDarts link) $ \ d -> do
                 let f = rightFace d
                     p = rightPlace d
                 nthDartInCWTraverse f p @?= d
@@ -36,7 +36,7 @@ test =
             testCorr l
             assertEqual "Number of faces" 1 $ numberOfFaces l
             assertEqual "Face degree" 4 $ faceDegree (nthFace l 1)
-            assertEqual "Euler char" 0 $ eulerChar l
+            assertEqual "Euler char" 0 $ eulerCharOf l
 
         , testCase "Hopf link" $ do
             let l :: EmbeddedLinkProjection
@@ -47,7 +47,7 @@ test =
 
             testCorr l
             assertEqual "Number of faces" 4 $ numberOfFaces l
-            assertEqual "Euler char" 2 $ eulerChar l
+            assertEqual "Euler char" 2 $ eulerCharOf l
 
         , testCase "Test prime on one vertex" $
             True @=? testPrime (implode (0, [([(1, 2), (1, 3), (1, 0), (1, 1)], projectionCrossing)]))

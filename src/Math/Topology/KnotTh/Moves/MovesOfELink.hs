@@ -75,7 +75,7 @@ subTangleP legs =
                         modify $ S.insert c
                         mapM_ dfs $
                             filter ((sub UV.!) . vertexIndex) $
-                                mapMaybe endVertexM $ outcomingDarts c
+                                mapMaybe maybeEndVertex $ outcomingDarts c
             in all (`S.member` mask) subList
 
         let onBorder xy =
