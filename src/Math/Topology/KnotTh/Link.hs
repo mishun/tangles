@@ -277,8 +277,7 @@ decode (n, threads) = implode (length $ filter null threads, incidence)
                     STArray.writeArray vis (abs i) True
                     connect prev (connection second False i)
 
-                    let crossing | i > 0      = overCrossing
-                                 | otherwise  = underCrossing
+                    let crossing = overCrossingIf (i > 0)
 
                     if second
                         then STArray.readArray state (abs i) >>= flip when (fail "gauss code internal error") . (/= crossing)

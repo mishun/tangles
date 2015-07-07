@@ -564,11 +564,8 @@ twistedNSatellite n link
 
         wrap v | wc == 0    = cross
                | otherwise  =
-                   let r | wc > 0     = underCrossing
-                         | otherwise  = overCrossing
-
-                       braid =
-                           let half = reversingBraidTangle n r
+                   let braid =
+                           let half = reversingBraidTangle n (overCrossingIf $ wc < 0)
                            in half |=| half
                    in horizontalComposition n (braid, n) (cross, 0)
             where

@@ -3,6 +3,7 @@ module Math.Topology.KnotTh.Knotted.Crossings.Diagram
     ( DiagramCrossing
     , overCrossing
     , underCrossing
+    , overCrossingIf
     , isOverCrossing
     , isUnderCrossing
     , invertCrossing
@@ -85,6 +86,12 @@ overCrossing = DC 0
 
 underCrossing :: DiagramCrossing
 underCrossing = DC 1
+
+
+{-# INLINE overCrossingIf #-}
+overCrossingIf :: Bool -> DiagramCrossing
+overCrossingIf True = overCrossing
+overCrossingIf False = underCrossing
 
 
 {-# INLINE isOverCrossing #-}

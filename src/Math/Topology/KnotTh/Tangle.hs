@@ -170,7 +170,7 @@ lonerUnderCrossing = lonerTangle underCrossing
 
 rationalTangle :: [Int] -> TangleDiagram
 rationalTangle = flip foldl infinityTangle $ \ tangle x ->
-    let g = chainTangle $ replicate (abs x) (if x >= 0 then overCrossing else underCrossing)
+    let g = chainTangle $ replicate (abs x) (overCrossingIf $ x >= 0)
     in horizontalComposition 2 (g, 2) (tangle, 1)
 
 
@@ -192,11 +192,8 @@ twistedNSatellite n tangle | n < 0      = error $ printf "twistedNSattelite: neg
 
         wrap v | wc == 0    = cross
                | otherwise  =
-                   let r | wc > 0     = underCrossing
-                         | otherwise  = overCrossing
-
-                       braid =
-                           let half = reversingBraidTangle n r
+                   let braid =
+                           let half = reversingBraidTangle n (overCrossingIf $ wc < 0)
                            in half |=| half
                    in horizontalComposition n (braid, n) (cross, 0)
             where
@@ -1000,7 +997,6 @@ type TangleProjectionDart = Dart Tangle ProjectionCrossing
 type TangleDiagram = Tangle DiagramCrossing
 type TangleDiagramVertex = Vertex Tangle DiagramCrossing
 type TangleDiagramDart = Dart Tangle DiagramCrossing
-
 
 
 data CrossingFlag a = Direct !a | Flipped !a | Masked
