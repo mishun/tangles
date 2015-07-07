@@ -62,31 +62,10 @@ import Math.Topology.KnotTh.Moves.ModifyDSL
 
 
 class (KnottedPlanar t, LeggedDiagram t) => TangleLike t where
-    emptyTangle :: t a
-    emptyTangle = emptyKnotted
-
-    -- | 2--1
-    --   3--0
-    zeroTangle     :: t a
-
-    -- | 2   1
-    --   |   |
-    --   3   0
-    infinityTangle :: t a
-
-    lonerTangle :: a -> t a
-
-    mirrorTangleWith :: (a -> a) -> t a -> t a
-
-    -- |           legsToGlue = 2
-    --  ..............|
-    --  (legA + 2) ---|- 0
-    --  ..............|     |..............
-    --  (legA + 1) ---|-----|--- (legB - 1)
-    --  ..............|     |..............
-    --  (legA) -------|-----|--- (legB)
-    --  ..............|     |..............
---    glueTangles :: Int -> Dart t a -> Dart t a -> t a
+    emptyTangle    :: t a
+    zeroTangle     :: t a -- 1--2, 3--0
+    infinityTangle :: t a -- 0--1, 2--3
+    lonerTangle    :: a -> t a
 
     -- |     edgesToGlue = 1                 edgesToGlue = 2                 edgesToGlue = 3
     -- ........|                       ........|                       ........|
@@ -101,6 +80,8 @@ class (KnottedPlanar t, LeggedDiagram t) => TangleLike t where
     glueToBorder :: Dart t a -> Int -> a -> Vertex t a
 
     tensorSubst :: Int -> (Vertex t a -> t b) -> t a -> t b
+
+    emptyTangle = emptyKnotted
 
 
 (|=|) :: Tangle a -> Tangle a -> Tangle a
@@ -696,8 +677,21 @@ instance RotationAction (Tangle a) where
             l = numberOfLegs tangle
 
 
-instance (Crossing a) => DihedralAction (Tangle a) where
-    mirrorIt = mirrorTangleWith mirrorIt
+instance (DihedralAction a) => DihedralAction (Tangle a) where
+    mirrorIt tangle =
+        tangle
+            { involutionArray = PV.create $ do
+                let l = numberOfLegs tangle
+                    n = 4 * numberOfVertices tangle
+                    a = involutionArray tangle
+                    modify i | i < n      = (i .&. complement 3) + ((-i) .&. 3)
+                             | otherwise  = n + mod (n - i) l
+                a' <- PMV.new (n + l)
+                forM_ [0 .. n + l - 1] $ \ !i ->
+                    PMV.unsafeWrite a' (modify i) $ modify (a `PV.unsafeIndex` i)
+                return a'
+            , crossingsArray = mirrorIt `fmap` crossingsArray tangle
+            }
 
 
 instance (Crossing a) => GroupAction (Tangle a) where
@@ -853,114 +847,6 @@ instance TangleLike Tangle where
             , legsCount       = 4
             }
 
-    mirrorTangleWith f tangle =
-        tangle
-            { involutionArray = PV.create $ do
-                let l = numberOfLegs tangle
-                    n = 4 * numberOfVertices tangle
-                    a = involutionArray tangle
-                    modify i | i < n      = (i .&. complement 3) + ((-i) .&. 3)
-                             | otherwise  = n + mod (n - i) l
-                a' <- PMV.new (n + l)
-                forM_ [0 .. n + l - 1] $ \ !i ->
-                    PMV.unsafeWrite a' (modify i) $ modify (a `PV.unsafeIndex` i)
-                return a'
-            , crossingsArray = f `fmap` crossingsArray tangle
-            }
-{-
-    glueTangles legsToGlue legA legB = ST.runST $ do
-        unless (isLeg legA) $
-            fail $ printf "glueTangles: first leg parameter %s is not a leg" (show legA)
-        unless (isLeg legB) $
-            fail $ printf "glueTangles: second leg parameter %s is not a leg" (show legB)
-
-        let tangleA = dartOwner legA
-            lA = numberOfLegs tangleA
-            nA = numberOfVertices tangleA
-            lpA = legPlace legA
-
-            tangleB = dartOwner legB
-            lB = numberOfLegs tangleB
-            nB = numberOfVertices tangleB
-            lpB = legPlace legB
-
-        when (legsToGlue < 0 || legsToGlue > min lA lB) $
-            fail $ printf "glueTangles: number of legs to glue %i is out of bound" legsToGlue
-
-        let newL = lA + lB - 2 * legsToGlue
-            newC = nA + nB
-
-        visited <- MV.replicate legsToGlue False
-
-        cr <- do
-            let {-# INLINE convertA #-}
-                convertA !x
-                    | x < 4 * nA        = return $! x
-                    | ml >= legsToGlue  = return $! 4 * newC + ml - legsToGlue
-                    | otherwise         = do
-                        MV.unsafeWrite visited ml True
-                        convertB (involutionArray tangleB `PV.unsafeIndex` (4 * nB + (lpB - ml) `mod` lB))
-                    where
-                        ml = (x - 4 * nA - lpA) `mod` lA
-
-                {-# INLINE convertB #-}
-                convertB !x
-                    | x < 4 * nB            = return $! 4 * nA + x
-                    | ml < lB - legsToGlue  = return $! 4 * newC + ml + lA - legsToGlue
-                    | otherwise             = do
-                        MV.unsafeWrite visited (lB - ml - 1) True
-                        convertA (involutionArray tangleA `PV.unsafeIndex` (4 * nA + (lpA + lB - ml - 1) `mod` lA))
-                    where
-                        ml = (x - 4 * nB - lpB - 1) `mod` lB
-
-            cr <- PMV.new (4 * newC + newL)
-            forM_ [0 .. 4 * nA - 1] $ \ !i ->
-                convertA (involutionArray tangleA `PV.unsafeIndex` i)
-                    >>= PMV.unsafeWrite cr i
-
-            forM_ [0 .. 4 * nB - 1] $ \ !i ->
-                convertB (involutionArray tangleB `PV.unsafeIndex` i)
-                    >>= PMV.unsafeWrite cr (4 * nA + i)
-
-            forM_ [0 .. lA - legsToGlue - 1] $ \ !i ->
-                convertA (involutionArray tangleA `PV.unsafeIndex` (4 * nA + (lpA + legsToGlue + i) `mod` lA))
-                    >>= PMV.unsafeWrite cr (4 * newC + i)
-
-            forM_ [0 .. lB - legsToGlue - 1] $ \ !i ->
-                convertB (involutionArray tangleB `PV.unsafeIndex` (4 * nB + (lpB + 1 + i) `mod` lB))
-                    >>= PMV.unsafeWrite cr (4 * newC + lA - legsToGlue + i)
-            PV.unsafeFreeze cr
-
-        extraLoops <- do
-            let markA a = do
-                    let ai = 4 * nA + (lpA + a) `mod` lA
-                        bi = involutionArray tangleA `PV.unsafeIndex` ai
-                        b = (bi - 4 * nA - lpA) `mod` lA
-                    v <- MV.unsafeRead visited b
-                    unless v $ MV.unsafeWrite visited b True >> markB b
-
-                markB a = do
-                    let ai = 4 * nB + (lpB - a) `mod` lB
-                        bi = involutionArray tangleB `PV.unsafeIndex` ai
-                        b = (lpB - (bi - 4 * nB)) `mod` lB
-                    v <- MV.unsafeRead visited b
-                    unless v $ MV.unsafeWrite visited b True >> markA b
-
-            foldM (\ !s !i -> do
-                    v <- MV.unsafeRead visited i
-                    if v
-                        then return $! s
-                        else markA i >> (return $! s + 1)
-                ) 0 [0 .. legsToGlue - 1]
-
-        return Tangle
-            { loopsCount      = numberOfFreeLoops tangleA + numberOfFreeLoops tangleB + extraLoops
-            , vertexCount     = newC
-            , involutionArray = cr
-            , crossingsArray  = crossingsArray tangleA V.++ crossingsArray tangleB
-            , legsCount       = newL
-            }
--}
     glueToBorder leg legsToGlue !crossingToGlue = ST.runST $ do
         unless (isLeg leg) $
             fail $ printf "glueToBorder: leg expected, but %s received" (show leg)
