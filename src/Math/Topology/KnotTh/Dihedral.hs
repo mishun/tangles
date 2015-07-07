@@ -5,6 +5,7 @@ module Math.Topology.KnotTh.Dihedral
     , RotationGroup(..)
     , DihedralGroup(..)
     , RotationAction(..)
+    , rotateBy
     , allRotationsOf
     , DihedralAction(..)
     , allOrientationsOf
@@ -51,8 +52,16 @@ class (RotationGroup g) => DihedralGroup g where
 
 
 class RotationAction a where
-    rotationOrder :: a -> Int
-    rotateBy      :: Int -> a -> a
+    rotationOrder     :: a -> Int
+    rotateByUnchecked :: Int -> a -> a
+
+
+{-# INLINE rotateBy #-}
+rotateBy :: (RotationAction a) => Int -> a -> a
+rotateBy !rot x | l == 0            = x
+                | rot `mod` l == 0  = x
+                | otherwise         = rotateByUnchecked rot x
+    where l = rotationOrder x
 
 allRotationsOf :: (RotationAction a) => a -> [a]
 allRotationsOf a =

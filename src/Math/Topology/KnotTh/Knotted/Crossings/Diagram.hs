@@ -50,9 +50,8 @@ instance NFData DiagramCrossing
 instance RotationAction DiagramCrossing where
     rotationOrder _ = 4
 
-    {-# INLINE rotateBy #-}
-    rotateBy rot | even rot   = id
-                 | otherwise  = invertCrossing
+    rotateByUnchecked rot | even rot   = id
+                          | otherwise  = invertCrossing
 
 instance DihedralAction DiagramCrossing where
     {-# INLINE mirrorIt #-}

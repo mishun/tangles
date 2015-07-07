@@ -208,8 +208,7 @@ decomposeTangle path !initialFactor !tangle' =
 instance (KauffmanFArg a) => RotationAction (ChordDiagramsSum a) where
     rotationOrder (ChordDiagramsSum d _) = d
 
-    rotateBy 0 = id
-    rotateBy rot =
+    rotateByUnchecked !rot =
         mapStateSum $ \ (ChordDiagram a factor) ->
             decomposeTangle [] factor $ rotateBy rot $ restoreBasicTangle a
 

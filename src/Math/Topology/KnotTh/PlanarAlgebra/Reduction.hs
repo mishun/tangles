@@ -10,7 +10,6 @@ module Math.Topology.KnotTh.PlanarAlgebra.Reduction
     ) where
 
 import Control.Arrow (first)
-import Control.Exception (assert)
 import Control.Monad (filterM, foldM, forM, forM_, unless, when)
 import Control.Monad.Reader (ReaderT, runReaderT, ask, lift)
 import qualified Control.Monad.ST as ST
@@ -296,29 +295,29 @@ extractStateSumST s = do
     let legsN = MV.length brd
 
     visited <- UMV.replicate legsN False
-    res <- foldM (\ !part !leg -> do
+    (rotCredit, res) <-
+        foldM (\ (!rotCredit, !part) !leg -> do
                 vis <- UMV.read visited leg
                 if vis
-                    then return $! rotateBy (-1) part
+                    then return $! (rotCredit + 1, part)
                     else do
                         (v, pos) <- MV.read brd leg
-                        ex <- case v of
+                        case v of
                             0 -> do
                                 UMV.write visited leg True
                                 UMV.write visited pos True
-                                return $! planarPropagator 1
+                                return $! (0, horizontalComposition 0 (planarPropagator 1, 0) (part, 1 + rotCredit))
 
                             _ -> do
                                 adj <- MV.read (adjacent s) v
                                 forM_ [0 .. MV.length adj - 1] $ \ !i -> do
                                     (0, p') <- MV.read adj i
                                     UMV.write visited p' True
-                                rotateBy (-pos) `fmap` MV.read (state s) v
+                                ex <- MV.read (state s) v
+                                return $! (0, horizontalComposition 0 (ex, pos) (part, 1 + rotCredit))
+            ) (0, globalFactor) [0 .. legsN - 1]
 
-                        return $! horizontalComposition 0 (ex, 0) (part, 1)
-            ) globalFactor [0 .. legsN - 1]
-
-    return $! assert (planarDegree res == legsN) $ rotateBy (-1) res
+    return $! rotateBy (-1 - rotCredit) res
 
 
 tryGreedyContract :: (PlanarAlgebra a) => Context s a -> Int -> ST.ST s Bool

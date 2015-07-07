@@ -658,23 +658,21 @@ instance LeggedDiagram Tangle where
 instance RotationAction (Tangle a) where
     rotationOrder = numberOfLegs
 
-    rotateBy !rot tangle | l == 0 || rot == 0  = tangle
-                         | otherwise           =
-            tangle
-                { involutionArray = PV.create $ do
-                    let n = 4 * numberOfVertices tangle
-                        a = involutionArray tangle
-                        modify i | i < n      = i
-                                 | otherwise  = n + mod (i - n + rot) l
-                    a' <- PMV.new (n + l)
-                    forM_ [0 .. n - 1] $ \ !i ->
-                        PMV.unsafeWrite a' i $ modify (a `PV.unsafeIndex` i)
-                    forM_ [0 .. l - 1] $ \ !i ->
-                        PMV.unsafeWrite a' (n + mod (i + rot) l) $ modify (a `PV.unsafeIndex` (n + i))
-                    return a'
-                }
-        where
-            l = numberOfLegs tangle
+    rotateByUnchecked !rot tangle =
+        tangle
+            { involutionArray = PV.create $ do
+                let l = numberOfLegs tangle
+                    n = 4 * numberOfVertices tangle
+                    a = involutionArray tangle
+                    modify i | i < n      = i
+                             | otherwise  = n + mod (i - n + rot) l
+                a' <- PMV.new (n + l)
+                forM_ [0 .. n - 1] $ \ !i ->
+                    PMV.unsafeWrite a' i $ modify (a `PV.unsafeIndex` i)
+                forM_ [0 .. l - 1] $ \ !i ->
+                    PMV.unsafeWrite a' (n + mod (i + rot) l) $ modify (a `PV.unsafeIndex` (n + i))
+                return a'
+            }
 
 
 instance (DihedralAction a) => DihedralAction (Tangle a) where

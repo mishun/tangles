@@ -26,8 +26,7 @@ instance NFData ProjectionCrossing
 instance RotationAction ProjectionCrossing where
     rotationOrder _ = 4
 
-    {-# INLINE rotateBy #-}
-    rotateBy _ = id
+    rotateByUnchecked _ = id
 
 instance DihedralAction ProjectionCrossing where
     {-# INLINE mirrorIt #-}

@@ -8,7 +8,7 @@ import Test.Framework (Test, testGroup)
 import Test.Framework.Providers.HUnit (testCase)
 import Test.HUnit hiding (Test, test)
 import Math.Topology.KnotTh.Cobordism
-import Math.Topology.KnotTh.Dihedral (RotationAction(..))
+import Math.Topology.KnotTh.Dihedral (rotateBy)
 import Math.Topology.KnotTh.PlanarAlgebra
 
 

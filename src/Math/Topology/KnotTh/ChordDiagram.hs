@@ -77,8 +77,7 @@ newtype DiffChordDiagram = DCD (UV.Vector Int)
 instance RotationAction DiffChordDiagram where
     rotationOrder = numberOfChordEnds
 
-    rotateBy 0 cd = cd
-    rotateBy rot (DCD a) =
+    rotateByUnchecked !rot (DCD a) =
         let p = UV.length a
         in DCD $ UV.generate p $ \ !i ->
             let i' = (i - rot) `mod` p

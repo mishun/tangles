@@ -62,8 +62,7 @@ instance (Show a) => Show (SubTangleCrossing a) where
 instance RotationAction (SubTangleCrossing a) where
     rotationOrder _ = 4
 
-    {-# INLINE rotateBy #-}
-    rotateBy rot s = s { orientation = fromRotation rot ∘ orientation s }
+    rotateByUnchecked !rot s = s { orientation = fromRotation rot ∘ orientation s }
 
 instance DihedralAction (SubTangleCrossing a) where
     {-# INLINE mirrorIt #-}

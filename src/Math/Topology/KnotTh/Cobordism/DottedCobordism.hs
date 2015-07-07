@@ -575,9 +575,7 @@ instance (CobordismGuts g) => CannedCobordism (Cobordism' g) where
 instance (CobordismGuts g) => RotationAction (Cobordism' g) where
     rotationOrder (Cob h _) = legsN h
 
-    rotateBy 0 cob = cob
-    rotateBy rot (Cob h g) | legsN h == 0  = Cob h g
-                               | otherwise     =
+    rotateByUnchecked !rot (Cob h g) =
         let legs = legsN h
             h' = makeHeader legs (rotateArcs rot (arcs0 h), loops0 h)
                                  (rotateArcs rot (arcs1 h), loops1 h)
@@ -613,8 +611,7 @@ instance (CobordismGuts g) => PlanarAlgebra (Cobordism' g) where
 instance (CobordismGuts g) => RotationAction (CobordismBorder (Cobordism' g)) where
     rotationOrder (Brd _ a) = UV.length a
 
-    rotateBy 0 b = b
-    rotateBy rot (Brd loops a) = Brd loops (rotateArcs rot a)
+    rotateByUnchecked rot (Brd loops a) = Brd loops (rotateArcs rot a)
 
 instance (CobordismGuts g) => DihedralAction (CobordismBorder (Cobordism' g)) where
     mirrorIt = error "mirror is not implemeted"

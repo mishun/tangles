@@ -84,8 +84,7 @@ mapStateSum f (KauffmanXStateSum _ list) = concatStateSums $ map f list
 instance (KauffmanXArg a) => RotationAction (KauffmanXStateSum a) where
     rotationOrder (KauffmanXStateSum d _) = d
 
-    rotateBy 0 = id
-    rotateBy rot =
+    rotateByUnchecked !rot =
         mapStateSum $ \ (PlanarChordDiagram x f) ->
             let x' = UV.create $ do
                     let l = UV.length x
