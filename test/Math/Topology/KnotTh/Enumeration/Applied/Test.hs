@@ -6,7 +6,6 @@ module Math.Topology.KnotTh.Enumeration.Applied.Test
 import Data.Maybe (mapMaybe)
 import Control.Arrow ((&&&))
 import Control.Monad (forM_)
-import Control.Parallel.Strategies
 import Test.Framework (Test, testGroup)
 import Test.Framework.Providers.HUnit (testCase)
 import Test.HUnit hiding (Test, test)
@@ -22,17 +21,12 @@ import TestUtil.Table
 testInvariantness ::
     (Eq a, Show a)
         => ((forall m. (Monad m) => (TangleDiagram -> m ()) -> m ())
-            -> [AllDiagramsInfo TangleDiagram])
-               -> Int -> (TangleDiagram -> a) -> Assertion
-
+            -> [AllDiagramsInfo TangleDiagram]) -> Int -> (TangleDiagram -> a) -> Assertion
 testInvariantness sortClasses n f = do
-    let classes = map allDiagrams $ sortClasses $ tangleDiagrams True (-1) n
-    let results =
-            parMap rdeepseq (\ cls ->
-                    let inv = map f cls
-                    in all (== head inv) inv
-                ) classes
-    assert $ and results
+    forM_ (map allDiagrams $ sortClasses $ tangleDiagrams True (-1) n) $ \ (repr : rest) -> do
+        let invariant = f repr
+        forM_ rest $ \ cand ->
+            invariant @?= f cand
 
 
 test :: Test

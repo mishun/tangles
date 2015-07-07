@@ -110,7 +110,7 @@ test = testGroup "Basic tangle tests"
     , testGroup "Glue tangles"
         [ testCase "Glue 2 loner tangles" $
             let t = lonerProjection
-            in explode (glueTangles 1 (nthLeg t 0) (nthLeg t 1)) @?=
+            in explode (horizontalComposition 1 (t, 0) (t, 1)) @?=
                 ( 0
                 , [(1, 1), (1, 2), (1, 3), (2, 2), (2, 3), (2, 0)]
                 ,   [ ([(2, 1), (0, 0), (0, 1), (0, 2)], projectionCrossing)
@@ -121,14 +121,14 @@ test = testGroup "Basic tangle tests"
         , testCase "Glue zero and infinity tangles to infinity" $
             let z = zeroTangle :: TangleProjection
                 i = infinityTangle :: TangleProjection
-            in explode (glueTangles 2 (nthLeg z 0) (nthLeg z 0)) @?= explode i
+            in explode (horizontalComposition 2 (z, 0) (z, 3)) @?= explode i
 
         , testCase "Glue two infinity tangles to get circle inside" $
             let i = infinityTangle :: TangleProjection
-            in explode (glueTangles 2 (nthLeg i 0) (nthLeg i 3)) @?= (1, [(0, 1), (0, 0), (0, 3), (0, 2)], [])
+            in explode (horizontalComposition 2 (i, 0) (i, 2)) @?= (1, [(0, 1), (0, 0), (0, 3), (0, 2)], [])
 
         , testCase "Glue loner and thread" $
-            explode (glueTangles 2 (firstLeg lonerProjection) (firstLeg identityTangle)) @?=
+            explode (horizontalComposition 2 (lonerProjection, 0) (planarPropagator 1, 0)) @?=
                 ( 0
                 , [(1, 2), (1, 3)]
                 ,   [ ([(1, 1), (1, 0), (0, 0), (0, 1)], projectionCrossing)

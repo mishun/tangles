@@ -570,7 +570,7 @@ twistedNSatellite n link
                        braid =
                            let half = reversingBraidTangle n r
                            in half |=| half
-                   in glueTangles n (nthLeg braid n) (nthLeg cross $ n - 1)
+                   in horizontalComposition n (braid, n) (cross, 0)
             where
                 wc = w A.! v
                 s = vertexCrossing v

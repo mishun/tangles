@@ -34,6 +34,7 @@ module Math.Topology.KnotTh.Tangle
 import Control.Applicative (Applicative)
 import Control.DeepSeq (NFData(..))
 import Control.Monad (void, forM, forM_, when, unless, foldM_, foldM, filterM, (>=>), guard)
+import Control.Monad.IfElse (unlessM)
 import qualified Control.Monad.ST as ST
 import qualified Control.Monad.Reader as Reader
 import qualified Data.Array.Unboxed as A
@@ -73,13 +74,6 @@ class (KnottedPlanar t, LeggedDiagram t) => TangleLike t where
     --   3   0
     infinityTangle :: t a
 
-    -- | +-------+
-    --   |   ^   |
-    --   |   |   |
-    --   |   |   |
-    --   +-------+
-    identityTangle :: t a
-
     lonerTangle :: a -> t a
 
     mirrorTangleWith :: (a -> a) -> t a -> t a
@@ -92,7 +86,7 @@ class (KnottedPlanar t, LeggedDiagram t) => TangleLike t where
     --  ..............|     |..............
     --  (legA) -------|-----|--- (legB)
     --  ..............|     |..............
-    glueTangles :: Int -> Dart t a -> Dart t a -> t a
+--    glueTangles :: Int -> Dart t a -> Dart t a -> t a
 
     -- |     edgesToGlue = 1                 edgesToGlue = 2                 edgesToGlue = 3
     -- ........|                       ........|                       ........|
@@ -109,9 +103,9 @@ class (KnottedPlanar t, LeggedDiagram t) => TangleLike t where
     tensorSubst :: Int -> (Vertex t a -> t b) -> t a -> t b
 
 
-(|=|) :: (TangleLike t) => t a -> t a -> t a
+(|=|) :: Tangle a -> Tangle a -> Tangle a
 a |=| b | al /= bl   = error $ printf "braidLikeGlue: different numbers of legs (%i and %i)" al bl
-        | otherwise  = glueTangles n (nthLeg a n) (nthLeg b (n - 1))
+        | otherwise  = horizontalComposition n (a, n) (b, 0)
     where
         al = numberOfLegs a
         bl = numberOfLegs b
@@ -119,9 +113,7 @@ a |=| b | al /= bl   = error $ printf "braidLikeGlue: different numbers of legs 
 
 
 identityBraidTangle :: Int -> Tangle a
-identityBraidTangle n | n < 0      = error $ printf "identityBraidTangle: requested number of strands %i is negative" n
-                      | otherwise  = let n' = 2 * n - 1
-                                     in implode (0, [(0, n' - i) | i <- [0 .. n']], [])
+identityBraidTangle = planarPropagator
 
 
 braidGeneratorTangle :: Int -> (Int, a) -> Tangle a
@@ -199,7 +191,7 @@ lonerUnderCrossing = lonerTangle underCrossing
 rationalTangle :: [Int] -> TangleDiagram
 rationalTangle = flip foldl infinityTangle $ \ tangle x ->
     let g = chainTangle $ replicate (abs x) (if x >= 0 then overCrossing else underCrossing)
-    in glueTangles 2 (nthLeg g 2) (nthLeg tangle 2)
+    in horizontalComposition 2 (g, 2) (tangle, 1)
 
 
 twistedDoubleSatellite :: TangleDiagram -> TangleDiagram
@@ -226,7 +218,7 @@ twistedNSatellite n tangle | n < 0      = error $ printf "twistedNSattelite: neg
                        braid =
                            let half = reversingBraidTangle n r
                            in half |=| half
-                   in glueTangles n (nthLeg braid n) (nthLeg cross $ n - 1)
+                   in horizontalComposition n (braid, n) (cross, 0)
             where
                 wc = w A.! v
                 s = vertexCrossing v
@@ -557,14 +549,7 @@ instance KnottedPlanar Tangle where
     changeNumberOfFreeLoops loops t | loops >= 0  = t { loopsCount = loops }
                                     | otherwise   = error $ printf "changeNumberOfFreeLoops: number of free loops %i is negative" loops
 
-    emptyKnotted =
-        Tangle
-            { loopsCount      = 0
-            , vertexCount     = 0
-            , involutionArray = PV.empty
-            , crossingsArray  = V.empty
-            , legsCount       = 0
-            }
+    emptyKnotted = planarEmpty
 
 
 instance KnottedDiagram Tangle where
@@ -726,6 +711,120 @@ instance (Crossing a) => GroupAction (Tangle a) where
             l' = pointsUnderGroup g
 
 
+instance PlanarAlgebra (Tangle a) where
+    planarDegree = numberOfLegs
+
+    planarEmpty =
+        Tangle
+            { loopsCount      = 0
+            , vertexCount     = 0
+            , involutionArray = PV.empty
+            , crossingsArray  = V.empty
+            , legsCount       = 0
+            }
+
+    planarLoop =
+        Tangle
+            { loopsCount      = 1
+            , vertexCount     = 0
+            , involutionArray = PV.empty
+            , crossingsArray  = V.empty
+            , legsCount       = 0
+            }
+
+    planarPropagator n | n < 0      = error $ printf "Tangle.planarPropagator: parameter must be non-negative, but %i passed" n
+                       | otherwise  =
+        Tangle
+            { loopsCount      = 0
+            , vertexCount     = 0
+            , involutionArray = PV.generate (2 * n) (\ i -> 2 * n - 1 - i)
+            , crossingsArray  = V.empty
+            , legsCount       = 2 * n
+            }
+
+    horizontalComposition gl (!tangleA, !posA) (!tangleB, !posB) =
+        ST.runST $ do
+            let legsA = numberOfLegs tangleA
+                legsB = numberOfLegs tangleB
+            when (gl < 0 || gl > min legsA legsB) $
+                fail $ printf "glueTangles: number of legs to glue %i is out of bound" gl
+
+            let nA = numberOfVertices tangleA
+                nB = numberOfVertices tangleB
+                newL = legsA + legsB - 2 * gl
+                newC = nA + nB
+
+            visited <- UMV.replicate gl False
+
+            cr <- do
+                let {-# INLINE convertA #-}
+                    convertA !x | x < 4 * nA  = return $! x
+                                | ml >= gl    = return $! 4 * newC + ml - gl
+                                | otherwise   = do
+                                    UMV.unsafeWrite visited ml True
+                                    let ml' = (4 * nB) + ((posB + gl - 1 - ml) `mod` legsB)
+                                    convertB $! involutionArray tangleB `PV.unsafeIndex` ml'
+                        where ml = (x - 4 * nA - posA) `mod` legsA
+
+                    {-# INLINE convertB #-}
+                    convertB !x | x < 4 * nB  = return $! (4 * nA) + x
+                                | ml >= gl    = return $! (4 * newC) + (legsA - gl) + (ml - gl)
+                                | otherwise   = do
+                                    UMV.unsafeWrite visited (gl - 1 - ml) True
+                                    let ml' = (4 * nA) + ((posA + gl - 1 - ml) `mod` legsA)
+                                    convertA $! involutionArray tangleA `PV.unsafeIndex` ml'
+                        where ml = (x - 4 * nB - posB) `mod` legsB
+
+                cr <- PMV.new (4 * newC + newL)
+                forM_ [0 .. 4 * nA - 1] $ \ !i ->
+                    convertA (involutionArray tangleA `PV.unsafeIndex` i)
+                        >>= PMV.unsafeWrite cr i
+                forM_ [0 .. 4 * nB - 1] $ \ !i ->
+                    convertB (involutionArray tangleB `PV.unsafeIndex` i)
+                        >>= PMV.unsafeWrite cr (4 * nA + i)
+
+                forM_ [0 .. legsA - gl - 1] $ \ !i ->
+                    let i' = (4 * nA) + (posA + gl + i) `mod` legsA
+                        j = (4 * newC) + i
+                    in convertA (involutionArray tangleA `PV.unsafeIndex` i') >>= PMV.unsafeWrite cr j
+                forM_ [0 .. legsB - gl - 1] $ \ !i ->
+                    let i' = (4 * nB) + (posB + gl + i) `mod` legsB
+                        j = (4 * newC) + (legsA - gl) + i
+                    in convertB (involutionArray tangleB `PV.unsafeIndex` i') >>= PMV.unsafeWrite cr j
+
+                PV.unsafeFreeze cr
+
+            extraLoops <- do
+                let markA !x = do
+                        unlessM (UMV.unsafeRead visited x) $ do
+                            UMV.unsafeWrite visited x True
+                            let xi = (4 * nA) + (posA + x) `mod` legsA
+                                yi = involutionArray tangleA `PV.unsafeIndex` xi
+                            markB $ (yi - (4 * nA) - posA) `mod` legsA
+
+                    markB !x =
+                        unlessM (UMV.unsafeRead visited x) $ do
+                            UMV.unsafeWrite visited x True
+                            let xi = (4 * nB) + (posB + gl - 1 - x) `mod` legsB
+                                yi = involutionArray tangleB `PV.unsafeIndex` xi
+                            markA $ gl - 1 - ((yi - (4 * nB) - posB) `mod` legsB)
+
+                foldM (\ !s !i -> do
+                        vis <- UMV.unsafeRead visited i
+                        if vis then return $! s
+                               else markA i >> (return $! s + 1)
+                    ) 0 [0 .. gl - 1]
+
+            return $!
+                Tangle
+                    { loopsCount      = loopsCount tangleA + loopsCount tangleB + extraLoops
+                    , vertexCount     = newC
+                    , involutionArray = cr
+                    , crossingsArray  = crossingsArray tangleA V.++ crossingsArray tangleB
+                    , legsCount       = newL
+                    }
+
+
 instance TangleLike Tangle where
     zeroTangle =
         Tangle
@@ -743,15 +842,6 @@ instance TangleLike Tangle where
             , involutionArray = PV.fromList [1, 0, 3, 2]
             , crossingsArray  = V.empty
             , legsCount       = 4
-            }
-
-    identityTangle =
-        Tangle
-            { loopsCount      = 0
-            , vertexCount     = 0
-            , involutionArray = PV.fromList [1, 0]
-            , crossingsArray  = V.empty
-            , legsCount       = 2
             }
 
     lonerTangle cr =
@@ -777,7 +867,7 @@ instance TangleLike Tangle where
                 return a'
             , crossingsArray = f `fmap` crossingsArray tangle
             }
-
+{-
     glueTangles legsToGlue legA legB = ST.runST $ do
         unless (isLeg legA) $
             fail $ printf "glueTangles: first leg parameter %s is not a leg" (show legA)
@@ -870,7 +960,7 @@ instance TangleLike Tangle where
             , crossingsArray  = crossingsArray tangleA V.++ crossingsArray tangleB
             , legsCount       = newL
             }
-
+-}
     glueToBorder leg legsToGlue !crossingToGlue = ST.runST $ do
         unless (isLeg leg) $
             fail $ printf "glueToBorder: leg expected, but %s received" (show leg)

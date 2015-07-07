@@ -138,7 +138,7 @@ test = testGroup "Invariants"
         , testGroup "Exact values on tangles" $ do
             (header, t, target) <-
                 [ ("empty"         , emptyTangle                , "(1)[]"                              )
-                , ("identity"      , identityTangle             , "(1)[1,0]"                           )
+                , ("identity"      , planarPropagator 1         , "(1)[1,0]"                           )
                 , ("0"             , zeroTangle                 , "(1)[3,2,1,0]"                       )
                 , ("∞"             , infinityTangle             , "(1)[1,0,3,2]"                       )
                 , ("over crossing" , lonerOverCrossing          , "(t^1/4)[1,0,3,2]+(t^-1/4)[3,2,1,0]" )
@@ -186,7 +186,7 @@ test = testGroup "Invariants"
         , testGroup "Exact values on tangles" $ do
             (header, t, target) <-
                 [ ("empty"         , emptyTangle        , "(1)[]"                                  )
-                , ("identity"      , identityTangle     , "(1)[1,0]"                               )
+                , ("identity"      , planarPropagator 1 , "(1)[1,0]"                               )
                 , ("0"             , zeroTangle         , "(1)[3,2,1,0]"                           )
                 , ("∞"             , infinityTangle     , "(1)[1,0,3,2]"                           )
                 , ("over crossing" , lonerOverCrossing  , "(1)[2,3,0,1]"                           )

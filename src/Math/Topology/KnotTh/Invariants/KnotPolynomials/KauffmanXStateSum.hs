@@ -141,12 +141,12 @@ instance (KauffmanXArg a) => PlanarAlgebra (KauffmanXStateSum a) where
                                               (UV.generateM (legsB - gl) (\ !i -> mateB $ (posB + gl + i) `mod` legsB))
 
                         loops <-
-                            let markA !x = do
+                            let markA !x =
                                     unlessM (UMV.read visited x) $ do
                                         UMV.write visited x True
                                         markB $ (`mod` legsA) $ (+ negate posA) $ (a UV.!) $ (posA + x) `mod` legsA
 
-                                markB !x = do
+                                markB !x =
                                     unlessM (UMV.read visited x) $ do
                                         UMV.write visited x True
                                         markA $ (`mod` legsB) $ (\ p -> posB - p + gl - 1) $ (b UV.!) $ (posB + gl - 1 - x) `mod` legsB

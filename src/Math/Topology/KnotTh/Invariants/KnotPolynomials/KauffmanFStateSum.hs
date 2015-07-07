@@ -116,12 +116,12 @@ restoreBasicTangle !chordDiagram =
         restore _ _ [] = error "restoreBasicTangle: impossible happened"
         restore a h (i : rest) =
             if | l == 0                           -> emptyTangle
-               | l == 2                           -> identityTangle
+               | l == 2                           -> planarPropagator 1
                | i' == j                          ->
                    let tangle = restore (UV.generate (l - 2) (\ x -> ((a UV.! ((i + 2 + x) `mod` l)) - i - 2) `mod` l))
                                         (V.generate (l - 2) $ \ x -> h V.! ((i + 2 + x) `mod` l))
                                         [0 .. l - 3]
-                   in rotateBy i $ glueTangles 0 (firstLeg identityTangle) (lastLeg tangle)
+                   in rotateBy i $ horizontalComposition 0 (planarPropagator 1, 0) (tangle, 0)
                | haveIntersection (i, i') (j, j') ->
                    let tangle = restore (a UV.// [(i, j'), (j, i'), (i', j), (j', i)]) (h V.// [(i, h V.! j), (j, h V.! i)]) [0 .. l - 1]
                    in rotateBy i $ vertexOwner $ glueToBorder (nthLeg tangle j) 2 $
@@ -234,9 +234,7 @@ instance (KauffmanFArg a) => PlanarAlgebra (ChordDiagramsSum a) where
             in flip mapStateSum sumB $ \ (ChordDiagram xb kb) ->
                 let tb = restoreBasicTangle xb
                 in decomposeTangle [explode ta, explode tb] (ka * kb) $
-                    if | not (hasLegs ta) -> rotateBy (-(posB + 1)) tb
-                       | not (hasLegs tb) -> rotateBy (-posA) ta
-                       | otherwise        -> glueTangles gl (nthLeg ta posA) (nthLeg tb $ posB - gl + 1)
+                    horizontalComposition gl (ta, posA) (tb, posB)
 
 instance (KauffmanFArg a) => SkeinRelation ChordDiagramsSum a where
     skeinLPlus =

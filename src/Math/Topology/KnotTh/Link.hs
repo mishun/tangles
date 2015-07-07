@@ -153,15 +153,14 @@ linkToTangle (L t) = t
 tangleToLink :: Tangle a -> Link a
 tangleToLink t | l == 0     = L t
                | otherwise  = error $ printf "tangleToLink: expected 0 legs, found %i" l
-    where
-        l = numberOfLegs t
+    where l = numberOfLegs t
 
 
 tangleDoublingLink :: (Crossing a) => (a -> a) -> Tangle a -> Link a
 tangleDoublingLink f t =
     let l = numberOfLegs t
         t' = mirrorIt $ fmap f t
-    in tangleToLink $ glueTangles l (firstLeg t) (firstLeg t')
+    in tangleToLink $ horizontalComposition l (t, 0) (t', 1)
 
 
 toDTCode :: LinkDiagram -> [[Int]]
