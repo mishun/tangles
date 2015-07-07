@@ -94,7 +94,7 @@ instance (KauffmanXArg a) => RotationAction (KauffmanXStateSum a) where
                     return a
             in singletonStateSum $ PlanarChordDiagram x' f
 
-instance (KauffmanXArg a) => DihedralAction (KauffmanXStateSum a) where
+instance (KauffmanXArg a) => MirrorAction (KauffmanXStateSum a) where
     mirrorIt =
         mapStateSum $ \ (PlanarChordDiagram x f) ->
             let x' = UV.create $ do

@@ -24,7 +24,7 @@ flypeCodeLeg leg initialDirection
         let {-# INLINE go #-}
             go !i !d !dir
                 | i >= n || isLeg d                = return ()
-                | isLonerInVertex (beginVertex d)  = go i (opposite $ nextBy 2 d) (oppositeDirection dir)
+                | isLonerInVertex (beginVertex d)  = go i (opposite $ nextBy 2 d) (mirrorIt dir)
                 | otherwise                        = do
                     case crossingCode dir d of
                         (# be, le #) -> do
@@ -63,4 +63,4 @@ additionalFlypeSymmetry tangle
             where
                 [a, b, c, d] = map endVertex $ allLegs tangle
 
-        rev = oppositeDirection dir
+        rev = mirrorIt dir

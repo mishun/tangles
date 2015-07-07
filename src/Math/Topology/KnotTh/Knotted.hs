@@ -8,9 +8,9 @@ module Math.Topology.KnotTh.Knotted
     , KnotWithPrimeTest(..)
     , SurfaceKnotted
     , nthCrossing
-    , forMAdjacentDarts
-    , foldMAdjacentDarts
-    , foldMAdjacentDartsFrom
+    , forMIncomingDarts
+    , foldMIncomingDarts
+    , foldMIncomingDartsFrom
     ) where
 
 import Data.Bits ((.&.))
@@ -20,7 +20,7 @@ import Math.Topology.KnotTh.Dihedral
 import Math.Topology.KnotTh.Dihedral.D4
 
 
-class (DihedralAction a) => Crossing a where
+class (RotationAction a, MirrorAction a, GroupAction D4 a) => Crossing a where
     globalTransformations  :: (Knotted k) => k a -> Maybe [D4]
     crossingCode           :: (Knotted k) => RotationDirection -> Dart k a -> (# Int, Int #)
     crossingCodeWithGlobal :: (Knotted k) => D4 -> RotationDirection -> Dart k a -> (# Int, Int #)
@@ -38,23 +38,23 @@ class (Functor k, VertexDiagram k) => Knotted k where
     explode :: k a -> ExplodeType k a
     implode :: ExplodeType k a -> k a
 
-    forMIncidentDarts      :: (Monad m) => Vertex k a -> (Dart k a -> m ()) -> m ()
-    foldMIncidentDarts     :: (Monad m) => Vertex k a -> (Dart k a -> s -> m s) -> s -> m s
-    foldMIncidentDartsFrom :: (Monad m) => Dart k a -> RotationDirection -> (Dart k a -> s -> m s) -> s -> m s
+    forMOutcomingDarts      :: (Monad m) => Vertex k a -> (Dart k a -> m ()) -> m ()
+    foldMOutcomingDarts     :: (Monad m) => Vertex k a -> (Dart k a -> s -> m s) -> s -> m s
+    foldMOutcomingDartsFrom :: (Monad m) => Dart k a -> RotationDirection -> (Dart k a -> s -> m s) -> s -> m s
 
-    forMIncidentDarts c f =
+    forMOutcomingDarts c f =
         f (nthOutcomingDart c 0)
             >> f (nthOutcomingDart c 1)
             >> f (nthOutcomingDart c 2)
             >> f (nthOutcomingDart c 3)
 
-    foldMIncidentDarts c f s =
+    foldMOutcomingDarts c f s =
         f (nthOutcomingDart c 0) s
             >>= f (nthOutcomingDart c 1)
             >>= f (nthOutcomingDart c 2)
             >>= f (nthOutcomingDart c 3)
 
-    foldMIncidentDartsFrom dart !dir f s =
+    foldMOutcomingDartsFrom dart !dir f s =
         let c = beginVertex dart
             p = beginPlace dart
             d = directionSign dir
@@ -62,7 +62,6 @@ class (Functor k, VertexDiagram k) => Knotted k where
             >>= f (nthOutcomingDart c $ (p + d) .&. 3)
             >>= f (nthOutcomingDart c $ (p + 2 * d) .&. 3)
             >>= f (nthOutcomingDart c $ (p + 3 * d) .&. 3)
-
 
 class (Knotted k) => KnottedPlanar k where
     numberOfFreeLoops       :: k a -> Int
@@ -85,16 +84,16 @@ nthCrossing :: (Knotted k) => k a -> Int -> a
 nthCrossing k = vertexCrossing . nthVertex k
 
 
-{-# INLINE forMAdjacentDarts #-}
-forMAdjacentDarts :: (Monad m, Knotted k) => Vertex k a -> (Dart k a -> m ()) -> m ()
-forMAdjacentDarts c f = forMIncidentDarts c (f . opposite)
+{-# INLINE forMIncomingDarts #-}
+forMIncomingDarts :: (Monad m, Knotted k) => Vertex k a -> (Dart k a -> m ()) -> m ()
+forMIncomingDarts c f = forMOutcomingDarts c (f . opposite)
 
 
-{-# INLINE foldMAdjacentDarts #-}
-foldMAdjacentDarts :: (Monad m, Knotted k) => Vertex k a -> (Dart k a -> s -> m s) -> s -> m s
-foldMAdjacentDarts c f = foldMIncidentDarts c (f . opposite)
+{-# INLINE foldMIncomingDarts #-}
+foldMIncomingDarts :: (Monad m, Knotted k) => Vertex k a -> (Dart k a -> s -> m s) -> s -> m s
+foldMIncomingDarts c f = foldMOutcomingDarts c (f . opposite)
 
 
-{-# INLINE foldMAdjacentDartsFrom #-}
-foldMAdjacentDartsFrom :: (Monad m, Knotted k) => Dart k a -> RotationDirection -> (Dart k a -> s -> m s) -> s -> m s
-foldMAdjacentDartsFrom dart direction f = foldMIncidentDartsFrom dart direction (f . opposite)
+{-# INLINE foldMIncomingDartsFrom #-}
+foldMIncomingDartsFrom :: (Monad m, Knotted k) => Dart k a -> RotationDirection -> (Dart k a -> s -> m s) -> s -> m s
+foldMIncomingDartsFrom dart direction f = foldMOutcomingDartsFrom dart direction (f . opposite)

@@ -25,7 +25,7 @@ test = testGroup "Basic tangle tests"
             nextCW (nthLeg t i) @?= nthLeg t ((i - 1) `mod` 6)
             nextCCW (nthLeg t i) @?= nthLeg t ((i + 1) `mod` 6)
 
-        foldMIncidentDartsFrom (nthOutcomingDart c1 2) ccw (\ _ s -> return $! s + 1) (0 :: Int) >>= (@?= 4)
+        foldMOutcomingDartsFrom (nthOutcomingDart c1 2) ccw (\ _ s -> return $! s + 1) (0 :: Int) >>= (@?= 4)
 
     , testCase "Show tangle" $ do
         assertEqual "empty tangle" "implode (0,[],[])" $

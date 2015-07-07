@@ -48,13 +48,13 @@ standardReductionStrategy =
     in try
 
 
-skeinRelationPostMinimization :: (Ord (f p), DihedralAction (f p), SkeinRelation f p) => (TangleDiagram -> f p) -> TangleDiagram -> f p
+skeinRelationPostMinimization :: (Ord (f p), MirrorAction (f p), SkeinRelation f p) => (TangleDiagram -> f p) -> TangleDiagram -> f p
 skeinRelationPostMinimization invariant tangle = minimum $ do
     p <- allOrientationsOf $ invariant tangle
     [p, invertCrossingsAction p]
 
 
-skeinRelationMidMinimization :: (Ord (f p), DihedralAction (f p), SkeinRelation f p) => (TangleDiagram -> f p) -> TangleDiagram -> f p
+skeinRelationMidMinimization :: (Ord (f p), MirrorAction (f p), SkeinRelation f p) => (TangleDiagram -> f p) -> TangleDiagram -> f p
 skeinRelationMidMinimization invariant tangle = minimum $ do
     p <- map invariant [tangle, invertCrossings tangle]
     allOrientationsOf p

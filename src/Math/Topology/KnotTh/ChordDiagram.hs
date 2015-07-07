@@ -26,7 +26,7 @@ import Math.Combinatorics.Strings.Lyndon
 import Math.Topology.KnotTh.Dihedral
 
 
-class (DihedralAction cd) => ChordDiagram cd where
+class (RotationAction cd, MirrorAction cd) => ChordDiagram cd where
     numberOfChords     :: cd -> Int
     numberOfChordEnds  :: cd -> Int
     chordMate          :: cd -> Int -> Int
@@ -83,7 +83,7 @@ instance RotationAction DiffChordDiagram where
             let i' = (i - rot) `mod` p
             in a UV.! i'
 
-instance DihedralAction DiffChordDiagram where
+instance MirrorAction DiffChordDiagram where
     mirrorIt (DCD a) =
         let p = UV.length a
         in DCD $ UV.generate p $ \ !i ->

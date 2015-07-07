@@ -203,7 +203,7 @@ instance Knotted EmbeddedLink where
                             tailI <- STRef.readSTRef free
                             when (headI < tailI - 1) $ do
                                 input <- MV.unsafeRead queue headI
-                                void $ foldMAdjacentDartsFrom input dir lookAndWrite (6 * headI + 3)
+                                void $ foldMIncomingDartsFrom input dir lookAndWrite (6 * headI + 3)
                                 case crossingCodeWithGlobal globalG dir input of
                                     (# be, le #) -> do
                                         UMV.unsafeWrite rc (6 * headI + 1) be

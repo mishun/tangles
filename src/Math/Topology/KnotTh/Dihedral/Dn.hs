@@ -24,6 +24,15 @@ import Math.Topology.KnotTh.Dihedral
 data Dn = D {-# UNPACK #-} !Int {-# UNPACK #-} !Int !Bool
     deriving (Eq, Show)
 
+instance RotationAction Dn where
+    rotationOrder (D n _ _) = n
+
+    rotateByUnchecked rot (D n r m) | not m      = D n ((r + rot) `mod` n) False
+                                    | otherwise  = D n ((r - rot) `mod` n) True
+
+instance MirrorAction Dn where
+    mirrorIt (D n r m) = D n r (not m)
+
 instance Group Dn where
     data SubGroup Dn = Per {-# UNPACK #-} !Int {-# UNPACK #-} !Int
                      | Mir {-# UNPACK #-} !Int {-# UNPACK #-} !Int {-# UNPACK #-} !Int
@@ -43,9 +52,6 @@ instance RotationGroup Dn where
     {-# INLINE identity #-}
     identity n | n <= 0     = error $ printf "identity: order %i is non-positive" n
                | otherwise  = D n 0 False
-
-    {-# INLINE pointsUnderGroup #-}
-    pointsUnderGroup (D n _ _) = n
 
     {-# INLINE pointsUnderSub #-}
     pointsUnderSub (Per n _)   = n
@@ -136,3 +142,18 @@ addSymmetryToSubGroup (Per n p   ) (D _ r False) = fromPeriod n (gcd p r)
 addSymmetryToSubGroup (Per n p   ) (D _ r True ) = fromPeriodAndMirroredZero n p (-r)
 addSymmetryToSubGroup (Mir n p mz) (D _ r False) = fromPeriodAndMirroredZero n (gcd p r) mz
 addSymmetryToSubGroup (Mir n p mz) (D _ r True ) = fromPeriodAndMirroredZero n (gcd p (mz + r)) mz
+
+
+instance GroupAction Dn Dn where
+    {-# INLINE transform #-}
+    transform (D n1 r1 m1) (D n0 r0 m0) | n0 /= n1   = error $ printf "(∘): Dn order conflict: %i and %i" n1 n0
+                                        | not m0     = D n0 ((r0 + r1) `mod` n0) m1
+                                        | otherwise  = D n0 ((r0 - r1) `mod` n0) (not m1)
+
+instance (RotationAction a, MirrorAction a) => GroupAction Dn a where
+    {-# INLINE transform #-}
+    transform g x | l /= l'       = error $ printf "transform: order conflict (%i is order of object, %i order of group)" l l'
+                  | reflection g  = mirrorIt $ rotateBy (rotation g) x
+                  | otherwise     = rotateBy (rotation g) x
+        where l = rotationOrder x
+              l' = rotationOrder g

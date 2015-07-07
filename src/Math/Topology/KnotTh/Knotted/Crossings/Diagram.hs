@@ -50,12 +50,13 @@ instance NFData DiagramCrossing
 instance RotationAction DiagramCrossing where
     rotationOrder _ = 4
 
-    rotateByUnchecked rot | even rot   = id
-                          | otherwise  = invertCrossing
+    rotateBy rot (DC x) = DC $ (x `xor` rot) .&. 1
 
-instance DihedralAction DiagramCrossing where
-    {-# INLINE mirrorIt #-}
+instance MirrorAction DiagramCrossing where
     mirrorIt = id
+
+instance GroupAction D4 DiagramCrossing where
+    transform g (DC x) = DC $ (x `xor` rotation g) .&. 1
 
 instance Crossing DiagramCrossing where
     {-# INLINE globalTransformations #-}

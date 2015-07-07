@@ -212,7 +212,7 @@ instance (KauffmanFArg a) => RotationAction (ChordDiagramsSum a) where
         mapStateSum $ \ (ChordDiagram a factor) ->
             decomposeTangle [] factor $ rotateBy rot $ restoreBasicTangle a
 
-instance (KauffmanFArg a) => DihedralAction (ChordDiagramsSum a) where
+instance (KauffmanFArg a) => MirrorAction (ChordDiagramsSum a) where
     mirrorIt =
         mapStateSum $ \ (ChordDiagram a factor) ->
             decomposeTangle [] factor $ mirrorIt $ restoreBasicTangle a

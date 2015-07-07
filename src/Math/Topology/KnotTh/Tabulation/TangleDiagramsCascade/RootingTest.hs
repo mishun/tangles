@@ -71,7 +71,7 @@ investigateConnectivity lastCrossing = runST $ do
                     where
                         u = beginVertex d
 
-            foldMAdjacentDarts v walk (tin, 0 :: Int)
+            foldMIncomingDarts v walk (tin, 0 :: Int)
 
     (!_, !borderCut) <- dfs lastCrossing lastCrossing
     if borderCut <= 2
@@ -101,7 +101,7 @@ analyseSymmetry lastCrossing skipCrossing = do
                 GT -> (rootGCW, rootCodeCW, rootLegCW, cw)
                 _  -> (rootGCCW, rootCodeCCW, rootLegCCW, ccw)
 
-        rootDir' = oppositeDirection rootDir
+        rootDir' = mirrorIt rootDir
 
     let skip dir leg =
             let v = endVertex leg
@@ -175,7 +175,7 @@ compareRootCodeUnsafe root dir rootCode =
                 bfs !h | h >= n     = return EQ
                        | otherwise  = do
                     d <- MV.unsafeRead q h
-                    nb <- foldMAdjacentDartsFrom d dir look 0
+                    nb <- foldMIncomingDartsFrom d dir look 0
                     case crossingCodeWithGlobal global dir d of
                         (# be, le #) ->
                             case compare be (rootCode `UV.unsafeIndex` (2 * h)) of
@@ -212,7 +212,7 @@ compareRootCodeUnsafe root dir rootCode =
                 bfs !h | h >= n     = return EQ
                        | otherwise  = do
                     d <- MV.unsafeRead q h
-                    nb <- foldMAdjacentDartsFrom d dir look 0
+                    nb <- foldMIncomingDartsFrom d dir look 0
                     case crossingCode dir d of
                         (# be, le #) ->
                             case compare be (rootCode `UV.unsafeIndex` (2 * h)) of
@@ -263,7 +263,7 @@ rootCodeLegUnsafe root dir =
             let {-# INLINE bfs #-}
                 bfs !h = when (h < n) $ do
                     d <- MV.unsafeRead q h
-                    nb <- foldMAdjacentDartsFrom d dir look 0
+                    nb <- foldMIncomingDartsFrom d dir look 0
                     case crossingCodeWithGlobal global dir d of
                         (# be, le #) -> do
                             UMV.unsafeWrite rc (2 * h) be
@@ -300,7 +300,7 @@ rootCodeLegUnsafe root dir =
             let {-# INLINE bfs #-}
                 bfs !h = when (h < n) $ do
                     d <- MV.unsafeRead q h
-                    nb <- foldMAdjacentDartsFrom d dir look 0
+                    nb <- foldMIncomingDartsFrom d dir look 0
                     case crossingCode dir d of
                         (# be, le #) -> do
                             UMV.unsafeWrite rc (2 * h) be

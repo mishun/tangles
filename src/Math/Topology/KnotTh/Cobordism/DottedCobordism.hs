@@ -16,7 +16,7 @@ import qualified Data.Vector.Unboxed.Mutable as UMV
 import Text.Printf
 import Math.Topology.KnotTh.ChordDiagram
 import Math.Topology.KnotTh.Cobordism
-import Math.Topology.KnotTh.Dihedral (RotationAction(..), DihedralAction(..))
+import Math.Topology.KnotTh.Dihedral hiding ((∘))
 import Math.Topology.KnotTh.PlanarAlgebra
 
 
@@ -609,7 +609,7 @@ instance (CobordismGuts g) => RotationAction (CobordismBorder (Cobordism' g)) wh
 
     rotateByUnchecked rot (Brd loops a) = Brd loops (rotateArcs rot a)
 
-instance (CobordismGuts g) => DihedralAction (CobordismBorder (Cobordism' g)) where
+instance (CobordismGuts g) => MirrorAction (CobordismBorder (Cobordism' g)) where
     mirrorIt = error "mirror is not implemeted"
 
 instance (CobordismGuts g) => PlanarAlgebra (CobordismBorder (Cobordism' g)) where

@@ -43,7 +43,7 @@ testFlow4 finish = runST $ do
 
     flow <- UMV.replicate (4 * n) (0 :: Int)
     total <- newSTRef =<<
-        foldMIncidentDarts finish (\ !d !f ->
+        foldMOutcomingDarts finish (\ !d !f ->
             if isLeg (opposite d)
                 then UMV.unsafeWrite flow (dartIndex d) (-1) >> (return $! f + 1)
                 else return $! f
@@ -79,7 +79,7 @@ testFlow4 finish = runST $ do
                     cont <- readSTRef tl >>= \ !t -> return $! (t > h)
                     when cont $ do
                         ci <- UMV.unsafeRead q h
-                        forMIncidentDarts (nthVertex tangle ci) $ \ !a -> do
+                        forMOutcomingDarts (nthVertex tangle ci) $ \ !a -> do
                             let b = opposite a
                             when (isDart b) $ do
                                 f <- UMV.unsafeRead flow $! dartIndex b
@@ -105,7 +105,7 @@ testFlow4 finish = runST $ do
                     push
                 else do
                     final <- readSTRef total
-                    foldMIncidentDarts finish (\ !a !ok -> do
+                    foldMOutcomingDarts finish (\ !a !ok -> do
                             let b = opposite a
                             if isDart b
                                 then UMV.unsafeRead v (beginVertexIndex b) >>= \ !ok' ->

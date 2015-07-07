@@ -64,9 +64,11 @@ instance RotationAction (SubTangleCrossing a) where
 
     rotateByUnchecked !rot s = s { orientation = fromRotation rot ∘ orientation s }
 
-instance DihedralAction (SubTangleCrossing a) where
-    {-# INLINE mirrorIt #-}
+instance MirrorAction (SubTangleCrossing a) where
     mirrorIt s = s { orientation = d4E ∘ orientation s }
+
+instance GroupAction D4 (SubTangleCrossing a) where
+    transform g s = s { orientation = g ∘ orientation s }
 
 instance Crossing (SubTangleCrossing a) where
     {-# INLINE globalTransformations #-}

@@ -53,7 +53,6 @@ import qualified Data.Vector.Primitive as PV
 import qualified Data.Vector.Primitive.Mutable as PMV
 import Text.Printf
 import Math.Topology.KnotTh.Dihedral.D4
-import Math.Topology.KnotTh.Dihedral.Dn
 import Math.Topology.KnotTh.Knotted
 import Math.Topology.KnotTh.Knotted.Crossings.Projection
 import Math.Topology.KnotTh.Knotted.Crossings.Diagram
@@ -363,7 +362,7 @@ instance Knotted Tangle where
                             tailI <- STRef.readSTRef free
                             when (headI < tailI - 1) $ do
                                 input <- MV.read queue headI
-                                !nb <- foldMAdjacentDartsFrom input dir lookAndAdd 0
+                                !nb <- foldMIncomingDartsFrom input dir lookAndAdd 0
                                 case crossingCodeWithGlobal globalG dir input of
                                     (# be, le #) -> do
                                         let offset = l + headI `shiftL` 1
@@ -384,7 +383,7 @@ instance Knotted Tangle where
                                 vis <- UMV.read visited (vertexIndex v)
                                 when (vis < 0) $ do
                                     UMV.write visited (vertexIndex v) mark
-                                    forMAdjacentDarts v $ \ !d ->
+                                    forMIncomingDarts v $ \ !d ->
                                         when (isDart d) (dfs mark $ beginVertex d)
 
                         forM_ (allLegOpposites tangle) $ \ !d ->
@@ -441,7 +440,7 @@ instance Knotted Tangle where
                                     tailI <- STRef.readSTRef free
                                     when (headI < tailI - 1) $ do
                                         input <- MV.read queue headI
-                                        !nb <- foldMAdjacentDartsFrom input dir lookAndAdd 0
+                                        !nb <- foldMIncomingDartsFrom input dir lookAndAdd 0
                                         case crossingCodeWithGlobal globalG dir input of
                                             (# be, le #) -> do
                                                 let offset = headI `shiftL` 1
@@ -675,7 +674,7 @@ instance RotationAction (Tangle a) where
             }
 
 
-instance (DihedralAction a) => DihedralAction (Tangle a) where
+instance (MirrorAction a) => MirrorAction (Tangle a) where
     mirrorIt tangle =
         tangle
             { involutionArray = PV.create $ do
@@ -690,17 +689,6 @@ instance (DihedralAction a) => DihedralAction (Tangle a) where
                 return a'
             , crossingsArray = mirrorIt `fmap` crossingsArray tangle
             }
-
-
-instance (Crossing a) => GroupAction (Tangle a) where
-    type TransformGroup (Tangle a) = Dn
-
-    transform g tangle | l /= l'       = error $ printf "transformTangle: order conflict: %i legs, %i order of group" l l'
-                       | reflection g  = mirrorIt $ rotateBy (rotation g) tangle
-                       | otherwise     = rotateBy (rotation g) tangle
-        where
-            l = numberOfLegs tangle
-            l' = pointsUnderGroup g
 
 
 instance PlanarAlgebra (Tangle a) where

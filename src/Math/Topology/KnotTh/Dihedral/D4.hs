@@ -29,6 +29,14 @@ import qualified Math.Topology.KnotTh.Dihedral.Dn as Dn
 newtype D4 = D4 Int
     deriving (Eq, Ord)
 
+instance RotationAction D4 where
+    rotationOrder _ = 4
+
+    rotateBy rot (D4 x) = D4 $ (x + rot `shiftL` 1) .&. 7
+
+instance MirrorAction D4 where
+    mirrorIt (D4 x) = D4 $ x `xor` 1
+
 instance Group D4 where
     data SubGroup D4 = SubGroup {-# UNPACK #-} !Int {-# UNPACK #-} !(PV.Vector Int) ![D4]
 
@@ -45,7 +53,6 @@ instance RotationGroup D4 where
     {-# INLINE identity #-}
     identity _ = D4 0
 
-    pointsUnderGroup _ = 4
     pointsUnderSub   _ = 4
 
     {-# INLINE rotation #-}

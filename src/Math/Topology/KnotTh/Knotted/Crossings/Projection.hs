@@ -7,6 +7,7 @@ module Math.Topology.KnotTh.Knotted.Crossings.Projection
     ) where
 
 import Control.DeepSeq
+import Math.Topology.KnotTh.Dihedral.D4
 import Math.Topology.KnotTh.Knotted
 import Math.Topology.KnotTh.Knotted.Threads
 
@@ -26,11 +27,13 @@ instance NFData ProjectionCrossing
 instance RotationAction ProjectionCrossing where
     rotationOrder _ = 4
 
-    rotateByUnchecked _ = id
+    rotateBy !_ = id
 
-instance DihedralAction ProjectionCrossing where
-    {-# INLINE mirrorIt #-}
+instance MirrorAction ProjectionCrossing where
     mirrorIt = id
+
+instance GroupAction D4 ProjectionCrossing where
+    transform _ = id
 
 instance Crossing ProjectionCrossing where
     globalTransformations _ = Nothing

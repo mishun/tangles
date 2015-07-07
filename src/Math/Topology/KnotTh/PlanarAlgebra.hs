@@ -1,7 +1,6 @@
 {-# LANGUAGE TypeFamilies #-}
 module Math.Topology.KnotTh.PlanarAlgebra
     ( PlanarAlgebra(..)
-    , horizontalComposition
     , DartDiagram(..)
     , VertexDiagram(..)
     , hasVertices
@@ -41,16 +40,17 @@ class (RotationAction a) => PlanarAlgebra a where
     horizontalLooping gl (x, pos) =
         horizontalComposition (2 * gl) (x, pos) (planarPropagator gl, 0)
 
+    {-# INLINE horizontalComposition #-}
+    horizontalComposition :: (PlanarAlgebra a) => Int -> (a, Int) -> (a, Int) -> a
+    horizontalComposition !gl (!a, !posA) (!b, !posB)
+        | gl < 0      = error $ printf "horizontalComposition: gl (%i) must be non-negative" gl
+        | gl > legsA  = error $ printf "horizontalComposition: gl (%i) exceeds number of legs of the first argument (%i)" gl legsA
+        | gl > legsB  = error $ printf "horizontalComposition: gl (%i) exceeds number of legs of the second argument (%i)" gl legsB
+        | otherwise   = horizontalCompositionUnchecked gl (a, posA) (b, posB)
+        where legsA = planarDegree a
+              legsB = planarDegree b
 
-{-# INLINE horizontalComposition #-}
-horizontalComposition :: (PlanarAlgebra a) => Int -> (a, Int) -> (a, Int) -> a
-horizontalComposition !gl (!a, !posA) (!b, !posB)
-    | gl < 0      = error $ printf "horizontalComposition: gl (%i) must be non-negative" gl
-    | gl > legsA  = error $ printf "horizontalComposition: gl (%i) exceeds number of legs of the first argument (%i)" gl legsA
-    | gl > legsB  = error $ printf "horizontalComposition: gl (%i) exceeds number of legs of the second argument (%i)" gl legsB
-    | otherwise   = horizontalCompositionUnchecked gl (a, posA) (b, posB)
-    where legsA = planarDegree a
-          legsB = planarDegree b
+    horizontalCompositionUnchecked = horizontalComposition
 
 
 class DartDiagram d where
@@ -127,8 +127,8 @@ class (DartDiagram d) => VertexDiagram d where
     outcomingDarts          :: Vertex d a -> [Dart d a]
     incomingDarts           :: Vertex d a -> [Dart d a]
     --forMOutcomingDarts      :: (Monad m) => Vertex d a -> (Dart d a -> m ()) -> m ()
-    --foldMOutcomingDarts     :: (Monad m) => Vertex d a -> (Dart d a -> s -> m s) -> s -> m s
-    --foldMOutcomingDartsFrom :: (Monad m) => Dart d a -> RotationDirection -> (Dart d a -> s -> m s) -> s -> m s
+    --foldMOutcomingDarts     :: (Monad m) => Vertex d a -> (s -> Dart d a -> m s) -> s -> m s
+    --foldMOutcomingDartsFrom :: (Monad m) => Dart d a -> RotationDirection -> (s -> Dart d a -> m s) -> s -> m s
 
     nthIncomingDart v i = opposite $ nthOutcomingDart v i
 
@@ -146,6 +146,10 @@ class (DartDiagram d) => VertexDiagram d where
 
     outcomingDarts v = map (nthOutcomingDart v) [0 .. vertexDegree v - 1]
     incomingDarts = map opposite . outcomingDarts
+
+    --forMOutcomingDarts v = forM_ (outcomingDarts v)
+    --foldMOutcomingDarts v f x0 = foldM f x0 (outcomingDarts v)
+    --foldMOutcomingDartsFrom
 
     -- TODO: remove it?
     isDart             :: Dart d a -> Bool
@@ -177,6 +181,21 @@ hasVertices = (> 0) . numberOfVertices
 allOutcomingDarts :: (VertexDiagram d) => d a -> [Dart d a]
 allOutcomingDarts = concatMap outcomingDarts . allVertices
 
+{-
+{-# INLINE forMIncomingDarts #-}
+forMIncomingDarts :: (Monad m, VertexDiagram d) => Vertex d a -> (Dart d a -> m ()) -> m ()
+forMIncomingDarts c f = forMOutcomingDarts c (f . opposite)
+
+
+{-# INLINE foldMIncomingDarts #-}
+foldMIncomingDarts :: (Monad m, VertexDiagram d) => Vertex d a -> (s -> Dart d a -> m s) -> s -> m s
+foldMIncomingDarts c f = foldMOutcomingDarts c (\ s d -> f s $! opposite d)
+
+
+{-# INLINE foldMIncomingDartsFrom #-}
+foldMIncomingDartsFrom :: (Monad m, VertexDiagram d) => Dart d a -> RotationDirection -> (s -> Dart d a -> m s) -> s -> m s
+foldMIncomingDartsFrom dart direction f = foldMOutcomingDartsFrom dart direction (\ s d -> f s $! opposite d)
+-}
 
 class (DartDiagram d) => LeggedDiagram d where
     numberOfLegs  :: d a -> Int

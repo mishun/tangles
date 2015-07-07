@@ -89,7 +89,7 @@ rootCode ab dir | ac == opposite bd                         = (2, rootCode' ab d
     where
         ba = opposite ab
         ac = nextDir dir ab
-        bd = nextDir (oppositeDirection dir) ba
+        bd = nextDir (mirrorIt dir) ba
 
 
 rootCode' :: (Crossing a) => Dart Link a -> RotationDirection -> UV.Vector Int
@@ -126,7 +126,7 @@ rootCode' root dir =
             let {-# INLINE bfs #-}
                 bfs !h = when (h < n) $ do
                     d <- MV.unsafeRead q h
-                    nb <- foldMAdjacentDartsFrom d dir look 0
+                    nb <- foldMIncomingDartsFrom d dir look 0
                     case crossingCodeWithGlobal global dir d of
                         (# be, le #) -> do
                             UMV.unsafeWrite rc (2 * h) be
