@@ -597,16 +597,12 @@ instance (CobordismGuts g) => PlanarAlgebra (Cobordism' g) where
 
     planarPropagator = identityCobordism . planarPropagator
 
-    horizontalComposition !gl (Cob hA gA, !posA) (Cob hB gB, !posB)
-        | gl < 0         = error $ printf "horizontalComposition: gl must be non-negative, but %i passed" gl
-        | gl > legsN hA  = error $ printf "horizontalComposition: gl (%i) exceeds number of legs of the first argument (%i)" gl (legsN hA)
-        | gl > legsN hB  = error $ printf "horizontalComposition: gl (%i) exceeds number of legs of the second argument (%i)" gl (legsN hB)
-        | otherwise      =
-            let (resArcs0, extraLoops0) = glueArcs gl (arcs0 hA, posA) (arcs0 hB, posB)
-                (resArcs1, extraLoops1) = glueArcs gl (arcs1 hA, posA) (arcs1 hB, posB)
-                h = makeHeader (legsN hA + legsN hB - 2 * gl) (resArcs0, length extraLoops0 + loops0 hA + loops0 hB)
-                                                              (resArcs1, length extraLoops1 + loops1 hA + loops1 hB)
-            in Cob h $ horComposeGuts (h, gl, UV.fromList extraLoops0, UV.fromList extraLoops1) (gA, hA, posA) (gB, hB, posB)
+    horizontalCompositionUnchecked !gl (Cob hA gA, !posA) (Cob hB gB, !posB) =
+        let (resArcs0, extraLoops0) = glueArcs gl (arcs0 hA, posA) (arcs0 hB, posB)
+            (resArcs1, extraLoops1) = glueArcs gl (arcs1 hA, posA) (arcs1 hB, posB)
+            h = makeHeader (legsN hA + legsN hB - 2 * gl) (resArcs0, length extraLoops0 + loops0 hA + loops0 hB)
+                                                          (resArcs1, length extraLoops1 + loops1 hA + loops1 hB)
+        in Cob h $ horComposeGuts (h, gl, UV.fromList extraLoops0, UV.fromList extraLoops1) (gA, hA, posA) (gB, hB, posB)
 
 instance (CobordismGuts g) => RotationAction (CobordismBorder (Cobordism' g)) where
     rotationOrder (Brd _ a) = UV.length a
@@ -626,13 +622,9 @@ instance (CobordismGuts g) => PlanarAlgebra (CobordismBorder (Cobordism' g)) whe
     planarPropagator n | n < 0      = error $ printf "planarPropagator: parameter must be non-negative, but %i passed" n
                        | otherwise  = Brd 0 $ UV.generate (2 * n) (\ i -> 2 * n - 1 - i)
 
-    horizontalComposition !gl (Brd loopsA a, !posA) (Brd loopsB b, !posB)
-        | gl < 0            = error $ printf "horizontalComposition: gl must be non-negative, but %i passed" gl
-        | gl > UV.length a  = error $ printf "horizontalComposition: gl (%i) exceeds number of legs of the first argument (%i)" gl (UV.length a)
-        | gl > UV.length b  = error $ printf "horizontalComposition: gl (%i) exceeds number of legs of the second argument (%i)" gl (UV.length b)
-        | otherwise         =
-            let (arcs, extraLoops) = glueArcs gl (a, posA) (b, posB)
-            in Brd (length extraLoops + loopsA + loopsB) arcs
+    horizontalCompositionUnchecked !gl (Brd loopsA a, !posA) (Brd loopsB b, !posB) =
+        let (arcs, extraLoops) = glueArcs gl (a, posA) (b, posB)
+        in Brd (length extraLoops + loopsA + loopsB) arcs
 
 instance (CobordismGuts g) => ChordDiagram (CobordismBorder (Cobordism' g)) where
     numberOfChordEnds (Brd _ a) = UV.length a

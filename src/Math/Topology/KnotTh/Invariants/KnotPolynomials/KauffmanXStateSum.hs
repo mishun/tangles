@@ -115,50 +115,46 @@ instance (KauffmanXArg a) => PlanarAlgebra (KauffmanXStateSum a) where
     planarPropagator n | n < 0      = error $ printf "planarPropagator: parameter must be non-negative, but %i passed" n
                        | otherwise  = KauffmanXStateSum (2 * n) [PlanarChordDiagram (UV.generate (2 * n) $ \ i -> 2 * n - 1 - i) 1]
 
-    horizontalComposition !gl (sumA@(KauffmanXStateSum !legsA _), !posA) (sumB@(KauffmanXStateSum !legsB _), !posB)
-        | gl < 0      = error $ printf "horizontalComposition: gl must be non-negative, but %i passed" gl
-        | gl > legsA  = error $ printf "horizontalComposition: gl (%i) exceeds number of legs of the first argument (%i)" gl legsA
-        | gl > legsB  = error $ printf "horizontalComposition: gl (%i) exceeds number of legs of the second argument (%i)" gl legsB
-        | otherwise   =
-            flip mapStateSum sumA $ \ (PlanarChordDiagram a factorA) ->
-                flip mapStateSum sumB $ \ (PlanarChordDiagram b factorB) ->
-                    ST.runST $ do
-                        visited <- UMV.replicate gl False
+    horizontalCompositionUnchecked !gl (sumA@(KauffmanXStateSum !legsA _), !posA) (sumB@(KauffmanXStateSum !legsB _), !posB) =
+        flip mapStateSum sumA $ \ (PlanarChordDiagram a factorA) ->
+            flip mapStateSum sumB $ \ (PlanarChordDiagram b factorB) ->
+                ST.runST $ do
+                    visited <- UMV.replicate gl False
 
-                        arcs <-
-                            let mateA !x | y >= gl    = return $! y - gl
-                                         | otherwise  = do
-                                             UMV.write visited y True
-                                             mateB $ (posB + gl - 1 - y) `mod` legsB
-                                    where y = ((a UV.! x) - posA) `mod` legsA
+                    arcs <-
+                        let mateA !x | y >= gl    = return $! y - gl
+                                     | otherwise  = do
+                                         UMV.write visited y True
+                                         mateB $ (posB + gl - 1 - y) `mod` legsB
+                                where y = ((a UV.! x) - posA) `mod` legsA
 
-                                mateB !x | y >= gl    = return $! legsA + y - 2 * gl
-                                         | otherwise  = mateA $ (posA + gl - 1 - y) `mod` legsA
-                                    where y = ((b UV.! x) - posB) `mod` legsB
+                            mateB !x | y >= gl    = return $! legsA + y - 2 * gl
+                                     | otherwise  = mateA $ (posA + gl - 1 - y) `mod` legsA
+                                where y = ((b UV.! x) - posB) `mod` legsB
 
-                            in liftM2 (UV.++) (UV.generateM (legsA - gl) (\ !i -> mateA $ (posA + gl + i) `mod` legsA))
-                                              (UV.generateM (legsB - gl) (\ !i -> mateB $ (posB + gl + i) `mod` legsB))
+                        in liftM2 (UV.++) (UV.generateM (legsA - gl) (\ !i -> mateA $ (posA + gl + i) `mod` legsA))
+                                          (UV.generateM (legsB - gl) (\ !i -> mateB $ (posB + gl + i) `mod` legsB))
 
-                        loops <-
-                            let markA !x =
-                                    unlessM (UMV.read visited x) $ do
-                                        UMV.write visited x True
-                                        markB $ (`mod` legsA) $ (+ negate posA) $ (a UV.!) $ (posA + x) `mod` legsA
+                    loops <-
+                        let markA !x =
+                                unlessM (UMV.read visited x) $ do
+                                    UMV.write visited x True
+                                    markB $ (`mod` legsA) $ (+ negate posA) $ (a UV.!) $ (posA + x) `mod` legsA
 
-                                markB !x =
-                                    unlessM (UMV.read visited x) $ do
-                                        UMV.write visited x True
-                                        markA $ (`mod` legsB) $ (\ p -> posB - p + gl - 1) $ (b UV.!) $ (posB + gl - 1 - x) `mod` legsB
+                            markB !x =
+                                unlessM (UMV.read visited x) $ do
+                                    UMV.write visited x True
+                                    markA $ (`mod` legsB) $ (\ p -> posB - p + gl - 1) $ (b UV.!) $ (posB + gl - 1 - x) `mod` legsB
 
-                            in foldM (\ !loops !i -> do
-                                    v <- UMV.read visited i
-                                    if v then return loops
-                                         else do
-                                             markA i
-                                             return $! 1 + loops
-                                ) (0 :: Int) [0 .. gl - 1]
+                        in foldM (\ !loops !i -> do
+                                v <- UMV.read visited i
+                                if v then return loops
+                                     else do
+                                         markA i
+                                         return $! 1 + loops
+                            ) (0 :: Int) [0 .. gl - 1]
 
-                        return $! singletonStateSum (PlanarChordDiagram arcs (factorA * factorB * loopFactor ^ loops))
+                    return $! singletonStateSum (PlanarChordDiagram arcs (factorA * factorB * loopFactor ^ loops))
 
     horizontalLooping 1 (preSum@(KauffmanXStateSum !degree _), !p) =
         let !p' = (p + 1) `mod` degree

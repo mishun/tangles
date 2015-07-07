@@ -1,6 +1,7 @@
 {-# LANGUAGE TypeFamilies #-}
 module Math.Topology.KnotTh.PlanarAlgebra
     ( PlanarAlgebra(..)
+    , horizontalComposition
     , DartDiagram(..)
     , VertexDiagram(..)
     , hasVertices
@@ -23,21 +24,33 @@ module Math.Topology.KnotTh.PlanarAlgebra
 import Control.Arrow ((***), first)
 import Data.Bits (shiftL, shiftR)
 import qualified Data.Ix as Ix
+import Text.Printf
 import Math.Topology.KnotTh.Dihedral
 
 
 class (RotationAction a) => PlanarAlgebra a where
-    planarDegree          :: a -> Int
-    planarEmpty           :: a
-    planarLoop            :: a
-    planarPropagator      :: Int -> a
-    horizontalComposition :: Int -> (a, Int) -> (a, Int) -> a
-    horizontalLooping     :: Int -> (a, Int) -> a
+    planarDegree                   :: a -> Int
+    planarEmpty                    :: a
+    planarLoop                     :: a
+    planarPropagator               :: Int -> a
+    horizontalCompositionUnchecked :: Int -> (a, Int) -> (a, Int) -> a
+    horizontalLooping              :: Int -> (a, Int) -> a
 
     planarLoop = horizontalComposition 2 (planarPropagator 1, 0) (planarPropagator 1, 0)
 
     horizontalLooping gl (x, pos) =
         horizontalComposition (2 * gl) (x, pos) (planarPropagator gl, 0)
+
+
+{-# INLINE horizontalComposition #-}
+horizontalComposition :: (PlanarAlgebra a) => Int -> (a, Int) -> (a, Int) -> a
+horizontalComposition !gl (!a, !posA) (!b, !posB)
+    | gl < 0      = error $ printf "horizontalComposition: gl (%i) must be non-negative" gl
+    | gl > legsA  = error $ printf "horizontalComposition: gl (%i) exceeds number of legs of the first argument (%i)" gl legsA
+    | gl > legsB  = error $ printf "horizontalComposition: gl (%i) exceeds number of legs of the second argument (%i)" gl legsB
+    | otherwise   = horizontalCompositionUnchecked gl (a, posA) (b, posB)
+    where legsA = planarDegree a
+          legsB = planarDegree b
 
 
 class DartDiagram d where

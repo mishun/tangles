@@ -227,7 +227,7 @@ instance (KauffmanFArg a) => PlanarAlgebra (ChordDiagramsSum a) where
     planarPropagator n | n < 0      = error $ printf "planarPropagator: parameter must be non-negative, but %i passed" n
                        | otherwise  = ChordDiagramsSum (2 * n) [ChordDiagram (UV.generate (2 * n) $ \ i -> 2 * n - 1 - i) 1]
 
-    horizontalComposition gl (sumA, !posA) (!sumB, !posB) =
+    horizontalCompositionUnchecked gl (sumA, !posA) (!sumB, !posB) =
         flip mapStateSum sumA $ \ (ChordDiagram xa ka) ->
             let ta = restoreBasicTangle xa
             in flip mapStateSum sumB $ \ (ChordDiagram xb kb) ->

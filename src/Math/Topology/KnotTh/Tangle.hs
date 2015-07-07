@@ -734,7 +734,7 @@ instance PlanarAlgebra (Tangle a) where
             , legsCount       = 2 * n
             }
 
-    horizontalComposition gl (!tangleA, !posA) (!tangleB, !posB) =
+    horizontalCompositionUnchecked gl (!tangleA, !posA) (!tangleB, !posB) =
         ST.runST $ do
             let legsA = numberOfLegs tangleA
                 legsB = numberOfLegs tangleB
