@@ -29,6 +29,10 @@ module Math.Topology.KnotTh.Tangle
     , CascadeCodePattern(..)
     , decodeCascadeCode
     , decodeCascadeCodeFromPairs
+    , Tangle4
+    , extractTangle4
+    , packTangle4
+    , onTangle4
     ) where
 
 import Control.Applicative (Applicative)
@@ -1256,3 +1260,17 @@ decodeCascadeCodeFromPairs = (decodeCascadeCode .) $ map $ \ (p, off) ->
         0  -> X
         1  -> M
         _  -> error $ printf "decodeCascadeCodeFromPairs: expected -1, 0 or 1 as pattern, %i received" p
+
+
+newtype Tangle4 a = T4 { extractTangle4 :: Tangle a }
+    deriving (Show, NFData)
+
+{-# INLINE packTangle4 #-}
+packTangle4 :: Tangle a -> Tangle4 a
+packTangle4 tangle | l == 4     = T4 tangle
+                   | otherwise  = error $ printf "packTangle4: tangle must have 4 legs, but %i presented" l
+    where l = numberOfLegs tangle
+
+{-# INLINE onTangle4 #-}
+onTangle4 :: (Tangle a -> Tangle b) -> Tangle4 a -> Tangle4 b
+onTangle4 f = packTangle4 . f . extractTangle4

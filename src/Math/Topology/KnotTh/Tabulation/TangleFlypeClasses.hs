@@ -13,6 +13,7 @@ import Control.Monad.State.Strict (evalStateT, execStateT, get, put, lift)
 import Control.Arrow (first)
 import Control.Monad (forM_, when, guard)
 import Math.Topology.KnotTh.Dihedral.Dn
+import Math.Topology.KnotTh.Dihedral.D4 (fromDnSubGroup, subGroupD4)
 import Math.Topology.KnotTh.Knotted.Crossings.SubTangle
 import Math.Topology.KnotTh.Tangle
 import Math.Topology.KnotTh.Tabulation.TangleDiagramsCascade
@@ -100,12 +101,11 @@ directSumDescendants crossings (tangle, symmetry) = do
 generateFlypeEquivalentDecomposition' :: (Monad m) => Bool -> Int -> ((SubTangleTangle ProjectionCrossing, SubGroup Dn) -> m ()) -> m ()
 generateFlypeEquivalentDecomposition' triangle maxN yield = do
     let buildCrossingType template symmetry =
-            let sumType
-                    | (a == b) && (c == d) && (a /= c)  = DirectSum01x23
-                    | (b == c) && (a == d) && (a /= b)  = DirectSum12x30
-                    | otherwise                         = NonDirectSumDecomposable
+            let sumType | (a == b) && (c == d) && (a /= c)  = DirectSum01x23
+                        | (b == c) && (a == d) && (a /= b)  = DirectSum12x30
+                        | otherwise                         = NonDirectSumDecomposable
                     where
-                        [a, b, c, d] = map endVertex $ allLegs template
+                        [a, b, c, d] = map endVertex $ allLegs $ extractTangle4 template
             in makeSubTangle' template symmetry sumType
 
     let halfN = maxN `div` 2
@@ -113,10 +113,10 @@ generateFlypeEquivalentDecomposition' triangle maxN yield = do
     (finalFree, finalCrossings, rootList) <-
         flip execStateT (0, listArray (1, halfN) $ repeat [], []) $
             let lonerSymmetry = maximumSubGroup 4
-                loner = makeSubTangle lonerProjection lonerSymmetry NonDirectSumDecomposable 0
-            in flip fix (lonerTangle loner, lonerSymmetry) $ \ growTree (rootTemplate, rootSymmetry) -> do
+                loner = makeSubTangle (packTangle4 lonerProjection) subGroupD4 NonDirectSumDecomposable 0
+            in flip fix (packTangle4 $ lonerTangle loner, lonerSymmetry) $ \ growTree (rootTemplate, rootSymmetry) -> do
                 (!free, !prevCrossings, !prevList) <- get
-                let rootCrossing = buildCrossingType rootTemplate rootSymmetry free
+                let rootCrossing = buildCrossingType rootTemplate (fromDnSubGroup rootSymmetry) free
                 let rootN = numberOfCrossingVertices rootCrossing
                 let crossings = prevCrossings // [(rootN, rootCrossing : (prevCrossings ! rootN))]
                 let root = lonerTangle rootCrossing
@@ -126,16 +126,16 @@ generateFlypeEquivalentDecomposition' triangle maxN yield = do
                         forM_ [1 .. halfN - curN] $ \ cn ->
                             forM_ (templateDescendants True halfN (crossings ! cn) cn curN ancestor) $ \ child@(childTangle, _) ->
                                 case numberOfLegs childTangle of
-                                    4 -> growTree child
+                                    4 -> growTree $ first packTangle4 child
                                     _ -> glueTemplates (curN + cn) child
 
                 let glueDirectSums curN ancestor =
                         forM_ [1 .. halfN - curN] $ \ cn ->
                             forM_ (directSumDescendants (crossings ! cn) ancestor) $ \ child -> do
-                                growTree child
+                                growTree $ first packTangle4 child
                                 glueDirectSums (curN + cn) child
 
-                lift $ yield (rootTemplate, rootSymmetry)
+                lift $ yield (extractTangle4 rootTemplate, rootSymmetry)
                 glueTemplates rootN (root, rootSymmetry)
                 glueDirectSums rootN (root, rootSymmetry)
 
@@ -144,20 +144,20 @@ generateFlypeEquivalentDecomposition' triangle maxN yield = do
                 when (curN > halfN) $ do
                     free <- get
                     put $! free + 1
-                    lift $ yield (rootTemplate, rootSymmetry)
-                    grow ((lonerTangle $ buildCrossingType rootTemplate rootSymmetry free, rootSymmetry), finalCrossings)
+                    lift $ yield (extractTangle4 rootTemplate, rootSymmetry)
+                    grow ((lonerTangle $ buildCrossingType rootTemplate (fromDnSubGroup rootSymmetry) free, rootSymmetry), finalCrossings)
 
         let glueTemplates curN ancestor =
                 forM_ [1 .. min halfN (maxN - curN)] $ \ cn ->
                     forM_ (templateDescendants triangle maxN (crossings ! cn) cn curN ancestor) $ \ child@(childTangle, childSymmetry) ->
                         case numberOfLegs childTangle of
-                            4 -> tree (curN + cn) child
+                            4 -> tree (curN + cn) $ first packTangle4 child
                             _ -> lift (yield (childTangle, childSymmetry)) >> glueTemplates (curN + cn) child
 
         let glueDirectSums curN ancestor =
                 forM_ [1 .. min halfN (maxN - curN)] $ \ cn ->
                     forM_ (directSumDescendants (crossings ! cn) ancestor) $ \ child -> do
-                        tree (curN + cn) child
+                        tree (curN + cn) $ first packTangle4 child
                         glueDirectSums (curN + cn) child
 
         let rootN = numberOfVerticesAfterSubstitution $ fst root
