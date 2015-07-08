@@ -3,8 +3,6 @@ module Math.Topology.KnotTh.ChordDiagram.Test
     ) where
 
 import Control.Monad (forM_)
-import Data.List (elemIndex)
-import Data.Maybe (fromJust, isJust)
 import Text.Printf
 import Test.Framework (Test, testGroup)
 import Test.Framework.Providers.HUnit (testCase)
@@ -36,10 +34,7 @@ test =
         , testCase "Symmetry group information" $
             forM_ [1 .. 9] $ \ !n ->
                 forM_ (listChordDiagrams $ generateNonPlanarRaw n) $ \ (cd, (mirror, period)) -> do
-                    let p = numberOfChordEnds cd
-                        expectedPeriod = 1 + fromJust (elemIndex cd $ map (flip rotateBy cd) [1 .. p])
-                        expectedMirror = isJust (elemIndex (mirrorIt cd) $ map (flip rotateBy cd) [0 .. p - 1])
-
-                    assertEqual (printf "%s period" (show cd)) expectedPeriod period
+                    assertEqual (printf "%s period" (show cd)) (naivePeriodOf cd) period
+                    let expectedMirror = mirrorIt cd `elem` map (flip rotateBy cd) [0 .. rotationOrder cd - 1]
                     assertEqual (printf "%s mirror" (show cd)) expectedMirror mirror
         ]

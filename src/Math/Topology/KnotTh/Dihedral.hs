@@ -2,6 +2,7 @@
 module Math.Topology.KnotTh.Dihedral
     ( RotationAction(..)
     , allRotationsOf
+    , naivePeriodOf
     , MirrorAction(..)
     , allOrientationsOf
     , RotationDirection
@@ -11,6 +12,8 @@ module Math.Topology.KnotTh.Dihedral
     , isCounterClockwise
     , isClockwise
     , directionSign
+    , Composition(..)
+    , TensorProduct(..)
     , Group(..)
     , power
     , RotationGroup(..)
@@ -41,6 +44,10 @@ allRotationsOf a =
     case rotationOrder a of
         0 -> [a]
         n -> map (flip rotateBy a) [0 .. n - 1]
+
+naivePeriodOf :: (Eq a, RotationAction a) => a -> Int
+naivePeriodOf x | rotationOrder x == 0  = 0
+                | otherwise             = head $ filter ((== x) . flip rotateBy x) [1 ..]
 
 
 class MirrorAction a where
@@ -81,11 +88,20 @@ directionSign :: RotationDirection -> Int
 directionSign (RD d) = d
 
 
-class Group g where
+class Composition a where
+    (∘) :: a -> a -> a
+
+instance Composition (a -> a) where
+    (∘) = (.)
+
+
+class TensorProduct a where
+    (⊗) :: a -> a -> a
+
+class (Composition g) => Group g where
     data SubGroup g :: *
 
     inverse :: g -> g
-    (∘)     :: g -> g -> g
 
 power :: (RotationGroup g) => Int -> g -> g
 power =

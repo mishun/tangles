@@ -1,27 +1,26 @@
 {-# LANGUAGE TypeFamilies #-}
 module Math.Topology.KnotTh.Cobordism
-    ( Cobordism(..)
+    ( module Math.Topology.KnotTh.Dihedral
+    , Cobordism(..)
     , Cobordism3(..)
     , PreadditiveCobordism(..)
     , CannedCobordism(..)
     ) where
 
 import Math.Topology.KnotTh.ChordDiagram
+import Math.Topology.KnotTh.Dihedral
 import Math.Topology.KnotTh.PlanarAlgebra
 
 
-class (Eq c, Eq (CobordismBorder c)) => Cobordism c where
+class (Composition c, TensorProduct c, TensorProduct (CobordismBorder c), Eq (CobordismBorder c)) => Cobordism c where
     data CobordismBorder c :: *
 
     cobordismBorder0  :: c -> CobordismBorder c
     cobordismBorder1  :: c -> CobordismBorder c
     identityCobordism :: CobordismBorder c -> c
-    flipCobordism     :: c -> c
-    (∘)               :: c -> c -> c
-    (⊗)               :: c -> c -> c
-    (⊕)               :: CobordismBorder c -> CobordismBorder c -> CobordismBorder c
 
 class (Cobordism c) => Cobordism3 c where
+    flipCobordism        :: c -> c
     numberOfLoops        :: CobordismBorder c -> Int
     surfOfGenusCobordism :: Int -> c
     sphereCobordism      :: c
@@ -43,7 +42,7 @@ class (Cobordism c) => Cobordism3 c where
     cupOfGenusCobordism = flipCobordism . capOfGenusCobordism
     pantsCobordism'     = flipCobordism pantsCobordism
 
-class (Cobordism c, Num c) => PreadditiveCobordism c where
+class (Cobordism c, Eq c, Num c) => PreadditiveCobordism c where
     zeroCobordism   :: CobordismBorder c -> CobordismBorder c -> c
     isZeroCobordism :: c -> Bool
 

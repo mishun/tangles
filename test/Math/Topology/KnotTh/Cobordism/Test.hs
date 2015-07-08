@@ -8,11 +8,10 @@ import Test.Framework (Test, testGroup)
 import Test.Framework.Providers.HUnit (testCase)
 import Test.HUnit hiding (Test, test)
 import Math.Topology.KnotTh.Cobordism
-import Math.Topology.KnotTh.Dihedral (rotateBy)
 import Math.Topology.KnotTh.PlanarAlgebra
 
 
-generalCobordism3Tests :: forall cob. (Cobordism3 cob, Show cob, Show (CobordismBorder cob)) => cob -> Test
+generalCobordism3Tests :: forall cob. (Cobordism3 cob, Eq cob, Show cob, Show (CobordismBorder cob)) => cob -> Test
 generalCobordism3Tests _ =
     let (=?~=) = (@?=) :: cob -> cob -> Assertion
         (=~?=) = (@=?) :: cob -> cob -> Assertion
@@ -98,7 +97,7 @@ generalCobordism3Tests _ =
         ]
 
 
-generalCannedCobordismTests :: forall cob. (CannedCobordism cob, Show cob, Show (CobordismBorder cob)) => cob -> Test
+generalCannedCobordismTests :: forall cob. (CannedCobordism cob, Eq cob, Show cob, Show (CobordismBorder cob)) => cob -> Test
 generalCannedCobordismTests _ =
     let (=?~=) = (@?=) :: cob -> cob -> Assertion
     in testGroup "General canned cobordism properties tests"

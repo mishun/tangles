@@ -33,6 +33,12 @@ instance RotationAction Dn where
 instance MirrorAction Dn where
     mirrorIt (D n r m) = D n r (not m)
 
+instance Composition Dn where
+    {-# INLINE (∘) #-}
+    D n1 r1 m1 ∘ D n0 r0 m0 | n0 /= n1   = error $ printf "(∘): Dn order conflict: %i and %i" n1 n0
+                            | not m0     = D n0 ((r0 + r1) `mod` n0) m1
+                            | otherwise  = D n0 ((r0 - r1) `mod` n0) (not m1)
+
 instance Group Dn where
     data SubGroup Dn = Per {-# UNPACK #-} !Int {-# UNPACK #-} !Int
                      | Mir {-# UNPACK #-} !Int {-# UNPACK #-} !Int {-# UNPACK #-} !Int
@@ -42,11 +48,6 @@ instance Group Dn where
     inverse g@(D _ _ True ) = g
     inverse g@(D _ 0 False) = g
     inverse   (D n r False) = D n (n - r) False
-
-    {-# INLINE (∘) #-}
-    D n1 r1 m1 ∘ D n0 r0 m0 | n0 /= n1   = error $ printf "(∘): Dn order conflict: %i and %i" n1 n0
-                            | not m0     = D n0 ((r0 + r1) `mod` n0) m1
-                            | otherwise  = D n0 ((r0 - r1) `mod` n0) (not m1)
 
 instance RotationGroup Dn where
     {-# INLINE identity #-}

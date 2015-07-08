@@ -16,7 +16,6 @@ import qualified Data.Vector.Unboxed.Mutable as UMV
 import Text.Printf
 import Math.Topology.KnotTh.ChordDiagram
 import Math.Topology.KnotTh.Cobordism
-import Math.Topology.KnotTh.Dihedral hiding ((∘))
 import Math.Topology.KnotTh.PlanarAlgebra
 
 
@@ -526,6 +525,20 @@ rotateArcs rot a =
 data Cobordism' g = Cob {-# UNPACK #-} !CobordismHeader !g
     deriving (Eq, Show)
 
+instance (CobordismGuts g) => Composition (Cobordism' g) where
+    Cob h1 g1 ∘ Cob h0 g0 | legsN h0  /= legsN h1   = error $ printf "(∘): different leg numbers <%i> and <%i>" (legsN h1) (legsN h0)
+                          | loops1 h0 /= loops0 h1  = error $ printf "(∘): different border loops numbers <%i> and <%i>" (loops0 h1) (loops1 h0)
+                          | arcs1 h0  /= arcs0 h1   = error "(∘): different border arcs"
+                          | otherwise               =
+        let h = makeHeader (legsN h0) (arcs0 h0, loops0 h0) (arcs1 h1, loops1 h1)
+        in Cob h (verComposeGuts h (h1, g1) (h0, g0))
+
+instance (CobordismGuts g) => TensorProduct (CobordismBorder (Cobordism' g)) where
+    a ⊗ b = horizontalComposition 0 (a, 0) (b, 0)
+
+instance (CobordismGuts g) => TensorProduct (Cobordism' g) where
+    a ⊗ b = horizontalComposition 0 (a, 0) (b, 0)
+
 instance (CobordismGuts g) => Cobordism (Cobordism' g) where
     data CobordismBorder (Cobordism' g) = Brd {-# UNPACK #-} !Int !(UV.Vector Int)
         deriving (Eq, Ord, Show)
@@ -537,21 +550,11 @@ instance (CobordismGuts g) => Cobordism (Cobordism' g) where
         let h = makeHeader (UV.length arcs) (arcs, loops) (arcs, loops)
         in Cob h (identityGuts (wallHolesN h) loops)
 
+instance (CobordismGuts g) => Cobordism3 (Cobordism' g) where
     flipCobordism (Cob h g) =
         Cob (h { arcs0 = arcs1 h, arcs1 = arcs0 h, loops0 = loops1 h, loops1 = loops0 h })
             (flipGuts g)
 
-    Cob h1 g1 ∘ Cob h0 g0 | legsN h0  /= legsN h1   = error $ printf "(∘): different leg numbers <%i> and <%i>" (legsN h1) (legsN h0)
-                          | loops1 h0 /= loops0 h1  = error $ printf "(∘): different border loops numbers <%i> and <%i>" (loops0 h1) (loops1 h0)
-                          | arcs1 h0  /= arcs0 h1   = error "(∘): different border arcs"
-                          | otherwise               =
-        let h = makeHeader (legsN h0) (arcs0 h0, loops0 h0) (arcs1 h1, loops1 h1)
-        in Cob h (verComposeGuts h (h1, g1) (h0, g0))
-
-    a ⊗ b = horizontalComposition 0 (a, 0) (b, 0)
-    a ⊕ b = horizontalComposition 0 (a, 0) (b, 0)
-
-instance (CobordismGuts g) => Cobordism3 (Cobordism' g) where
     numberOfLoops (Brd ls _) = ls
 
     surfOfGenusCobordism genus | genus < 0  = error $ printf "closedSurfaceCobordism: genus must be non-negative, but %i passed" genus
@@ -650,8 +653,7 @@ instance (ModuleCobordismGuts g, Integral a) => Num (Cobordism' (ModuleGuts g a)
 
 instance (ModuleCobordismGuts g, Integral a) => PreadditiveCobordism (Cobordism' (ModuleGuts g a)) where
     zeroCobordism (Brd l0 a0) (Brd l1 a1) | UV.length a0 /= UV.length a1  = error "zeroCobordism: different number of legs"
-                                          | otherwise                     =
-        Cob (makeHeader (UV.length a0) (a0, l0) (a1, l1)) (MG M.empty)
+                                          | otherwise                     = Cob (makeHeader (UV.length a0) (a0, l0) (a1, l1)) (MG M.empty)
 
     isZeroCobordism (Cob _ (MG m)) = M.null m
 

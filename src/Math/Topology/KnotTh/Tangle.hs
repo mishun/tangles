@@ -1265,6 +1265,18 @@ decodeCascadeCodeFromPairs = (decodeCascadeCode .) $ map $ \ (p, off) ->
 newtype Tangle4 a = T4 { extractTangle4 :: Tangle a }
     deriving (Show, NFData)
 
+instance RotationAction (Tangle4 a) where
+    rotationOrder _ = 4
+
+    rotateBy rot (T4 t) = T4 (rotateBy rot t)
+
+instance (MirrorAction a) => MirrorAction (Tangle4 a) where
+    mirrorIt (T4 t) = T4 (mirrorIt t)
+
+instance (MirrorAction a) => GroupAction D4 (Tangle4 a) where
+    transform g t | reflection g  = mirrorIt $ rotateBy (rotation g) t
+                  | otherwise     = rotateBy (rotation g) t
+
 {-# INLINE packTangle4 #-}
 packTangle4 :: Tangle a -> Tangle4 a
 packTangle4 tangle | l == 4     = T4 tangle
