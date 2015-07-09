@@ -34,7 +34,7 @@ test = testGroup "Dotted cobordisms"
                 cup = cupCobordism
                 tube = tubeCobordism
                 arc = cap ∘ pantsCobordism
-                arc' = flipCobordism arc
+                arc' = transposeCobordism arc
                 cut = cup ∘ cap
             (((cup ⊗ cup) ∘ arc) + (arc' ∘ (cap ⊗ cap))) =?~= ((tube ⊗ cut) + (cut ⊗ tube))
             ((arc ∘ (tube ⊗ cap ⊗ cap ⊗ tube)) + (cap ⊗ arc ⊗ cap)) =?~= ((arc ⊗ cap ⊗ cap) + (cap ⊗ cap ⊗ arc))

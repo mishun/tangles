@@ -50,13 +50,13 @@ generalCobordism3Tests _ =
             cobordismBorder0 swap @?= cobordismBorder0 pants
             cobordismBorder1 swap @?= cobordismBorder0 pants
 
-        , testCase "Flip" $ do
-            flipCobordism capCobordism =?~= cupCobordism
-            flipCobordism cupCobordism =?~= capCobordism
-            flipCobordism tubeCobordism =?~= tubeCobordism
-            flipCobordism sphereCobordism =?~= sphereCobordism
-            flipCobordism torusCobordism =?~= torusCobordism
-            flipCobordism pantsCobordism' =?~= pantsCobordism
+        , testCase "Transpose" $ do
+            transposeCobordism capCobordism =?~= cupCobordism
+            transposeCobordism cupCobordism =?~= capCobordism
+            transposeCobordism tubeCobordism =?~= tubeCobordism
+            transposeCobordism sphereCobordism =?~= sphereCobordism
+            transposeCobordism torusCobordism =?~= torusCobordism
+            transposeCobordism pantsCobordism' =?~= pantsCobordism
 
         , testCase "cap ∘ cup" $ do
             (capCobordism ∘ tubeCobordism ∘ cupCobordism) =?~= sphereCobordism
@@ -121,9 +121,9 @@ generalCannedCobordismTests _ =
             horizontalComposition 2 (planarPropagator 1, 0) (planarPropagator 1, 0) =?~= tubeCobordism
             horizontalComposition 6 (planarPropagator 3, 0) (planarPropagator 3, 5) =?~= tubeCobordism
 
-        , testCase "Flip" $ do
-            flipCobordism saddleCobordism =?~= saddleCobordism'
-            flipCobordism sideCutPantsCobordism =?~= sideCutPantsCobordism'
+        , testCase "Transpose" $ do
+            transposeCobordism saddleCobordism =?~= saddleCobordism'
+            transposeCobordism sideCutPantsCobordism =?~= sideCutPantsCobordism'
 
         , testCase "Rotate saddle" $ do
             rotateBy 1 saddleCobordism =?~= saddleCobordism'
@@ -138,7 +138,7 @@ generalCannedCobordismTests _ =
 
         , testCase "Handle formation" $ do
             let g = horizontalComposition 2 (saddleCobordism, 0) (planarPropagator 1, 0)
-            capCobordism ∘ horizontalComposition 2 (planarPropagator 1, 0) (flipCobordism g ∘ g, 0) ∘ cupCobordism =?~= torusCobordism
+            capCobordism ∘ horizontalComposition 2 (planarPropagator 1, 0) (transposeCobordism g ∘ g, 0) ∘ cupCobordism =?~= torusCobordism
 
         , testCase "Triple pants" $ do
             (pantsCobordism ∘ (tubeCobordism ⊗ pantsCobordism)) =?~= horizontalComposition 2 (sideCutPantsCobordism, 0) (sideCutPantsCobordism, 0)

@@ -20,7 +20,7 @@ class (Composition c, TensorProduct c, TensorProduct (CobordismBorder c), Eq (Co
     identityCobordism :: CobordismBorder c -> c
 
 class (Cobordism c) => Cobordism3 c where
-    flipCobordism        :: c -> c
+    transposeCobordism   :: c -> c
     numberOfLoops        :: CobordismBorder c -> Int
     surfOfGenusCobordism :: Int -> c
     sphereCobordism      :: c
@@ -38,9 +38,9 @@ class (Cobordism c) => Cobordism3 c where
     torusCobordism      = surfOfGenusCobordism 1
     capCobordism        = capOfGenusCobordism 0
     cupCobordism        = cupOfGenusCobordism 0
-    capOfGenusCobordism = flipCobordism . cupOfGenusCobordism
-    cupOfGenusCobordism = flipCobordism . capOfGenusCobordism
-    pantsCobordism'     = flipCobordism pantsCobordism
+    capOfGenusCobordism = transposeCobordism . cupOfGenusCobordism
+    cupOfGenusCobordism = transposeCobordism . capOfGenusCobordism
+    pantsCobordism'     = transposeCobordism pantsCobordism
 
 class (Cobordism c, Eq c, Num c) => PreadditiveCobordism c where
     zeroCobordism   :: CobordismBorder c -> CobordismBorder c -> c
@@ -54,6 +54,6 @@ class (Cobordism3 c, PlanarAlgebra c, PlanarAlgebra (CobordismBorder c), ChordDi
     sideCutPantsCobordism  :: c
     sideCutPantsCobordism' :: c
 
-    saddleCobordism'       = flipCobordism saddleCobordism
+    saddleCobordism'       = transposeCobordism saddleCobordism
     sideCutPantsCobordism  = horizontalComposition 2 (saddleCobordism', 0) (planarPropagator 1, 0)
     sideCutPantsCobordism' = horizontalComposition 2 (saddleCobordism, 0) (planarPropagator 1, 0)

@@ -551,7 +551,7 @@ instance (CobordismGuts g) => Cobordism (Cobordism' g) where
         in Cob h (identityGuts (wallHolesN h) loops)
 
 instance (CobordismGuts g) => Cobordism3 (Cobordism' g) where
-    flipCobordism (Cob h g) =
+    transposeCobordism (Cob h g) =
         Cob (h { arcs0 = arcs1 h, arcs1 = arcs0 h, loops0 = loops1 h, loops1 = loops0 h })
             (flipGuts g)
 

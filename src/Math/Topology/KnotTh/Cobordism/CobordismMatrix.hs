@@ -108,9 +108,9 @@ instance (PreadditiveCobordism c) => PreadditiveCobordism (CobordismMatrix c) wh
             zeroCobordism (obj0 V.! col) (obj1 V.! row)
 
 instance (Cobordism3 c, PreadditiveCobordism c) => Cobordism3 (CobordismMatrix c) where
-    flipCobordism m =
+    transposeCobordism m =
         generate (object1 m) (object0 m) $ \ !row !col ->
-            flipCobordism $ m ! (col, row)
+            transposeCobordism $ m ! (col, row)
 
     numberOfLoops (CB objs) = V.sum $ V.map numberOfLoops objs
 

@@ -42,6 +42,10 @@ instance Composition D4 where
     D4 a ∘ D4 b | b .&. 1 == 1  = D4 $ ((b .&. 6) - (a .&. 6) + ((a `xor` b) .&. 1)) .&. 7
                 | otherwise     = D4 $ ((b .&. 6) + (a .&. 6) + ((a `xor` b) .&. 1)) .&. 7
 
+instance GroupAction D4 D4 where
+    transform (D4 a) (D4 b) | b .&. 1 == 1  = D4 $ ((b .&. 6) - (a .&. 6) + ((a `xor` b) .&. 1)) .&. 7
+                            | otherwise     = D4 $ ((b .&. 6) + (a .&. 6) + ((a `xor` b) .&. 1)) .&. 7
+
 instance Group D4 where
     data SubGroup D4 = SubGroup {-# UNPACK #-} !Int {-# UNPACK #-} !(PV.Vector Int) ![D4]
 
