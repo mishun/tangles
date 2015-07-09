@@ -11,13 +11,13 @@ import System.IO (withFile, IOMode(..), hPrint)
 import System.Environment (getArgs)
 import Diagrams.Prelude
 import Diagrams.Backend.SVG
-import Math.Combinatorics.ChordDiagram (generateNonPlanarRaw, listChordDiagrams, genusOfChordDiagram)
+import Math.Topology.KnotTh.ChordDiagram (generateNonPlanarRaw, listChordDiagrams, genusOfChordDiagram)
+import Math.Topology.KnotTh.Knotted.EdgeIndicesEncoding
+import Math.Topology.KnotTh.Knotted.Threads
 import Math.Topology.KnotTh.EmbeddedLink
-import Math.Topology.KnotTh.EmbeddedLink.TestPrime
-import Math.Topology.KnotTh.EmbeddedLink.TangleStarGlue
 import Math.Topology.KnotTh.Tabulation.TangleDiagramsCascade
+import Math.Topology.KnotTh.Tabulation.TangleStarGlue
 import Math.Topology.KnotTh.Draw
-import Math.Topology.KnotTh.EdgeIndicesEncoding
 import Math.Topology.KnotTh.Invariants
 import Math.Topology.KnotTh.Enumeration.EquivalenceClasses
 import Math.Topology.KnotTh.Enumeration.SiftByInvariant
@@ -63,7 +63,7 @@ main = do
     let diagrams =
             filter (\ link -> not (isReidemeisterReducible link) && testPrime link) $
                 tangleStarGlue
-                    (filter ((== 1) . genusOfChordDiagram . fst) . listChordDiagrams . generateNonPlanarRaw)
+                    (\ n -> filter ((== 1) . genusOfChordDiagram . fst) $ listChordDiagrams $ generateNonPlanarRaw n)
                     (forCCP_ $ primeIrreducibleDiagrams maxN)
 
     do

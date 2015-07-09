@@ -7,6 +7,7 @@ import Text.Printf
 import System.Environment (getArgs)
 import Diagrams.Prelude
 import Diagrams.Backend.SVG
+import Math.Topology.KnotTh.Knotted.Threads
 import Math.Topology.KnotTh.Link
 import Math.Topology.KnotTh.Tangle
 import Math.Topology.KnotTh.Tabulation.LinkDiagrams

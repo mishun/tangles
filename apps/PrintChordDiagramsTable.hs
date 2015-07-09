@@ -6,8 +6,8 @@ import System.Environment (getArgs)
 import Text.Printf
 import Diagrams.Prelude
 import Diagrams.Backend.SVG
-import Math.Combinatorics.ChordDiagram
-import Math.Combinatorics.ChordDiagram.Draw
+import Math.Topology.KnotTh.ChordDiagram
+import Math.Topology.KnotTh.ChordDiagram.Draw
 
 
 main :: IO ()

@@ -81,6 +81,7 @@ library
         Math.Topology.KnotTh.Knotted.Crossings.Projection,
         Math.Topology.KnotTh.Knotted.Crossings.SubTangle,
         Math.Topology.KnotTh.Knotted.EdgeIndicesEncoding,
+        Math.Topology.KnotTh.Knotted.Threads,
         Math.Topology.KnotTh.Link,
         Math.Topology.KnotTh.Moves.Moves,
         Math.Topology.KnotTh.Moves.MovesOfELink,
@@ -108,7 +109,6 @@ library
         Math.Topology.KnotTh.Invariants.KnotPolynomials.KauffmanXStateSum,
         Math.Topology.KnotTh.Invariants.KnotPolynomials.Surface,
         Math.Topology.KnotTh.Invariants.LinkingNumber,
-        Math.Topology.KnotTh.Knotted.Threads,
         Math.Topology.KnotTh.Link.TableOfCodes,
         Math.Topology.KnotTh.Moves.AdHoc.Resting,
         Math.Topology.KnotTh.Moves.ModifyDSL,
@@ -127,7 +127,8 @@ library
     if flag(internal-tests)
         cpp-options:        -DTESTING
         exposed-modules:
-            Math.Topology.KnotTh.Invariants.Util.Poly
+            Math.Topology.KnotTh.Invariants.Util.Poly,
+            Math.Topology.KnotTh.Moves.Test
     else
         other-modules:
             Math.Topology.KnotTh.Invariants.Util.Poly
@@ -162,7 +163,6 @@ test-suite TestTangles
         Math.Topology.KnotTh.Enumeration.Applied.Test,
         Math.Topology.KnotTh.Invariants.KhovanovHomology.Test,
         Math.Topology.KnotTh.Invariants.Test,
-        Math.Topology.KnotTh.Moves.Test,
         Math.Topology.KnotTh.Tabulation.Test,
         Math.Topology.KnotTh.Tangle.Test,
         TestUtil.Table

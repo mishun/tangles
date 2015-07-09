@@ -41,11 +41,14 @@ test:
 .PHONY: apps
 apps: $(patsubst apps/%.hs,$(Bin)/%, $(wildcard apps/*.hs))
 
+# TODO: replace this dirty hack with 'cabal exec' afrer cabal update
 $(Bin)/%: apps/%.hs dist/package.conf.inplace
 	mkdir -p $(dir $@)
-	ghc --make -package-db dist/package.conf.inplace \
+	ghc --make -package-db='.cabal-sandbox/x86_64-linux-ghc-7.8.3-packages.conf.d' \
+	           -package-db='dist/package.conf.inplace' \
 	           -Wall -O -XBangPatterns -threaded \
 	           -outputdir=dist/build \
 	           -osuf=$(patsubst apps/%.hs,%.o, $<) \
 	           -hisuf=$(patsubst apps/%.hs,%.hi, $<) \
+	           -i=test/ \
 	           -o $@ $<

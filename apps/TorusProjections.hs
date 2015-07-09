@@ -17,10 +17,10 @@ import Diagrams.Prelude
 import Diagrams.Backend.SVG
 import Math.Topology.KnotTh.Dihedral.D4
 import Math.Topology.KnotTh.ChordDiagram (generateNonPlanarRaw, listChordDiagrams, genusOfChordDiagram)
+import Math.Topology.KnotTh.Knotted.Threads
 import Math.Topology.KnotTh.EmbeddedLink
-import Math.Topology.KnotTh.EmbeddedLink.TestPrime
-import Math.Topology.KnotTh.EmbeddedLink.TangleStarGlue
 import Math.Topology.KnotTh.Tabulation.TangleDiagramsCascade
+import Math.Topology.KnotTh.Tabulation.TangleStarGlue
 import Math.Topology.KnotTh.Draw
 import TestUtil.Table
 
@@ -45,8 +45,8 @@ p0 cross ab =
             )
 
         rc = let v = nthVertex res n
-             in min (rootCode' (nthOutcomingDart v 3) R.ccw)
-                    (rootCode' (nthOutcomingDart v 0) R.cw)
+             in min (rootCode' (nthOutcomingDart v 3) ccw)
+                    (rootCode' (nthOutcomingDart v 0) cw)
 
     in ((2, rc), res)
 
@@ -73,8 +73,8 @@ p1 cross ab =
             )
 
         rc = let v = nthVertex res n
-             in min (rootCode' (nthOutcomingDart v 0) R.ccw)
-                    (rootCode' (nthOutcomingDart v 1) R.cw)
+             in min (rootCode' (nthOutcomingDart v 0) ccw)
+                    (rootCode' (nthOutcomingDart v 1) cw)
 
     in ((3, rc), res)
 
@@ -84,26 +84,26 @@ nextGeneration cross link =
     map snd $ nubBy ((==) `on` fst) $ do
         (rc, child) <- do
             c <- cross
-            d <- allHalfEdges link
+            d <- allDarts link
             p0 c d : [p1 c d | beginVertex d /= beginVertex (opposite d)
                             && opposite (nextCCW d) /= nextCW (opposite d)]
 
-        let rc' = minimum [rootCode r dir | r <- allHalfEdges child, dir <- R.bothDirections]
+        let rc' = minimum [rootCode r dir | r <- allDarts child, dir <- bothDirections]
         guard $ rc <= rc'
         return (rc, child)
 
 
-rootCode :: (Crossing a) => Dart EmbeddedLink a -> R.RotationDirection -> (Int, UV.Vector Int)
+rootCode :: (Crossing a) => Dart EmbeddedLink a -> RotationDirection -> (Int, UV.Vector Int)
 rootCode ab dir | ac == opposite bd                         = (2, rootCode' ab dir)
                 | nextDir dir (opposite ac) == opposite bd  = (3, rootCode' ab dir)
                 | otherwise                                 = (4, UV.empty)
     where
         ba = opposite ab
         ac = nextDir dir ab
-        bd = nextDir (R.oppositeDirection dir) ba
+        bd = nextDir (mirrorIt dir) ba
 
 
-rootCode' :: (Crossing a) => Dart EmbeddedLink a -> R.RotationDirection -> UV.Vector Int
+rootCode' :: (Crossing a) => Dart EmbeddedLink a -> RotationDirection -> UV.Vector Int
 rootCode' root dir =
     case globalTransformations link of
         Nothing      -> codeWithGlobal d4I
@@ -125,7 +125,7 @@ rootCode' root dir =
                         if ux > 0
                             then do
                                 up <- UMV.unsafeRead incoming u
-                                return $! (ux `shiftL` 2) + (((beginPlace d - up) * R.directionSign dir) .&. 3)
+                                return $! (ux `shiftL` 2) + (((beginPlace d - up) * directionSign dir) .&. 3)
                             else do
                                 nf <- readSTRef free
                                 writeSTRef free $! nf + 1
@@ -147,7 +147,7 @@ rootCode' root dir =
                             tailI <- readSTRef free
                             when (headI < tailI - 1) $ do
                                 input <- MV.unsafeRead queue headI
-                                void $ foldMAdjacentDartsFrom input dir lookAndWrite (6 * headI + 3)
+                                void $ foldMIncomingDartsFrom input dir lookAndWrite (6 * headI + 3)
                                 case crossingCodeWithGlobal global dir input of
                                     (# be, le #) -> do
                                         UMV.unsafeWrite rc (6 * headI + 1) be
@@ -169,7 +169,7 @@ main = do
     let projections =
             filter testPrime $
                 tangleStarGlue
-                    (filter ((== 1) . genusOfChordDiagram . fst) . listChordDiagrams . generateNonPlanarRaw)
+                    (\ n -> filter ((== 1) . genusOfChordDiagram . fst) $ listChordDiagrams $ generateNonPlanarRaw n)
                     (forCCP_ $ primeProjections maxN)
 
     let quads =

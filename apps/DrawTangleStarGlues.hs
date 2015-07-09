@@ -7,7 +7,7 @@ import Control.Monad.State.Strict (execState, modify)
 import Control.Monad (guard)
 import Text.Printf
 import System.Environment (getArgs)
-import Diagrams.Prelude
+import Diagrams.Prelude hiding (transform)
 import Diagrams.Backend.SVG
 import Math.Topology.KnotTh.Dihedral.Dn
 import Math.Topology.KnotTh.ChordDiagram (generateNonPlanarRaw, listChordDiagrams, genusOfChordDiagram)
@@ -23,7 +23,7 @@ main = do
     [targetGenus, maxN] <- fmap (map read) getArgs
 
     let makeDiagrams tangleGenerator =
-            let diagrams = map (listChordDiagrams . generateNonPlanarRaw) [0 ..]
+            let diagrams = map (\ n -> listChordDiagrams (generateNonPlanarRaw n)) [0 ..]
                 merge (a, al) (_, bl) = (a, sortBy (comparing $ numberOfLegs . fst) (al ++ bl))
             in M.elems $ M.fromListWith merge $ do
                 (tangle, tangleSymmetry) <- execState (tangleGenerator $ \ (!tangle, (!symmetry, _)) -> modify ((tangle, symmetry) :)) []
@@ -32,11 +32,11 @@ main = do
                 (cd, (starMirror, starPeriod)) <- diagrams !! (l `div` 2)
                 guard $ targetGenus == genusOfChordDiagram cd
 
-                rot <- [0 .. gcd starPeriod (Dn.rotationPeriod tangleSymmetry) - 1]
-                mir <- False : [True | not starMirror && not (Dn.hasReflectionPart tangleSymmetry)]
-                let g = Dn.fromReflectionRotation l (mir, rot)
-                    link = fromTangleAndStar cd $ transformTangle g tangle
-                return (unrootedHomeomorphismInvariant link, (link, [(transformTangle g tangle, cd)]))
+                rot <- [0 .. gcd starPeriod (rotationPeriod tangleSymmetry) - 1]
+                mir <- False : [True | not starMirror && not (hasReflectionPart tangleSymmetry)]
+                let g = fromReflectionRotation l (mir, rot)
+                    link = fromTangleAndStar cd $ transform g tangle
+                return (unrootedHomeomorphismInvariant link, (link, [(transform g tangle, cd)]))
 
     renderSVG (printf "TangleStarGlues-%i-%i.svg" targetGenus maxN) (Width 512) $ pad 1.05 $
         vcat' with { _sep = 0.8 } $ do

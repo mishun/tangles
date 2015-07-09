@@ -14,7 +14,8 @@ import Diagrams.Backend.SVG
 import Math.Topology.KnotTh.Enumeration.Applied.NonAlternatingTangles
 import Math.Topology.KnotTh.Enumeration.DiagramInfo.MinimalDiagramInfo
 import Math.Topology.KnotTh.Draw
-import Math.Topology.KnotTh.EdgeIndicesEncoding
+import Math.Topology.KnotTh.Knotted.EdgeIndicesEncoding
+import Math.Topology.KnotTh.Knotted.Threads
 import TestUtil.Table
 
 
