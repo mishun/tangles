@@ -98,6 +98,7 @@ instance Composition (a -> a) where
 class TensorProduct a where
     (⊗) :: a -> a -> a
 
+
 class (Composition g) => Group g where
     data SubGroup g :: *
 

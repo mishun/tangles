@@ -2,6 +2,7 @@
 module Math.Topology.KnotTh.PlanarAlgebra
     ( PlanarAlgebra(..)
     , DartDiagram(..)
+    , hasDarts
     , VertexDiagram(..)
     , hasVertices
     , allOutcomingDarts
@@ -28,12 +29,15 @@ import Math.Topology.KnotTh.Dihedral
 
 
 class (RotationAction a) => PlanarAlgebra a where
-    planarDegree                   :: a -> Int
-    planarEmpty                    :: a
-    planarLoop                     :: a
-    planarPropagator               :: Int -> a
+    planarDegree          :: a -> Int
+    planarEmpty           :: a
+    planarLoop            :: a
+    planarPropagator      :: Int -> a
+    horizontalComposition :: Int -> (a, Int) -> (a, Int) -> a
+    horizontalLooping     :: Int -> (a, Int) -> a
+
+    -- | Never call it. Default horizontalComposition calls it after all bound checks.
     horizontalCompositionUnchecked :: Int -> (a, Int) -> (a, Int) -> a
-    horizontalLooping              :: Int -> (a, Int) -> a
 
     planarLoop = horizontalComposition 2 (planarPropagator 1, 0) (planarPropagator 1, 0)
 
@@ -41,7 +45,6 @@ class (RotationAction a) => PlanarAlgebra a where
         horizontalComposition (2 * gl) (x, pos) (planarPropagator gl, 0)
 
     {-# INLINE horizontalComposition #-}
-    horizontalComposition :: (PlanarAlgebra a) => Int -> (a, Int) -> (a, Int) -> a
     horizontalComposition !gl (!a, !posA) (!b, !posB)
         | gl < 0      = error $ printf "horizontalComposition: gl (%i) must be non-negative" gl
         | gl > legsA  = error $ printf "horizontalComposition: gl (%i) exceeds number of legs of the first argument (%i)" gl legsA
@@ -99,6 +102,10 @@ instance (DartDiagram d) => Ix.Ix (Dart d a) where
     rangeSize (a, b)   = max 0 (dartIndex b - dartIndex a + 1)
 
 
+hasDarts :: (DartDiagram d) => d a -> Bool
+hasDarts = (> 0) . numberOfDarts
+
+
 class (DartDiagram d) => VertexDiagram d where
     data Vertex d    :: * -> *
     vertexOwner      :: Vertex d a -> d a
@@ -124,8 +131,9 @@ class (DartDiagram d) => VertexDiagram d where
     beginPair'       :: Dart d a -> (Int, Int)
     endPair'         :: Dart d a -> (Int, Int)
 
-    outcomingDarts          :: Vertex d a -> [Dart d a]
-    incomingDarts           :: Vertex d a -> [Dart d a]
+    outcomingDarts   :: Vertex d a -> [Dart d a]
+    incomingDarts    :: Vertex d a -> [Dart d a]
+
     --forMOutcomingDarts      :: (Monad m) => Vertex d a -> (Dart d a -> m ()) -> m ()
     --foldMOutcomingDarts     :: (Monad m) => Vertex d a -> (s -> Dart d a -> m s) -> s -> m s
     --foldMOutcomingDartsFrom :: (Monad m) => Dart d a -> RotationDirection -> (s -> Dart d a -> m s) -> s -> m s

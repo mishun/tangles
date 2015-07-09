@@ -563,15 +563,10 @@ twistedNSatellite n link
         w = selfWritheArray link
 
         wrap v | wc == 0    = cross
-               | otherwise  =
-                   let braid =
-                           let half = reversingBraidTangle n (overCrossingIf $ wc < 0)
-                           in half |=| half
-                   in horizontalComposition n (braid, n) (cross, 0)
-            where
-                wc = w A.! v
-                s = vertexCrossing v
-                cross = gridTangle (n, n) (const s)
+               | otherwise  = let half = reversingBraid n (overCrossingIf $ wc < 0)
+                              in extractTangle (promoteTangle n (3 * n) cross ∘ half ∘ half)
+            where wc = w A.! v
+                  cross = gridTangle (n, n) (const $ vertexCrossing v)
 
 
 tensorSubstELink :: Int -> (Vertex EmbeddedLink a -> Tangle b) -> EmbeddedLink a -> EmbeddedLink b
@@ -866,9 +861,64 @@ instance ModifyDSL EmbeddedLink where
             deriving (Functor, Applicative, Monad)
 
     modifyKnot link modification = ST.runST $ do
-        s <- disassembleST link
+        s <- do
+            circ <- STRef.newSTRef $ numberOfFreeLoops link
+            inv <- PV.thaw $ involutionArray link
+            mask <- MV.new (numberOfVertices link)
+            V.copy mask $ V.map Direct $ crossingsArray link
+            return $! ModifyState
+                          { stateSource     = link
+                          , stateCircles    = circ
+                          , stateInvolution = inv
+                          , stateMask       = mask
+                          }
+
         Reader.runReaderT (unM modification) s
-        assembleST s
+
+        do
+            mask <- V.freeze $ stateMask s
+            let crs = V.ifilter (\ !i _ -> case mask V.! i of Masked -> False ; _ -> True) $ crossingsArray link
+                n = V.length crs
+                idx = UV.fromList $ do
+                    let offsets = UV.prescanl'
+                                      (\ off i -> off + case mask V.! i of Masked -> 0 ; _ -> 1)
+                                      0 (UV.enumFromN 0 $ vertexCount link)
+                    i <- [0 .. vertexCount link - 1]
+                    let d = 4 * (offsets UV.! i)
+                    case mask V.! i of
+                        Masked    -> [-1, -1, -1, -1]
+                        Direct _  -> [d, d + 1, d + 2, d + 3]
+                        Flipped _ -> [d + 3, d + 2, d + 1, d]
+
+            inv <- PV.freeze $ stateInvolution s
+            forM_ [0 .. vertexCount link - 1] $ \ !v ->
+                case mask V.! v of
+                    Masked -> return ()
+                    _      ->
+                        forM_ [0 .. 3] $ \ !i ->
+                            let a = 4 * v + i
+                                b = inv PV.! a
+                            in case mask V.! (b `shiftR` 2) of
+                                Masked -> fail $ printf "modifyELink: touching masked crossing\nlink: %s\nmask: %s\ninvolution: %s"
+                                       (show link) (show mask) (show inv)
+                                _      -> return ()
+
+            loops <- STRef.readSTRef $ stateCircles s
+            let result = EmbeddedLink
+                    { loopsCount      = loops
+                    , vertexCount     = n
+                    , involutionArray =
+                        PV.map (idx UV.!) $ PV.concat $ do
+                            i <- [0 .. vertexCount link - 1]
+                            return $! case mask V.! i of
+                                Masked    -> PV.empty
+                                Direct _  -> PV.slice (4 * i) 4 inv
+                                Flipped _ -> PV.reverse $ PV.slice (4 * i) 4 inv
+                    , crossingsArray  = crs
+                    , faceSystem      = makeFaceSystem result
+                    }
+            return $! result
+
 
     aliveCrossings = do
         link <- withState (return . stateSource)
@@ -939,65 +989,3 @@ instance ModifyDSL EmbeddedLink where
             forM reconnections $ \ (a, b) ->
                 (,) a `fmap` MV.read arr (dartIndex b)
         connectC x
-
-
-disassembleST :: EmbeddedLink a -> ST.ST s (ModifyState a s)
-disassembleST link = do
-    circ <- STRef.newSTRef $ numberOfFreeLoops link
-    inv <- PV.thaw $ involutionArray link
-    mask <- MV.new (numberOfVertices link)
-    V.copy mask $ V.map Direct $ crossingsArray link
-    return $! ModifyState
-                  { stateSource     = link
-                  , stateCircles    = circ
-                  , stateInvolution = inv
-                  , stateMask       = mask
-                  }
-
-
-assembleST :: (Show a) => ModifyState a s -> ST.ST s (EmbeddedLink a)
-assembleST s = do
-    let src = stateSource s
-    mask <- V.freeze $ stateMask s
-    let crs = V.ifilter (\ !i _ -> case mask V.! i of Masked -> False ; _ -> True) $ crossingsArray src
-        n = V.length crs
-        idx = UV.fromList $ do
-            let offsets = UV.prescanl'
-                              (\ off i -> off + case mask V.! i of Masked -> 0 ; _ -> 1)
-                              0
-                              (UV.enumFromN 0 $ vertexCount src)
-            i <- [0 .. vertexCount src - 1]
-            let d = 4 * (offsets UV.! i)
-            case mask V.! i of
-                Masked    -> [-1, -1, -1, -1]
-                Direct _  -> [d, d + 1, d + 2, d + 3]
-                Flipped _ -> [d + 3, d + 2, d + 1, d]
-
-    inv <- PV.freeze $ stateInvolution s
-    forM_ [0 .. vertexCount src - 1] $ \ !v ->
-        case mask V.! v of
-            Masked -> return ()
-            _      ->
-                forM_ [0 .. 3] $ \ !i ->
-                    let a = 4 * v + i
-                        b = inv PV.! a
-                    in case mask V.! (b `shiftR` 2) of
-                        Masked -> fail $ printf "modifyELink: touching masked crossing\nlink: %s\nmask: %s\ninvolution: %s"
-                               (show src) (show mask) (show inv)
-                        _      -> return ()
-
-    loops <- STRef.readSTRef $ stateCircles s
-    let link = EmbeddedLink
-            { loopsCount      = loops
-            , vertexCount     = n
-            , involutionArray =
-                PV.map (idx UV.!) $ PV.concat $ do
-                    i <- [0 .. vertexCount src - 1]
-                    return $! case mask V.! i of
-                        Masked    -> PV.empty
-                        Direct _  -> PV.slice (4 * i) 4 inv
-                        Flipped _ -> PV.reverse $ PV.slice (4 * i) 4 inv
-            , crossingsArray  = crs
-            , faceSystem      = makeFaceSystem link
-            }
-    return link

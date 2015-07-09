@@ -138,15 +138,15 @@ test = testGroup "Basic tangle tests"
 
     , testGroup "Braid tangles"
         [ testCase "Identity braid tangle" $
-            explode (identityBraidTangle 4 :: TangleProjection) @?=
+            explode (extractTangle (identityBraid 4) :: TangleProjection) @?=
                 (0, [(0, 7), (0, 6), (0, 5), (0, 4), (0, 3), (0, 2), (0, 1), (0, 0)], [])
 
         , testCase "Braid generator" $
-            explode (braidGeneratorTangle 3 (1, overCrossing)) @?=
+            explode (extractTangle (braid 3 [(1, overCrossing)])) @?=
                 (0, [(0, 5), (1, 0), (1, 1), (1, 2), (1, 3), (0, 0)], [([(0, 1), (0, 2), (0, 3), (0, 4)], overCrossing)])
 
         , testCase "Braid tangle" $
-            explode (braidTangle 3 [(0, overCrossing), (1, overCrossing), (0, overCrossing)]) @?=
+            explode (extractTangle (braid 3 [(0, overCrossing), (1, overCrossing), (0, overCrossing)])) @?=
                 ( 0
                 , [(1, 0), (1, 1), (2, 1), (2, 2), (3, 2), (3, 3)]
                 ,   [ ([(0, 0), (0, 1), (2, 0), (3, 0)], overCrossing)
