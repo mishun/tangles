@@ -63,7 +63,7 @@ testMovesPictures =
                     linkToTangle $ fromGaussCode [[-1, 2, 3, -4, 5, -6, -2, 7, -8, 9, 4, -3, -7, 1, 6, -5, -10, 8, -9, 10]])
 
                 , (searchMoves [perko],
-                    mirrorTangle $ linkToTangle $ fromGaussCode [[-1, 2, 3, -4, 5, -6, -2, 7, -8, 9, 4, -3, -7, 1, 6, -5, -10, 8, -9, 10]])
+                    mirrorIt $ linkToTangle $ fromGaussCode [[-1, 2, 3, -4, 5, -6, -2, 7, -8, 9, 4, -3, -7, 1, 6, -5, -10, 8, -9, 10]])
 
                 , (searchMoves [perko],
                     implode

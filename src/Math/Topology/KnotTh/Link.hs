@@ -109,6 +109,9 @@ instance Knotted Link where
 
     isConnected (L t) = isConnected t
 
+instance (MirrorAction a) => MirrorAction (Link a) where
+    mirrorIt (L t) = L (mirrorIt t)
+
 instance (Crossing a) => KnotWithPrimeTest Link a where
     isPrime (L t) = isPrime t
 

@@ -97,7 +97,7 @@ rootCode' root dir =
     case globalTransformations link of
         Nothing      -> codeWithGlobal d4I
         Just globals -> minimum $ map codeWithGlobal globals
-    where 
+    where
         link = dartOwner root
         n = numberOfVertices link
 
