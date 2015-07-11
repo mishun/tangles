@@ -4,7 +4,6 @@ module Math.Topology.KnotTh.Knotted
     , module Math.Topology.KnotTh.Dihedral
     , Crossing(..)
     , Knotted(..)
-    , KnottedPlanar(..)
     , KnotWithPrimeTest(..)
     , SurfaceKnotted
     , nthCrossing
@@ -34,6 +33,12 @@ class (Functor k, VertexDiagram k) => Knotted k where
 
     isConnected :: k a -> Bool
 
+    numberOfFreeLoops       :: k a -> Int
+    changeNumberOfFreeLoops :: Int -> k a -> k a
+
+    emptyKnotted   :: k a
+    isEmptyKnotted :: k a -> Bool
+
     type ExplodeType k a :: *
     explode :: k a -> ExplodeType k a
     implode :: ExplodeType k a -> k a
@@ -41,6 +46,8 @@ class (Functor k, VertexDiagram k) => Knotted k where
     forMOutcomingDarts      :: (Monad m) => Vertex k a -> (Dart k a -> m ()) -> m ()
     foldMOutcomingDarts     :: (Monad m) => Vertex k a -> (Dart k a -> s -> m s) -> s -> m s
     foldMOutcomingDartsFrom :: (Monad m) => Dart k a -> RotationDirection -> (Dart k a -> s -> m s) -> s -> m s
+
+    isEmptyKnotted k = (numberOfVertices k == 0) && (numberOfFreeLoops k == 0)
 
     forMOutcomingDarts c f =
         f (nthOutcomingDart c 0)
@@ -62,14 +69,6 @@ class (Functor k, VertexDiagram k) => Knotted k where
             >>= f (nthOutcomingDart c $ (p + d) .&. 3)
             >>= f (nthOutcomingDart c $ (p + 2 * d) .&. 3)
             >>= f (nthOutcomingDart c $ (p + 3 * d) .&. 3)
-
-class (Knotted k) => KnottedPlanar k where
-    numberOfFreeLoops       :: k a -> Int
-    changeNumberOfFreeLoops :: Int -> k a -> k a
-
-    emptyKnotted   :: k a
-    isEmptyKnotted :: k a -> Bool
-    isEmptyKnotted k = (numberOfVertices k == 0) && (numberOfFreeLoops k == 0)
 
 
 class (Knotted k, Crossing a) => KnotWithPrimeTest k a where

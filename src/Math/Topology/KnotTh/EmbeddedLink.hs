@@ -15,7 +15,6 @@ module Math.Topology.KnotTh.EmbeddedLink
     , toLink
     , fromTangleAndStar
     , splitIntoTangleAndStar
-    , twistedDoubleSatelliteELink
     , testPrime
     , has4LegPlanarPart
     ) where
@@ -220,6 +219,26 @@ instance Knotted EmbeddedLink where
     isConnected link =
         numberOfFreeLoops link < (if numberOfVertices link == 0 then 2 else 1)
 
+    numberOfFreeLoops = loopsCount
+
+    changeNumberOfFreeLoops loops k | loops >= 0  = k { loopsCount = loops }
+                                    | otherwise   = error $ printf "changeNumberOfFreeLoops: number of free loops %i is negative" loops
+
+    emptyKnotted =
+        EmbeddedLink
+            { loopsCount      = 0
+            , vertexCount     = 0
+            , involutionArray = PV.empty
+            , crossingsArray  = V.empty
+            , faceSystem      =
+                FaceSystem
+                    { faceCount       = 1
+                    , faceDataOffset  = PV.replicate 2 0
+                    , faceCCWBrdDart  = PV.empty
+                    , faceLLookup     = PV.empty
+                    }
+            }
+
     type ExplodeType EmbeddedLink a = (Int, [([(Int, Int)], a)])
 
     explode link =
@@ -320,28 +339,6 @@ makeFaceSystem link =
             , faceDataOffset  = foffN
             , faceCCWBrdDart  = fccwdN
             , faceLLookup     = fllookN
-            }
-
-
-instance KnottedPlanar EmbeddedLink where
-    numberOfFreeLoops = loopsCount
-
-    changeNumberOfFreeLoops loops k | loops >= 0  = k { loopsCount = loops }
-                                    | otherwise   = error $ printf "changeNumberOfFreeLoops: number of free loops %i is negative" loops
-
-    emptyKnotted =
-        EmbeddedLink
-            { loopsCount      = 0
-            , vertexCount     = 0
-            , involutionArray = PV.empty
-            , crossingsArray  = V.empty
-            , faceSystem      =
-                FaceSystem
-                    { faceCount       = 1
-                    , faceDataOffset  = PV.replicate 2 0
-                    , faceCCWBrdDart  = PV.empty
-                    , faceLLookup     = PV.empty
-                    }
             }
 
 
@@ -549,63 +546,43 @@ splitIntoTangleAndStar link =
     in (tangle, star)
 
 
-twistedDoubleSatelliteELink :: EmbeddedLinkDiagram -> EmbeddedLinkDiagram
-twistedDoubleSatelliteELink = twistedNSatellite 2
+instance Surgery EmbeddedLink where
+    surgery = error "not implemented"
 
+    tensorSubst k crossF link = implode (k * numberOfFreeLoops link, body)
+        where
+            n = numberOfVertices link
 
-twistedNSatellite :: Int -> EmbeddedLinkDiagram -> EmbeddedLinkDiagram
-twistedNSatellite n link
-    | n < 0      = error "twistedNSattelite: negative order"
-    | n == 0     = emptyKnotted
-    | n == 1     = link
-    | otherwise  = tensorSubstELink n wrap link
-    where
-        w = selfWritheArray link
+            crossSubst =
+                let substList = do
+                        c <- allVertices link
+                        let t = crossF c
+                        when (numberOfLegs t /= 4 * k) $
+                            fail "bad number of legs"
+                        return $! t
+                in V.fromListN (n + 1) $ undefined : substList
 
-        wrap v | wc == 0    = cross
-               | otherwise  = let half = reversingBraid n (overCrossingIf $ wc < 0)
-                              in extractTangle (promoteTangle n (3 * n) cross ∘ half ∘ half)
-            where wc = w A.! v
-                  cross = gridTangle (n, n) (const $ vertexCrossing v)
+            crossOffset = UV.fromListN (n + 1) $
+                0 : scanl (\ !p !i -> p + numberOfVertices (crossSubst V.! i)) 0 [1 .. n]
 
+            resolveInCrossing !v !d
+                | isLeg d    =
+                    let p = legPlace d
+                    in resolveOutside (opposite $ nthOutcomingDart v $ p `div` k) (p `mod` k)
+                | otherwise  =
+                    let (c, p) = beginPair' d
+                    in ((crossOffset UV.! vertexIndex v) + c, p)
 
-tensorSubstELink :: Int -> (Vertex EmbeddedLink a -> Tangle b) -> EmbeddedLink a -> EmbeddedLink b
-tensorSubstELink k crossF link = implode (k * numberOfFreeLoops link, body)
-    where
-        n = numberOfVertices link
+            resolveOutside !d !i =
+                let (c, p) = beginPair d
+                in resolveInCrossing c $ opposite $
+                        nthLeg (crossSubst V.! vertexIndex c) (k * p + k - 1 - i)
 
-        crossSubst =
-            let substList = do
-                    c <- allVertices link
-                    let t = crossF c
-                    when (numberOfLegs t /= 4 * k) $
-                        fail "bad number of legs"
-                    return $! t
-            in V.fromListN (n + 1) $ undefined : substList
-
-        crossOffset = UV.fromListN (n + 1) $
-            0 : scanl (\ !p !i -> p + numberOfVertices (crossSubst V.! i)) 0 [1 .. n]
-
-        resolveInCrossing !v !d
-            | isLeg d    =
-                let p = legPlace d
-                in resolveOutside (opposite $ nthOutcomingDart v $ p `div` k) (p `mod` k)
-            | otherwise  =
-                let (c, p) = beginPair' d
-                in ((crossOffset UV.! vertexIndex v) + c, p)
-
-        resolveOutside !d !i =
-            let (c, p) = beginPair d
-            in resolveInCrossing c $ opposite $
-                    nthLeg (crossSubst V.! vertexIndex c) (k * p + k - 1 - i)
-
-        body = do
-            c <- allVertices link
-            let t = crossSubst V.! vertexIndex c
-            c' <- allVertices t
-            return (map (resolveInCrossing c) $ incomingDarts c', vertexCrossing c')
-
-
+            body = do
+                c <- allVertices link
+                let t = crossSubst V.! vertexIndex c
+                c' <- allVertices t
+                return (map (resolveInCrossing c) $ incomingDarts c', vertexCrossing c')
 
 
 instance KnotWithPrimeTest EmbeddedLink ProjectionCrossing where
@@ -833,8 +810,6 @@ has4LegPlanarPart =
                     select r3 $ \ e4 _ ->
                         let darts = [fst e1, snd e1, fst e2, snd e2, fst e3, snd e3, fst e4, snd e4]
                         in planar link (beginVertex $ fst e1) darts || planar link (beginVertex $ snd e1) darts
-
-
 
 
 data CrossingMask a = Direct !a | Flipped !a | Masked

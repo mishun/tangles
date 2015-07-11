@@ -28,19 +28,19 @@ class ThreadedCrossing a where
     threadContinuation = fromJust . maybeThreadContinuation
 
 
-allThreads :: (ThreadedCrossing a, KnottedPlanar k) => k a -> [[(Dart k a, Dart k a)]]
+allThreads :: (ThreadedCrossing a, Knotted k) => k a -> [[(Dart k a, Dart k a)]]
 allThreads knot =
     let (_, _, threads) = allThreadsWithMarks knot
     in map snd threads
 
 
-numberOfThreads :: (ThreadedCrossing a, KnottedPlanar k) => k a -> Int
+numberOfThreads :: (ThreadedCrossing a, Knotted k) => k a -> Int
 numberOfThreads knot =
     let (n, _, _) = allThreadsWithMarks knot
     in n
 
 
-allThreadsWithMarks :: (ThreadedCrossing a, KnottedPlanar k) => k a -> ThreadList (Dart k a)
+allThreadsWithMarks :: (ThreadedCrossing a, Knotted k) => k a -> ThreadList (Dart k a)
 allThreadsWithMarks knot = ST.runST $ do
     let lp = numberOfFreeLoops knot
     threads <- newSTRef $ replicate lp (0, [])

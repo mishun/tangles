@@ -12,7 +12,6 @@ module Math.Topology.KnotTh.Tangle
     , gridTangle
     , chainTangle
     , glueToBorder
-    , tensorSubst
     , TangleProjection
     , TangleProjectionVertex
     , TangleProjectionDart
@@ -23,12 +22,15 @@ module Math.Topology.KnotTh.Tangle
     , lonerOverCrossing
     , lonerUnderCrossing
     , rationalTangle
-    , twistedDoubleSatellite
-    , twistedTripleSatellite
     , Tangle4
     , extractTangle4
     , packTangle4
     , onTangle4
+    , zeroTangle4
+    , infinityTangle4
+    , lonerTangle4
+    , Surgery(..)
+    , twistedSatellite
     , TangleCategory
     , extractTangle
     , promoteTangle
@@ -46,7 +48,7 @@ module Math.Topology.KnotTh.Tangle
 import Control.Applicative (Applicative)
 import Control.Arrow (first)
 import Control.DeepSeq (NFData(..))
-import Control.Monad (void, forM, forM_, when, unless, foldM_, foldM, filterM, (>=>), guard)
+import Control.Monad (void, forM, forM_, when, foldM_, foldM, filterM, (>=>), guard)
 import Control.Monad.IfElse (unlessM)
 import qualified Control.Monad.ST as ST
 import qualified Control.Monad.Reader as Reader
@@ -354,6 +356,13 @@ instance Knotted Tangle where
                     neigh | isLeg c    = [opposite c]
                           | otherwise  = [opposite c, nextCCW c, nextCW c]
 
+    numberOfFreeLoops = loopsCount
+
+    changeNumberOfFreeLoops loops t | loops >= 0  = t { loopsCount = loops }
+                                    | otherwise   = error $ printf "changeNumberOfFreeLoops: number of free loops %i is negative" loops
+
+    emptyKnotted = emptyTangle
+
     type ExplodeType Tangle a = (Int, [(Int, Int)], [([(Int, Int)], a)])
 
     explode tangle =
@@ -410,15 +419,6 @@ instance Knotted Tangle where
             , crossingsArray  = st'
             , legsCount       = l
             }
-
-
-instance KnottedPlanar Tangle where
-    numberOfFreeLoops = loopsCount
-
-    changeNumberOfFreeLoops loops t | loops >= 0  = t { loopsCount = loops }
-                                    | otherwise   = error $ printf "changeNumberOfFreeLoops: number of free loops %i is negative" loops
-
-    emptyKnotted = emptyTangle
 
 
 instance KnottedDiagram Tangle where
@@ -610,8 +610,7 @@ instance PlanarAlgebra (Tangle a) where
                 newC = nA + nB
 
             visited <- UMV.replicate gl False
-
-            cr <- do
+            inv <- do
                 let {-# INLINE convertA #-}
                     convertA !x | x < 4 * nA  = return $! x
                                 | ml >= gl    = return $! 4 * newC + ml - gl
@@ -650,7 +649,7 @@ instance PlanarAlgebra (Tangle a) where
                 PV.unsafeFreeze cr
 
             extraLoops <- do
-                let markA !x = do
+                let markA !x =
                         unlessM (UMV.unsafeRead visited x) $ do
                             UMV.unsafeWrite visited x True
                             let xi = (4 * nA) + (posA + x) `mod` legsA
@@ -674,7 +673,7 @@ instance PlanarAlgebra (Tangle a) where
                 Tangle
                     { loopsCount      = loopsCount tangleA + loopsCount tangleB + extraLoops
                     , vertexCount     = newC
-                    , involutionArray = cr
+                    , involutionArray = inv
                     , crossingsArray  = crossingsArray tangleA V.++ crossingsArray tangleB
                     , legsCount       = newL
                     }
@@ -827,34 +826,30 @@ chainTangle list =
 -- ........|  |   \-----|--0       ........|                       (leg-2)-|--|-----/   |
 -- ........|  +=========+          ........|                       ........|  +=========+
 glueToBorder :: Dart Tangle a -> Int -> a -> Vertex Tangle a
-glueToBorder leg legsToGlue !crossingToGlue = ST.runST $ do
-    unless (isLeg leg) $
-        fail $ printf "glueToBorder: leg expected, but %s received" (show leg)
-
-    when (legsToGlue < 0 || legsToGlue > 4) $
-        fail $ printf "glueToBorder: legsToGlue must be in [0 .. 4], but %i found" legsToGlue
-
+glueToBorder !leg !gl !gcr | not (isLeg leg)   = error $ printf "glueToBorder: leg expected, but %s received" (show leg)
+                           | gl < 0 || gl > 4  = error $ printf "glueToBorder: legsToGlue must be in [0 .. 4], but %i found" gl
+                           | otherwise         =
     let tangle = dartOwner leg
         oldL = numberOfLegs tangle
-    when (oldL < legsToGlue) $
-        fail $ printf "glueToBorder: not enough legs to glue (l = %i, legsToGlue = %i)" oldL legsToGlue
 
-    let oldC = numberOfVertices tangle
+        oldC = numberOfVertices tangle
         newC = oldC + 1
-        newL = oldL + 4 - 2 * legsToGlue
+        newL = oldL + 4 - 2 * gl
         lp = legPlace leg
 
-    let result = Tangle
+        result = Tangle
             { loopsCount      = numberOfFreeLoops tangle
             , vertexCount     = newC
             , involutionArray = PV.create $ do
+                when (oldL < gl) $
+                    fail $ printf "glueToBorder: not enough legs to glue (l = %i, legsToGlue = %i)" oldL gl
                 cr <- PMV.new (4 * newC + newL)
 
                 let {-# INLINE copyModified #-}
                     copyModified !index !index' =
-                        let y | x < 4 * oldC            = x
-                              | ml < oldL - legsToGlue  = 4 * newC + 4 - legsToGlue + ml
-                              | otherwise               = 4 * newC - 5 + oldL - ml
+                        let y | x < 4 * oldC    = x
+                              | ml < oldL - gl  = (4 * newC) + 4 - gl + ml
+                              | otherwise       = (4 * newC) - 5 + oldL - ml
                               where
                                   x = involutionArray tangle `PV.unsafeIndex` index'
                                   ml = (x - 4 * oldC - lp - 1) `mod` oldL
@@ -863,69 +858,25 @@ glueToBorder leg legsToGlue !crossingToGlue = ST.runST $ do
                 forM_ [0 .. 4 * oldC - 1] $ \ !i ->
                     copyModified i i
 
-                forM_ [0 .. legsToGlue - 1] $ \ !i ->
+                forM_ [0 .. gl - 1] $ \ !i ->
                     copyModified (4 * (newC - 1) + i) (4 * oldC + ((lp - i) `mod` oldL))
 
-                forM_ [0 .. 3 - legsToGlue] $ \ !i -> do
-                    let a = 4 * (newC - 1) + legsToGlue + i
+                forM_ [0 .. 3 - gl] $ \ !i -> do
+                    let a = 4 * (newC - 1) + gl + i
                         b = 4 * newC + i
                     PMV.unsafeWrite cr a b
                     PMV.unsafeWrite cr b a
 
-                forM_ [0 .. oldL - 1 - legsToGlue] $ \ !i ->
-                    copyModified (4 * newC + i + 4 - legsToGlue) (4 * oldC + ((lp + 1 + i) `mod` oldL))
+                forM_ [0 .. oldL - 1 - gl] $ \ !i ->
+                    copyModified (4 * newC + i + 4 - gl) (4 * oldC + ((lp + 1 + i) `mod` oldL))
 
                 return $! cr
 
-            , crossingsArray  = V.snoc (crossingsArray tangle) crossingToGlue
+            , crossingsArray  = V.snoc (crossingsArray tangle) gcr
             , legsCount       = newL
             }
 
-    return $! nthVertex result newC
-
-
-tensorSubst :: Int -> (TangleDiagramVertex -> TangleDiagram) -> TangleDiagram -> TangleDiagram
-tensorSubst k crossF tangle = implode (k * numberOfFreeLoops tangle, border, body)
-    where
-        n = numberOfVertices tangle
-
-        crossSubst =
-            let substList = do
-                    c <- allVertices tangle
-                    let t = crossF c
-                    when (numberOfLegs t /= 4 * k) $
-                        fail "bad number of legs"
-                    return $! t
-            in V.fromListN (n + 1) $ undefined : substList
-
-        crossOffset = UV.fromListN (n + 1) $
-            0 : scanl (\ !p !i -> p + numberOfVertices (crossSubst V.! i)) 0 [1 .. n]
-
-        resolveInCrossing !v !d
-            | isLeg d    =
-                let p = legPlace d
-                in resolveOutside (opposite $ nthOutcomingDart v $ p `div` k) (p `mod` k)
-            | otherwise  =
-                let (c, p) = beginPair' d
-                in ((crossOffset UV.! vertexIndex v) + c, p)
-
-        resolveOutside !d !i
-            | isLeg d    = (0, k * legPlace d + i)
-            | otherwise  =
-                let (c, p) = beginPair d
-                in resolveInCrossing c $ opposite $
-                        nthLeg (crossSubst V.! vertexIndex c) (k * p + k - 1 - i)
-
-        border = do
-            d <- allLegOpposites tangle
-            i <- [0 .. k - 1]
-            return $! resolveOutside d $ k - 1 - i
-
-        body = do
-            c <- allVertices tangle
-            let t = crossSubst V.! vertexIndex c
-            c' <- allVertices t
-            return (map (resolveInCrossing c) $ incomingDarts c', vertexCrossing c')
+    in nthVertex result newC
 
 
 type TangleProjection = Tangle ProjectionCrossing
@@ -953,29 +904,6 @@ rationalTangle = flip foldl infinityTangle $ \ tangle x ->
     in horizontalComposition 2 (g, 2) (tangle, 1)
 
 
-twistedDoubleSatellite :: TangleDiagram -> TangleDiagram
-twistedDoubleSatellite = twistedNSatellite 2
-
-
-twistedTripleSatellite :: TangleDiagram -> TangleDiagram
-twistedTripleSatellite = twistedNSatellite 3
-
-
-twistedNSatellite :: Int -> TangleDiagram -> TangleDiagram
-twistedNSatellite n tangle | n < 0      = error $ printf "twistedNSattelite: negative order %i" n
-                           | n == 0     = emptyTangle
-                           | n == 1     = tangle
-                           | otherwise  = tensorSubst n wrap tangle
-    where
-        w = selfWritheArray tangle
-
-        wrap v | wc == 0    = cross
-               | otherwise  = let half = reversingBraid n (overCrossingIf $ wc < 0)
-                              in extractTangle (promoteTangle n (3 * n) cross ∘ half ∘ half)
-            where wc = w A.! v
-                  cross = gridTangle (n, n) (const $ vertexCrossing v)
-
-
 data CrossingFlag a = Direct !a | Flipped !a | Masked
 
 data MoveState s a =
@@ -986,13 +914,24 @@ data MoveState s a =
         , stateConnections :: !(MV.STVector s (Dart Tangle a))
         }
 
-
 {-# INLINE withState #-}
 withState :: (MoveState s a -> ST.ST s x) -> ModifyM Tangle a s x
 withState f = ModifyTangleM $ do
     st <- Reader.ask
     Reader.lift (f st)
 
+readMaskST :: MoveState s a -> Vertex Tangle a -> ST.ST s (CrossingFlag a)
+readMaskST st c = MV.read (stateMask st) (vertexIndex c)
+
+writeMaskST :: MoveState s a -> Vertex Tangle a -> CrossingFlag a -> ST.ST s ()
+writeMaskST st c = MV.write (stateMask st) (vertexIndex c)
+
+reconnectST :: MoveState s a -> [(Dart Tangle a, Dart Tangle a)] -> ST.ST s ()
+reconnectST st connections =
+    forM_ connections $ \ (!a, !b) -> do
+        when (a == b) $ fail $ printf "reconnect: %s connect to itself" (show a)
+        MV.write (stateConnections st) (dartIndex a) b
+        MV.write (stateConnections st) (dartIndex b) a
 
 instance ModifyDSL Tangle where
     newtype ModifyM Tangle a s x = ModifyTangleM { unM :: Reader.ReaderT (MoveState s a) (ST.ST s) x }
@@ -1131,22 +1070,6 @@ instance ModifyDSL Tangle where
                 (,) a `fmap` MV.read arr (dartIndex b)
 
 
-readMaskST :: MoveState s a -> Vertex Tangle a -> ST.ST s (CrossingFlag a)
-readMaskST st c = MV.read (stateMask st) (vertexIndex c)
-
-
-writeMaskST :: MoveState s a -> Vertex Tangle a -> CrossingFlag a -> ST.ST s ()
-writeMaskST st c = MV.write (stateMask st) (vertexIndex c)
-
-
-reconnectST :: MoveState s a -> [(Dart Tangle a, Dart Tangle a)] -> ST.ST s ()
-reconnectST st connections =
-    forM_ connections $ \ (!a, !b) -> do
-        when (a == b) $ fail $ printf "reconnect: %s connect to itself" (show a)
-        MV.write (stateConnections st) (dartIndex a) b
-        MV.write (stateConnections st) (dartIndex b) a
-
-
 newtype Tangle4 a = T4 { extractTangle4 :: Tangle a }
     deriving (Show, NFData)
 
@@ -1171,6 +1094,140 @@ packTangle4 tangle | l == 4     = T4 tangle
 {-# INLINE onTangle4 #-}
 onTangle4 :: (Tangle a -> Tangle b) -> Tangle4 a -> Tangle4 b
 onTangle4 f = packTangle4 . f . extractTangle4
+
+zeroTangle4, infinityTangle4 :: Tangle4 a
+zeroTangle4 = T4 zeroTangle
+infinityTangle4 = T4 infinityTangle
+
+lonerTangle4 :: a -> Tangle4 a
+lonerTangle4 = T4 . lonerTangle
+
+
+class (Knotted k) => Surgery k where
+    surgery     :: Tangle4 a -> Vertex k a -> k a
+    tensorSubst :: Int -> (Vertex k DiagramCrossing -> TangleDiagram) -> k DiagramCrossing -> k DiagramCrossing
+
+instance Surgery Tangle where
+    surgery (T4 sub) v =
+        ST.runST $ do
+            let tangle = vertexOwner v
+                legs = numberOfLegs tangle
+                nEx = vertexCount tangle
+                nIn = vertexCount sub
+                idx = vertexIndex v - 1
+                newC = nEx + nIn - 1
+
+            visited <- UMV.replicate 4 False
+            inv <- do
+                let convertExt !x | x >= 4 * nEx        = return $! 4 * (nIn - 1) + x
+                                  | x >= 4 * (idx + 1)  = return $! x - 4
+                                  | x >= 4 * idx        = do
+                                      let t = x .&. 3
+                                      UMV.unsafeWrite visited t True
+                                      convertInt $! involutionArray sub `PV.unsafeIndex` ((4 * nIn) + t)
+                                  | otherwise           = return $! x
+
+                    convertInt !x | x >= 4 * nIn  = do
+                                      let t = x .&. 3
+                                      UMV.unsafeWrite visited t True
+                                      convertExt $! involutionArray tangle `PV.unsafeIndex` ((4 * idx) + t)
+                                  | otherwise     = return $! 4 * (nEx - 1) + x
+
+                cr <- PMV.new (4 * newC + legs)
+                forM_ [0 .. 4 * idx - 1] $ \ !i ->
+                    convertExt (involutionArray tangle `PV.unsafeIndex` i)
+                        >>= PMV.unsafeWrite cr i
+                forM_ [4 * (idx + 1) .. 4 * nEx - 1] $ \ !i ->
+                    convertExt (involutionArray tangle `PV.unsafeIndex` i)
+                        >>= PMV.unsafeWrite cr (i - 4)
+                forM_ [0 .. 4 * nIn - 1] $ \ !i ->
+                    convertInt (involutionArray sub `PV.unsafeIndex` i)
+                        >>= PMV.unsafeWrite cr (i + 4 * nEx - 4)
+                forM_ [0 .. legs - 1] $ \ !leg ->
+                    convertExt (involutionArray sub `PV.unsafeIndex` ((4 * nEx) + leg))
+                        >>= PMV.unsafeWrite cr ((4 * newC) + leg)
+                PV.unsafeFreeze cr
+
+            extraLoops <- do
+                let markExt !x =
+                        unlessM (UMV.unsafeRead visited x) $ do
+                            UMV.unsafeWrite visited x True
+                            markInt $ (involutionArray tangle `PV.unsafeIndex` (4 * idx + x)) .&. 3
+
+                    markInt !x =
+                        unlessM (UMV.unsafeRead visited x) $ do
+                            UMV.unsafeWrite visited x True
+                            markExt $ (involutionArray sub `PV.unsafeIndex` (4 * nIn + x)) .&. 3
+
+                foldM (\ !s !i -> do
+                        vis <- UMV.unsafeRead visited i
+                        if vis then return $! s
+                               else markExt i >> (return $! s + 1)
+                    ) 0 [0 .. 3]
+
+            return $!
+                Tangle
+                    { loopsCount      = loopsCount tangle + loopsCount sub + extraLoops
+                    , vertexCount     = newC
+                    , involutionArray = inv
+                    , crossingsArray  = let cr = crossingsArray tangle
+                                        in V.concat [V.take idx cr, V.drop (idx + 1) cr, crossingsArray sub]
+                    , legsCount       = legs
+                    }
+
+    tensorSubst k crossF tangle = implode (k * numberOfFreeLoops tangle, border, body)
+        where
+            n = numberOfVertices tangle
+
+            crossSubst =
+                let substList = do
+                        c <- allVertices tangle
+                        let t = crossF c
+                        when (numberOfLegs t /= 4 * k) $
+                            fail "bad number of legs"
+                        return $! t
+                in V.fromListN (n + 1) $ undefined : substList
+
+            crossOffset = UV.fromListN (n + 1) $
+                0 : scanl (\ !p !i -> p + numberOfVertices (crossSubst V.! i)) 0 [1 .. n]
+
+            resolveInCrossing !v !d
+                | isLeg d    =
+                    let p = legPlace d
+                    in resolveOutside (opposite $ nthOutcomingDart v $ p `div` k) (p `mod` k)
+                | otherwise  =
+                    let (c, p) = beginPair' d
+                    in ((crossOffset UV.! vertexIndex v) + c, p)
+
+            resolveOutside !d !i
+                | isLeg d    = (0, k * legPlace d + i)
+                | otherwise  =
+                    let (c, p) = beginPair d
+                    in resolveInCrossing c $ opposite $
+                            nthLeg (crossSubst V.! vertexIndex c) (k * p + k - 1 - i)
+
+            border = do
+                d <- allLegOpposites tangle
+                i <- [0 .. k - 1]
+                return $! resolveOutside d $ k - 1 - i
+
+            body = do
+                c <- allVertices tangle
+                let t = crossSubst V.! vertexIndex c
+                c' <- allVertices t
+                return (map (resolveInCrossing c) $ incomingDarts c', vertexCrossing c')
+
+
+twistedSatellite :: (Surgery k) => Int -> k DiagramCrossing -> k DiagramCrossing
+twistedSatellite n tangle = tensorSubst n wrap tangle
+    where
+        w = selfWritheArray tangle
+
+        wrap v | wc == 0    = cross
+               | otherwise  = let half = reversingBraid n (overCrossingIf $ wc < 0)
+                              in extractTangle (promoteTangle n (3 * n) cross ∘ half ∘ half)
+            where wc = w A.! v
+                  cross = gridTangle (n, n) (const $ vertexCrossing v)
 
 
 data TangleCategory a = TC {-# UNPACK #-} !Int {-# UNPACK #-} !Int !(Tangle a)

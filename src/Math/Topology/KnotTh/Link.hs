@@ -57,11 +57,12 @@ import Math.Topology.KnotTh.Link.TableOfCodes
 
 
 newtype Link a = L (Tangle a)
-    deriving (Functor, KnottedPlanar, KnottedDiagram)
+    deriving (Functor, KnottedDiagram, Surgery)
 
 
 instance DartDiagram Link where
     newtype Dart Link a = D (Dart Tangle a)
+
     dartOwner (D d) = L (dartOwner d)
     dartIndex (D d) = dartIndex d
     opposite (D d) = D (opposite d)
@@ -84,6 +85,7 @@ instance VertexDiagram Link where
     allVertices (L t) = map V (allVertices t)
 
     newtype Vertex Link a = V (Vertex Tangle a)
+
     vertexDegree (V v) = vertexDegree v
     vertexOwner (V v) = L (vertexOwner v)
     vertexIndex (V v) = vertexIndex v
@@ -100,6 +102,12 @@ instance Knotted Link where
     vertexCrossing (V v) = vertexCrossing v
 
     mapCrossings f (L t) = L $ mapCrossings (f . V) t
+
+    numberOfFreeLoops (L t) = numberOfFreeLoops t
+
+    changeNumberOfFreeLoops loops (L t) = L $ changeNumberOfFreeLoops loops t
+
+    emptyKnotted = L emptyKnotted
 
     type ExplodeType Link a = (Int, [([(Int, Int)], a)])
     explode (L t) = let (f, [], l) = explode t in (f, l)

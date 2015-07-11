@@ -180,12 +180,12 @@ isAlternating :: (KnottedDiagram k) => k DiagramCrossing -> Bool
 isAlternating = (== 0) . totalAlternatingDefect
 
 
-selfWrithe :: (KnottedPlanar k) => k DiagramCrossing -> Int
+selfWrithe :: (Knotted k) => k DiagramCrossing -> Int
 selfWrithe knot | hasVertices knot  = sum $ elems $ selfWritheArray knot
                 | otherwise         = 0
 
 
-selfWritheByThread :: (KnottedPlanar k) => k DiagramCrossing -> UArray Int Int
+selfWritheByThread :: (Knotted k) => k DiagramCrossing -> UArray Int Int
 selfWritheByThread knot =
     let (n, tag, _) = allThreadsWithMarks knot
     in accumArray (+) 0 (1, n) $ do
@@ -194,7 +194,7 @@ selfWritheByThread knot =
         [(a, w) | a == b]
 
 
-selfWritheArray :: (KnottedPlanar k) => k DiagramCrossing -> UArray (Vertex k DiagramCrossing) Int
+selfWritheArray :: (Knotted k) => k DiagramCrossing -> UArray (Vertex k DiagramCrossing) Int
 selfWritheArray knot =
     let (_, tag, _) = allThreadsWithMarks knot
     in listArray (verticesRange knot) $ do
@@ -204,7 +204,7 @@ selfWritheArray knot =
 
 
 threadsWithLinkingNumbers
-    :: (KnottedPlanar k) => k DiagramCrossing
+    :: (Knotted k) => k DiagramCrossing
         -> ( (Int, UArray (Dart k DiagramCrossing) Int, [(Int, [(Dart k DiagramCrossing, Dart k DiagramCrossing)])])
            , UArray (Int, Int) Int
            )
@@ -214,9 +214,7 @@ threadsWithLinkingNumbers knot =
         ln = accumArray (+) 0 ((1, 1), (n, n)) $ do
             c <- allVertices knot
             let ((a, b), w) = crossingWrithe tag c
-            if a == b
-                then [((a, b), w)]
-                else [((a, b), w), ((b, a), w)]
+            ((a, b), w) : [((b, a), w) | a /= b]
     in (ts, ln)
 
 

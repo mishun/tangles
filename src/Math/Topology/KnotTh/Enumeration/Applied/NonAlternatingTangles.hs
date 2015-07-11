@@ -56,7 +56,7 @@ weakTangleClasses =
 siftTangles :: (DiagramInfo info) => [info TangleDiagram] -> SiftResult info TangleDiagram
 siftTangles = siftByInvariant $ \ tangle ->
     ( minimalJonesPolynomial tangle
-    , minimalJonesPolynomial $ twistedDoubleSatellite tangle
+    , minimalJonesPolynomial $ twistedSatellite 2 tangle
 --    , minimalKauffmanFPolynomial $ twistedTripleSatellite tangle
     )
 
@@ -64,7 +64,7 @@ siftTangles = siftByInvariant $ \ tangle ->
 siftWeakTangles :: (DiagramInfo info) => [info TangleDiagram] -> SiftResult info TangleDiagram
 siftWeakTangles = siftByInvariant $ \ tangle ->
     ( jonesPolynomial $ tangleDoublingLink id tangle
-    , jonesPolynomial $ tangleDoublingLink id $ twistedDoubleSatellite tangle
+    , jonesPolynomial $ tangleDoublingLink id $ twistedSatellite 2 tangle
     , kauffmanFPolynomial $ tangleDoublingLink id tangle
     )
 

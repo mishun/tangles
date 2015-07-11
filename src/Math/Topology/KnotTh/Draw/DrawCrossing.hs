@@ -13,7 +13,7 @@ import Math.Topology.KnotTh.Knotted.Threads
 import Math.Topology.KnotTh.Draw.Settings
 
 
-cutThread :: (KnottedPlanar k) => [(Dart k a, Dart k a)]
+cutThread :: (Knotted k) => [(Dart k a, Dart k a)]
     -> A.Array (Dart k a) (Either [(Double, Double)] ([(Double, Double)], [(Double, Double)]))
         -> (Dart k a -> Bool) -> ((Maybe (Dart k a), Maybe (Dart k a)) -> [(Double, Double)] -> x)
             -> [Either x [(Double, Double)]]
@@ -73,7 +73,7 @@ cutThread thread embedding isCut process
 
 class (ThreadedCrossing a) => DrawableCrossing a where
     crossingDependentSegmentation
-        :: (KnottedPlanar k) => DrawKnotSettings -> k a
+        :: (Knotted k) => DrawKnotSettings -> k a
             -> A.Array (Dart k a) (Either [(Double, Double)] ([(Double, Double)], [(Double, Double)]))
                 -> [Either [(Double, Double)] [(Double, Double)]]
 
