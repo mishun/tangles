@@ -5,11 +5,14 @@ module Math.Topology.KnotTh.Cobordism.CobordismMatrix
     , numberOfCols
     , singleton
     , (!)
+    , emptyVector
     ) where
 
 import Data.List (foldl')
 import qualified Data.Vector as V
+import Text.Printf
 import Math.Topology.KnotTh.Cobordism
+import Math.Topology.KnotTh.PlanarAlgebra
 
 
 data (Cobordism c) => CobordismMatrix c =
@@ -56,10 +59,13 @@ generate obj0 obj1 f =
                   in f row col
           }
 
+emptyVector :: (Cobordism c) => CobordismBorder (CobordismMatrix c)
+emptyVector = CB V.empty
+
 
 instance (PreadditiveCobordism c) => Composition (CobordismMatrix c) where
-    m1 ∘ m0 | numberOfRows m1 /= numberOfCols m0  = error "(∘): incompatible dimensions"
-            | object0 m1      /= object1 m0       = error "(∘): incompatible borders"
+    m1 ∘ m0 | numberOfCols m1 /= numberOfRows m0  = error $ printf "CobordismMatrix.(∘): different dimensions %i and %i" (numberOfCols m1) (numberOfRows m0)
+            | object0 m1      /= object1 m0       = error "CobordismMatrix.(∘): different borders"
             | otherwise                           =
         generate (object0 m0) (object1 m1) $ \ !row !col ->
             let zero = zeroCobordism (object0 m0 V.! col) (object1 m1 V.! row)
@@ -89,8 +95,8 @@ instance (PreadditiveCobordism c) => Cobordism (CobordismMatrix c) where
                | otherwise  -> zeroCobordism (objs V.! col) (objs V.! row)
 
 instance (PreadditiveCobordism c) => Num (CobordismMatrix c) where
-    a + b | object0 a /= object0 b  = error "can not sum"
-          | object1 a /= object1 b  = error "can not sum"
+    a + b | object0 a /= object0 b  = error "CobordismMatrix.(+): can not sum"
+          | object1 a /= object1 b  = error "CobordismMatrix.(+): can not sum"
           | otherwise               = a { matrix = V.zipWith (+) (matrix a) (matrix b) }
 
     negate m = m { matrix = V.map negate $ matrix m }
@@ -119,3 +125,46 @@ instance (Cobordism3 c, PreadditiveCobordism c) => Cobordism3 (CobordismMatrix c
     tubeCobordism        = singleton tubeCobordism
     swapCobordism        = singleton swapCobordism
     pantsCobordism       = singleton pantsCobordism
+
+instance (CannedCobordism c, PreadditiveCobordism c) => RotationAction (CobordismBorder (CobordismMatrix c)) where
+    rotationOrder (CB x) =
+        case x V.!? 0 of
+            Just c  -> rotationOrder c
+            Nothing -> 0
+
+    rotateBy rot (CB x) = CB $ V.map (rotateBy rot) x
+
+instance (CannedCobordism c, PreadditiveCobordism c) => PlanarAlgebra (CobordismBorder (CobordismMatrix c)) where
+    planarDegree = rotationOrder
+
+    planarEmpty = CB $ V.singleton $ planarEmpty
+
+    planarPropagator = CB . V.singleton . planarPropagator
+
+    horizontalComposition !gl (CB a, !posA) (CB b, !posB) =
+        CB $ V.concatMap (\ a' -> V.map (\ b' -> horizontalComposition gl (a', posA) (b', posB)) b) a
+
+instance (CannedCobordism c, PreadditiveCobordism c) => RotationAction (CobordismMatrix c) where
+    rotationOrder m = max (rotationOrder $ cobordismBorder0 m)
+                          (rotationOrder $ cobordismBorder1 m)
+
+    rotateBy !rot m =
+        CM  { object0 = V.map (rotateBy rot) $ object0 m
+            , object1 = V.map (rotateBy rot) $ object1 m
+            , matrix  = V.map (rotateBy rot) $ matrix m
+            }
+
+instance (CannedCobordism c, PreadditiveCobordism c) => PlanarAlgebra (CobordismMatrix c) where
+    planarDegree = rotationOrder
+
+    planarEmpty = identityCobordism planarEmpty
+
+    planarPropagator = identityCobordism . planarPropagator
+
+    horizontalCompositionUnchecked !gl (!a, !posA) (!b, !posB) =
+        let CB obj0 = horizontalComposition gl (CB $ object0 a, posA) (CB $ object0 b, posB)
+            CB obj1 = horizontalComposition gl (CB $ object1 a, posA) (CB $ object1 b, posB)
+        in generate obj0 obj1 $ \ !row !col ->
+            let (rowA, rowB) = row `divMod` numberOfRows a
+                (colA, colB) = col `divMod` numberOfCols a
+            in horizontalComposition gl (a ! (rowA, colA), posA) (b ! (rowB, colB), posB)
