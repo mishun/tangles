@@ -41,7 +41,7 @@ import qualified Data.Vector.Unboxed as UV
 import qualified Data.Vector.Unboxed.Mutable as UMV
 import Text.Printf
 import Math.Topology.KnotTh.Dihedral.D4
-import qualified Math.Topology.Manifolds.SurfaceGraph as SG
+import qualified Math.Topology.KnotTh.SurfaceGraph as SG
 import Math.Topology.KnotTh.ChordDiagram
 import Math.Topology.KnotTh.Knotted
 import Math.Topology.KnotTh.Knotted.Crossings.Projection

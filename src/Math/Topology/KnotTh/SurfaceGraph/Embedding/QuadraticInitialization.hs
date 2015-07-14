@@ -1,10 +1,8 @@
-module Math.Topology.Manifolds.SurfaceGraph.Embedding.QuadraticInitialization
+module Math.Topology.KnotTh.SurfaceGraph.Embedding.QuadraticInitialization
     ( quadraticInitialization
     ) where
 
-import Data.Ix (Ix)
-import qualified Data.Sequence as Seq
-import System.IO.Unsafe (unsafePerformIO)
+import Control.Monad (when, unless, forM_, forM, liftM)
 import Data.IORef (newIORef, readIORef, writeIORef, modifyIORef)
 import Data.Array.IArray ((!), listArray)
 import Data.Array.MArray (newArray, readArray, writeArray)
@@ -12,9 +10,11 @@ import Data.Array.Unsafe (unsafeFreeze)
 import Data.Array (Array)
 import Data.Array.Unboxed (UArray)
 import Data.Array.IO (IOUArray)
-import Control.Monad (when, unless, forM_, forM, liftM)
-import Math.Topology.Manifolds.SurfaceGraph.Definition
-import Math.Topology.Manifolds.SurfaceGraph.Embedding.Optimization
+import Data.Ix (Ix)
+import qualified Data.Sequence as Seq
+import System.IO.Unsafe (unsafePerformIO)
+import Math.Topology.KnotTh.SurfaceGraph.Definition
+import Math.Topology.KnotTh.SurfaceGraph.Embedding.Optimization
 
 
 quadraticInitialization :: Double -> Vertex SurfaceGraph a -> [(Double, Double)] -> Array (Dart SurfaceGraph a) (Double, Double)

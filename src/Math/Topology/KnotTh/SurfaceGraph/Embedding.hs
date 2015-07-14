@@ -1,4 +1,4 @@
-module Math.Topology.Manifolds.SurfaceGraph.Embedding
+module Math.Topology.KnotTh.SurfaceGraph.Embedding
     ( embeddingInCircleWithVertexRooting
     , embeddingInCircleWithFaceRooting
     , embeddingInPolygonWithGrouping
@@ -8,10 +8,9 @@ import Data.Maybe (fromJust)
 import Data.List (find, groupBy)
 import qualified Data.Array as A
 import qualified Data.Vector.Unboxed as UV
-import Math.Topology.Manifolds.SurfaceGraph.Definition
-import Math.Topology.Manifolds.SurfaceGraph.Barycentric
-import Math.Topology.Manifolds.SurfaceGraph.Embedding.QuadraticInitialization
-import Math.Topology.Manifolds.SurfaceGraph.Embedding.RelaxEmbedding
+import Math.Topology.KnotTh.SurfaceGraph.Definition
+import Math.Topology.KnotTh.SurfaceGraph.Embedding.QuadraticInitialization
+import Math.Topology.KnotTh.SurfaceGraph.Embedding.RelaxEmbedding
 
 
 embeddingInCircleWithVertexRooting :: Int -> Vertex SurfaceGraph a -> A.Array (Dart SurfaceGraph a) [(Double, Double)]

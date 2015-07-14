@@ -12,7 +12,7 @@ import qualified Data.Vector.Unboxed as UV
 import Control.Arrow (first)
 import Diagrams.Prelude
 import Diagrams.TwoD.Text (Text)
-import Math.Topology.Manifolds.SurfaceGraph
+import Math.Topology.KnotTh.SurfaceGraph
 import Math.Topology.KnotTh.Tangle
 import Math.Topology.KnotTh.Link
 import Math.Topology.KnotTh.EmbeddedLink

@@ -1,16 +1,16 @@
-module Math.Topology.Manifolds.SurfaceGraph.SphereStar
+module Math.Topology.KnotTh.SurfaceGraph.SphereStar
     ( sphereStarDecomposition
     ) where
 
-import Data.Ix (Ix)
-import Data.Function (fix)
+import Control.Monad (when, forM, filterM)
+import qualified Control.Monad.ST as ST
 import Data.Array.MArray (newArray, newArray_, readArray, writeArray, thaw)
 import Data.Array.Unboxed (UArray)
 import Data.Array.ST (STArray, STUArray)
-import Control.Monad.ST (ST, runST)
-import Control.Monad (when, forM, filterM)
-import Math.Topology.Manifolds.SurfaceGraph.Definition
-import Math.Topology.Manifolds.SurfaceGraph.SphereStar.Backtrack
+import Data.Function (fix)
+import Data.Ix (Ix)
+import Math.Topology.KnotTh.SurfaceGraph.Definition
+import Math.Topology.KnotTh.SurfaceGraph.SphereStar.Backtrack
 
 
 sphereStarDecomposition
@@ -24,10 +24,10 @@ sphereStarDecomposition
 sphereStarDecomposition graph
     | numberOfVertices graph == 0  = error "sphereStarDecomposition: undefined for empty graph"
     | eulerCharOf graph == 2       = error "sphereStarDecomposition: undefined for planar graphs"
-    | otherwise                    = runST $ do
+    | otherwise                    = ST.runST $ do
         let (_, edgeTreeMarks) = backtrack graph
 
-        edgeMarks <- (thaw :: (Ix i) => UArray i Bool -> ST s (STUArray s i Bool)) edgeTreeMarks
+        edgeMarks <- (thaw :: (Ix i) => UArray i Bool -> ST.ST s (STUArray s i Bool)) edgeTreeMarks
         let reductionSteps = 6 * numberOfEdges graph
         flip fix (nthDart graph 0, [], reductionSteps) $ \ loop (d, stack, depth) ->
             when (depth > 0) $ do
@@ -44,8 +44,8 @@ sphereStarDecomposition graph
         externalEdges <- filterM (fmap not . readArray edgeMarks) $ allDarts graph
         let numberOfExternalEdges = length externalEdges
 
-        borderPlace <- (newArray :: (Ix i) => (i, i) -> Int -> ST s (STUArray s i Int)) (dartsRange graph) (-1)
-        borderConn <- (newArray_ :: (Ix i) => (i, i) -> ST s (STArray s i a)) (0, numberOfExternalEdges - 1)
+        borderPlace <- (newArray :: (Ix i) => (i, i) -> Int -> ST.ST s (STUArray s i Int)) (dartsRange graph) (-1)
+        borderConn <- (newArray_ :: (Ix i) => (i, i) -> ST.ST s (STArray s i a)) (0, numberOfExternalEdges - 1)
         flip fix (0, head externalEdges) $ \ loop (!free, !edge) ->
                 when (free < numberOfExternalEdges) $ do
                     mark <- readArray edgeMarks edge

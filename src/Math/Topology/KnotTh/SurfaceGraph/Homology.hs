@@ -1,12 +1,13 @@
-module Math.Topology.Manifolds.SurfaceGraph.Homology
-    ( cellularHomology
+module Math.Topology.KnotTh.SurfaceGraph.Homology
+    ( module Math.Topology.KnotTh.SurfaceGraph
+    , cellularHomology
     ) where
 
 import qualified Data.Vector as V
 import qualified Data.Vector.Mutable as MV
 import qualified Data.Vector.Unboxed as UV
 import qualified Data.Array as A
-import Math.Topology.Manifolds.SurfaceGraph
+import Math.Topology.KnotTh.SurfaceGraph
 
 
 kernelBasis :: V.Vector (UV.Vector Int) -> V.Vector (UV.Vector Int)

@@ -12,8 +12,7 @@ import qualified Data.Vector.Unboxed.Mutable as UMV
 import qualified Data.Array as A
 import Control.Monad.ST (runST)
 import Control.Monad (foldM, guard)
-import Math.Topology.Manifolds.SurfaceGraph
-import Math.Topology.Manifolds.SurfaceGraph.Homology
+import Math.Topology.KnotTh.SurfaceGraph.Homology
 import Math.Topology.KnotTh.Invariants.KnotPolynomials
 import Math.Topology.KnotTh.Invariants.KnotPolynomials.KauffmanXStateSum
 import Math.Topology.KnotTh.EmbeddedLink

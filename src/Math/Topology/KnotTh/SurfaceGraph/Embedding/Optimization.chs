@@ -1,22 +1,23 @@
-module Math.Topology.Manifolds.SurfaceGraph.Embedding.Optimization
+module Math.Topology.KnotTh.SurfaceGraph.Embedding.Optimization
     ( InteractionConst(..)
     , relaxEmbedding'
     , conjugateGradientSolve'
     , circlePacking'
     ) where
 
-import Data.Array.Base (newArray, newArray_, newListArray, readArray, writeArray, getElems)
-import Data.Array.Storable (StorableArray, withStorableArray)
 import Control.Applicative ((<$>), (<*>))
 import Control.Monad (forM_, void, liftM)
+import Data.Array.Base (newArray, newArray_, newListArray, readArray, writeArray, getElems)
+import Data.Array.Storable (StorableArray, withStorableArray)
+import Foreign.C.Types
+import qualified Foreign.Marshal.Array as A
+import Foreign.Marshal.Alloc (free)
 import Foreign.Marshal.Utils (with, withMany)
 import Foreign.Ptr (Ptr)
 import Foreign.Storable (Storable(..))
-import Foreign.C.Types
-import Foreign.Marshal.Alloc (free)
-import qualified Foreign.Marshal.Array as A
 
-#include <Math/Topology/Manifolds/SurfaceGraph/Embedding/Optimization.h>
+
+#include <Math/Topology/KnotTh/SurfaceGraph/Embedding/Optimization.h>
 
 
 data InteractionConst = InteractionConst

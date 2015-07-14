@@ -1,17 +1,17 @@
-module Math.Topology.Manifolds.SurfaceGraph.Embedding.RelaxEmbedding
+module Math.Topology.KnotTh.SurfaceGraph.Embedding.RelaxEmbedding
     ( relaxEmbedding
     ) where
 
 import Control.Monad (unless, forM_, forM)
+import Data.Array (Array)
 import Data.Array.IArray ((!), listArray)
 import Data.Array.MArray (newArray, newArray_, readArray, writeArray, freeze)
-import Data.Array (Array)
 import Data.Array.IO (IOArray, IOUArray)
 import Data.IORef (newIORef, readIORef, writeIORef, modifyIORef)
 import Data.Ix (Ix)
 import System.IO.Unsafe (unsafePerformIO)
-import Math.Topology.Manifolds.SurfaceGraph.Definition
-import Math.Topology.Manifolds.SurfaceGraph.Embedding.Optimization
+import Math.Topology.KnotTh.SurfaceGraph.Definition
+import Math.Topology.KnotTh.SurfaceGraph.Embedding.Optimization
 
 
 relaxEmbedding :: Int

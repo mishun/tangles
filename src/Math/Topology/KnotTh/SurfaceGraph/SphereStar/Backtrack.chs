@@ -1,17 +1,17 @@
-module Math.Topology.Manifolds.SurfaceGraph.SphereStar.Backtrack
+module Math.Topology.KnotTh.SurfaceGraph.SphereStar.Backtrack
     ( backtrack
     ) where
 
-import Data.Ix (Ix)
-import System.IO.Unsafe (unsafePerformIO)
+import Control.Monad (unless, forM_, liftM2)
 import Data.Array.MArray (newArray, newArray_, readArray, writeArray, freeze)
 import Data.Array.Unboxed (UArray)
 import Data.Array.IO (IOUArray)
 import Data.Array.Storable (withStorableArray)
-import Control.Monad (unless, forM_, liftM2)
-import Foreign.Ptr (Ptr)
+import Data.Ix (Ix)
 import Foreign.C.Types
-import Math.Topology.Manifolds.SurfaceGraph.Definition
+import Foreign.Ptr (Ptr)
+import System.IO.Unsafe (unsafePerformIO)
+import Math.Topology.KnotTh.SurfaceGraph.Definition
 
 
 foreign import ccall "sphereStarDecomposition"

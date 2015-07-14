@@ -5,7 +5,7 @@
 #include <gsl/gsl_blas.h>
 #include <gsl/gsl_multimin.h>
 #include <Math/Numeric/Vector2.h>
-#include <Math/Topology/Manifolds/SurfaceGraph/Embedding/Optimization.h>
+#include <Math/Topology/KnotTh/SurfaceGraph/Embedding/Optimization.h>
 
 
 namespace Math { namespace Manifolds { namespace Embedding { namespace Optimization {
