@@ -557,10 +557,10 @@ instance (CobordismGuts g) => Cobordism3 (Cobordism' g) where
 
     numberOfLoops (Brd ls _) = ls
 
-    surfOfGenusCobordism genus | genus < 0  = error $ printf "closedSurfaceCobordism: genus must be non-negative, but %i passed" genus
+    surfOfGenusCobordism genus | genus < 0  = error $ printf "surfOfGenusCobordism: genus must be non-negative, but %i passed" genus
                                | otherwise  = Cob (emptyHeader 0 0) (surfGuts genus)
 
-    capOfGenusCobordism genus | genus < 0  = error $ printf "capCobordism': genus must be non-negative, but %i passed" genus
+    capOfGenusCobordism genus | genus < 0  = error $ printf "capOfGenusCobordism: genus must be non-negative, but %i passed" genus
                               | otherwise  = Cob (emptyHeader 1 0) (capGuts genus)
 
     tubeCobordism = planarLoop
