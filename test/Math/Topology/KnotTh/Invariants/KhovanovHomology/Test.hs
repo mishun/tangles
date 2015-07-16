@@ -10,7 +10,9 @@ import Math.Topology.KnotTh.Invariants.KhovanovHomology
 
 test :: Test
 test = testGroup "Khovanov homology"
-    [ testCase "Basic complexes" $ do
+    [ testCase "Over crossing complex" $ do
         assertBool "dir" $ testBorders overCrossingComplex
+
+    , testCase "Under crossing complex" $ do
         assertBool "rev" $ testBorders underCrossingComplex
     ]

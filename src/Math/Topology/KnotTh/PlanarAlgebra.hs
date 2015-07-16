@@ -39,6 +39,8 @@ class (RotationAction a) => PlanarAlgebra a where
     -- | Never call it. Default horizontalComposition calls it after all bound checks.
     horizontalCompositionUnchecked :: Int -> (a, Int) -> (a, Int) -> a
 
+    planarEmpty = planarPropagator 0
+
     planarLoop = horizontalComposition 2 (planarPropagator 1, 0) (planarPropagator 1, 0)
 
     horizontalLooping gl (x, pos) =

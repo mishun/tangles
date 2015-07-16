@@ -115,7 +115,7 @@ restoreBasicTangle !chordDiagram =
         restore :: UV.Vector Int -> V.Vector (Int, Int) -> [Int] -> TangleDiagram
         restore _ _ [] = error "restoreBasicTangle: impossible happened"
         restore a h (i : rest) =
-            if | l == 0                           -> emptyTangle
+            if | l == 0                           -> planarEmpty
                | l == 2                           -> planarPropagator 1
                | i' == j                          ->
                    let tangle = restore (UV.generate (l - 2) (\ x -> ((a UV.! ((i + 2 + x) `mod` l)) - i - 2) `mod` l))
@@ -133,7 +133,7 @@ restoreBasicTangle !chordDiagram =
                 j = (i + 1) `mod` l
                 j' = a UV.! j
 
-    in if | cdl == 0  -> emptyTangle
+    in if | cdl == 0  -> planarEmpty
           | otherwise -> restore chordDiagram (V.generate cdl $ \ i -> (i, chordDiagram UV.! i)) [0 .. cdl - 1]
 
 

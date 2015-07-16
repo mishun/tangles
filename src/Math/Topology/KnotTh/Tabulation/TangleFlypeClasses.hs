@@ -20,11 +20,9 @@ import Math.Topology.KnotTh.Tabulation.TangleDiagramsCascade
 import Math.Topology.KnotTh.Tabulation.TangleFlypeClasses.Flypes
 
 
-templateDescendants
-    :: Bool -> Int -> [SubTangleCrossing ProjectionCrossing]
-        -> Int -> Int -> (SubTangleTangle ProjectionCrossing, SubGroup Dn)
-            -> [(SubTangleTangle ProjectionCrossing, SubGroup Dn)]
-
+templateDescendants :: Bool -> Int -> [SubTangleCrossing ProjectionCrossing]
+                        -> Int -> Int -> (SubTangleTangle ProjectionCrossing, SubGroup Dn)
+                            -> [(SubTangleTangle ProjectionCrossing, SubGroup Dn)]
 templateDescendants tri maxN crossings cn curN (tangle, symmetry) = do
     let l = numberOfLegs tangle
     guard $ numberOfVertices tangle == 1 || l > 4
@@ -41,11 +39,9 @@ templateDescendants tri maxN crossings cn curN (tangle, symmetry) = do
         return (vertexOwner root, sym)
 
 
-directSumDescendants
-    :: [SubTangleCrossing ProjectionCrossing]
-        -> (SubTangleTangle ProjectionCrossing, SubGroup Dn)
-            -> [(SubTangleTangle ProjectionCrossing, SubGroup Dn)]
-
+directSumDescendants :: [SubTangleCrossing ProjectionCrossing]
+                        -> (Tangle4 (SubTangleCrossing ProjectionCrossing), SubGroup Dn)
+                            -> [(Tangle4 (SubTangleCrossing ProjectionCrossing), SubGroup Dn)]
 directSumDescendants crossings (tangle, symmetry) = do
     let preTest cr leg =
             let t = dartOwner leg
@@ -79,23 +75,23 @@ directSumDescendants crossings (tangle, symmetry) = do
     cr <- crossings
     if isLonerCrossing cr
         then map snd $ nubBy (on (==) fst) $ do
-            leg <- allLegs tangle
+            leg <- allLegs $ extractTangle4 tangle
             st <- possibleSubTangleOrientations cr Nothing
             guard $ preTest st leg
             maybeToList $ do
                 let root = glueToBorder leg 2 st
                 (s, _, rc) <- rootingSymmetryTest root
                 sym <- postTest root leg s
-                return (rc, (vertexOwner root, sym))
+                return (rc, (tangle4 $ vertexOwner root, sym))
         else do
-            (leg, inducedSymmetry) <- uniqueGlueSites' 2 (tangle, symmetry)
+            (leg, inducedSymmetry) <- uniqueGlueSites' 2 (extractTangle4 tangle, symmetry)
             st <- possibleSubTangleOrientations cr inducedSymmetry
             guard $ preTest st leg
             maybeToList $ do
                 let root = glueToBorder leg 2 st
                 (s, _, _) <- rootingSymmetryTest root
                 sym <- postTest root leg s
-                return (vertexOwner root, sym)
+                return (tangle4 $ vertexOwner root, sym)
 
 
 generateFlypeEquivalentDecomposition' :: (Monad m) => Bool -> Int -> ((SubTangleTangle ProjectionCrossing, SubGroup Dn) -> m ()) -> m ()
@@ -113,8 +109,8 @@ generateFlypeEquivalentDecomposition' triangle maxN yield = do
     (finalFree, finalCrossings, rootList) <-
         flip execStateT (0, listArray (1, halfN) $ repeat [], []) $
             let lonerSymmetry = maximumSubGroup 4
-                loner = makeSubTangle (packTangle4 lonerProjection) subGroupD4 NonDirectSumDecomposable 0
-            in flip fix (packTangle4 $ lonerTangle loner, lonerSymmetry) $ \ growTree (rootTemplate, rootSymmetry) -> do
+                loner = makeSubTangle lonerProjection subGroupD4 NonDirectSumDecomposable 0
+            in flip fix (lonerTangle loner, lonerSymmetry) $ \ growTree (rootTemplate, rootSymmetry) -> do
                 (!free, !prevCrossings, !prevList) <- get
                 let rootCrossing = buildCrossingType rootTemplate (fromDnSubGroup rootSymmetry) free
                 let rootN = numberOfCrossingVertices rootCrossing
@@ -126,17 +122,17 @@ generateFlypeEquivalentDecomposition' triangle maxN yield = do
                         forM_ [1 .. halfN - curN] $ \ cn ->
                             forM_ (templateDescendants True halfN (crossings ! cn) cn curN ancestor) $ \ child@(childTangle, _) ->
                                 case numberOfLegs childTangle of
-                                    4 -> growTree $ first packTangle4 child
+                                    4 -> growTree $ first tangle4 child
                                     _ -> glueTemplates (curN + cn) child
 
                 let glueDirectSums curN ancestor =
                         forM_ [1 .. halfN - curN] $ \ cn ->
                             forM_ (directSumDescendants (crossings ! cn) ancestor) $ \ child -> do
-                                growTree $ first packTangle4 child
+                                growTree child
                                 glueDirectSums (curN + cn) child
 
                 lift $ yield (extractTangle4 rootTemplate, rootSymmetry)
-                glueTemplates rootN (root, rootSymmetry)
+                glueTemplates rootN (extractTangle4 root, rootSymmetry)
                 glueDirectSums rootN (root, rootSymmetry)
 
     flip evalStateT finalFree $ forM_ rootList $ fix $ \ grow (root, crossings) -> do
@@ -151,17 +147,17 @@ generateFlypeEquivalentDecomposition' triangle maxN yield = do
                 forM_ [1 .. min halfN (maxN - curN)] $ \ cn ->
                     forM_ (templateDescendants triangle maxN (crossings ! cn) cn curN ancestor) $ \ child@(childTangle, childSymmetry) ->
                         case numberOfLegs childTangle of
-                            4 -> tree (curN + cn) $ first packTangle4 child
+                            4 -> tree (curN + cn) $ first tangle4 child
                             _ -> lift (yield (childTangle, childSymmetry)) >> glueTemplates (curN + cn) child
 
         let glueDirectSums curN ancestor =
                 forM_ [1 .. min halfN (maxN - curN)] $ \ cn ->
                     forM_ (directSumDescendants (crossings ! cn) ancestor) $ \ child -> do
-                        tree (curN + cn) $ first packTangle4 child
+                        tree (curN + cn) child
                         glueDirectSums (curN + cn) child
 
-        let rootN = numberOfVerticesAfterSubstitution $ fst root
-        glueTemplates rootN root
+        let rootN = numberOfVerticesAfterSubstitution $ extractTangle4 $ fst root
+        glueTemplates rootN $ first extractTangle4 root
         glueDirectSums rootN root
 
 

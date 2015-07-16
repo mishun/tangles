@@ -113,7 +113,7 @@ primeProjections maxN =
             (sym, adj, _) <- rootingSymmetryTest root
             return (root, (sym, adj))
         , lowerProjection  = first vertexOwner
-        , roots = [(lonerProjection, (fromPeriodAndMirroredZero 4 1 0, (d4I, d4I)))]
+        , roots = [(extractTangle4 lonerProjection, (fromPeriodAndMirroredZero 4 1 0, (d4I, d4I)))]
         }
 
 reducedProjections maxN =
@@ -146,7 +146,7 @@ primeDiagrams maxN =
             (sym, adj, _) <- rootingSymmetryTest root
             return (root, (sym, adj))
         , lowerProjection  = first vertexOwner
-        , roots = [(lonerOverCrossing, (fromPeriodAndMirroredZero 4 1 0, (d4EC, d4E)))]
+        , roots = [(extractTangle4 lonerOverCrossing, (fromPeriodAndMirroredZero 4 1 0, (d4EC, d4E)))]
         }
 
 primeIrreducibleDiagrams maxN =
