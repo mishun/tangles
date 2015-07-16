@@ -23,7 +23,7 @@ import Control.Applicative (Applicative)
 import Control.Arrow (first)
 import Control.DeepSeq (NFData(..))
 import Control.Monad (filterM, foldM, foldM_, forM, forM_, guard, liftM2, unless, void, when)
-import Control.Monad.IfElse (unlessM, whileM)
+import Control.Monad.IfElse (unlessM, whenM, whileM)
 import qualified Control.Monad.Reader as Reader
 import qualified Control.Monad.ST as ST
 import qualified Data.Array.ST as STArray
@@ -32,7 +32,7 @@ import Data.Bits ((.&.), shiftL, shiftR, complement)
 import Data.Function (fix)
 import Data.List (foldl', find)
 import Data.Maybe (fromMaybe, fromJust)
-import qualified Data.STRef as STRef
+import Data.STRef (STRef, modifySTRef', newSTRef, readSTRef, writeSTRef)
 import qualified Data.Vector as V
 import qualified Data.Vector.Mutable as MV
 import qualified Data.Vector.Primitive as PV
@@ -171,7 +171,7 @@ instance Knotted EmbeddedLink where
                 index <- UMV.replicate (n + 1) 0
                 incoming <- UMV.replicate (n + 1) 0
                 queue <- MV.new n
-                free <- STRef.newSTRef 1
+                free <- newSTRef 1
 
                 let {-# INLINE look #-}
                     look !d = do
@@ -182,8 +182,8 @@ instance Knotted EmbeddedLink where
                                 up <- UMV.unsafeRead incoming u
                                 return $! (ux `shiftL` 2) + (((beginPlace d - up) * directionSign dir) .&. 3)
                             else do
-                                nf <- STRef.readSTRef free
-                                STRef.writeSTRef free $! nf + 1
+                                nf <- readSTRef free
+                                writeSTRef free $! nf + 1
                                 UMV.unsafeWrite index u nf
                                 UMV.unsafeWrite incoming u (beginPlace d)
                                 MV.unsafeWrite queue (nf - 1) d
@@ -198,20 +198,18 @@ instance Knotted EmbeddedLink where
                         return $! offset + 1
 
                 void $ look start
-                flip fix 0 $ \ bfs !headI -> do
-                            tailI <- STRef.readSTRef free
-                            when (headI < tailI - 1) $ do
-                                input <- MV.unsafeRead queue headI
-                                void $ foldMIncomingDartsFrom input dir lookAndWrite (6 * headI + 3)
-                                case crossingCodeWithGlobal globalG dir input of
-                                    (# be, le #) -> do
-                                        UMV.unsafeWrite rc (6 * headI + 1) be
-                                        UMV.unsafeWrite rc (6 * headI + 2) le
-                                bfs $! headI + 1
+                flip fix 0 $ \ bfs !headI ->
+                    whenM ((headI + 1 <) `fmap` readSTRef free) $ do
+                        input <- MV.unsafeRead queue headI
+                        void $ foldMIncomingDartsFrom input dir lookAndWrite (6 * headI + 3)
+                        case crossingCodeWithGlobal globalG dir input of
+                            (# be, le #) -> do
+                                UMV.unsafeWrite rc (6 * headI + 1) be
+                                UMV.unsafeWrite rc (6 * headI + 2) le
+                        bfs $! headI + 1
 
                 fix $ \ _ -> do
-                    tailI <- STRef.readSTRef free
-                    when (tailI <= n) $
+                    whenM ((<= n) `fmap` readSTRef free) $
                         fail "codeWithDirection: disconnected diagram (not implemented)"
 
                 return rc
@@ -558,7 +556,7 @@ instance Surgery EmbeddedLink where
                         c <- allVertices link
                         let t = crossF c
                         when (numberOfLegs t /= 4 * k) $
-                            fail "bad number of legs"
+                            fail "EmbeddedLink.tensorSubst: bad number of legs"
                         return $! t
                 in V.fromListN (n + 1) $ undefined : substList
 
@@ -606,14 +604,14 @@ testLayering link | numberOfFreeLoops link > 0  = False
 
     comp <- STArray.newArray (1, n) 0 :: ST.ST s (STArray.STUArray s Int Int)
     lowlink <- STArray.newArray (1, n) 0 :: ST.ST s (STArray.STUArray s Int Int)
-    time <- STRef.newSTRef 1
-    stack <- STRef.newSTRef []
+    time <- newSTRef 1
+    stack <- newSTRef []
 
     let dfs u = do
-            STRef.readSTRef time >>= STArray.writeArray lowlink u
-            STRef.modifySTRef' time (+ 1)
-            STRef.modifySTRef' stack (u :)
-            isComponentRoot <- STRef.newSTRef True
+            readSTRef time >>= STArray.writeArray lowlink u
+            modifySTRef' time (+ 1)
+            modifySTRef' stack (u :)
+            isComponentRoot <- newSTRef True
 
             forM_ (snd $ fromJust $ find ((== u) . fst) threads) $ \ (_, d) -> do
                 let v = abs (marks A.! nextCCW d)
@@ -626,16 +624,16 @@ testLayering link | numberOfFreeLoops link > 0  = False
                     ulw <- STArray.readArray lowlink u
                     when (ulw > vlw) $ do
                         STArray.writeArray lowlink u vlw
-                        STRef.writeSTRef isComponentRoot False
+                        writeSTRef isComponentRoot False
 
-            isRoot <- STRef.readSTRef isComponentRoot
+            isRoot <- readSTRef isComponentRoot
             when isRoot $ do
                 let extract = do
-                        st <- STRef.readSTRef stack
+                        st <- readSTRef stack
                         case st of
                             []       -> return ()
                             k : rest -> do
-                                STRef.writeSTRef stack rest
+                                writeSTRef stack rest
                                 STArray.writeArray lowlink k (n + 1)
                                 STArray.writeArray comp k u
                                 when (k /= u) extract
@@ -651,9 +649,8 @@ testLayering link | numberOfFreeLoops link > 0  = False
 
 cfor :: (Monad m) => (m a, a -> m Bool, a -> m a) -> (a -> m ()) -> m ()
 cfor (initial, cond, next) body =
-    let loop !i = do
-            continue <- cond i
-            when continue $ do
+    let loop !i =
+            whenM (cond i) $ do
                 body i
                 next i >>= loop
     in initial >>= loop
@@ -679,63 +676,63 @@ stoerWagner link = ST.runST $ do
 
     let setA i x = flip (STArray.writeArray a) x =<< STArray.readArray v i
 
-    best <- STRef.newSTRef $! 1 + numberOfEdges link
-    n <- STRef.newSTRef sz
+    best <- newSTRef $! 1 + numberOfEdges link
+    n <- newSTRef sz
 
-    whileM ((> 1) `fmap` STRef.readSTRef n) $ do
+    whileM ((> 1) `fmap` readSTRef n) $ do
         setA 1 True
 
         do
-            n' <- STRef.readSTRef n
+            n' <- readSTRef n
             forM_ [2 .. n'] $ \ i -> do
                 setA i False
                 STArray.writeArray na (i - 1) i
                 STArray.writeArray w i =<< STArray.readArray g =<<
                     liftM2 (,) (STArray.readArray v 1) (STArray.readArray v i)
 
-        prev <- STRef.newSTRef =<< STArray.readArray v 1
-        cfor (return 2, \ i -> (i <=) `fmap` STRef.readSTRef n, \ i -> return $! i + 1) $ \ !i -> do
+        prev <- newSTRef =<< STArray.readArray v 1
+        cfor (return 2, \ i -> (i <=) `fmap` readSTRef n, \ i -> return $! i + 1) $ \ !i -> do
             zj <- do
-                n' <- STRef.readSTRef n
-                zj <- STRef.newSTRef (-1)
+                n' <- readSTRef n
+                zj <- newSTRef (-1)
                 forM_ [2 .. n'] $ \ !j ->
                     unlessM (STArray.readArray a =<< STArray.readArray v j) $ do
-                        zj' <- STRef.readSTRef zj
+                        zj' <- readSTRef zj
                         ok <- if zj' < 1
                                 then return True
                                 else liftM2 (>) (STArray.readArray w j) (STArray.readArray w zj')
-                        when ok $ STRef.writeSTRef zj j
-                STRef.readSTRef zj
+                        when ok $ writeSTRef zj j
+                readSTRef zj
 
             flip (STArray.writeArray a) True =<< STArray.readArray v zj
 
-            lastIt <- (== i) `fmap` STRef.readSTRef n
+            lastIt <- (== i) `fmap` readSTRef n
             if lastIt
                 then do
-                    STRef.modifySTRef' best =<< (min `fmap` STArray.readArray w zj)
-                    n' <- STRef.readSTRef n
+                    modifySTRef' best =<< (min `fmap` STArray.readArray w zj)
+                    n' <- readSTRef n
 
                     forM_ [1 .. n'] $ \ !j -> do
                         delta <- STArray.readArray g =<< liftM2 (,) (STArray.readArray v zj) (STArray.readArray v j)
-                        index <- liftM2 (,) (STRef.readSTRef prev) (STArray.readArray v j)
+                        index <- liftM2 (,) (readSTRef prev) (STArray.readArray v j)
                         tmp <- STArray.readArray g index
                         STArray.writeArray g index $! tmp + delta
-                        index' <- liftM2 (,) (STArray.readArray v j) (STRef.readSTRef prev)
+                        index' <- liftM2 (,) (STArray.readArray v j) (readSTRef prev)
                         STArray.writeArray g index' $! tmp + delta
 
                     STArray.writeArray v zj =<< STArray.readArray v n'
-                    STRef.modifySTRef' n (+ (-1))
+                    modifySTRef' n (+ (-1))
 
                 else do
-                    STRef.writeSTRef prev =<< STArray.readArray v zj
-                    n' <- STRef.readSTRef n
+                    writeSTRef prev =<< STArray.readArray v zj
+                    n' <- readSTRef n
                     forM_ [2 .. n'] $ \ !j ->
                         unlessM (STArray.readArray a =<< STArray.readArray v j) $ do
                             delta <- STArray.readArray g =<< liftM2 (,) (STArray.readArray v zj) (STArray.readArray v j)
                             tmp <- STArray.readArray w j
                             STArray.writeArray w j $! tmp + delta
 
-    STRef.readSTRef best
+    readSTRef best
 
 
 has4LegPlanarPart :: EmbeddedLink a -> Bool
@@ -748,40 +745,39 @@ has4LegPlanarPart =
             mapM_ (\ !e -> STArray.writeArray face (leftFace e) True) darts
 
             queue <- (STArray.newArray_ :: (STArray.Ix i) => (i, i) -> ST.ST s (STArray.STArray s i a)) (0, numberOfVertices link)
-            qtail <- STRef.newSTRef 1
+            qtail <- newSTRef 1
 
             STArray.writeArray vertex start True
             STArray.writeArray queue 0 start
 
-            nv <- STRef.newSTRef 1
-            ne <- STRef.newSTRef 4
-            nf <- STRef.newSTRef 4
+            nv <- newSTRef 1
+            ne <- newSTRef 4
+            nf <- newSTRef 4
 
             let testFace f = do
                     fi <- STArray.readArray face f
                     unless fi $ do
                         STArray.writeArray face f True
-                        STRef.modifySTRef' nf (+ 1)
+                        modifySTRef' nf (+ 1)
 
             let testEdge e = do
                     ei <- STArray.readArray edge e
                     unless ei $ do
                         STArray.writeArray edge e True
                         STArray.writeArray edge (opposite e) True
-                        STRef.modifySTRef' ne (+ 1)
+                        modifySTRef' ne (+ 1)
 
             let testVertex v = do
                     vi <- STArray.readArray vertex v
                     unless vi $ do
                         STArray.writeArray vertex v True
-                        STRef.modifySTRef' nv (+ 1)
-                        t <- STRef.readSTRef qtail
+                        modifySTRef' nv (+ 1)
+                        t <- readSTRef qtail
                         STArray.writeArray queue t v
-                        STRef.writeSTRef qtail $! t + 1
+                        writeSTRef qtail $! t + 1
 
             let loop !qhead = do
-                    ok <- (qhead <) `fmap` STRef.readSTRef qtail
-                    when ok $ do
+                    whenM ((qhead <) `fmap` readSTRef qtail) $ do
                         v <- STArray.readArray queue qhead
                         forM_ [0 .. 3] $ \ !i -> do
                             let e = nthOutcomingDart v i
@@ -795,9 +791,9 @@ has4LegPlanarPart =
 
             loop 0
 
-            nv' <- STRef.readSTRef nv
-            nf' <- STRef.readSTRef nf
-            ne' <- STRef.readSTRef ne
+            nv' <- readSTRef nv
+            nf' <- readSTRef nf
+            ne' <- readSTRef ne
             let euler = nv' + nf' - ne'
             return $! (nv' > 1) && (nv' < numberOfVertices link) && (euler == 1)
 
@@ -818,7 +814,7 @@ data CrossingMask a = Direct !a | Flipped !a | Masked
 data ModifyState a s =
     ModifyState
         { stateSource     :: !(EmbeddedLink a)
-        , stateCircles    :: !(STRef.STRef s Int)
+        , stateCircles    :: !(STRef s Int)
         , stateInvolution :: !(PMV.STVector s Int)
         , stateMask       :: !(MV.STVector s (CrossingMask a))
         }
@@ -837,7 +833,7 @@ instance ModifyDSL EmbeddedLink where
 
     modifyKnot link modification = ST.runST $ do
         s <- do
-            circ <- STRef.newSTRef $ numberOfFreeLoops link
+            circ <- newSTRef $ numberOfFreeLoops link
             inv <- PV.thaw $ involutionArray link
             mask <- MV.new (numberOfVertices link)
             V.copy mask $ V.map Direct $ crossingsArray link
@@ -874,11 +870,11 @@ instance ModifyDSL EmbeddedLink where
                             let a = 4 * v + i
                                 b = inv PV.! a
                             in case mask V.! (b `shiftR` 2) of
-                                Masked -> fail $ printf "modifyELink: touching masked crossing\nlink: %s\nmask: %s\ninvolution: %s"
+                                Masked -> fail $ printf "EmbeddedLink.modifyKnot: touching masked crossing\nlink: %s\nmask: %s\ninvolution: %s"
                                        (show link) (show mask) (show inv)
                                 _      -> return ()
 
-            loops <- STRef.readSTRef $ stateCircles s
+            loops <- readSTRef $ stateCircles s
             let result = EmbeddedLink
                     { loopsCount      = loops
                     , vertexCount     = n
@@ -901,7 +897,7 @@ instance ModifyDSL EmbeddedLink where
 
     emitLoopsC dn =
         withState $ \ !s ->
-            STRef.modifySTRef' (stateCircles s) (+ dn)
+            modifySTRef' (stateCircles s) (+ dn)
 
     oppositeC (Dart link d) =
         withState $ \ !s ->
@@ -911,7 +907,7 @@ instance ModifyDSL EmbeddedLink where
         withState $ \ !s -> do
             msk <- MV.read (stateMask s) $ vertexIndex $ beginVertex d
             case msk of
-                Masked    -> fail "passOverC: touching masked crossing when taking from %s" (show d)
+                Masked    -> fail "EmbeddedLink.passOverC: touching masked crossing when taking from %s" (show d)
                 Direct  t -> return $! passOver' t (beginPlace d)
                 Flipped t -> return $! passOver' t (3 - beginPlace d)
 
@@ -937,12 +933,12 @@ instance ModifyDSL EmbeddedLink where
                                   | otherwise -> Direct $ f t
                         Flipped t | needFlip  -> Direct $ f t
                                   | otherwise -> Flipped $ f t
-                        Masked                -> error $ printf "modifyC: flipping masked crossing %s" (show c)
+                        Masked                -> error $ printf "EmbeddedLink.modifyC: flipping masked crossing %s" (show c)
 
     connectC connections =
         withState $ \ !s ->
             forM_ connections $ \ (Dart _ !a, Dart _ !b) -> do
-                when (a == b) $ fail $ printf "reconnect: %s connect to itself" (show a)
+                when (a == b) $ fail $ printf "EmbeddedLink.connectC: %s connect to itself" (show a)
                 PMV.write (stateInvolution s) a b
                 PMV.write (stateInvolution s) b a
 
@@ -958,7 +954,7 @@ instance ModifyDSL EmbeddedLink where
 
             forM_ substitutions $ \ (a, b) ->
                 if a == b
-                    then STRef.modifySTRef' (stateCircles st) (+ 1)
+                    then modifySTRef' (stateCircles st) (+ 1)
                     else MV.write arr (dartIndex b) a
 
             forM reconnections $ \ (a, b) ->

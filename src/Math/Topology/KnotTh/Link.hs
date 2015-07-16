@@ -45,7 +45,8 @@ import qualified Data.Array.ST as STArray
 import qualified Data.Array.Unboxed as A
 import Data.List (mapAccumL, findIndices)
 import qualified Data.Map as M
-import qualified Data.STRef as STRef
+
+import Data.STRef (newSTRef, readSTRef, writeSTRef)
 import Text.Printf
 import Math.Topology.KnotTh.Knotted
 import Math.Topology.KnotTh.Knotted.Crossings.Projection
@@ -56,7 +57,7 @@ import Math.Topology.KnotTh.Link.TableOfCodes
 
 
 newtype Link a = L (Tangle a)
-    deriving (Functor, KnottedDiagram, Surgery)
+    deriving (Functor, KnottedDiagram, Surgery, MirrorAction, AsTangle)
 
 
 instance DartDiagram Link where
@@ -116,14 +117,8 @@ instance Knotted Link where
 
     isConnected (L t) = isConnected t
 
-instance (MirrorAction a) => MirrorAction (Link a) where
-    mirrorIt (L t) = L (mirrorIt t)
-
 instance (Crossing a) => KnotWithPrimeTest Link a where
     isPrime (L t) = isPrime t
-
-instance AsTangle Link where
-    extractTangle (L t) = t
 
 
 instance (Show a) => Show (Link a) where
@@ -172,7 +167,7 @@ tangleDoublingLink f t =
 
 
 toDTCode :: LinkDiagram -> [[Int]]
-toDTCode _ = error "not implemented"
+toDTCode _ = error "toDTCode: not implemented"
 
 
 fromDTCode :: [[Int]] -> LinkDiagram
@@ -308,17 +303,17 @@ simplifyGaussCode code = ST.runST $ do
                 else error "fromGaussCode: lengths must be even"
 
     index <- do
-        free <- STRef.newSTRef 1
-        indices <- STRef.newSTRef $ M.empty
+        free <- newSTRef 1
+        indices <- newSTRef $ M.empty
         return $! \ !x -> do
-            m <- STRef.readSTRef indices
+            m <- readSTRef indices
             if M.member x m
                 then return $! m M.! x
                 else do
-                    y <- STRef.readSTRef free
+                    y <- readSTRef free
                     when (y > n) $ fail "fromGaussCode: too many different values in gauss code"
-                    STRef.writeSTRef free $! y + 1
-                    STRef.writeSTRef indices $! M.insert x y m
+                    writeSTRef free $! y + 1
+                    writeSTRef indices $! M.insert x y m
                     return $! y
 
     visitedP <- STArray.newArray (1, n) False :: ST.ST s (STArray.STUArray s Int Bool)

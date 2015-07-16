@@ -10,7 +10,7 @@ import Control.Monad.IfElse (unlessM, whenM)
 import qualified Control.Monad.ST as ST
 import qualified Data.Map.Strict as M
 import Data.Ratio (Ratio)
-import qualified Data.STRef as STRef
+import Data.STRef (newSTRef, readSTRef, writeSTRef)
 import qualified Data.Vector.Unboxed as UV
 import qualified Data.Vector.Unboxed.Mutable as UMV
 import Text.Printf
@@ -243,17 +243,17 @@ instance CobordismGuts DottedGuts where
                             UV.forM_ segmsToGlue $ \ (s0, s1) -> when (surf == s1) $ mark0 color s0
                             UV.forM_ loopsToGlue $ \ (s0, s1) -> when (surf == s1) $ mark0 color s0
 
-                freeColor <- STRef.newSTRef 0
+                freeColor <- newSTRef 0
                 let tryMark0 !s =
                         whenM ((< 0) `fmap` UMV.read newS0 s) $ do
-                            color <- STRef.readSTRef freeColor
-                            STRef.writeSTRef freeColor $! color + 1
+                            color <- readSTRef freeColor
+                            writeSTRef freeColor $! color + 1
                             mark0 color s
 
                     tryMark1 !s =
                         whenM ((< 0) `fmap` UMV.read newS1 s) $ do
-                            color <- STRef.readSTRef freeColor
-                            STRef.writeSTRef freeColor $! color + 1
+                            color <- readSTRef freeColor
+                            writeSTRef freeColor $! color + 1
                             mark1 color s
 
                 -- the order is important!
@@ -270,7 +270,7 @@ instance CobordismGuts DottedGuts where
 
                 newS0' <- UV.unsafeFreeze newS0
                 newS1' <- UV.unsafeFreeze newS1
-                surfN <- STRef.readSTRef freeColor
+                surfN <- readSTRef freeColor
                 return $! (newS0', newS1', surfN)
 
             let wallS = UV.create $ do
@@ -330,17 +330,17 @@ instance CobordismGuts DottedGuts where
                             UMV.write newSB surf color
                             UV.forM_ segmsToGlue $ \ (sA, sB) -> when (surf == sB) $ markA color sA
 
-                freeColor <- STRef.newSTRef 0
+                freeColor <- newSTRef 0
                 let tryMarkA !s =
                         whenM ((< 0) `fmap` UMV.read newSA s) $ do
-                            color <- STRef.readSTRef freeColor
-                            STRef.writeSTRef freeColor $! color + 1
+                            color <- readSTRef freeColor
+                            writeSTRef freeColor $! color + 1
                             markA color s
 
                     tryMarkB !s =
                         whenM ((< 0) `fmap` UMV.read newSB s) $ do
-                            color <- STRef.readSTRef freeColor
-                            STRef.writeSTRef freeColor $! color + 1
+                            color <- readSTRef freeColor
+                            writeSTRef freeColor $! color + 1
                             markB color s
 
                 -- the order is important!
@@ -360,7 +360,7 @@ instance CobordismGuts DottedGuts where
 
                 newSA' <- UV.unsafeFreeze newSA
                 newSB' <- UV.unsafeFreeze newSB
-                surfN <- STRef.readSTRef freeColor
+                surfN <- readSTRef freeColor
                 return $! (newSA', newSB', surfN)
 
             let wallS = UV.create $ do
@@ -436,14 +436,14 @@ instance ModuleCobordismGuts DottedGuts where
             renumerateSurfaces g =
                 ST.runST $ do
                     newIndex <- UMV.replicate (UV.length $ surfHolesN g) (-1)
-                    freeIndex <- STRef.newSTRef 0
+                    freeIndex <- newSTRef 0
 
                     let faceId !i = do
                             tmp <- UMV.read newIndex i
                             if tmp >= 0 then return tmp
                                         else do
-                                j <- STRef.readSTRef freeIndex
-                                STRef.writeSTRef freeIndex $! j + 1
+                                j <- readSTRef freeIndex
+                                writeSTRef freeIndex $! j + 1
                                 UMV.write newIndex i j
                                 return j
 
