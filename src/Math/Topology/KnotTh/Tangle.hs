@@ -17,6 +17,7 @@ module Math.Topology.KnotTh.Tangle
 
     , Tangle0
     , tangle0
+    , zipTangles
     , emptyTangle
     , loopTangle
 
@@ -29,8 +30,15 @@ module Math.Topology.KnotTh.Tangle
     , lonerProjection
     , lonerOverCrossing
     , lonerUnderCrossing
+    , conwaySum
+    , conwayRecip
+    , conwayProduct
+    , conwayRamification
+    , numeratorClosure
+    , denominatorClosure
     , chainTangle
     , rationalTangle
+    , rationalTangle'
 
     , Surgery(..)
     , twistedSatellite
@@ -1041,7 +1049,7 @@ instance AsTangle Tangle where
 
 
 newtype Tangle0 a = T0 (Tangle a)
-    deriving (NFData)
+    deriving (Functor, NFData)
 
 instance (Show a) => Show (Tangle0 a) where
     show (T0 t) = show t
@@ -1059,6 +1067,13 @@ tangle0 t | l == 0     = T0 t
     where l = numberOfLegs t
 
 
+zipTangles :: Tangle a -> Tangle a -> Tangle0 a
+zipTangles a b | l /= l'    = error $ printf "zipTangles: arguments must have same number of legs, but %i and %i provided" l l'
+               | otherwise  = T0 $ horizontalComposition l (a, 0) (b, 1)
+    where l = numberOfLegs a
+          l' = numberOfLegs b
+
+
 emptyTangle :: Tangle0 a
 emptyTangle = T0 emptyTangle'
 
@@ -1068,7 +1083,7 @@ loopTangle = T0 loopTangle'
 
 
 newtype Tangle4 a = T4 (Tangle a)
-    deriving (NFData)
+    deriving (Functor, NFData)
 
 instance (Show a) => Show (Tangle4 a) where
     show (T4 t) = show t
@@ -1122,30 +1137,61 @@ lonerOverCrossing = lonerTangle overCrossing
 lonerUnderCrossing = lonerTangle underCrossing
 
 
-chainTangle :: [a] -> Tangle4 a
-chainTangle [] = zeroTangle
-chainTangle list =
-    let n = length list
-    in T4 $ implode
-        ( 0
-        , [(1, 0), (1, 1), (n, 2), (n, 3)]
-        , map (\ (i, s) ->
-            (   [ if i > 1 then (i - 1, 3) else (0, 0)
-                , if i > 1 then (i - 1, 2) else (0, 1)
-                , if i < n then (i + 1, 1) else (0, 2)
-                , if i < n then (i + 1, 0) else (0, 3)
-                ]
-            , s
-            )) ([1 .. n] `zip` list)
-        )
+-- See http://www.mi.sanu.ac.rs/vismath/sl/l14.htm
+conwaySum :: Tangle4 a -> Tangle4 a -> Tangle4 a
+conwaySum (T4 a) (T4 b) = T4 (horizontalComposition 2 (a, 2) (b, 0))
+
+
+conwayRecip :: (MirrorAction a) => Tangle4 a -> Tangle4 a
+conwayRecip (T4 t) = T4 (mirrorIt t)
+
+
+conwayProduct :: (MirrorAction a) => Tangle4 a -> Tangle4 a -> Tangle4 a
+conwayProduct a b = conwayRecip a `conwaySum` b
+
+
+conwayRamification :: (MirrorAction a) => Tangle4 a -> Tangle4 a -> Tangle4 a
+conwayRamification a b = conwayRecip a `conwaySum` conwayRecip b
+
+
+numeratorClosure :: Tangle4 a -> Tangle0 a
+numeratorClosure (T4 t) = zipTangles t infinityTangle'
+
+
+denominatorClosure :: Tangle4 a -> Tangle0 a
+denominatorClosure (T4 t) = zipTangles t zeroTangle'
+
+
+chainTangle :: V.Vector a -> Tangle4 a
+chainTangle cs | n == 0     = zeroTangle
+               | otherwise  =
+        T4 $ Tangle
+            { loopsCount      = 0
+            , vertexCount     = n
+            , involutionArray = PV.create $ do
+                inv <- PMV.new $ 4 * (n + 1)
+                let connect !a !b = PMV.write inv a b >> PMV.write inv b a
+                connect 0 (4 * n)
+                connect 1 (4 * n + 1)
+                connect (4 * (n - 1) + 2) (4 * n + 2)
+                connect (4 * (n - 1) + 3) (4 * n + 3)
+                forM_ [0 .. n - 2] $ \ !i -> do
+                    let c = 4 * i
+                    connect (c + 3) (c + 4)
+                    connect (c + 2) (c + 5)
+                return inv
+            , crossingsArray  = cs
+            , legsCount       = 4
+            }
+    where n = V.length cs
 
 
 rationalTangle :: [Int] -> Tangle4 DiagramCrossing
-rationalTangle =
-    T4 . foldl (\ tangle x ->
-            let g = extractTangle $ chainTangle $ replicate (abs x) (overCrossingIf $ x >= 0)
-            in horizontalComposition 2 (g, 2) (tangle, 1)
-        ) (extractTangle infinityTangle)
+rationalTangle = rationalTangle' . map (\ x -> V.replicate (abs x) (underCrossingIf $ x >= 0))
+
+
+rationalTangle' :: (MirrorAction a) => [V.Vector a] -> Tangle4 a
+rationalTangle' = foldl conwayProduct infinityTangle . map chainTangle
 
 
 class (Knotted k) => Surgery k where

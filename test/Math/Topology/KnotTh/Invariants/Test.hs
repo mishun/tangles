@@ -143,8 +143,8 @@ test = testGroup "Invariants"
                 , ("∞"             , extractTangle infinityTangle       , "(1)[1,0,3,2]"                       )
                 , ("over crossing" , extractTangle lonerOverCrossing    , "(t^1/4)[1,0,3,2]+(t^-1/4)[3,2,1,0]" )
                 , ("under crossing", extractTangle lonerUnderCrossing   , "(t^-1/4)[1,0,3,2]+(t^1/4)[3,2,1,0]" )
-                , ("group 2"       , extractTangle $ rationalTangle [2] , "(1-t)[1,0,3,2]+(t^-1/2)[3,2,1,0]"   )
-                , ("group -2"      , extractTangle $ rationalTangle [-2], "(-t^-1+1)[1,0,3,2]+(t^1/2)[3,2,1,0]")
+                , ("group 2"       , extractTangle $ rationalTangle [2] , "(-t^-1+1)[1,0,3,2]+(t^1/2)[3,2,1,0]")
+                , ("group -2"      , extractTangle $ rationalTangle [-2], "(1-t)[1,0,3,2]+(t^-1/2)[3,2,1,0]"   )
                 , ("II reducable"  , decodeCascadeCode [(XU, 0)]        , "(1)[3,2,1,0]"                       )
                 ]
 

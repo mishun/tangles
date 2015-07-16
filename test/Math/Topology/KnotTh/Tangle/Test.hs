@@ -5,7 +5,9 @@ module Math.Topology.KnotTh.Tangle.Test
 import Control.Monad
 import Test.Framework (Test, testGroup)
 import Test.Framework.Providers.HUnit (testCase)
+import Test.Framework.Providers.QuickCheck2 (testProperty)
 import Test.HUnit hiding (Test, test)
+import Test.QuickCheck
 import Math.Topology.KnotTh.Tangle
 
 
@@ -154,5 +156,18 @@ test = testGroup "Basic tangle tests"
                     , ([(1, 3), (2, 3), (0, 4), (0, 5)], overCrossing)
                     ]
                 )
+        ]
+
+    , testGroup "Rational tangles"
+        [ testProperty "Always alternating" $ \ list ->
+            all (\ x -> x > 0 && x < 1000) list ==> isAlternating $ extractTangle $ rationalTangle list
+
+        , testProperty "Conway reciprocate" $ \ list ->
+            let t = rationalTangle list
+                f = unrootedHomeomorphismInvariant . extractTangle
+            in all ((< 12) . abs) list ==> f (conwayRecip t) == f (conwayProduct t zeroTangle)
+
+        , testCase "Numerator closure" $ do
+            numberOfFreeLoops (extractTangle $ numeratorClosure zeroTangle) @?= 2
         ]
     ]

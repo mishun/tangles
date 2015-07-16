@@ -160,10 +160,7 @@ tangleToLink t | l == 0     = L t
 
 
 tangleDoublingLink :: (Crossing a) => (a -> a) -> Tangle a -> Link a
-tangleDoublingLink f t =
-    let l = numberOfLegs t
-        t' = mirrorIt $ fmap f t
-    in tangleToLink $ horizontalComposition l (t, 0) (t', 1)
+tangleDoublingLink f t = tangleToLink $ extractTangle $ zipTangles t (mirrorIt $ fmap f t)
 
 
 toDTCode :: LinkDiagram -> [[Int]]
