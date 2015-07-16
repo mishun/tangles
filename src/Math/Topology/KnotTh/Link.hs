@@ -11,7 +11,6 @@ module Math.Topology.KnotTh.Link
     , LinkDiagramVertex
     , LinkDiagramDart
     , emptyLink
-    , linkToTangle
     , tangleToLink
     , tangleDoublingLink
     , toDTCode
@@ -123,6 +122,9 @@ instance (MirrorAction a) => MirrorAction (Link a) where
 instance (Crossing a) => KnotWithPrimeTest Link a where
     isPrime (L t) = isPrime t
 
+instance AsTangle Link where
+    extractTangle (L t) = t
+
 
 instance (Show a) => Show (Link a) where
     show = printf "implode %s" . show . explode
@@ -153,11 +155,6 @@ type LinkDiagramDart = Dart Link DiagramCrossing
 
 emptyLink :: Link a
 emptyLink = emptyKnotted
-
-
-{-# INLINE linkToTangle #-}
-linkToTangle :: Link a -> Tangle a
-linkToTangle (L t) = t
 
 
 {-# INLINE tangleToLink #-}

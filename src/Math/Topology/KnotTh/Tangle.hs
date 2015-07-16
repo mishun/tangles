@@ -13,14 +13,14 @@ module Math.Topology.KnotTh.Tangle
     , glueToBorder
     , gridTangle
 
+    , AsTangle(..)
+
     , Tangle0
-    , extractTangle0
     , tangle0
     , emptyTangle
     , loopTangle
 
     , Tangle4
-    , extractTangle4
     , tangle4
     , onTangle4
     , zeroTangle
@@ -36,7 +36,6 @@ module Math.Topology.KnotTh.Tangle
     , twistedSatellite
 
     , TangleCategory
-    , extractTangle
     , promoteTangle
     , promoteTangle0
     , promoteTangle1
@@ -800,24 +799,15 @@ instance (Crossing a) => KnotWithPrimeTest Tangle a where
 -- ........|  |  1      |          ........|  +=========+                  |  |      2  |
 -- ........|  |   \-----|--0       ........|                       (leg-2)-|--|-----/   |
 -- ........|  +=========+          ........|                       ........|  +=========+
-glueToBorder :: Dart Tangle a -> Int -> a -> Vertex Tangle a
-glueToBorder !leg !gl !gcr | not (isLeg leg)   = error $ printf "glueToBorder: leg expected, but %s received" (show leg)
-                           | gl < 0 || gl > 4  = error $ printf "glueToBorder: legsToGlue must be in [0 .. 4], but %i found" gl
-                           | otherwise         =
-    let tangle = dartOwner leg
-        oldL = numberOfLegs tangle
-
-        oldC = numberOfVertices tangle
-        newC = oldC + 1
-        newL = oldL + 4 - 2 * gl
-        lp = legPlace leg
-
-        result = Tangle
+glueToBorder :: (AsTangle t) => Int -> (t a, Int) -> a -> Vertex Tangle a
+glueToBorder !gl (!tangle', !lp) !gcr | gl < 0 || gl > 4  = error $ printf "glueToBorder: legsToGlue must be in [0 .. 4], but %i found" gl
+                                     | gl > oldL         = error $ printf "glueToBorder: not enough legs to glue (l = %i, gl = %i)" oldL gl
+                                     | otherwise         =
+    flip nthVertex newC $!
+        Tangle
             { loopsCount      = numberOfFreeLoops tangle
             , vertexCount     = newC
             , involutionArray = PV.create $ do
-                when (oldL < gl) $
-                    fail $ printf "glueToBorder: not enough legs to glue (l = %i, legsToGlue = %i)" oldL gl
                 cr <- PMV.new (4 * newC + newL)
 
                 let {-# INLINE copyModified #-}
@@ -850,8 +840,11 @@ glueToBorder !leg !gl !gcr | not (isLeg leg)   = error $ printf "glueToBorder: l
             , crossingsArray  = V.snoc (crossingsArray tangle) gcr
             , legsCount       = newL
             }
-
-    in nthVertex result newC
+    where tangle = extractTangle tangle'
+          oldL = numberOfLegs tangle
+          oldC = numberOfVertices tangle
+          newC = oldC + 1
+          newL = oldL + 4 - 2 * gl
 
 
 gridTangle :: (Int, Int) -> ((Int, Int) -> a) -> Tangle a
@@ -1040,7 +1033,14 @@ instance ModifyDSL Tangle where
                 (,) a `fmap` MV.read arr (dartIndex b)
 
 
-newtype Tangle0 a = T0 { extractTangle0 :: Tangle a }
+class AsTangle t where
+    extractTangle :: t a -> Tangle a
+
+instance AsTangle Tangle where
+    extractTangle t = t
+
+
+newtype Tangle0 a = T0 (Tangle a)
     deriving (NFData)
 
 instance (Show a) => Show (Tangle0 a) where
@@ -1049,6 +1049,8 @@ instance (Show a) => Show (Tangle0 a) where
 instance (MirrorAction a) => MirrorAction (Tangle0 a) where
     mirrorIt (T0 t) = T0 (mirrorIt t)
 
+instance AsTangle Tangle0 where
+    extractTangle (T0 t) = t
 
 {-# INLINE tangle0 #-}
 tangle0 :: Tangle a -> Tangle0 a
@@ -1065,7 +1067,7 @@ loopTangle :: Tangle0 a
 loopTangle = T0 loopTangle'
 
 
-newtype Tangle4 a = T4 { extractTangle4 :: Tangle a }
+newtype Tangle4 a = T4 (Tangle a)
     deriving (NFData)
 
 instance (Show a) => Show (Tangle4 a) where
@@ -1083,6 +1085,9 @@ instance (MirrorAction a) => GroupAction D4 (Tangle4 a) where
     transform g t | reflection g  = mirrorIt $ rotateBy (rotation g) t
                   | otherwise     = rotateBy (rotation g) t
 
+instance AsTangle Tangle4 where
+    extractTangle (T4 t) = t
+
 
 {-# INLINE tangle4 #-}
 tangle4 :: Tangle a -> Tangle4 a
@@ -1093,7 +1098,7 @@ tangle4 t | l == 4     = T4 t
 
 {-# INLINE onTangle4 #-}
 onTangle4 :: (Tangle a -> Tangle b) -> Tangle4 a -> Tangle4 b
-onTangle4 f = tangle4 . f . extractTangle4
+onTangle4 f = tangle4 . f . extractTangle
 
 
 zeroTangle :: Tangle4 a
@@ -1138,9 +1143,9 @@ chainTangle list =
 rationalTangle :: [Int] -> Tangle4 DiagramCrossing
 rationalTangle =
     T4 . foldl (\ tangle x ->
-            let g = extractTangle4 $ chainTangle $ replicate (abs x) (overCrossingIf $ x >= 0)
+            let g = extractTangle $ chainTangle $ replicate (abs x) (overCrossingIf $ x >= 0)
             in horizontalComposition 2 (g, 2) (tangle, 1)
-        ) (extractTangle4 infinityTangle)
+        ) (extractTangle infinityTangle)
 
 
 class (Knotted k) => Surgery k where
@@ -1295,9 +1300,8 @@ instance Cobordism (TangleCategory a) where
 instance (MirrorAction a) => MirrorAction (TangleCategory a) where
     mirrorIt (TC n0 n1 t) = TC n1 n0 $ rotateBy (-1) $ mirrorIt t
 
-
-extractTangle :: TangleCategory a -> Tangle a
-extractTangle (TC _ _ t) = t
+instance AsTangle TangleCategory where
+    extractTangle (TC _ _ t) = t
 
 
 promoteTangle :: Int -> Int -> Tangle a -> TangleCategory a
@@ -1328,7 +1332,7 @@ identityBraid n = TC n n (planarPropagator n)
 braidGenerator :: Int -> (Int, a) -> TangleCategory a
 braidGenerator n (k, s) | n < 2               = error $ printf "braidGenerator: braid must have at least 2 strands, but %i requested" n
                         | k < 0 || k > n - 2  = error $ printf "braidGenerator: generator offset %i is out of bounds (0, %i)" k (n - 2)
-                        | otherwise           = identityBraid k ⊗ promoteTangleH (extractTangle4 $ lonerTangle s) ⊗ identityBraid (n - 2 - k)
+                        | otherwise           = identityBraid k ⊗ promoteTangleH (extractTangle $ lonerTangle s) ⊗ identityBraid (n - 2 - k)
 
 
 braid :: Int -> [(Int, a)] -> TangleCategory a
@@ -1349,7 +1353,7 @@ instance CascadeCodePattern ProjectionCrossing where
     data CascadePattern ProjectionCrossing = W | X | M
         deriving (Eq, Enum, Show, Read)
 
-    cascadeCodeRoot = extractTangle4 lonerProjection
+    cascadeCodeRoot = extractTangle lonerProjection
 
     decodeCrossing W = (W, 1, 0, projectionCrossing)
     decodeCrossing X = (X, 1, 0, projectionCrossing)
@@ -1359,7 +1363,7 @@ instance CascadeCodePattern DiagramCrossing where
     data CascadePattern DiagramCrossing = WO | WU | XO | XU | MO | MU
         deriving (Eq, Enum)
 
-    cascadeCodeRoot = extractTangle4 lonerOverCrossing
+    cascadeCodeRoot = extractTangle lonerOverCrossing
 
     decodeCrossing WO = (W, 1, 0, underCrossing)
     decodeCrossing WU = (W, 1, 0, overCrossing)
@@ -1394,8 +1398,8 @@ decodeCascadeCode =
             let (gl, shift, rot, c) = decodeCrossing pattern
             in rotateBy rot $ vertexOwner $
                 glueToBorder
-                    (nthLeg prev $ offset + shift)
                     (case gl of { W -> 3 ; X -> 2 ; M -> 1 })
+                    (prev, offset + shift)
                     c
         ) cascadeCodeRoot
 

@@ -117,7 +117,7 @@ substituteTangles tangle =
         , do
             b <- allVertices tangle
             let rev = isVertexCrossingOrientationInverted b
-            c <- allVertices $ extractTangle4 $ tangleInVertex b
+            c <- allVertices $ extractTangle $ tangleInVertex b
             let nb = map (oppositeInt b) $ outcomingDarts c
             return $ if rev
                 then (head nb : reverse (tail nb), mirrorIt $ vertexCrossing c)
@@ -150,7 +150,7 @@ isCrossingOrientationInverted = reflection . orientation
 
 {-# INLINE numberOfCrossingVertices #-}
 numberOfCrossingVertices :: SubTangleCrossing a -> Int
-numberOfCrossingVertices = numberOfVertices . extractTangle4 . subTangle
+numberOfCrossingVertices = numberOfVertices . extractTangle . subTangle
 
 
 {-# INLINE isLonerCrossing #-}
@@ -198,7 +198,7 @@ isVertexCrossingOrientationInverted = isCrossingOrientationInverted . vertexCros
 
 {-# INLINE numberOfVerticesInVertex #-}
 numberOfVerticesInVertex :: (Knotted k) => Vertex k (SubTangleCrossing a) -> Int
-numberOfVerticesInVertex = numberOfVertices . extractTangle4 . tangleInVertex
+numberOfVerticesInVertex = numberOfVertices . extractTangle . tangleInVertex
 
 
 {-# INLINE isLonerInVertex #-}
@@ -216,7 +216,7 @@ directSumDecompositionTypeInVertex d | f          = changeSumType st
 
 {-# INLINE subTangleLegFromDart #-}
 subTangleLegFromDart :: (Knotted k) => Dart k (SubTangleCrossing a) -> Dart Tangle a
-subTangleLegFromDart d = nthLeg (extractTangle4 $ tangleInVertex $ beginVertex d) $ crossingLegIdByDart d
+subTangleLegFromDart d = nthLeg (extractTangle $ tangleInVertex $ beginVertex d) $ crossingLegIdByDart d
 
 
 numberOfVerticesAfterSubstitution :: (Knotted k) => k (SubTangleCrossing a) -> Int

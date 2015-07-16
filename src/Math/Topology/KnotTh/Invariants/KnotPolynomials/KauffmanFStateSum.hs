@@ -124,7 +124,7 @@ restoreBasicTangle !chordDiagram =
                    in rotateBy i $ horizontalComposition 0 (planarPropagator 1, 0) (tangle, 0)
                | haveIntersection (i, i') (j, j') ->
                    let tangle = restore (a UV.// [(i, j'), (j, i'), (i', j), (j', i)]) (h V.// [(i, h V.! j), (j, h V.! i)]) [0 .. l - 1]
-                   in rotateBy i $ vertexOwner $ glueToBorder (nthLeg tangle j) 2 $
+                   in rotateBy i $ vertexOwner $ glueToBorder 2 (tangle, j) $
                        overCrossingIf $ canonicalOver cdl (h V.! i) (h V.! j)
                | otherwise                        -> restore a h rest
             where

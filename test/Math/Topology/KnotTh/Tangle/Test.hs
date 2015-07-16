@@ -12,7 +12,7 @@ import Math.Topology.KnotTh.Tangle
 test :: Test
 test = testGroup "Basic tangle tests"
     [ testCase "Very basic functions" $ do
-        let t = vertexOwner $ glueToBorder (firstLeg $ extractTangle4 lonerProjection) 1 projectionCrossing
+        let t = vertexOwner $ glueToBorder 1 (lonerProjection, 0) projectionCrossing
         let c1 = nthVertex t 1
         vertexIndex c1 @?= 1
         opposite (nthLeg t 3) @?= nthOutcomingDart c1 1
@@ -62,7 +62,7 @@ test = testGroup "Basic tangle tests"
 
     , testGroup "Glue crossing"
         [ testCase "With 0 legs" $
-            explode (vertexOwner $ glueToBorder (nthLeg (extractTangle4 lonerProjection) 0) 0 projectionCrossing) @?=
+            explode (vertexOwner $ glueToBorder 0 (lonerProjection, 0) projectionCrossing) @?=
                 ( 0
                 , [(2, 0), (2, 1), (2, 2), (2, 3), (1, 1), (1, 2), (1, 3), (1, 0)]
                 ,   [ ([(0, 7), (0, 4), (0, 5), (0, 6)], projectionCrossing)
@@ -71,7 +71,7 @@ test = testGroup "Basic tangle tests"
                 )
 
         , testCase "With 1 leg" $
-            explode (vertexOwner $ glueToBorder (firstLeg (extractTangle4 lonerProjection)) 1 projectionCrossing) @?=
+            explode (vertexOwner $ glueToBorder 1 (lonerProjection, 0) projectionCrossing) @?=
                 ( 0
                 , [(2, 1), (2, 2), (2, 3), (1, 1), (1, 2), (1, 3)]
                 ,   [ ([(2, 0), (0, 3), (0, 4), (0, 5)], projectionCrossing)
@@ -80,7 +80,7 @@ test = testGroup "Basic tangle tests"
                 )
 
         , testCase "With 2 legs" $
-            explode (vertexOwner $ glueToBorder (nthLeg (extractTangle4 lonerProjection) 1) 2 projectionCrossing) @?=
+            explode (vertexOwner $ glueToBorder 2 (lonerProjection, 1) projectionCrossing) @?=
                 ( 0
                 , [(2, 2), (2, 3), (1, 2), (1, 3)]
                 ,   [ ([(2, 1), (2, 0), (0, 2), (0, 3)], projectionCrossing)
@@ -89,7 +89,7 @@ test = testGroup "Basic tangle tests"
                 )
 
         , testCase "with 3 legs" $
-            explode (vertexOwner $ glueToBorder (nthLeg (extractTangle4 lonerProjection) 3) 3 projectionCrossing) @?=
+            explode (vertexOwner $ glueToBorder 3 (lonerProjection, 3) projectionCrossing) @?=
                 ( 0
                 , [(2, 3), (1, 0)]
                 ,   [ ([(0, 1), (2, 2), (2, 1), (2, 0)], projectionCrossing)
@@ -98,7 +98,7 @@ test = testGroup "Basic tangle tests"
                 )
 
         , testCase "With 4 legs" $
-            explode (vertexOwner $ glueToBorder (nthLeg (extractTangle4 lonerProjection) 1) 4 projectionCrossing) @?=
+            explode (vertexOwner $ glueToBorder 4 (lonerProjection, 1) projectionCrossing) @?=
                 ( 0
                 , []
                 ,   [ ([(2, 1), (2, 0), (2, 3), (2, 2)], projectionCrossing)
@@ -109,7 +109,7 @@ test = testGroup "Basic tangle tests"
 
     , testGroup "Glue tangles"
         [ testCase "Glue 2 loner tangles" $
-            let t = extractTangle4 lonerProjection
+            let t = extractTangle lonerProjection
             in explode (horizontalComposition 1 (t, 0) (t, 1)) @?=
                 ( 0
                 , [(1, 1), (1, 2), (1, 3), (2, 2), (2, 3), (2, 0)]
@@ -119,16 +119,16 @@ test = testGroup "Basic tangle tests"
                 )
 
         , testCase "Glue zero and infinity tangles to infinity" $
-            let z = extractTangle4 zeroTangle :: TangleProjection
-                i = extractTangle4 infinityTangle :: TangleProjection
+            let z = extractTangle zeroTangle :: TangleProjection
+                i = extractTangle infinityTangle :: TangleProjection
             in explode (horizontalComposition 2 (z, 0) (z, 3)) @?= explode i
 
         , testCase "Glue two infinity tangles to get circle inside" $
-            let i = extractTangle4 infinityTangle :: TangleProjection
+            let i = extractTangle infinityTangle :: TangleProjection
             in explode (horizontalComposition 2 (i, 0) (i, 2)) @?= (1, [(0, 1), (0, 0), (0, 3), (0, 2)], [])
 
         , testCase "Glue loner and thread" $
-            explode (horizontalComposition 2 (extractTangle4 lonerProjection, 0) (planarPropagator 1, 0)) @?=
+            explode (horizontalComposition 2 (extractTangle lonerProjection, 0) (planarPropagator 1, 0)) @?=
                 ( 0
                 , [(1, 2), (1, 3)]
                 ,   [ ([(1, 1), (1, 0), (0, 0), (0, 1)], projectionCrossing)

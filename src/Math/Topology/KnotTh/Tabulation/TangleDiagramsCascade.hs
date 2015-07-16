@@ -34,15 +34,14 @@ diagonalIndex :: Int -> Int -> Int
 diagonalIndex n l = n + l `div` 2 - 2
 
 
-cutInTriangle :: Int -> (Int, Dart Tangle a, x) -> Bool
-cutInTriangle maxN (gl, leg, _) =
-    let tangle = dartOwner leg
-        v = numberOfVertices tangle
+cutInTriangle :: Int -> (Tangle x, Int, Int, x) -> Bool
+cutInTriangle maxN (tangle, gl, _, _) =
+    let v = numberOfVertices tangle
         l = numberOfLegs tangle
     in diagonalIndex (1 + v) (nextNumberOfLegs l gl) <= diagonalIndex maxN 4
 
 
-uniqueGlueSites :: Int -> (Tangle a, (SubGroup Dn, (D4, D4))) -> [(Dart Tangle a, Maybe D4)]
+uniqueGlueSites :: Int -> (Tangle a, (SubGroup Dn, (D4, D4))) -> [(Int, Maybe D4)]
 uniqueGlueSites gl (tangle, (symmetry, (adjRot, adjMir))) = do
     let period = rotationPeriod symmetry
 
@@ -87,18 +86,18 @@ uniqueGlueSites gl (tangle, (symmetry, (adjRot, adjMir))) = do
 
                 in fill $ fst leftB
 
-    return (nthLeg tangle legIndex, inducedSymmetry)
+    return (legIndex, inducedSymmetry)
 
 
-uniqueGlueSites' :: Int -> (Tangle a, SubGroup Dn) -> [(Dart Tangle a, Maybe D4)]
+uniqueGlueSites' :: Int -> (Tangle a, SubGroup Dn) -> [(Int, Maybe D4)]
 uniqueGlueSites' gl (tangle, symmetry) = uniqueGlueSites gl (tangle, (symmetry, (d4I, d4I)))
 
 
 primeProjections, reducedProjections, templateProjections
     :: Int -> CanonicalConstructionPathI
-        (TangleProjection, (SubGroup Dn, (D4, D4)))
-        (Int, TangleProjectionDart, ProjectionCrossing)
-        (TangleProjectionVertex, (SubGroup Dn, (D4, D4)))
+                (TangleProjection, (SubGroup Dn, (D4, D4)))
+                (TangleProjection, Int, Int)
+                (TangleProjectionVertex, (SubGroup Dn, (D4, D4)))
 
 primeProjections maxN =
     CanonicalConstructionPathClean
@@ -107,30 +106,30 @@ primeProjections maxN =
             let l = numberOfLegs tangle
             gl <- [1 .. min 3 $ min (l - 1) (l `div` 2)]
             (leg, _) <- uniqueGlueSites gl ts
-            return (gl, leg, projectionCrossing)
-        , tryAscent = \ (gl, leg, st) -> do
-            let root = glueToBorder leg gl st
+            return (tangle, gl, leg)
+        , tryAscent = \ (tangle, gl, leg) -> do
+            let root = glueToBorder gl (tangle, leg) projectionCrossing
             (sym, adj, _) <- rootingSymmetryTest root
             return (root, (sym, adj))
         , lowerProjection  = first vertexOwner
-        , roots = [(extractTangle4 lonerProjection, (fromPeriodAndMirroredZero 4 1 0, (d4I, d4I)))]
+        , roots = [(extractTangle lonerProjection, (fromPeriodAndMirroredZero 4 1 0, (d4I, d4I)))]
         }
 
 reducedProjections maxN =
-    filterUpper (\ _ (gl, leg, _) -> testNoMultiEdges leg gl) $
+    filterUpper (\ _ (tangle, gl, leg) -> testNoMultiEdges (nthLeg tangle leg) gl) $
         primeProjections maxN
 
 templateProjections maxN =
-    filterUpper (\ (t, _) (gl, leg, _) -> (numberOfVertices t == 1 || numberOfLegs t > 4) && testNoMultiEdges leg gl) $
-        filterLower (\ (gl, _, _) (root, _) -> gl < 3 || testFlow4 root) $
+    filterUpper (\ (t, _) (_, gl, leg) -> (numberOfVertices t == 1 || numberOfLegs t > 4) && testNoMultiEdges (nthLeg t leg) gl) $
+        filterLower (\ (_, gl, _) (root, _) -> gl < 3 || testFlow4 root) $
             primeProjections maxN
 
 
 primeDiagrams, primeIrreducibleDiagrams, primeIrreducibleDiagramsTriangle
     :: Int -> CanonicalConstructionPathI
-        (TangleDiagram, (SubGroup Dn, (D4, D4)))
-        (Int, TangleDiagramDart, DiagramCrossing)
-        (TangleDiagramVertex, (SubGroup Dn, (D4, D4)))
+                (TangleDiagram, (SubGroup Dn, (D4, D4)))
+                (TangleDiagram, Int, Int, DiagramCrossing)
+                (TangleDiagramVertex, (SubGroup Dn, (D4, D4)))
 
 primeDiagrams maxN =
     CanonicalConstructionPathClean
@@ -140,18 +139,19 @@ primeDiagrams maxN =
             gl <- [1 .. min 3 $ min (l - 1) (l `div` 2)]
             (leg, inducedSymmetry) <- uniqueGlueSites gl ts
             st <- possibleDiagramOrientations inducedSymmetry
-            return (gl, leg, st)
-        , tryAscent = \ (gl, leg, st) -> do
-            let root = glueToBorder leg gl st
+            return (tangle, gl, leg, st)
+        , tryAscent = \ (tangle, gl, leg, st) -> do
+            let root = glueToBorder gl (tangle, leg) st
             (sym, adj, _) <- rootingSymmetryTest root
             return (root, (sym, adj))
         , lowerProjection  = first vertexOwner
-        , roots = [(extractTangle4 lonerOverCrossing, (fromPeriodAndMirroredZero 4 1 0, (d4EC, d4E)))]
+        , roots = [(extractTangle lonerOverCrossing, (fromPeriodAndMirroredZero 4 1 0, (d4EC, d4E)))]
         }
 
 primeIrreducibleDiagrams maxN =
-    filterUpper (\ _ (gl, leg, st) -> testNo2ndReidemeisterReduction st leg gl)
-        $ primeDiagrams maxN
+    filterUpper (\ _ (tangle, gl, leg, st) -> testNo2ndReidemeisterReduction st (nthLeg tangle leg) gl) $
+        primeDiagrams maxN
 
 primeIrreducibleDiagramsTriangle maxN =
-    filterUpper (const $ cutInTriangle maxN) $ primeIrreducibleDiagrams maxN
+    filterUpper (const $ cutInTriangle maxN) $
+        primeIrreducibleDiagrams maxN

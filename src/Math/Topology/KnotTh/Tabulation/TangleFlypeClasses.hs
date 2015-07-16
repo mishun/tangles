@@ -29,11 +29,11 @@ templateDescendants tri maxN crossings cn curN (tangle, symmetry) = do
     gl <- [1 .. min 3 $ min (l - 1) (l `div` 2)]
     guard $ not tri || (diagonalIndex (curN + cn) (nextNumberOfLegs l gl) <= maxN)
     (leg, inducedSymmetry) <- uniqueGlueSites' gl (tangle, symmetry)
-    guard $ testNoMultiEdges leg gl
+    guard $ testNoMultiEdges (nthLeg tangle leg) gl
     cr <- crossings
     st <- possibleSubTangleOrientations cr inducedSymmetry
     maybeToList $ do
-        let root = glueToBorder leg gl st
+        let root = glueToBorder gl (tangle, leg) st
         (sym, _, _) <- rootingSymmetryTest root
         guard $ gl < 3 || testFlow4 root
         return (vertexOwner root, sym)
@@ -42,9 +42,9 @@ templateDescendants tri maxN crossings cn curN (tangle, symmetry) = do
 directSumDescendants :: [SubTangleCrossing ProjectionCrossing]
                         -> (Tangle4 (SubTangleCrossing ProjectionCrossing), SubGroup Dn)
                             -> [(Tangle4 (SubTangleCrossing ProjectionCrossing), SubGroup Dn)]
-directSumDescendants crossings (tangle, symmetry) = do
-    let preTest cr leg =
-            let t = dartOwner leg
+directSumDescendants crossings (t4, symmetry) = do
+    let preTest t cr legIndex =
+            let leg = nthLeg t legIndex
                 lp = directSumDecompositionTypeOfCrossing cr
                 rp = directSumDecompositionTypeInVertex (opposite leg)
             in if | numberOfLegs t /= 4     -> False
@@ -53,8 +53,9 @@ directSumDescendants crossings (tangle, symmetry) = do
                   | numberOfVertices t == 1 -> rp /= DirectSum12x30
                   | otherwise               -> True
 
-        postTest root leg s =
-            let coLeg = nextCCW $ nextCCW leg
+        postTest root (t, legIndex) s =
+            let leg = nthLeg t legIndex
+                coLeg = nextCCW $ nextCCW leg
                 flypeS =
                     case additionalFlypeSymmetry (vertexOwner root) of
                         Just x  -> addSymmetryToSubGroup s x
@@ -73,24 +74,25 @@ directSumDescendants crossings (tangle, symmetry) = do
                 _                     -> Nothing
 
     cr <- crossings
+    let tangle = extractTangle t4
     if isLonerCrossing cr
         then map snd $ nubBy (on (==) fst) $ do
-            leg <- allLegs $ extractTangle4 tangle
+            leg <- [0 .. 3]
             st <- possibleSubTangleOrientations cr Nothing
-            guard $ preTest st leg
+            guard $ preTest tangle st leg
             maybeToList $ do
-                let root = glueToBorder leg 2 st
+                let root = glueToBorder 2 (tangle, leg) st
                 (s, _, rc) <- rootingSymmetryTest root
-                sym <- postTest root leg s
+                sym <- postTest root (tangle, leg) s
                 return (rc, (tangle4 $ vertexOwner root, sym))
         else do
-            (leg, inducedSymmetry) <- uniqueGlueSites' 2 (extractTangle4 tangle, symmetry)
+            (leg, inducedSymmetry) <- uniqueGlueSites' 2 (tangle, symmetry)
             st <- possibleSubTangleOrientations cr inducedSymmetry
-            guard $ preTest st leg
+            guard $ preTest tangle st leg
             maybeToList $ do
-                let root = glueToBorder leg 2 st
+                let root = glueToBorder 2 (tangle, leg) st
                 (s, _, _) <- rootingSymmetryTest root
-                sym <- postTest root leg s
+                sym <- postTest root (tangle, leg) s
                 return (tangle4 $ vertexOwner root, sym)
 
 
@@ -101,7 +103,7 @@ generateFlypeEquivalentDecomposition' triangle maxN yield = do
                         | (b == c) && (a == d) && (a /= b)  = DirectSum12x30
                         | otherwise                         = NonDirectSumDecomposable
                     where
-                        [a, b, c, d] = map endVertex $ allLegs $ extractTangle4 template
+                        [a, b, c, d] = map endVertex $ allLegs $ extractTangle template
             in makeSubTangle' template symmetry sumType
 
     let halfN = maxN `div` 2
@@ -131,8 +133,8 @@ generateFlypeEquivalentDecomposition' triangle maxN yield = do
                                 growTree child
                                 glueDirectSums (curN + cn) child
 
-                lift $ yield (extractTangle4 rootTemplate, rootSymmetry)
-                glueTemplates rootN (extractTangle4 root, rootSymmetry)
+                lift $ yield (extractTangle rootTemplate, rootSymmetry)
+                glueTemplates rootN (extractTangle root, rootSymmetry)
                 glueDirectSums rootN (root, rootSymmetry)
 
     flip evalStateT finalFree $ forM_ rootList $ fix $ \ grow (root, crossings) -> do
@@ -140,7 +142,7 @@ generateFlypeEquivalentDecomposition' triangle maxN yield = do
                 when (curN > halfN) $ do
                     free <- get
                     put $! free + 1
-                    lift $ yield (extractTangle4 rootTemplate, rootSymmetry)
+                    lift $ yield (extractTangle rootTemplate, rootSymmetry)
                     grow ((lonerTangle $ buildCrossingType rootTemplate (fromDnSubGroup rootSymmetry) free, rootSymmetry), finalCrossings)
 
         let glueTemplates curN ancestor =
@@ -156,8 +158,8 @@ generateFlypeEquivalentDecomposition' triangle maxN yield = do
                         tree (curN + cn) child
                         glueDirectSums (curN + cn) child
 
-        let rootN = numberOfVerticesAfterSubstitution $ extractTangle4 $ fst root
-        glueTemplates rootN $ first extractTangle4 root
+        let rootN = numberOfVerticesAfterSubstitution $ extractTangle $ fst root
+        glueTemplates rootN $ first extractTangle root
         glueDirectSums rootN root
 
 

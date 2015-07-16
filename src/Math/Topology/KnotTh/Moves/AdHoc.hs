@@ -168,8 +168,8 @@ instance AdHocMoves Tangle where
 
 
 instance AdHocMoves Link where
-    flype = map tangleToLink . flype . linkToTangle
-    pass = map tangleToLink . pass . linkToTangle
+    flype = map tangleToLink . flype . extractTangle
+    pass = map tangleToLink . pass . extractTangle
 
 
 smoothA :: TangleDiagramVertex -> ModifyM Tangle DiagramCrossing s ()

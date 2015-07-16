@@ -26,8 +26,8 @@ instance KnottedWithKauffmanFPolynomial Tangle where
 
 instance KnottedWithKauffmanFPolynomial Link where
     type KauffmanFPolynomial Link = Poly2
-    kauffmanFPolynomial = takeAsScalar . kauffmanFPolynomial . linkToTangle
-    minimalKauffmanFPolynomial = takeAsScalar . minimalKauffmanFPolynomial . linkToTangle
+    kauffmanFPolynomial = takeAsScalar . kauffmanFPolynomial . extractTangle
+    minimalKauffmanFPolynomial = takeAsScalar . minimalKauffmanFPolynomial . extractTangle
 
 
 normalizedKauffmanFPolynomialOfLink :: LinkDiagram -> Poly2
