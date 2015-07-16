@@ -180,6 +180,8 @@ benchmark TangleGeneratorBenchmark
         mtl,
         containers,
         diagrams-lib ==1.2.*,
+        diagrams-svg,
+        HUnit,
         tangles
     main-is:            TangleGeneratorBenchmark.hs
     hs-source-dirs:     test
@@ -197,6 +199,7 @@ benchmark KnotPolynomialsBenchmark
         mtl,
         containers,
         criterion,
+        HUnit,
         tangles
     main-is:            KnotPolynomialsBenchmark.hs
     hs-source-dirs:     test
