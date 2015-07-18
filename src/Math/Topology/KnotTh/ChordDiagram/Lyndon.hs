@@ -1,4 +1,4 @@
-module Math.Combinatorics.Strings.Lyndon
+module Math.Topology.KnotTh.ChordDiagram.Lyndon
     ( minimumCyclicShift
     ) where
 

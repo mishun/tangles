@@ -56,10 +56,9 @@ library
     extra-libraries:    stdc++ gsl gslcblas
     include-dirs:       src/
     exposed-modules:
-        Math.Combinatorics.Generation.CanonicalConstructionPath,
-        Math.Combinatorics.Strings.Lyndon,
         Math.Topology.KnotTh.ChordDiagram,
         Math.Topology.KnotTh.ChordDiagram.Draw,
+        Math.Topology.KnotTh.ChordDiagram.Lyndon,
         Math.Topology.KnotTh.Cobordism,
         Math.Topology.KnotTh.Cobordism.CobordismMatrix,
         Math.Topology.KnotTh.Cobordism.DottedCobordism,
@@ -99,6 +98,7 @@ library
         Math.Topology.KnotTh.SurfaceGraph.SphereStar,
         Math.Topology.KnotTh.SurfaceGraph.SphereStar.Backtrack,
         Math.Topology.KnotTh.SurfaceLink,
+        Math.Topology.KnotTh.Tabulation.CanonicalConstructionPath,
         Math.Topology.KnotTh.Tabulation.LinkDiagrams,
         Math.Topology.KnotTh.Tabulation.TangleDiagramsCascade,
         Math.Topology.KnotTh.Tabulation.TangleFlypeClasses,
@@ -152,7 +152,6 @@ test-suite TestTangles
         tangles
     main-is:            TestTangles.hs
     other-modules:
-        Math.Combinatorics.Strings.Test,
         Math.Topology.KnotTh.ChordDiagram.Test,
         Math.Topology.KnotTh.Cobordism.CobordismMatrix.Test,
         Math.Topology.KnotTh.Cobordism.DottedCobordism.Test,

@@ -1,7 +1,6 @@
 module Main (main) where
 
 import Test.Framework (defaultMain)
-import qualified Math.Combinatorics.Strings.Test
 import qualified Math.Topology.KnotTh.ChordDiagram.Test
 import qualified Math.Topology.KnotTh.Cobordism.CobordismMatrix.Test
 import qualified Math.Topology.KnotTh.Cobordism.DottedCobordism.Test
@@ -16,8 +15,7 @@ import qualified Math.Topology.KnotTh.Tangle.Test
 main :: IO ()
 main =
     defaultMain
-        [ Math.Combinatorics.Strings.Test.test
-        , Math.Topology.KnotTh.Cobordism.DottedCobordism.Test.test
+        [ Math.Topology.KnotTh.Cobordism.DottedCobordism.Test.test
         , Math.Topology.KnotTh.Cobordism.CobordismMatrix.Test.test
         , Math.Topology.KnotTh.EmbeddedLink.Test.test
         , Math.Topology.KnotTh.Tangle.Test.test

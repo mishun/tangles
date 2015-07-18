@@ -6,9 +6,20 @@ import Control.Monad (forM_)
 import Text.Printf
 import Test.Framework (Test, testGroup)
 import Test.Framework.Providers.HUnit (testCase)
+import Test.Framework.Providers.QuickCheck2 (testProperty)
 import Test.HUnit hiding (Test, test)
 import Math.Topology.KnotTh.ChordDiagram
+import Math.Topology.KnotTh.ChordDiagram.Lyndon
 import Math.Topology.KnotTh.Dihedral
+
+
+naiveMinShift :: (Ord a) => [a] -> [a]
+naiveMinShift [] = []
+naiveMinShift l = minimum [ let (a, b) = splitAt i l in b ++ a | i <- [0 .. length l]]
+
+
+minShiftIsOk :: [Int] -> Bool
+minShiftIsOk list = snd (minimumCyclicShift list) == naiveMinShift list
 
 
 test :: Test
@@ -37,4 +48,12 @@ test =
                     assertEqual (printf "%s period" (show cd)) (naivePeriodOf cd) period
                     let expectedMirror = mirrorIt cd `elem` map (flip rotateBy cd) [0 .. rotationOrder cd - 1]
                     assertEqual (printf "%s mirror" (show cd)) expectedMirror mirror
+
+        , testGroup "String combinatorial functions tests"
+            [ testProperty "Minimal cyclic shift" minShiftIsOk
+
+            ,   let list = [6, 4, 3, 4, 5, 3, 3, 1] :: [Int]
+                in testCase (printf "Test minimal cyclic shift of %s" $ show list) $
+                    snd (minimumCyclicShift list) @?= naiveMinShift list
+            ]
         ]

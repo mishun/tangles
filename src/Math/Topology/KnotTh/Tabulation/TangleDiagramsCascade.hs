@@ -1,5 +1,5 @@
 module Math.Topology.KnotTh.Tabulation.TangleDiagramsCascade
-    ( module Math.Combinatorics.Generation.CanonicalConstructionPath
+    ( module Math.Topology.KnotTh.Tabulation.CanonicalConstructionPath
     , module Math.Topology.KnotTh.Tabulation.TangleDiagramsCascade.IncrementalTests
     , module Math.Topology.KnotTh.Tabulation.TangleDiagramsCascade.RootingTest
     , nextNumberOfLegs
@@ -18,10 +18,10 @@ import Control.Arrow (first)
 import Control.Monad (guard)
 import Math.Topology.KnotTh.Dihedral.D4 hiding (fromRotation)
 import Math.Topology.KnotTh.Dihedral.Dn
-import Math.Combinatorics.Generation.CanonicalConstructionPath
-import Math.Topology.KnotTh.Tangle
+import Math.Topology.KnotTh.Tabulation.CanonicalConstructionPath
 import Math.Topology.KnotTh.Tabulation.TangleDiagramsCascade.IncrementalTests
 import Math.Topology.KnotTh.Tabulation.TangleDiagramsCascade.RootingTest
+import Math.Topology.KnotTh.Tangle
 
 
 {-# INLINE nextNumberOfLegs #-}

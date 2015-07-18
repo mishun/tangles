@@ -1,5 +1,5 @@
 {-# LANGUAGE ExistentialQuantification #-}
-module Math.Combinatorics.Generation.CanonicalConstructionPath
+module Math.Topology.KnotTh.Tabulation.CanonicalConstructionPath
     ( CanonicalConstructionPath(..)
     , forCCPFrom_
     , forCCP_

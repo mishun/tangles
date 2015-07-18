@@ -22,7 +22,7 @@ import Data.Maybe (isJust, isNothing)
 import Data.STRef (modifySTRef', newSTRef, readSTRef, writeSTRef)
 import qualified Data.Vector.Unboxed as UV
 import qualified Data.Vector.Unboxed.Mutable as UMV
-import Math.Combinatorics.Strings.Lyndon
+import Math.Topology.KnotTh.ChordDiagram.Lyndon
 import Math.Topology.KnotTh.Dihedral
 
 
