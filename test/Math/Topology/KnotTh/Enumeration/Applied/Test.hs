@@ -3,9 +3,9 @@ module Math.Topology.KnotTh.Enumeration.Applied.Test
     ( test
     ) where
 
-import Data.Maybe (mapMaybe)
 import Control.Arrow ((&&&))
 import Control.Monad (forM_)
+import Data.Maybe (mapMaybe)
 import Test.Framework (Test, testGroup)
 import Test.Framework.Providers.HUnit (testCase)
 import Test.HUnit hiding (Test, test)
@@ -13,20 +13,42 @@ import Math.Topology.KnotTh.Tangle
 import Math.Topology.KnotTh.Link (tangleDoublingLink)
 import Math.Topology.KnotTh.Enumeration.DiagramInfo.MinimalDiagramInfo
 import Math.Topology.KnotTh.Enumeration.DiagramInfo.AllDiagramsInfo
-import Math.Topology.KnotTh.Enumeration.Applied.NonAlternatingTangles
+import Math.Topology.KnotTh.Enumeration.EquivalenceClasses
+import Math.Topology.KnotTh.Enumeration.SiftByInvariant
 import Math.Topology.KnotTh.Invariants
+import qualified Math.Topology.KnotTh.Moves.AdHoc as AdHoc
+import Math.Topology.KnotTh.Tabulation.TangleDiagramsCascade
 import TestUtil.Table
 
 
-testInvariantness ::
-    (Eq a, Show a)
-        => ((forall m. (Monad m) => (TangleDiagram -> m ()) -> m ())
-            -> [AllDiagramsInfo TangleDiagram]) -> Int -> (TangleDiagram -> a) -> Assertion
-testInvariantness sortClasses n f = do
-    forM_ (map allDiagrams $ sortClasses $ tangleDiagrams True (-1) n) $ \ (repr : rest) -> do
-        let invariant = f repr
-        forM_ rest $ \ cand ->
-            invariant @?= f cand
+testInvariantness :: (Eq a, Show a) => ((forall m. (Monad m) => (TangleDiagram -> m ()) -> m ()) -> [AllDiagramsInfo TangleDiagram]) -> Int -> (TangleDiagram -> a) -> Assertion
+testInvariantness sortClasses maxN f =
+    let sifted = map allDiagrams $ sortClasses $ \ yield -> --tangleDiagrams (-1) n
+                    forCCP_ (primeIrreducibleDiagramsTriangle maxN) $ \ (tangle, _) ->
+                        yield tangle
+    in forM_ sifted $ \ (repr : rest) -> do
+            let invariant = f repr
+            forM_ rest $ \ cand ->
+                invariant @?= f cand
+
+
+tangleClasses, weakTangleClasses :: (DiagramInfo info) => (forall m. (Monad m) => (TangleDiagram -> m ()) -> m ()) -> [info TangleDiagram]
+tangleClasses =
+    equivalenceClasses
+        (map (map reidemeisterReduction .)
+            [ reidemeisterIII
+            , AdHoc.flype
+            , AdHoc.pass
+            -- , AdHoc.weak
+            ])
+weakTangleClasses =
+    equivalenceClasses
+        (map (map reidemeisterReduction .)
+            [ reidemeisterIII
+            , AdHoc.flype
+            , AdHoc.pass
+            , AdHoc.weak
+            ])
 
 
 test :: Test
@@ -36,25 +58,33 @@ test = testGroup "Enumeration tests"
             testInvariantness tangleClasses 6 linkingNumbersInvariant
 
         , testCase "Jones polynomial" $
-            testInvariantness tangleClasses 6 minimalJonesPolynomial
+            testInvariantness tangleClasses 6 minimalKauffmanXPolynomial
 
         , testCase "Kauffman F polynomial" $
             testInvariantness tangleClasses 5 minimalKauffmanFPolynomial
 
         , testCase "Jones polynomial of gluing with mirror image (weak classes invariant)" $
-            testInvariantness weakTangleClasses 5 (jonesPolynomial . tangleDoublingLink id)
+            testInvariantness weakTangleClasses 5 (kauffmanXPolynomial . tangleDoublingLink id)
 
         , testCase "Jones polynomial of doubling satellite" $
-            testInvariantness tangleClasses 4 (minimalJonesPolynomial . twistedSatellite 2)
+            testInvariantness tangleClasses 4 (minimalKauffmanXPolynomial . twistedSatellite 2)
 
         -- , testCase "Kauffman F polynomial of triple satellite" $
-        --    testInvariantness tangleClasses 1 (minimalKauffmanFPolynomial . twistedTripleSatellite)
+        --    testInvariantness tangleClasses 1 (minimalKauffmanFPolynomial . twistedSatellite 3)
         ]
 
     , testCase "Enumeration of tangles" $
         testTable'
-            (\ n -> do
-                let sifted = lookingForwardTanglesEnumeration True (-1) 0 n
+            (\ maxN -> do
+                let sifted =
+                        let invariantSet tangle = ( minimalKauffmanXPolynomial tangle
+                                                  , minimalKauffmanXPolynomial $ twistedSatellite 2 tangle
+                                                  )
+                        in siftByInvariant invariantSet $
+                            tangleClasses $ \ yield ->
+                                forCCP_ (primeIrreducibleDiagramsTriangle maxN) $ \ (tangle, _) ->
+                                    yield tangle
+
                 assertEqual "There must be no collisions" 0 $ length $ collisionClasses sifted
                 return $! generateTable'
                     (numberOfVertices &&& numberOfLegs)

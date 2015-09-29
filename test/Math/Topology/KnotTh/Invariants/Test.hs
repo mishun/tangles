@@ -5,10 +5,10 @@ module Math.Topology.KnotTh.Invariants.Test
 #ifdef TESTING
 import qualified Data.Map as M
 #endif
-import Text.Printf
 import Test.Framework (Test, testGroup)
 import Test.Framework.Providers.HUnit (testCase)
 import Test.HUnit hiding (Test, test)
+import Text.Printf
 #ifdef TESTING
 import qualified Math.Algebra.Field.Base as B
 import qualified Math.Projects.KnotTheory.LaurentMPoly as LMP
@@ -137,19 +137,19 @@ test = testGroup "Invariants"
 
         , testGroup "Exact values on tangles" $ do
             (header, t, target) <-
-                [ ("empty"         , planarEmpty                        , "(1)[]"                              )
-                , ("identity"      , planarPropagator 1                 , "(1)[1,0]"                           )
-                , ("0"             , extractTangle zeroTangle           , "(1)[3,2,1,0]"                       )
-                , ("∞"             , extractTangle infinityTangle       , "(1)[1,0,3,2]"                       )
-                , ("over crossing" , extractTangle lonerOverCrossing    , "(t^1/4)[1,0,3,2]+(t^-1/4)[3,2,1,0]" )
-                , ("under crossing", extractTangle lonerUnderCrossing   , "(t^-1/4)[1,0,3,2]+(t^1/4)[3,2,1,0]" )
-                , ("group 2"       , extractTangle $ rationalTangle [2] , "(-t^-1+1)[1,0,3,2]+(t^1/2)[3,2,1,0]")
-                , ("group -2"      , extractTangle $ rationalTangle [-2], "(1-t)[1,0,3,2]+(t^-1/2)[3,2,1,0]"   )
-                , ("II reducable"  , decodeCascadeCode [(XU, 0)]        , "(1)[3,2,1,0]"                       )
+                [ ("empty"         , planarEmpty                        , "(1)[]"                            )
+                , ("identity"      , planarPropagator 1                 , "(1)[1,0]"                         )
+                , ("0"             , extractTangle zeroTangle           , "(1)[3,2,1,0]"                     )
+                , ("∞"             , extractTangle infinityTangle       , "(1)[1,0,3,2]"                     )
+                , ("over crossing" , extractTangle lonerOverCrossing    , "(a^-1)[1,0,3,2]+(a)[3,2,1,0]"     )
+                , ("under crossing", extractTangle lonerUnderCrossing   , "(a)[1,0,3,2]+(a^-1)[3,2,1,0]"     )
+                , ("group 2"       , extractTangle $ rationalTangle [2] , "(1-a^4)[1,0,3,2]+(a^-2)[3,2,1,0]" )
+                , ("group -2"      , extractTangle $ rationalTangle [-2], "(-a^-4+1)[1,0,3,2]+(a^2)[3,2,1,0]")
+                , ("II reducable"  , decodeCascadeCode [(XU, 0)]        , "(1)[3,2,1,0]"                     )
                 ]
 
             return $ testCase header $
-                show (jonesPolynomial t) @?= target
+                show (kauffmanXPolynomial t) @?= target
 
         , testGroup "Kauffman X polynomial" $ do
             (header, l, target) <-
@@ -164,7 +164,7 @@ test = testGroup "Invariants"
                 show (kauffmanXPolynomial l) @?= target
 
         , testCase "Collision between Conway and Kinoshita-Terasaka knots" $
-            jonesPolynomial conwayKnot @?= jonesPolynomial kinoshitaTerasakaKnot
+            kauffmanXPolynomial conwayKnot @?= kauffmanXPolynomial kinoshitaTerasakaKnot
         ]
 
     , testGroup "Kauffman F polynomial"
@@ -197,28 +197,30 @@ test = testGroup "Invariants"
                 show (kauffmanFPolynomial t) @?= target
 
 #ifdef TESTING
-        , testGroup "Relation to Jones polynomial" $
-            let testJonesRelation =
+        , testGroup "Relation to Kauffman X polynomial" $
+            let testXRelation =
                     let z = monomial2 1 "z" 1
-                        z' = monomial 1 "t" (-1 / 4) + monomial 1 "t" (1 / 4)
+                        z' = monomial 1 "a" 1 + monomial 1 "a" (-1)
 
-                        toJones (LMP.LP monomials) =
+                        toKauffmanX (LMP.LP monomials) =
                             sum $ flip map monomials $ \ (LMP.LM m, f) ->
                                 (fromIntegral f *) $ product $ flip map (M.toList m) $ \ (var, p) ->
                                     let x = case var of
-                                            "a" | p >= 0    -> monomial (-1) "t" (-3 / 4)
-                                                | otherwise -> monomial (-1) "t" (3 / 4)
+                                            "a" | p >= 0    -> monomial (-1) "a" 3
+                                                | otherwise -> monomial (-1) "a" (-3)
                                             "z"             -> z'
                                             _               -> undefined
                                     in x ^ abs (B.numeratorQ p)
-                    in \ (name, l) ->
-                        let kf = kauffmanFPolynomial l
-                            j = jonesPolynomial l
-                            n = 10 :: Int -- To get rid of negative z exponents
-                        in assertEqual (printf "on %s: %s vs %s" name (show kf) (show j)) (j * z' ^ n) (toJones $ kf * z ^ n)
+                    in \ (name, link) ->
+                        let kf = kauffmanFPolynomial link
+                            kx = kauffmanXPolynomial link
+                            n = numberOfVertices link -- To get rid of negative z exponents
+                        in assertEqual (printf "on %s: %s vs %s" name (show kf) (show kx))
+                                       (kx * (z' ^ n))
+                                       (toKauffmanX $ kf * (z ^ n))
 
             in  [ testCase "A few special knots" $
-                    mapM_ testJonesRelation
+                    mapM_ testXRelation
                         [ ("right trefoil knot"     , rightTrefoilKnot     )
                         , ("left trefoil knot"      , leftTrefoilKnot      )
                         , ("figure eight knot"      , figureEightKnot      )
@@ -237,7 +239,7 @@ test = testGroup "Invariants"
                         ]
 
                 , testCase "Links from table" $
-                    mapM_ testJonesRelation $ do
+                    mapM_ testXRelation $ do
                         n <- [0 .. 10]
                         l <- [0 .. n `div` 2]
                         (link, i) <- linkTable n l `zip` [1 :: Int ..]

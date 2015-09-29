@@ -2,6 +2,9 @@
 module Math.Topology.KnotTh.Invariants.KauffmanXPolynomial
     ( kauffmanXPolynomial
     , minimalKauffmanXPolynomial
+    , jonesPolynomial
+    , minimalJonesPolynomial
+    , normalizedJonesPolynomialOfLink
     ) where
 
 import Data.List (partition)
@@ -65,3 +68,24 @@ instance KnottedWithKauffmanXPolynomial EmbeddedLink where
 
     minimalKauffmanXPolynomial link =
         min (kauffmanXPolynomial link) (kauffmanXPolynomial $ invertCrossings link)
+
+
+class (KnottedWithKauffmanXPolynomial k) => KnottedWithJonesPolynomial k where
+    jonesPolynomial        :: k DiagramCrossing -> KauffmanXPolynomial k
+    minimalJonesPolynomial :: k DiagramCrossing -> KauffmanXPolynomial k
+
+
+instance KnottedWithJonesPolynomial Tangle where
+    jonesPolynomial = fmap kauffmanXToJones . kauffmanXPolynomial
+    minimalJonesPolynomial = fmap kauffmanXToJones . minimalKauffmanXPolynomial
+
+
+instance KnottedWithJonesPolynomial Link where
+    jonesPolynomial = kauffmanXToJones . kauffmanXPolynomial
+    minimalJonesPolynomial = kauffmanXToJones . minimalKauffmanXPolynomial
+
+
+normalizedJonesPolynomialOfLink :: LinkDiagram -> Poly
+normalizedJonesPolynomialOfLink link
+    | isEmptyKnotted link  = error "normalizedJonesPolynomialOfLink: empty link provided"
+    | otherwise            = normalizeBy (1 + monomial 1 "t" 1) (monomial (-1) "t" (1 / 2) * jonesPolynomial link)

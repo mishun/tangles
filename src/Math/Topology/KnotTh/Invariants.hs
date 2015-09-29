@@ -7,7 +7,6 @@ import Data.Function (on)
 import Data.Ord (comparing)
 import Data.List (groupBy, sortBy)
 import Math.Topology.KnotTh.Invariants.LinkingNumber as X
-import Math.Topology.KnotTh.Invariants.JonesPolynomial as X
 import Math.Topology.KnotTh.Invariants.KauffmanFPolynomial as X
 import Math.Topology.KnotTh.Invariants.KauffmanXPolynomial as X
 import Math.Topology.KnotTh.Invariants.HomflyPolynomial as X
