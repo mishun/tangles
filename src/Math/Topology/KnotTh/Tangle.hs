@@ -284,62 +284,63 @@ instance Knotted Tangle where
 
     unrootedHomeomorphismInvariant tangle
         | n > 127    = error $ printf "Tangle.unrootedHomeomorphismInvariant: too many crossings (%i)" n
-        | otherwise  = UV.concat $ UV.singleton (numberOfFreeLoops tangle) : border : internal
+        | otherwise  = UV.concat $ UV.singleton (numberOfFreeLoops tangle) : UV.singleton (numberOfLegs tangle) : border : internal
         where
             n = numberOfVertices tangle
             l = numberOfLegs tangle
 
             border | l == 0    = UV.empty
                    | otherwise = minimum $ do
-                leg <- allLegs tangle
+                baseLeg <- allLegs tangle
                 dir <- bothDirections
                 globalG <- fromMaybe [d4I] $ globalTransformations tangle
 
                 return $! UV.create $ do
                     index <- UMV.replicate (n + 1) 0
+                    incoming <- UMV.replicate (n + 1) 0
                     queue <- MV.new n
                     free <- newSTRef 1
 
                     let {-# INLINE look #-}
-                        look !d | isLeg d    = return 0
-                                | otherwise  = do
-                            let u = beginVertex d
-                            ux <- UMV.read index (vertexIndex u)
-                            if ux > 0
-                                then return $! ux
-                                else do
-                                    nf <- readSTRef free
-                                    writeSTRef free $! nf + 1
-                                    UMV.write index (vertexIndex u) nf
-                                    MV.write queue (nf - 1) d
-                                    return $! nf
+                        look !d | isLeg d    =
+                                    let offset = (legPlace d - legPlace baseLeg) * directionSign dir
+                                    in return $! -(offset `mod` l)
 
-                    rc <- UMV.new (l + 2 * n)
+                                | otherwise  = do
+                                    let (u, p) = beginPair' d
+                                    ux <- UMV.read index u
+                                    if ux > 0
+                                        then do
+                                            base <- UMV.unsafeRead incoming u
+                                            return $! (ux `shiftL` 2) + (((p - base) * directionSign dir) .&. 3)
+                                        else do
+                                            nf <- readSTRef free
+                                            writeSTRef free $! nf + 1
+                                            UMV.write index u nf
+                                            UMV.unsafeWrite incoming u p
+                                            MV.write queue (nf - 1) d
+                                            return $! nf `shiftL` 2
+
+                    rc <- UMV.new (l + 5 * n)
                     foldM_ (\ !d !i -> do
                             look (opposite d) >>= UMV.write rc i
                             return $! nextDir dir d
-                        ) leg [0 .. l - 1]
+                        ) baseLeg [0 .. l - 1]
 
-                    let {-# INLINE lookAndAdd #-}
-                        lookAndAdd !d !s = do
-                            !c <- look d
-                            return $! c + (s `shiftL` 7)
-
-                        bfs !headI = do
+                    let bfs !headI !offset = do
                             tailI <- readSTRef free
-                            when (headI < tailI - 1) $ do
-                                input <- MV.read queue headI
-                                !nb <- foldMIncomingDartsFrom input dir lookAndAdd 0
-                                case crossingCodeWithGlobal globalG dir input of
-                                    (# be, le #) -> do
-                                        let offset = l + headI `shiftL` 1
-                                        UMV.write rc offset be
-                                        UMV.write rc (offset + 1) (le + nb `shiftL` 3)
-                                        bfs (headI + 1)
+                            if headI >= tailI - 1
+                                then return $ UMV.take offset rc
+                                else do
+                                    input <- MV.read queue headI
+                                    case crossingCodeWithGlobal globalG dir input of
+                                        (# be, le #) -> UMV.write rc offset $! (be `shiftL` 3) + le
+                                    foldMIncomingDartsFrom input dir (\ !d !i -> do
+                                            look d >>= UMV.write rc i
+                                            return $! i + 1
+                                        ) (offset + 1) >>= bfs (headI + 1)
 
-                    bfs 0
-                    tailI <- readSTRef free
-                    return $ UMV.take (l + 2 * (tailI - 1)) rc
+                    bfs 0 l
 
             internal | UV.length border >= (l + 2 * n)  = []
                      | otherwise                        = sort $ map compCode comps
@@ -379,45 +380,43 @@ instance Knotted Tangle where
 
                         return $! UV.create $ do
                             index <- UMV.replicate (n + 1) 0
+                            incoming <- UMV.replicate (n + 1) 0
                             queue <- MV.new n
                             free <- newSTRef 1
 
                             let {-# INLINE look #-}
                                 look !d = do
-                                    let u = beginVertex d
-                                    ux <- UMV.read index (vertexIndex u)
+                                    let (u, p) = beginPair' d
+                                    ux <- UMV.read index u
                                     if ux > 0
-                                        then return $! ux
+                                        then do
+                                            base <- UMV.unsafeRead incoming u
+                                            return $! (ux `shiftL` 2) + (((p - base) * directionSign dir) .&. 3)
                                         else do
                                             nf <- readSTRef free
                                             writeSTRef free $! nf + 1
-                                            UMV.write index (vertexIndex u) nf
+                                            UMV.write index u nf
+                                            UMV.unsafeWrite incoming u p
                                             MV.write queue (nf - 1) d
-                                            return $! nf
+                                            return $! nf `shiftL` 2
 
-                            rc <- UMV.new (2 * n)
+                            rc <- UMV.new (5 * n)
                             void $ look root
 
-                            let {-# INLINE lookAndAdd #-}
-                                lookAndAdd !d !s = do
-                                    !c <- look d
-                                    return $! c + (s `shiftL` 7)
-
-                                bfs !headI = do
+                            let bfs !headI !offset = do
                                     tailI <- readSTRef free
-                                    when (headI < tailI - 1) $ do
-                                        input <- MV.read queue headI
-                                        !nb <- foldMIncomingDartsFrom input dir lookAndAdd 0
-                                        case crossingCodeWithGlobal globalG dir input of
-                                            (# be, le #) -> do
-                                                let offset = headI `shiftL` 1
-                                                UMV.write rc offset be
-                                                UMV.write rc (offset + 1) (le + nb `shiftL` 3)
-                                                bfs (headI + 1)
+                                    if headI >= tailI - 1
+                                        then return $! UMV.take offset rc
+                                        else do
+                                            input <- MV.read queue headI
+                                            case crossingCodeWithGlobal globalG dir input of
+                                                (# be, le #) -> UMV.write rc offset $! (be `shiftL` 3) + le
+                                            foldMIncomingDartsFrom input dir (\ !d !i -> do
+                                                    look d >>= UMV.write rc i
+                                                    return $! i + 1
+                                                ) (offset + 1) >>= bfs (headI + 1)
 
-                            bfs 0
-                            tailI <- readSTRef free
-                            return $ UMV.take (2 * (tailI - 1)) rc
+                            bfs 0 0
 
     isConnected tangle
         | numberOfEdges tangle == 0 && numberOfFreeLoops tangle <= 1  = True
