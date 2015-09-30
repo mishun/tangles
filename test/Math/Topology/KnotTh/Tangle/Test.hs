@@ -111,7 +111,7 @@ test = testGroup "Basic tangle tests"
 
     , testGroup "Glue tangles"
         [ testCase "Glue 2 loner tangles" $
-            let t = extractTangle lonerProjection
+            let t = toTangle lonerProjection
             in explode (horizontalComposition 1 (t, 0) (t, 1)) @?=
                 ( 0
                 , [(1, 1), (1, 2), (1, 3), (2, 2), (2, 3), (2, 0)]
@@ -121,16 +121,16 @@ test = testGroup "Basic tangle tests"
                 )
 
         , testCase "Glue zero and infinity tangles to infinity" $
-            let z = extractTangle zeroTangle :: TangleProjection
-                i = extractTangle infinityTangle :: TangleProjection
+            let z = toTangle zeroTangle :: TangleProjection
+                i = toTangle infinityTangle :: TangleProjection
             in explode (horizontalComposition 2 (z, 0) (z, 3)) @?= explode i
 
         , testCase "Glue two infinity tangles to get circle inside" $
-            let i = extractTangle infinityTangle :: TangleProjection
+            let i = toTangle infinityTangle :: TangleProjection
             in explode (horizontalComposition 2 (i, 0) (i, 2)) @?= (1, [(0, 1), (0, 0), (0, 3), (0, 2)], [])
 
         , testCase "Glue loner and thread" $
-            explode (horizontalComposition 2 (extractTangle lonerProjection, 0) (planarPropagator 1, 0)) @?=
+            explode (horizontalComposition 2 (toTangle lonerProjection, 0) (planarPropagator 1, 0)) @?=
                 ( 0
                 , [(1, 2), (1, 3)]
                 ,   [ ([(1, 1), (1, 0), (0, 0), (0, 1)], projectionCrossing)
@@ -140,15 +140,15 @@ test = testGroup "Basic tangle tests"
 
     , testGroup "Braid tangles"
         [ testCase "Identity braid tangle" $
-            explode (extractTangle (identityBraid 4) :: TangleProjection) @?=
+            explode (toTangle (identityBraid 4) :: TangleProjection) @?=
                 (0, [(0, 7), (0, 6), (0, 5), (0, 4), (0, 3), (0, 2), (0, 1), (0, 0)], [])
 
         , testCase "Braid generator" $
-            explode (extractTangle (braid 3 [(1, overCrossing)])) @?=
+            explode (toTangle (braid 3 [(1, overCrossing)])) @?=
                 (0, [(0, 5), (1, 0), (1, 1), (1, 2), (1, 3), (0, 0)], [([(0, 1), (0, 2), (0, 3), (0, 4)], overCrossing)])
 
         , testCase "Braid tangle" $
-            explode (extractTangle (braid 3 [(0, overCrossing), (1, overCrossing), (0, overCrossing)])) @?=
+            explode (toTangle (braid 3 [(0, overCrossing), (1, overCrossing), (0, overCrossing)])) @?=
                 ( 0
                 , [(1, 0), (1, 1), (2, 1), (2, 2), (3, 2), (3, 3)]
                 ,   [ ([(0, 0), (0, 1), (2, 0), (3, 0)], overCrossing)
@@ -160,14 +160,14 @@ test = testGroup "Basic tangle tests"
 
     , testGroup "Rational tangles"
         [ testProperty "Always alternating" $ \ list ->
-            all (\ x -> x > 0 && x < 1000) list ==> isAlternating $ extractTangle $ rationalTangle list
+            all (\ x -> x > 0 && x < 1000) list ==> isAlternating $ toTangle $ rationalTangle list
 
         , testProperty "Conway reciprocate" $ \ list ->
             let t = rationalTangle list
-                f = unrootedHomeomorphismInvariant . extractTangle
+                f = unrootedHomeomorphismInvariant . toTangle
             in all ((< 12) . abs) list ==> f (conwayRecip t) == f (conwayProduct t zeroTangle)
 
         , testCase "Numerator closure" $ do
-            numberOfFreeLoops (extractTangle $ numeratorClosure zeroTangle) @?= 2
+            numberOfFreeLoops (toTangle $ numeratorClosure zeroTangle) @?= 2
         ]
     ]

@@ -74,7 +74,7 @@ directSumDescendants crossings (t4, symmetry) = do
                 _                     -> Nothing
 
     cr <- crossings
-    let tangle = extractTangle t4
+    let tangle = toTangle t4
     if isLonerCrossing cr
         then map snd $ nubBy (on (==) fst) $ do
             leg <- [0 .. 3]
@@ -103,7 +103,7 @@ generateFlypeEquivalentDecomposition' triangle maxN yield = do
                         | (b == c) && (a == d) && (a /= b)  = DirectSum12x30
                         | otherwise                         = NonDirectSumDecomposable
                     where
-                        [a, b, c, d] = map endVertex $ allLegs $ extractTangle template
+                        [a, b, c, d] = map endVertex $ allLegs $ toTangle template
             in makeSubTangle' template symmetry sumType
 
     let halfN = maxN `div` 2
@@ -133,8 +133,8 @@ generateFlypeEquivalentDecomposition' triangle maxN yield = do
                                 growTree child
                                 glueDirectSums (curN + cn) child
 
-                lift $ yield (extractTangle rootTemplate, rootSymmetry)
-                glueTemplates rootN (extractTangle root, rootSymmetry)
+                lift $ yield (toTangle rootTemplate, rootSymmetry)
+                glueTemplates rootN (toTangle root, rootSymmetry)
                 glueDirectSums rootN (root, rootSymmetry)
 
     flip evalStateT finalFree $ forM_ rootList $ fix $ \ grow (root, crossings) -> do
@@ -142,7 +142,7 @@ generateFlypeEquivalentDecomposition' triangle maxN yield = do
                 when (curN > halfN) $ do
                     free <- get
                     put $! free + 1
-                    lift $ yield (extractTangle rootTemplate, rootSymmetry)
+                    lift $ yield (toTangle rootTemplate, rootSymmetry)
                     grow ((lonerTangle $ buildCrossingType rootTemplate (fromDnSubGroup rootSymmetry) free, rootSymmetry), finalCrossings)
 
         let glueTemplates curN ancestor =
@@ -158,8 +158,8 @@ generateFlypeEquivalentDecomposition' triangle maxN yield = do
                         tree (curN + cn) child
                         glueDirectSums (curN + cn) child
 
-        let rootN = numberOfVerticesAfterSubstitution $ extractTangle $ fst root
-        glueTemplates rootN $ first extractTangle root
+        let rootN = numberOfVerticesAfterSubstitution $ toTangle $ fst root
+        glueTemplates rootN $ first toTangle root
         glueDirectSums rootN root
 
 

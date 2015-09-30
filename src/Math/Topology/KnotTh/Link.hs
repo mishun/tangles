@@ -153,14 +153,12 @@ emptyLink = emptyKnotted
 
 
 {-# INLINE tangleToLink #-}
-tangleToLink :: Tangle a -> Link a
-tangleToLink t | l == 0     = L t
-               | otherwise  = error $ printf "tangleToLink: expected 0 legs, found %i" l
-    where l = numberOfLegs t
+tangleToLink :: Tangle0 a -> Link a
+tangleToLink t = L (toTangle t)
 
 
 tangleDoublingLink :: (Crossing a) => (a -> a) -> Tangle a -> Link a
-tangleDoublingLink f t = tangleToLink $ extractTangle $ zipTangles t (mirrorIt $ fmap f t)
+tangleDoublingLink f t = tangleToLink $ zipTangles t (mirrorIt $ fmap f t)
 
 
 toDTCode :: LinkDiagram -> [[Int]]

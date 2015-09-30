@@ -847,7 +847,7 @@ glueToBorder !gl (!tangle', !lp) !cr | gl < 0 || gl > 4  = error $ printf "glueT
             , crossingsArray  = V.snoc (crossingsArray tangle) cr
             , legsCount       = newL
             }
-    where tangle = extractTangle tangle'
+    where tangle = toTangle tangle'
           oldL = numberOfLegs tangle
           oldC = numberOfVertices tangle
           newC = oldC + 1
@@ -1041,10 +1041,10 @@ instance ModifyDSL Tangle where
 
 
 class AsTangle t where
-    extractTangle :: t a -> Tangle a
+    toTangle :: t a -> Tangle a
 
 instance AsTangle Tangle where
-    extractTangle t = t
+    toTangle t = t
 
 
 newtype Tangle0 a = T0 (Tangle a)
@@ -1057,7 +1057,7 @@ instance (MirrorAction a) => MirrorAction (Tangle0 a) where
     mirrorIt (T0 t) = T0 (mirrorIt t)
 
 instance AsTangle Tangle0 where
-    extractTangle (T0 t) = t
+    toTangle (T0 t) = t
 
 {-# INLINE tangle0 #-}
 tangle0 :: Tangle a -> Tangle0 a
@@ -1100,7 +1100,7 @@ instance (MirrorAction a) => GroupAction D4 (Tangle4 a) where
                   | otherwise     = rotateBy (rotation g) t
 
 instance AsTangle Tangle4 where
-    extractTangle (T4 t) = t
+    toTangle (T4 t) = t
 
 
 {-# INLINE tangle4 #-}
@@ -1112,7 +1112,7 @@ tangle4 t | l == 4     = T4 t
 
 {-# INLINE onTangle4 #-}
 onTangle4 :: (Tangle a -> Tangle b) -> Tangle4 a -> Tangle4 b
-onTangle4 f = tangle4 . f . extractTangle
+onTangle4 f = tangle4 . f . toTangle
 
 
 zeroTangle :: Tangle4 a
@@ -1315,7 +1315,7 @@ twistedSatellite n tangle = tensorSubst n wrap tangle
 
         wrap v | wc == 0    = cross
                | otherwise  = let half = reversingBraid n (overCrossingIf $ wc < 0)
-                              in extractTangle (promoteTangle n (3 * n) cross ∘ half ∘ half)
+                              in toTangle (promoteTangle n (3 * n) cross ∘ half ∘ half)
             where wc = w A.! v
                   cross = gridTangle (n, n) (const $ vertexCrossing v)
 
@@ -1346,7 +1346,7 @@ instance (MirrorAction a) => MirrorAction (TangleCategory a) where
     mirrorIt (TC n0 n1 t) = TC n1 n0 $ rotateBy (-1) $ mirrorIt t
 
 instance AsTangle TangleCategory where
-    extractTangle (TC _ _ t) = t
+    toTangle (TC _ _ t) = t
 
 
 promoteTangle :: Int -> Int -> Tangle a -> TangleCategory a
@@ -1377,7 +1377,7 @@ identityBraid n = TC n n (planarPropagator n)
 braidGenerator :: Int -> (Int, a) -> TangleCategory a
 braidGenerator n (k, s) | n < 2               = error $ printf "braidGenerator: braid must have at least 2 strands, but %i requested" n
                         | k < 0 || k > n - 2  = error $ printf "braidGenerator: generator offset %i is out of bounds (0, %i)" k (n - 2)
-                        | otherwise           = identityBraid k ⊗ promoteTangleH (extractTangle $ lonerTangle s) ⊗ identityBraid (n - 2 - k)
+                        | otherwise           = identityBraid k ⊗ promoteTangleH (toTangle $ lonerTangle s) ⊗ identityBraid (n - 2 - k)
 
 
 braid :: Int -> [(Int, a)] -> TangleCategory a
@@ -1398,7 +1398,7 @@ instance CascadeCodePattern ProjectionCrossing where
     data CascadePattern ProjectionCrossing = W | X | M
         deriving (Eq, Enum, Show, Read)
 
-    cascadeCodeRoot = extractTangle lonerProjection
+    cascadeCodeRoot = toTangle lonerProjection
 
     decodeCrossing W = (W, 1, 0, projectionCrossing)
     decodeCrossing X = (X, 1, 0, projectionCrossing)
@@ -1408,7 +1408,7 @@ instance CascadeCodePattern DiagramCrossing where
     data CascadePattern DiagramCrossing = WO | WU | XO | XU | MO | MU
         deriving (Eq, Enum)
 
-    cascadeCodeRoot = extractTangle lonerOverCrossing
+    cascadeCodeRoot = toTangle lonerOverCrossing
 
     decodeCrossing WO = (W, 1, 0, underCrossing)
     decodeCrossing WU = (W, 1, 0, overCrossing)

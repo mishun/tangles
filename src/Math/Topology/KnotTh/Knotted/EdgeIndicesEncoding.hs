@@ -39,7 +39,7 @@ instance EdgeIndicesEncoding Tangle where
 
 instance EdgeIndicesEncoding Link where
     edgeIndicesEncoding =
-        edgeIndicesEncoding . extractTangle
+        edgeIndicesEncoding . toTangle
 
 
 instance EdgeIndicesEncoding EmbeddedLink where

@@ -33,8 +33,8 @@ instance KnottedWithKauffmanXPolynomial Tangle where
 
 instance KnottedWithKauffmanXPolynomial Link where
     type KauffmanXPolynomial Link = Poly
-    kauffmanXPolynomial = takeAsScalar . kauffmanXPolynomial . extractTangle
-    minimalKauffmanXPolynomial = takeAsScalar . minimalKauffmanXPolynomial . extractTangle
+    kauffmanXPolynomial = takeAsScalar . kauffmanXPolynomial . toTangle
+    minimalKauffmanXPolynomial = takeAsScalar . minimalKauffmanXPolynomial . toTangle
 
 
 instance KnottedWithKauffmanXPolynomial EmbeddedLink where

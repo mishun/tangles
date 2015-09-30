@@ -155,4 +155,4 @@ instance PatternMatching Tangle where
 
 instance PatternMatching Link where
     searchMoves patterns =
-        map tangleToLink . searchMoves patterns . extractTangle
+        map (tangleToLink . tangle0) . searchMoves patterns . toTangle

@@ -137,15 +137,15 @@ test = testGroup "Invariants"
 
         , testGroup "Exact values on tangles" $ do
             (header, t, target) <-
-                [ ("empty"         , planarEmpty                        , "(1)[]"                            )
-                , ("identity"      , planarPropagator 1                 , "(1)[1,0]"                         )
-                , ("0"             , extractTangle zeroTangle           , "(1)[3,2,1,0]"                     )
-                , ("∞"             , extractTangle infinityTangle       , "(1)[1,0,3,2]"                     )
-                , ("over crossing" , extractTangle lonerOverCrossing    , "(a^-1)[1,0,3,2]+(a)[3,2,1,0]"     )
-                , ("under crossing", extractTangle lonerUnderCrossing   , "(a)[1,0,3,2]+(a^-1)[3,2,1,0]"     )
-                , ("group 2"       , extractTangle $ rationalTangle [2] , "(1-a^4)[1,0,3,2]+(a^-2)[3,2,1,0]" )
-                , ("group -2"      , extractTangle $ rationalTangle [-2], "(-a^-4+1)[1,0,3,2]+(a^2)[3,2,1,0]")
-                , ("II reducable"  , decodeCascadeCode [(XU, 0)]        , "(1)[3,2,1,0]"                     )
+                [ ("empty"         , planarEmpty                   , "(1)[]"                            )
+                , ("identity"      , planarPropagator 1            , "(1)[1,0]"                         )
+                , ("0"             , toTangle zeroTangle           , "(1)[3,2,1,0]"                     )
+                , ("∞"             , toTangle infinityTangle       , "(1)[1,0,3,2]"                     )
+                , ("over crossing" , toTangle lonerOverCrossing    , "(a^-1)[1,0,3,2]+(a)[3,2,1,0]"     )
+                , ("under crossing", toTangle lonerUnderCrossing   , "(a)[1,0,3,2]+(a^-1)[3,2,1,0]"     )
+                , ("group 2"       , toTangle $ rationalTangle [2] , "(1-a^4)[1,0,3,2]+(a^-2)[3,2,1,0]" )
+                , ("group -2"      , toTangle $ rationalTangle [-2], "(-a^-4+1)[1,0,3,2]+(a^2)[3,2,1,0]")
+                , ("II reducable"  , decodeCascadeCode [(XU, 0)]   , "(1)[3,2,1,0]"                     )
                 ]
 
             return $ testCase header $
@@ -185,12 +185,12 @@ test = testGroup "Invariants"
 
         , testGroup "Exact values on tangles" $ do
             (header, t, target) <-
-                [ ("empty"         , planarEmpty                     , "(1)[]"                                  )
-                , ("identity"      , planarPropagator 1              , "(1)[1,0]"                               )
-                , ("0"             , extractTangle zeroTangle        , "(1)[3,2,1,0]"                           )
-                , ("∞"             , extractTangle infinityTangle    , "(1)[1,0,3,2]"                           )
-                , ("over crossing" , extractTangle lonerOverCrossing , "(1)[2,3,0,1]"                           )
-                , ("under crossing", extractTangle lonerUnderCrossing, "(z)[1,0,3,2]+(-1)[2,3,0,1]+(z)[3,2,1,0]")
+                [ ("empty"         , planarEmpty                , "(1)[]"                                  )
+                , ("identity"      , planarPropagator 1         , "(1)[1,0]"                               )
+                , ("0"             , toTangle zeroTangle        , "(1)[3,2,1,0]"                           )
+                , ("∞"             , toTangle infinityTangle    , "(1)[1,0,3,2]"                           )
+                , ("over crossing" , toTangle lonerOverCrossing , "(1)[2,3,0,1]"                           )
+                , ("under crossing", toTangle lonerUnderCrossing, "(z)[1,0,3,2]+(-1)[2,3,0,1]+(z)[3,2,1,0]")
                 ]
 
             return $ testCase header $

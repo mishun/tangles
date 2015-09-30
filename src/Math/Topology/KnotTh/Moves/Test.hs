@@ -60,10 +60,10 @@ testMovesPictures =
         , ("PatternMatchingPerko",
             vcat' with { _sep = 0.5 } $ map (uncurry illustratedMove)
                 [ (searchMoves [perko],
-                    extractTangle $ fromGaussCode [[-1, 2, 3, -4, 5, -6, -2, 7, -8, 9, 4, -3, -7, 1, 6, -5, -10, 8, -9, 10]])
+                    toTangle $ fromGaussCode [[-1, 2, 3, -4, 5, -6, -2, 7, -8, 9, 4, -3, -7, 1, 6, -5, -10, 8, -9, 10]])
 
                 , (searchMoves [perko],
-                    mirrorIt $ extractTangle $ fromGaussCode [[-1, 2, 3, -4, 5, -6, -2, 7, -8, 9, 4, -3, -7, 1, 6, -5, -10, 8, -9, 10]])
+                    mirrorIt $ toTangle $ fromGaussCode [[-1, 2, 3, -4, 5, -6, -2, 7, -8, 9, 4, -3, -7, 1, 6, -5, -10, 8, -9, 10]])
 
                 , (searchMoves [perko],
                     implode
