@@ -5,7 +5,9 @@ module Math.Topology.KnotTh.Cobordism.CobordismMatrix
     , numberOfCols
     , singleton
     , (!)
+    , generate
     , emptyVector
+    , flatten
     ) where
 
 import Data.List (foldl')
@@ -61,6 +63,21 @@ generate obj0 obj1 f =
 
 emptyVector :: (Cobordism c) => CobordismBorder (CobordismMatrix c)
 emptyVector = CB V.empty
+
+flatten :: (PreadditiveCobordism c) => CobordismMatrix (CobordismMatrix c) -> CobordismMatrix c
+flatten m | numberOfRows m <= 0  = error "flatten: numberOfRows is zero"
+          | numberOfCols m <= 0  = error "flatten: numberOfCols is zero"
+          | otherwise            =
+    CM  { object0 = V.concatMap (\ (CB x) -> x) (object0 m)
+        , object1 = V.concatMap (\ (CB x) -> x) (object1 m)
+        , matrix  = V.concat $ do
+            row <- [0 .. numberOfRows m - 1]
+            row' <- [0 .. numberOfRows (m ! (row, 0)) - 1]
+            col <- [0 .. numberOfCols m - 1]
+            let sub = m ! (row, col)
+                n = numberOfCols sub
+            return $! V.slice (n * row') n (matrix sub)
+        }
 
 
 instance (PreadditiveCobordism c) => Composition (CobordismMatrix c) where
