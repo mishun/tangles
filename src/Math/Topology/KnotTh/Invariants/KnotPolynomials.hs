@@ -1,9 +1,7 @@
 {-# LANGUAGE RankNTypes #-}
 module Math.Topology.KnotTh.Invariants.KnotPolynomials
     ( SkeinRelation(..)
-    , reduceSkeinWithStrategy
-    , reduceSkeinStd
-    , standardReductionStrategy
+    , reduceSkein
     , skeinRelationPostMinimization
     , skeinRelationMidMinimization
     , skeinRelationPreMinimization
@@ -22,30 +20,14 @@ class (Functor f, PlanarAlgebra (f p)) => SkeinRelation f p where
     finalNormalization _ = id
 
 
-reduceSkeinWithStrategy :: (SkeinRelation f p) => TangleDiagram -> Strategy (f p) -> f p
-reduceSkeinWithStrategy tangle =
-    reduceWithStrategy tangle
+reduceSkein :: (SkeinRelation f p) => TangleDiagram -> f p
+reduceSkein =
+    reduceWithDefaultStrategy
         (\ v -> let d = nthOutcomingDart v 0
                 in if passOver d
                     then skeinLPlus
                     else skeinLMinus
         )
-
-
-reduceSkeinStd :: (SkeinRelation f p) => TangleDiagram -> f p
-reduceSkeinStd tangle =
-    reduceSkeinWithStrategy tangle standardReductionStrategy
-
-
-standardReductionStrategy :: Strategy a
-standardReductionStrategy =
-    let try [] = error "standardReductionStrategy: no reduction places left"
-        try ((v, i) : t) = do
-            (u, _) <- oppositeM (v, i)
-            if u /= v
-                then return $! Contract (v, i)
-                else try t
-    in try
 
 
 skeinRelationPostMinimization :: (Ord (f p), MirrorAction (f p), SkeinRelation f p) => (TangleDiagram -> f p) -> TangleDiagram -> f p

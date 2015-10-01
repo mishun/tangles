@@ -48,7 +48,7 @@ homologyDecomposition link =
 
         tokens = do
             PlanarChordDiagram a factor <-
-                let KauffmanXStateSum _ list = finalNormalization link $ reduceSkeinStd tangle
+                let KauffmanXStateSum _ list = finalNormalization link $ reduceSkein tangle
                 in list
             return (homologyClasses a, factor)
 

@@ -18,5 +18,5 @@ class (Knotted k) => KnottedWithHomflyPolynomial k where
 
 instance KnottedWithHomflyPolynomial Tangle where
     type HomflyPolynomial Tangle = ChordDiagramsSum Poly2
-    homflyPolynomial = reduceSkeinStd
+    homflyPolynomial = reduceSkein
     minimalHomflyPolynomial = skeinRelationPreMinimization homflyPolynomial

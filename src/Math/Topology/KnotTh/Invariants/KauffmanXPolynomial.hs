@@ -27,7 +27,7 @@ class (Knotted k) => KnottedWithKauffmanXPolynomial k where
 
 instance KnottedWithKauffmanXPolynomial Tangle where
     type KauffmanXPolynomial Tangle = KauffmanXStateSum Poly
-    kauffmanXPolynomial tangle = finalNormalization tangle (reduceSkeinStd tangle)
+    kauffmanXPolynomial tangle = finalNormalization tangle (reduceSkein tangle)
     minimalKauffmanXPolynomial = skeinRelationPostMinimization kauffmanXPolynomial
 
 

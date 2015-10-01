@@ -7,6 +7,7 @@ module Math.Topology.KnotTh.PlanarAlgebra.Reduction
     , vertexDegreeM
     , oppositeM
     , reduceWithStrategy
+    , reduceWithDefaultStrategy
     ) where
 
 import Control.Arrow (first)
@@ -120,19 +121,68 @@ oppositeM (VertexM !v, p) = ask >>= \ !s -> lift $ do
     return (VertexM u, q)
 
 
-reduceWithStrategy :: (LeggedDiagram d, VertexDiagram d, PlanarAlgebra a) => d x -> (Vertex d x -> a) -> Strategy a -> a
-reduceWithStrategy alg weight strategy =
+reduceWithDefaultStrategy :: (LeggedDiagram d, VertexDiagram d, PlanarAlgebra a) => (Vertex d x -> a) -> d x -> a
+reduceWithDefaultStrategy =
+    reduceWithStrategy $
+        let try [] = error "standardReductionStrategy: no reduction places left"
+            try ((v, i) : t) = do
+                (u, _) <- oppositeM (v, i)
+                if u /= v
+                    then return $! Contract (v, i)
+                    else try t
+        in try
+
+
+reduceWithStrategy :: (LeggedDiagram d, VertexDiagram d, PlanarAlgebra a) => Strategy a -> (Vertex d x -> a) -> d x -> a
+reduceWithStrategy strategy weight diagram =
     ST.runST $ do
-        s <- makeContext alg weight
+        context <- do
+            s <- do
+                let n = numberOfVertices diagram
+                adjacent' <- MV.new (n + 1)
+                MV.new (numberOfLegs diagram) >>= MV.write adjacent' 0
+
+                forM_ [1 .. n] $ \ !i ->
+                    MV.new 4 >>= MV.write adjacent' i
+
+                alive' <- newSTRef n
+                active' <- UMV.replicate (n + 1) True
+                state' <- MV.new (n + 1)
+                queue' <- newSTRef [1 .. n]
+                queued' <- UMV.replicate (n + 1) True
+                multiple' <- newSTRef planarEmpty
+
+                return Context
+                    { size     = n
+                    , alive    = alive'
+                    , active   = active'
+                    , state    = state'
+                    , adjacent = adjacent'
+                    , queue    = queue'
+                    , queued   = queued'
+                    , multiple = multiple'
+                    }
+
+            forM_ (allVertices diagram) $ \ v -> do
+                let w = weight v
+                unless (planarDegree w == vertexDegree v) $
+                    fail $ printf "Bad state degree: %i instead of %i" (planarDegree w) (vertexDegree v)
+                setStateSumST s (vertexIndex v) w
+
+            forM_ (allEdges diagram) $ \ (a, b) ->
+                connectST s (beginPair' a) (beginPair' b)
+
+            return $! s
+
         fix $ \ continue -> do
-            greedyReductionST s
-            edges <- internalEdgesST s
+            greedyReductionST context
+            edges <- internalEdgesST context
             case edges of
-                [] -> extractStateSumST s
+                [] -> extractStateSumST context
                 _  -> do
-                    action <- runReaderT (strategy $ map (first VertexM) edges) s
+                    action <- runReaderT (strategy $ map (first VertexM) edges) context
                     case action of
-                        Contract (VertexM v, p) -> contractEdgeST s (v, p)
+                        Contract (VertexM v, p) -> contractEdgeST context (v, p)
                     continue
 
 
@@ -148,45 +198,6 @@ data Context s a =
         , multiple :: !(STRef s a)
         }
 
-
-makeContext :: (LeggedDiagram d, VertexDiagram d, PlanarAlgebra a) => d x -> (Vertex d x -> a) -> ST.ST s (Context s a)
-makeContext alg weight = do
-    s <- do
-        let n = numberOfVertices alg
-        adjacent' <- MV.new (n + 1)
-        MV.new (numberOfLegs alg) >>= MV.write adjacent' 0
-
-        forM_ [1 .. n] $ \ !i ->
-            MV.new 4 >>= MV.write adjacent' i
-
-        alive' <- newSTRef n
-        active' <- UMV.replicate (n + 1) True
-        state' <- MV.new (n + 1)
-        queue' <- newSTRef [1 .. n]
-        queued' <- UMV.replicate (n + 1) True
-        multiple' <- newSTRef planarEmpty
-
-        return Context
-            { size     = n
-            , alive    = alive'
-            , active   = active'
-            , state    = state'
-            , adjacent = adjacent'
-            , queue    = queue'
-            , queued   = queued'
-            , multiple = multiple'
-            }
-
-    forM_ (allVertices alg) $ \ v -> do
-        let w = weight v
-        unless (planarDegree w == vertexDegree v) $
-            fail $ printf "Bad state degree: %i instead of %i" (planarDegree w) (vertexDegree v)
-        setStateSumST s (vertexIndex v) w
-
-    forM_ (allEdges alg) $ \ (a, b) ->
-        connectST s (beginPair' a) (beginPair' b)
-
-    return $! s
 
 {-
 dumpStateST :: (Show a) => Context s a -> ST s String
