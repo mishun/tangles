@@ -29,6 +29,18 @@ deriving instance (Cobordism c, Show c, Show (CobordismBorder c)) => Show (Cobor
 deriving instance (Cobordism c, Show (CobordismBorder c)) => Show (CobordismBorder (CobordismMatrix c))
 
 
+checkMatrix :: (Cobordism c) => CobordismMatrix c -> CobordismMatrix c
+checkMatrix m | V.length (matrix m) /= numberOfRows m * numberOfCols m  = error "bad size"
+              | not ok                                                  = error "bad content"
+              | otherwise                                               = m
+    where ok = and $ do
+            row <- [0 .. numberOfRows m - 1]
+            col <- [0 .. numberOfCols m - 1]
+            let c = m ! (row, col)
+            return $! cobordismBorder0 c == object0 m V.! col
+                   && cobordismBorder1 c == object1 m V.! row
+
+
 {-# INLINE numberOfRows #-}
 numberOfRows :: (Cobordism c) => CobordismMatrix c -> Int
 numberOfRows = V.length . object1
@@ -46,20 +58,25 @@ singleton c =
 
 {-# INLINE (!) #-}
 (!) :: (Cobordism c) => CobordismMatrix c -> (Int, Int) -> c
-(!) m (row, col) = matrix m V.! (numberOfCols m * row + col)
+(!) m (row, col) | row < 0 || row >= rows  = error $ printf "CobordismMatrix.(!): row index %i is out of bounds [0, %i)" row rows
+                 | col < 0 || col >= cols  = error $ printf "CobordismMatrix.(!): col index %i is out of bounds [0, %i)" col cols
+                 | otherwise               = matrix m V.! (numberOfCols m * row + col)
+    where rows = numberOfRows m
+          cols = numberOfCols m
 
 {-# INLINE generate #-}
 generate :: (Cobordism c) => V.Vector (CobordismBorder c) -> V.Vector (CobordismBorder c) -> (Int -> Int -> c) -> CobordismMatrix c
 generate obj0 obj1 f =
     let rows = V.length obj1
         cols = V.length obj0
-    in CM { object0 = obj0
-          , object1 = obj1
-          , matrix  =
-              V.generate (rows * cols) $ \ !i ->
-                  let (row, col) = i `divMod` cols
-                  in f row col
-          }
+    in checkMatrix $
+        CM  { object0 = obj0
+            , object1 = obj1
+            , matrix  =
+                V.generate (rows * cols) $ \ !i ->
+                    let (row, col) = i `divMod` cols
+                    in f row col
+            }
 
 emptyVector :: (Cobordism c) => CobordismBorder (CobordismMatrix c)
 emptyVector = CB V.empty
@@ -68,7 +85,8 @@ flatten :: (PreadditiveCobordism c) => CobordismMatrix (CobordismMatrix c) -> Co
 flatten m | numberOfRows m <= 0  = error "flatten: numberOfRows is zero"
           | numberOfCols m <= 0  = error "flatten: numberOfCols is zero"
           | otherwise            =
-    CM  { object0 = V.concatMap (\ (CB x) -> x) (object0 m)
+    checkMatrix $ CM
+        { object0 = V.concatMap (\ (CB x) -> x) (object0 m)
         , object1 = V.concatMap (\ (CB x) -> x) (object1 m)
         , matrix  = V.concat $ do
             row <- [0 .. numberOfRows m - 1]
@@ -85,8 +103,9 @@ instance (PreadditiveCobordism c) => Composition (CobordismMatrix c) where
             | object0 m1      /= object1 m0       = error "CobordismMatrix.(∘): different borders"
             | otherwise                           =
         generate (object0 m0) (object1 m1) $ \ !row !col ->
-            let zero = zeroCobordism (object0 m0 V.! col) (object1 m1 V.! row)
-            in foldl' (+) zero $ map (\ mid -> (m1 ! (row, mid)) ∘ (m0 ! (mid, col))) [0 .. numberOfRows m1 - 1]
+            foldl' (\ carry mid -> carry + ((m1 ! (row, mid)) ∘ (m0 ! (mid, col))))
+                   (zeroCobordism (object0 m0 V.! col) (object1 m1 V.! row))
+                   [0 .. numberOfCols m1 - 1]
 
 instance (PreadditiveCobordism c) => TensorProduct (CobordismBorder (CobordismMatrix c)) where
     CB a ⊗ CB b = CB $ V.concatMap (\ a' -> V.map (a' ⊗) b) a

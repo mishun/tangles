@@ -7,11 +7,11 @@ all: build
 
 .PHONY: deps
 deps:
-	cabal install --dependencies-only
-
-.PHONY: deps-dev
-deps-dev:
 	cabal install --dependencies-only --enable-tests
+
+.PHONY: deps-prof
+deps-prof:
+	cabal install --dependencies-only --enable-tests --enable-library-profiling --enable-executable-profiling
 
 
 .PHONY: config
@@ -22,6 +22,9 @@ config:
 config-dev:
 	cabal configure --enable-tests -finternal-tests
 
+.PHONY: config-prof
+config-prof:
+	cabal configure --enable-tests -finternal-tests --enable-library-profiling --enable-executable-profiling --disable-optimization
 
 .PHONY: build
 build:

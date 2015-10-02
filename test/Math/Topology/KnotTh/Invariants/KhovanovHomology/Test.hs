@@ -12,18 +12,24 @@ import Math.Topology.KnotTh.Tangle
 test :: Test
 test = testGroup "Khovanov homology"
     [ testCase "Over crossing complex" $ do
-        assertBool "dir" $ testComplexBorders overCrossingComplex
+        let c = overCrossingComplex
+        complexDim c @?= 1
+        assertBool "∂∘∂" $ testComplexBorders c
 
     , testCase "Under crossing complex" $ do
-        assertBool "rev" $ testComplexBorders underCrossingComplex
+        let c = underCrossingComplex
+        complexDim c @?= 1
+        assertBool "∂∘∂" $ testComplexBorders c
 
     , testCase "Pair of crossings complex" $ do
-        assertBool "pair" $ testComplexBorders $ horizontalComposition 2 (overCrossingComplex, 0) (underCrossingComplex, 0)
+        let c = horizontalComposition 2 (overCrossingComplex, 0) (underCrossingComplex, 0)
+        complexDim c @?= 2
+        assertBool "∂∘∂" $ testComplexBorders c
 
-    , testCase "∂" $
+    , testCase "∂" $ do
         mapM_ (\ tangle -> assertBool (show tangle) $ testComplexBorders $ khovanovComplex tangle)
             [ toTangle lonerOverCrossing
-            -- , toTangle lonerUnderCrossing
+            , toTangle lonerUnderCrossing
             -- , toTangle $ rationalTangle [2]
             -- , toTangle $ rationalTangle [2, 3, -1]
             ]
