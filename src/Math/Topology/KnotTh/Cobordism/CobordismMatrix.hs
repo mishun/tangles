@@ -115,8 +115,8 @@ instance (PreadditiveCobordism c) => TensorProduct (CobordismMatrix c) where
         let obj0 = V.concatMap (\ a' -> V.map (a' ⊗) $ object0 b) $ object0 a
             obj1 = V.concatMap (\ a' -> V.map (a' ⊗) $ object1 b) $ object1 a
         in generate obj0 obj1 $ \ !row !col ->
-            let (rowA, rowB) = row `divMod` numberOfRows a
-                (colA, colB) = col `divMod` numberOfCols a
+            let (rowA, rowB) = row `divMod` numberOfRows b
+                (colA, colB) = col `divMod` numberOfCols b
             in (a ! (rowA, colA)) ⊗ (b ! (rowB, colB))
 
 instance (PreadditiveCobordism c) => Cobordism (CobordismMatrix c) where
@@ -201,6 +201,6 @@ instance (CannedCobordism c, PreadditiveCobordism c) => PlanarAlgebra (Cobordism
         let CB obj0 = horizontalComposition gl (CB $ object0 a, posA) (CB $ object0 b, posB)
             CB obj1 = horizontalComposition gl (CB $ object1 a, posA) (CB $ object1 b, posB)
         in generate obj0 obj1 $ \ !row !col ->
-            let (rowA, rowB) = row `divMod` numberOfRows a
-                (colA, colB) = col `divMod` numberOfCols a
+            let (rowA, rowB) = row `divMod` numberOfRows b
+                (colA, colB) = col `divMod` numberOfCols b
             in horizontalComposition gl (a ! (rowA, colA), posA) (b ! (rowB, colB), posB)
