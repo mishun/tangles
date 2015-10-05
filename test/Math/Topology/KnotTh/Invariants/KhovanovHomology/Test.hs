@@ -5,6 +5,7 @@ module Math.Topology.KnotTh.Invariants.KhovanovHomology.Test
 import Test.Framework (Test, testGroup)
 import Test.Framework.Providers.HUnit (testCase)
 import Test.HUnit hiding (Test, test)
+import Text.Printf
 import Math.Topology.KnotTh.Invariants.KhovanovHomology
 import Math.Topology.KnotTh.Tangle
 
@@ -26,11 +27,20 @@ test = testGroup "Khovanov homology"
         complexDim c @?= 2
         assertBool "∂∘∂" $ testComplexBorders c
 
-    , testCase "∂" $ do
-        mapM_ (\ tangle -> assertBool (show tangle) $ testComplexBorders $ khovanovComplex tangle)
+    , testCase "∂∘∂" $ do
+        mapM_ (\ tangle -> do
+                let kh = khovanovComplex tangle
+                assertEqual "dimension" (numberOfVertices tangle) (complexDim kh)
+                assertBool (printf "∂∘∂ failed at: %s" (show tangle)) $ testComplexBorders kh
+            )
             [ toTangle lonerOverCrossing
             , toTangle lonerUnderCrossing
-            -- , toTangle $ rationalTangle [2]
-            -- , toTangle $ rationalTangle [2, 3, -1]
+            , toTangle $ rationalTangle [2]
+            , toTangle $ rationalTangle [3]
+            , toTangle $ rationalTangle [-2]
+            , toTangle $ rationalTangle [1, 2]
+            , toTangle $ rationalTangle [2, 1, 1]
+            , toTangle $ rationalTangle [-4]
+            , toTangle $ rationalTangle [2, 3, -1]
             ]
     ]

@@ -435,7 +435,11 @@ instance ModuleCobordismGuts DottedGuts where
 
             renumerateSurfaces g =
                 ST.runST $ do
-                    newIndex <- UMV.replicate (UV.length $ surfHolesN g) (-1)
+                    let n = UV.length $ surfHolesN g
+
+                    newIndex <- UMV.replicate n (-1)
+                    newHandles <- UMV.new n
+                    newHoles <- UMV.new n
                     freeIndex <- newSTRef 0
 
                     let faceId !i = do
@@ -445,19 +449,24 @@ instance ModuleCobordismGuts DottedGuts where
                                 j <- readSTRef freeIndex
                                 writeSTRef freeIndex $! j + 1
                                 UMV.write newIndex i j
+                                UMV.write newHandles j (surfHandlesN g UV.! i)
+                                UMV.write newHoles j (surfHolesN g UV.! i)
                                 return j
 
                     wallS <- UV.mapM faceId $ wallSurfs g
                     loopS0 <- UV.mapM faceId $ loopSurfs0 g
                     loopS1 <- UV.mapM faceId $ loopSurfs1 g
-                    idx <- UV.unsafeFreeze newIndex
+
+                    handles' <- UV.unsafeFreeze newHandles
+                    holes' <- UV.unsafeFreeze newHoles
+
                     return $!
                         DottedGuts
                             { wallSurfs    = wallS
                             , loopSurfs0   = loopS0
                             , loopSurfs1   = loopS1
-                            , surfHandlesN = UV.backpermute (surfHandlesN g) idx
-                            , surfHolesN   = UV.backpermute (surfHolesN g) idx
+                            , surfHandlesN = handles'
+                            , surfHolesN   = holes'
                             }
         in \ g ->
             if | UV.any (> 1) (surfHandlesN g)                               -> []

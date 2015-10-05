@@ -78,10 +78,15 @@ data KhovanovComplex c =
 
 deriving instance (Cobordism c, Show c, Show (BoundedChain c)) => Show (KhovanovComplex c)
 
-instance RotationAction (KhovanovComplex c) where
+instance (CannedCobordism c, PreadditiveCobordism c) => RotationAction (KhovanovComplex c) where
     rotationOrder = legsN
 
-    rotateByUnchecked = error "rotate is not implemented"
+    rotateByUnchecked rot kh =
+        kh { chain =
+                case chain kh of
+                    Singl b -> Singl $ rotateBy rot b
+                    Chain c -> Chain $ V.map (rotateBy rot) c
+           }
 
 instance (CannedCobordism c, PreadditiveCobordism c) => PlanarAlgebra (KhovanovComplex c) where
     planarDegree = legsN

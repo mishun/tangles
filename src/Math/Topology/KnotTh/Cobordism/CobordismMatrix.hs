@@ -145,6 +145,8 @@ instance (PreadditiveCobordism c) => Num (CobordismMatrix c) where
     signum x = identityCobordism (cobordismBorder0 x)
 
 instance (PreadditiveCobordism c) => PreadditiveCobordism (CobordismMatrix c) where
+    isZeroCobordism = V.all isZeroCobordism . matrix
+
     zeroCobordism (CB obj0) (CB obj1) =
         generate obj0 obj1 $ \ !row !col ->
             zeroCobordism (obj0 V.! col) (obj1 V.! row)
