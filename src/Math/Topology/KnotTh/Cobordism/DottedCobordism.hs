@@ -10,7 +10,6 @@ import Control.Monad (foldM, forM_, liftM2, when)
 import Control.Monad.IfElse (unlessM, whenM)
 import qualified Control.Monad.ST as ST
 import qualified Data.Map.Strict as M
-import Data.Ratio (Ratio)
 import Data.STRef (newSTRef, readSTRef, writeSTRef)
 import qualified Data.Vector as V
 import qualified Data.Vector.Unboxed as UV
@@ -77,7 +76,13 @@ makeHeader !legs (!bot, !botLoops) (!top, !topLoops) =
                 }
 
 
-class (Eq g, Ord g) => CobordismGuts g where
+class (Eq g) => CommonGuts g where
+    flipGuts       :: g -> g
+    rotateGuts     :: UV.Vector Int -> g -> g
+    verComposeGuts :: CobordismHeader -> (CobordismHeader, g) -> (CobordismHeader, g) -> g
+    horComposeGuts :: (CobordismHeader, Int, UV.Vector Int, UV.Vector Int) -> (g, CobordismHeader, Int) -> (g, CobordismHeader, Int) -> g
+
+class (CommonGuts g) => CobordismGuts g where
     emptyGuts      :: g
     surfGuts       :: Int -> g
     capGuts        :: Int -> g
@@ -85,58 +90,65 @@ class (Eq g, Ord g) => CobordismGuts g where
     pantsGuts      :: g
     saddleGuts     :: g
     identityGuts   :: Int -> Int -> g
-    flipGuts       :: g -> g
-    rotateGuts     :: UV.Vector Int -> g -> g
-    verComposeGuts :: CobordismHeader -> (CobordismHeader, g) -> (CobordismHeader, g) -> g
-    horComposeGuts :: (CobordismHeader, Int, UV.Vector Int, UV.Vector Int) -> (g, CobordismHeader, Int) -> (g, CobordismHeader, Int) -> g
 
-class (CobordismGuts g) => ModuleCobordismGuts g where
-    normalizeGuts :: (Integral a) => g -> [(g, Ratio a)]
+class (CommonGuts g, Ord g) => ModuleCobordismGuts g where
+    normalizeGutsM :: (Integral a) => g -> [(g, a)]
+    emptyGutsM     :: g
+    capGutsM       :: (Integral a) => Int -> (g, a)
+    surfGutsM      :: (Integral a) => Int -> (g, a)
+    swapGutsM      :: g
+    pantsGutsM     :: g
+    saddleGutsM    :: g
+    identityGutsM  :: Int -> Int -> g
 
 
-newtype ModuleGuts g a = MG (M.Map g (Ratio a))
+newtype ModuleGuts g a = MG (M.Map g a)
     deriving (Eq, Ord, Show)
 
-singletonModuleGuts :: (ModuleCobordismGuts g, Integral a) => g -> ModuleGuts g a
-singletonModuleGuts = MG . M.fromList . normalizeGuts
+singletonModuleGuts :: (ModuleCobordismGuts g, Integral a) => (g, a) -> ModuleGuts g a
+singletonModuleGuts (g, a) = MG $ M.fromList $ do
+    (g', a') <- normalizeGutsM g
+    return (g', a' * a)
 
-instance (ModuleCobordismGuts g, Integral a) => CobordismGuts (ModuleGuts g a) where
-    emptyGuts = MG M.empty
-
-    surfGuts   = singletonModuleGuts . surfGuts
-    capGuts    = singletonModuleGuts . capGuts
-    swapGuts   = singletonModuleGuts swapGuts
-    pantsGuts  = singletonModuleGuts pantsGuts
-    saddleGuts = singletonModuleGuts saddleGuts
-
-    identityGuts wallHoles endHoles =
-        singletonModuleGuts (identityGuts wallHoles endHoles)
-
+instance (ModuleCobordismGuts g, Integral a) => CommonGuts (ModuleGuts g a) where
     flipGuts (MG m) =
         MG $ M.filter (/= 0) $ M.fromListWith (+) $ do
             (g, factor) <- M.toList m
-            (g', factorNorm) <- normalizeGuts $ flipGuts g
+            (g', factorNorm) <- normalizeGutsM $ flipGuts g
             return $! (g', factor * factorNorm)
 
     rotateGuts rot (MG m) =
         MG $ M.filter (/= 0) $ M.fromListWith (+) $ do
             (g, factor) <- M.toList m
-            (g', factorNorm) <- normalizeGuts $ rotateGuts rot g
+            (g', factorNorm) <- normalizeGutsM $ rotateGuts rot g
             return $! (g', factor * factorNorm)
 
     verComposeGuts h (h1, MG map1) (h0, MG map0) =
         MG $ M.filter (/= 0) $ M.fromListWith (+) $ do
             (g0, factor0) <- M.toList map0
             (g1, factor1) <- M.toList map1
-            (g, factorNorm) <- normalizeGuts $ verComposeGuts h (h1, g1) (h0, g0)
+            (g, factorNorm) <- normalizeGutsM $ verComposeGuts h (h1, g1) (h0, g0)
             return $! (g, factor0 * factor1 * factorNorm)
 
     horComposeGuts tmp (MG mapA, hA, posA) (MG mapB, hB, posB) =
         MG $ M.filter (/= 0) $ M.fromListWith (+) $ do
             (gA, factorA) <- M.toList mapA
             (gB, factorB) <- M.toList mapB
-            (g, factorNorm) <- normalizeGuts $ horComposeGuts tmp (gA, hA, posA) (gB, hB, posB)
+            (g, factorNorm) <- normalizeGutsM $ horComposeGuts tmp (gA, hA, posA) (gB, hB, posB)
             return $! (g, factorA * factorB * factorNorm)
+
+
+instance (ModuleCobordismGuts g, Integral a) => CobordismGuts (ModuleGuts g a) where
+    emptyGuts = MG M.empty
+
+    surfGuts   = singletonModuleGuts . surfGutsM
+    capGuts    = singletonModuleGuts . capGutsM
+    swapGuts   = singletonModuleGuts (swapGutsM, 1)
+    pantsGuts  = singletonModuleGuts (pantsGutsM, 1)
+    saddleGuts = singletonModuleGuts (saddleGutsM, 1)
+
+    identityGuts wallHoles endHoles =
+        singletonModuleGuts (identityGutsM wallHoles endHoles, 1)
 
 
 data DottedGuts =
@@ -149,71 +161,7 @@ data DottedGuts =
         }
     deriving (Eq, Ord, Show)
 
-instance CobordismGuts DottedGuts where
-    emptyGuts =
-        DottedGuts
-            { wallSurfs    = UV.empty
-            , loopSurfs0   = UV.empty
-            , loopSurfs1   = UV.empty
-            , surfHolesN   = UV.empty
-            , surfHandlesN = UV.empty
-            }
-
-    surfGuts genus =
-        DottedGuts
-            { wallSurfs    = UV.empty
-            , loopSurfs0   = UV.empty
-            , loopSurfs1   = UV.empty
-            , surfHolesN   = UV.singleton 0
-            , surfHandlesN = UV.singleton genus
-            }
-
-    capGuts genus =
-        DottedGuts
-            { wallSurfs    = UV.empty
-            , loopSurfs0   = UV.singleton 0
-            , loopSurfs1   = UV.empty
-            , surfHolesN   = UV.singleton 1
-            , surfHandlesN = UV.singleton genus
-            }
-
-    swapGuts =
-        DottedGuts
-            { wallSurfs    = UV.empty
-            , loopSurfs0   = UV.fromList [0, 1]
-            , loopSurfs1   = UV.fromList [1, 0]
-            , surfHolesN   = UV.replicate 2 2
-            , surfHandlesN = UV.replicate 2 0
-            }
-
-    pantsGuts =
-        DottedGuts
-            { wallSurfs    = UV.empty
-            , loopSurfs0   = UV.replicate 2 0
-            , loopSurfs1   = UV.singleton 0
-            , surfHolesN   = UV.singleton 3
-            , surfHandlesN = UV.singleton 0
-            }
-
-    saddleGuts =
-        DottedGuts
-            { wallSurfs    = UV.singleton 0
-            , loopSurfs0   = UV.empty
-            , loopSurfs1   = UV.empty
-            , surfHolesN   = UV.singleton 1
-            , surfHandlesN = UV.singleton 0
-            }
-
-    identityGuts wallHoles endHoles =
-        let ls = UV.enumFromN wallHoles endHoles
-        in DottedGuts
-            { wallSurfs    = UV.enumFromN 0 wallHoles
-            , loopSurfs0   = ls
-            , loopSurfs1   = ls
-            , surfHolesN   = UV.replicate wallHoles 1 UV.++ UV.replicate endHoles 2
-            , surfHandlesN = UV.replicate (wallHoles + endHoles) 0
-            }
-
+instance CommonGuts DottedGuts where
     flipGuts g =
         g { loopSurfs0 = loopSurfs1 g
           , loopSurfs1 = loopSurfs0 g
@@ -413,15 +361,14 @@ instance CobordismGuts DottedGuts where
                     }
 
 instance ModuleCobordismGuts DottedGuts where
-    normalizeGuts =
-        let removeClosed !factor g =
+    normalizeGutsM =
+        let removeClosed g =
                 let (holes, handles) = UV.unzip $ UV.filter ((> 0) . fst) $ UV.zip (surfHolesN g) (surfHandlesN g)
-                    removedN = UV.length (surfHolesN g) - UV.length holes
-                in cutNecks (factor * 2 ^ removedN) $ g { surfHolesN = holes, surfHandlesN = handles }
+                in cutNecks $ g { surfHolesN = holes, surfHandlesN = handles }
 
-            cutNecks !factor g =
+            cutNecks g =
                 case UV.findIndex (> 1) (surfHolesN g) of
-                    Nothing   -> [(renumerateSurfaces g, factor)]
+                    Nothing   -> [(renumerateSurfaces g, 1)]
                     Just surf -> do
                         let genus = surfHandlesN g UV.! surf
                             dst = UV.length $ surfHandlesN g
@@ -430,7 +377,7 @@ instance ModuleCobordismGuts DottedGuts where
                                 | Just i <- UV.findIndex (== surf) (loopSurfs1 g)  = g { loopSurfs1 = loopSurfs1 g UV.// [(i, dst)] }
                                 | otherwise                                        = g
                         handles <- UV.snoc (surfHandlesN g) 1 : [ UV.snoc (surfHandlesN g) 0 UV.// [(surf, 1)] | genus == 0]
-                        cutNecks (factor / 2) $
+                        cutNecks $
                             rew { surfHolesN   = UV.snoc (surfHolesN g) 1 UV.// [(surf, (surfHolesN g UV.! surf) - 1)]
                                 , surfHandlesN = handles
                                 }
@@ -473,8 +420,73 @@ instance ModuleCobordismGuts DottedGuts where
         in \ g ->
             if | UV.any (> 1) (surfHandlesN g)                               -> []
                | UV.any (== (0, 0)) (UV.zip (surfHolesN g) (surfHandlesN g)) -> []
-               | otherwise                                                   -> removeClosed 1 g
+               | otherwise                                                   -> removeClosed g
 
+    emptyGutsM =
+        DottedGuts
+            { wallSurfs    = UV.empty
+            , loopSurfs0   = UV.empty
+            , loopSurfs1   = UV.empty
+            , surfHolesN   = UV.empty
+            , surfHandlesN = UV.empty
+            }
+
+    surfGutsM genus =
+        ( DottedGuts
+            { wallSurfs    = UV.empty
+            , loopSurfs0   = UV.empty
+            , loopSurfs1   = UV.empty
+            , surfHolesN   = UV.singleton 0
+            , surfHandlesN = UV.singleton genus
+            }
+        , if genus == 1 then 2 else 1)
+
+    capGutsM genus =
+        ( DottedGuts
+            { wallSurfs    = UV.empty
+            , loopSurfs0   = UV.singleton 0
+            , loopSurfs1   = UV.empty
+            , surfHolesN   = UV.singleton 1
+            , surfHandlesN = UV.singleton genus
+            }
+        , if genus == 1 then 2 else 1)
+
+    swapGutsM =
+        DottedGuts
+            { wallSurfs    = UV.empty
+            , loopSurfs0   = UV.fromList [0, 1]
+            , loopSurfs1   = UV.fromList [1, 0]
+            , surfHolesN   = UV.replicate 2 2
+            , surfHandlesN = UV.replicate 2 0
+            }
+
+    pantsGutsM =
+        DottedGuts
+            { wallSurfs    = UV.empty
+            , loopSurfs0   = UV.replicate 2 0
+            , loopSurfs1   = UV.singleton 0
+            , surfHolesN   = UV.singleton 3
+            , surfHandlesN = UV.singleton 0
+            }
+
+    saddleGutsM =
+        DottedGuts
+            { wallSurfs    = UV.singleton 0
+            , loopSurfs0   = UV.empty
+            , loopSurfs1   = UV.empty
+            , surfHolesN   = UV.singleton 1
+            , surfHandlesN = UV.singleton 0
+            }
+
+    identityGutsM wallHoles endHoles =
+        let ls = UV.enumFromN wallHoles endHoles
+        in DottedGuts
+            { wallSurfs    = UV.enumFromN 0 wallHoles
+            , loopSurfs0   = ls
+            , loopSurfs1   = ls
+            , surfHolesN   = UV.replicate wallHoles 1 UV.++ UV.replicate endHoles 2
+            , surfHandlesN = UV.replicate (wallHoles + endHoles) 0
+            }
 
 {-# INLINE glueArcs #-}
 glueArcs :: Int -> (UV.Vector Int, Int) -> (UV.Vector Int, Int) -> (UV.Vector Int, [Int])
@@ -657,7 +669,7 @@ instance (ModuleCobordismGuts g, Integral a) => Num (Cobordism' (ModuleGuts g a)
     (*) = (∘)
 
     fromInteger 0 = Cob (emptyHeader 0 0) $ MG M.empty
-    fromInteger n = Cob (emptyHeader 0 0) $ MG $ M.singleton emptyGuts (fromIntegral n)
+    fromInteger n = Cob (emptyHeader 0 0) $ MG $ M.singleton emptyGutsM (fromIntegral n)
 
     abs = id
     signum x = identityCobordism (cobordismBorder0 x)
@@ -682,8 +694,8 @@ instance (Integral a, Show a) => DottedCobordism (Cobordism' (ModuleGuts DottedG
               b1 = cobordismBorder1 c
 
     delooping (Brd loops arcs) =
-        let cap0 = Cob (emptyHeader 1 0) $ MG $ M.singleton (capGuts 0) 1
-            cap1 = Cob (emptyHeader 1 0) $ MG $ M.singleton (capGuts 1) (1 / 2)
+        let cap0 = Cob (emptyHeader 1 0) $ MG $ uncurry M.singleton $ capGutsM 0
+            cap1 = Cob (emptyHeader 1 0) $ MG $ let (g, f) = capGutsM 1 in M.singleton g (f `div` 2)
             cup0 = transposeCobordism cap0
             cup1 = transposeCobordism cap1
 
