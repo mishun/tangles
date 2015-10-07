@@ -5,8 +5,13 @@ module Math.Topology.KnotTh.Cobordism.CobordismMatrix
     , numberOfCols
     , singleton
     , (!)
+    , removeRow
+    , removeCol
+    , minor
     , generate
+    , findIndex
     , emptyVector
+    , toVector
     , flatten
     ) where
 
@@ -49,6 +54,7 @@ numberOfRows = V.length . object1
 numberOfCols :: (Cobordism c) => CobordismMatrix c -> Int
 numberOfCols = V.length . object0
 
+
 singleton :: (Cobordism c) => c -> CobordismMatrix c
 singleton c =
     CM  { object0 = V.singleton (cobordismBorder0 c)
@@ -56,13 +62,61 @@ singleton c =
         , matrix  = V.singleton c
         }
 
+
 {-# INLINE (!) #-}
 (!) :: (Cobordism c) => CobordismMatrix c -> (Int, Int) -> c
 (!) m (row, col) | row < 0 || row >= rows  = error $ printf "CobordismMatrix.(!): row index %i is out of bounds [0, %i)" row rows
                  | col < 0 || col >= cols  = error $ printf "CobordismMatrix.(!): col index %i is out of bounds [0, %i)" col cols
-                 | otherwise               = matrix m V.! (numberOfCols m * row + col)
+                 | otherwise               = matrix m V.! (cols * row + col)
     where rows = numberOfRows m
           cols = numberOfCols m
+
+
+removeRow :: (Cobordism c) => Int -> CobordismMatrix c -> CobordismMatrix c
+removeRow row m | row < 0 || row >= rows  = error $ printf "CobordismMatrix.removeRow: row index %i is out of bounds [0, %i)" row rows
+                | otherwise               =
+                    CM  { object0 = object0 m
+                        , object1 = V.take row (object1 m) V.++ V.drop (row + 1) (object1 m)
+                        , matrix  = V.ifilter (\ !i !_ -> i `div` cols /= row) (matrix m)
+                        }
+    where rows = numberOfRows m
+          cols = numberOfCols m
+
+
+removeCol :: (Cobordism c) => Int -> CobordismMatrix c -> CobordismMatrix c
+removeCol col m | col < 0 || col >= cols  = error $ printf "CobordismMatrix.removeCol: col index %i is out of bounds [0, %i)" col cols
+                | otherwise               =
+                    CM  { object0 = V.take col (object0 m) V.++ V.drop (col + 1) (object0 m)
+                        , object1 = object1 m
+                        , matrix  = V.ifilter (\ !i !_ -> i `mod` cols /= col) (matrix m)
+                        }
+    where cols = numberOfCols m
+
+
+minor :: (Cobordism c) => (Int, Int) -> CobordismMatrix c -> (CobordismMatrix c, CobordismMatrix c, CobordismMatrix c)
+minor (row, col) m | row < 0 || row >= rows  = error $ printf "CobordismMatrix.minor: row index %i is out of bounds [0, %i)" row rows
+                   | col < 0 || col >= cols  = error $ printf "CobordismMatrix.minor: col index %i is out of bounds [0, %i)" col cols
+                   | otherwise               =
+                        let res = CM { object0 = V.take col (object0 m) V.++ V.drop (col + 1) (object0 m)
+                                     , object1 = V.take row (object1 m) V.++ V.drop (row + 1) (object1 m)
+                                     , matrix  = V.ifilter (\ !i !_ -> i `div` cols /= row && i `mod` cols /= col) (matrix m)
+                                     }
+
+                            rowV = CM { object0 = V.take col (object0 m) V.++ V.drop (col + 1) (object0 m)
+                                      , object1 = V.singleton (object1 m V.! row)
+                                      , matrix  = V.map (\ i -> m ! (row, i)) $
+                                            V.enumFromN 0 col V.++ V.enumFromN (col + 1) (cols - col - 1)
+                                      }
+
+                            colV = CM { object0 = V.singleton (object0 m V.! col)
+                                      , object1 = V.take row (object1 m) V.++ V.drop (row + 1) (object1 m)
+                                      , matrix  = V.map (\ i -> m ! (i, col)) $
+                                            V.enumFromN 0 row V.++ V.enumFromN (row + 1) (rows - row - 1)
+                                      }
+                        in (res, rowV, colV)
+    where rows = numberOfRows m
+          cols = numberOfCols m
+
 
 {-# INLINE generate #-}
 generate :: (Cobordism c) => V.Vector (CobordismBorder c) -> V.Vector (CobordismBorder c) -> (Int -> Int -> c) -> CobordismMatrix c
@@ -78,8 +132,20 @@ generate obj0 obj1 f =
                     in f row col
             }
 
+findIndex :: (Cobordism c) => (c -> Bool) -> CobordismMatrix c -> Maybe (Int, Int)
+findIndex predicate m = do
+    i <- V.findIndex predicate $ matrix m
+    return $! i `divMod` numberOfCols m
+
+
 emptyVector :: (Cobordism c) => CobordismBorder (CobordismMatrix c)
 emptyVector = CB V.empty
+
+
+{-# INLINE toVector #-}
+toVector :: (Cobordism c) => CobordismBorder (CobordismMatrix c) -> V.Vector (CobordismBorder c)
+toVector (CB v) = v
+
 
 flatten :: (PreadditiveCobordism c) => CobordismMatrix (CobordismMatrix c) -> CobordismMatrix c
 flatten m | numberOfRows m <= 0  = error "flatten: numberOfRows is zero"

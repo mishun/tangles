@@ -12,5 +12,5 @@ import Math.Topology.KnotTh.Cobordism.Test
 
 test :: Test
 test = testGroup "Cobordism matrix"
-    [ generalCobordism3Tests (undefined :: CobordismMatrix (DottedCobordism Integer))
+    [ generalCobordism3Tests (undefined :: CobordismMatrix (DottedCobordism' Integer))
     ]

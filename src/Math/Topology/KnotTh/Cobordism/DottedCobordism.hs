@@ -2,7 +2,8 @@
 module Math.Topology.KnotTh.Cobordism.DottedCobordism
     ( module Math.Topology.KnotTh.Cobordism
     , module Math.Topology.KnotTh.PlanarAlgebra
-    , DottedCobordism
+    , DottedCobordism(..)
+    , DottedCobordism'
     ) where
 
 import Control.Monad (foldM, forM_, liftM2, when)
@@ -11,6 +12,7 @@ import qualified Control.Monad.ST as ST
 import qualified Data.Map.Strict as M
 import Data.Ratio (Ratio)
 import Data.STRef (newSTRef, readSTRef, writeSTRef)
+import qualified Data.Vector as V
 import qualified Data.Vector.Unboxed as UV
 import qualified Data.Vector.Unboxed.Mutable as UMV
 import Text.Printf
@@ -667,4 +669,33 @@ instance (ModuleCobordismGuts g, Integral a) => PreadditiveCobordism (Cobordism'
     isZeroCobordism (Cob _ (MG m)) = M.null m
 
 
-type DottedCobordism a = Cobordism' (ModuleGuts DottedGuts a)
+class (CannedCobordism c, PreadditiveCobordism c, Show c, Show (CobordismBorder c)) => DottedCobordism c where
+    isIsomorphism :: c -> Bool
+    delooping     :: CobordismBorder c -> (CobordismBorder c, V.Vector (c, c))
+
+instance (Integral a, Show a) => DottedCobordism (Cobordism' (ModuleGuts DottedGuts a)) where
+    -- TODO: prove/fix it
+    isIsomorphism c | b0 /= b1                         = False
+                    | (c ∘ c) == identityCobordism b0  = True
+                    | otherwise                        = False
+        where b0 = cobordismBorder0 c
+              b1 = cobordismBorder1 c
+
+    delooping (Brd loops arcs) =
+        let cap0 = Cob (emptyHeader 1 0) $ MG $ M.singleton (capGuts 0) 1
+            cap1 = Cob (emptyHeader 1 0) $ MG $ M.singleton (capGuts 1) (1 / 2)
+            cup0 = transposeCobordism cap0
+            cup1 = transposeCobordism cap1
+
+            generate 0 cobs = cobs
+            generate n cobs =
+                generate (n - 1) $ do
+                    (a, b) <- cobs
+                    [(a ⊗ cap0, b ⊗ cup1), (a ⊗ cap1, b ⊗ cup0)]
+
+            delooped = Brd 0 arcs
+
+        in (delooped, V.fromList $ generate loops [(identityCobordism delooped, identityCobordism delooped)])
+
+
+type DottedCobordism' a = Cobordism' (ModuleGuts DottedGuts a)

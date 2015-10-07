@@ -1,3 +1,4 @@
+{-# LANGUAGE ScopedTypeVariables, FlexibleContexts #-}
 module Math.Topology.KnotTh.Cobordism.DottedCobordism.Test
     ( test
     ) where
@@ -11,23 +12,31 @@ import Math.Topology.KnotTh.Cobordism.DottedCobordism
 import Math.Topology.KnotTh.Cobordism.Test
 
 
-type Cob = DottedCobordism Integer
+type Cob = DottedCobordism' Integer
 
 test :: Test
 test = testGroup "Dotted cobordisms"
     [ generalCobordism3Tests (undefined :: Cob)
     , generalCannedCobordismTests (undefined :: Cob)
+    , generalDottedCobordismTests (undefined :: Cob) 2
+    ]
 
-    , let (=?~=) = (@?=) :: Cob -> Cob -> Assertion
-      in testGroup "Algebraic propeties"
+
+generalDottedCobordismTests :: forall cob. (DottedCobordism cob) => cob -> Int -> Test
+generalDottedCobordismTests _ torusValue =
+    let (=?~=) = (@?=) :: cob -> cob -> Assertion
+    in testGroup "Dotted cobordism tests"
         [ testCase "Sphere" $ do
             sphereCobordism =?~= 0
 
         , testCase "Torus" $ do
-            torusCobordism  =?~= 2
+            torusCobordism  =?~= fromIntegral torusValue
 
         , testProperty "Closed surface" $ \ genus ->
-            genus >= 0 ==> (surfOfGenusCobordism genus) == ((if genus == 1 then 2 else 0) :: Cob)
+            genus >= 0 ==> (surfOfGenusCobordism genus :: cob) ==
+                                case genus of
+                                    1 -> fromIntegral torusValue
+                                    _ -> 0
 
         , testCase "4Tu relation" $ do
             let cap = capCobordism
@@ -50,4 +59,3 @@ test = testGroup "Dotted cobordisms"
             (d ∘ f0) =?~= (0 ⊗ planarPropagator 1)
             ((f0 ∘ g0) + (h ∘ d)) =?~= (planarPropagator 1 ⊗ tubeCobordism)
         ]
-    ]
