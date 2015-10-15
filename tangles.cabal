@@ -48,7 +48,8 @@ library
         disjoint-set,
         IfElse,
         HaskellForMaths,
-        diagrams-lib ==1.2.*
+        diagrams >=1.3,
+        diagrams-lib >=1.3
     hs-source-dirs:     src
     c-sources:
         src/Math/Topology/KnotTh/SurfaceGraph/Embedding/Optimization.cpp
@@ -104,8 +105,6 @@ library
         Math.Topology.KnotTh.Tabulation.TangleStarGlue,
         Math.Topology.KnotTh.Tangle
     other-modules:
-        Math.Topology.KnotTh.Draw.DrawCrossing,
-        Math.Topology.KnotTh.Draw.Settings,
         Math.Topology.KnotTh.Invariants.HomflyPolynomial,
         Math.Topology.KnotTh.Invariants.KauffmanFPolynomial,
         Math.Topology.KnotTh.Invariants.KauffmanXPolynomial,
@@ -176,8 +175,7 @@ benchmark TangleGeneratorBenchmark
         base >=4.6,
         mtl,
         containers,
-        diagrams-lib ==1.2.*,
-        diagrams-svg,
+        diagrams-svg >=1.3,
         HUnit,
         tangles
     main-is:            TangleGeneratorBenchmark.hs

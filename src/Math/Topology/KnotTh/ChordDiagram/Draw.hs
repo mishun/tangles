@@ -36,15 +36,7 @@ defaultDraw =
         }
 
 
-styleBorder :: (HasStyle c, V c ~ R2) =>  DrawCDSettings -> c -> c
-styleBorder s = dashingL (borderDashing s) 0 . lwL (borderWidth s) . lc (borderColour s)
-
-
-styleLine :: (HasStyle c, V c ~ R2) =>  DrawCDSettings -> c -> c
-styleLine s = lwL (threadWidth s) . lc (threadColour s)
-
-
-drawCDInsideCircle :: (Renderable (Path R2) b, ChordDiagram cd) => DrawCDSettings -> cd -> Diagram b R2
+drawCDInsideCircle :: (ChordDiagram cd, N b ~ Double, V b ~ V2, Renderable (Path V2 Double) b) => DrawCDSettings -> cd -> Diagram b
 drawCDInsideCircle s cd =
     let p = numberOfChordEnds cd
         polar r a = (r * cos a, r * sin a)
@@ -56,14 +48,16 @@ drawCDInsideCircle s cd =
                 map (\ i -> translate (r2 $ polar 1 $ angle i) $ circle (endpointsRadius s)) [0 .. p - 1]
 
         when (borderWidth s > 0.0) $
-            tell $ styleBorder s $ circle 1
+            tell $ dashingL (borderDashing s) 0 $ lwL (borderWidth s) $ lc (borderColour s) $ circle 1
 
         let putArc a b =
                 let g = 0.5 * (b - a)
-                    c = polar (1 / cos g) (0.5 * (a + b))
-                in translate (r2 c) $ scale (tan g) $ arc ((b + pi / 2) @@ rad) ((a - pi / 2) @@ rad)
+                in translate (r2 $ polar (1 / cos g) (0.5 * (a + b))) $
+                    scale (tan g) $
+                        arc (rotate (b + pi / 2 @@ rad) xDir)
+                            (a - b + pi @@ rad)
 
-        tell $ styleLine s $ execWriter $
+        tell $ lwL (threadWidth s) $ lc (threadColour s) $ execWriter $
             forM_ [0 .. p - 1] $ \ !i ->
                 let j = chordMate cd i
                 in if | i > j                -> return ()
@@ -72,5 +66,5 @@ drawCDInsideCircle s cd =
                       | otherwise            -> tell $ putArc (angle i) (angle j)
 
 
-drawCDInsideCircleDef :: (Renderable (Path R2) b, ChordDiagram cd) => cd -> Diagram b R2
+drawCDInsideCircleDef :: (ChordDiagram cd, N b ~ Double, V b ~ V2, Renderable (Path V2 Double) b) => cd -> Diagram b
 drawCDInsideCircleDef = drawCDInsideCircle defaultDraw

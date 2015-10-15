@@ -1,3 +1,4 @@
+{-# LANGUAGE TypeFamilies #-}
 module Math.Topology.KnotTh.Moves.Test
     ( testMovesPictures
     ) where
@@ -10,7 +11,7 @@ import Math.Topology.KnotTh.Draw
 import Math.Topology.KnotTh.Moves.Moves
 
 
-testMovesPictures :: (Renderable (Path R2) b, Renderable Text b, Backend b R2) => [(String, Diagram b R2)]
+testMovesPictures :: (N b ~ Double, V b ~ V2, Renderable (Path V2 Double) b, Renderable (Text Double) b) => [(String, Diagram b)]
 testMovesPictures =
     let illustratedMove move knot =
             let draw = scale 4 . drawKnotDef
