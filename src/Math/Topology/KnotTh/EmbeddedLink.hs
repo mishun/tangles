@@ -535,10 +535,17 @@ splitIntoTangleAndStar link =
         (sp, star, _, _) = SG.sphereStarDecomposition g
 
         tangle =
-            let border = map endPair' $ outcomingDarts sp
+            let l = vertexDegree sp
+
+                tend d = case endPair' d of
+                            (0, p) -> (0, l - 1 - p)
+                            pair   -> pair
+
+                border = reverse $ map tend $ outcomingDarts sp
+
                 body = do
                     v <- tail $ allVertices $ vertexOwner sp
-                    return (map endPair' $ outcomingDarts v, vertexCrossing $ nthVertex link $ vertexIndex v)
+                    return (map tend $ outcomingDarts v, vertexCrossing $ nthVertex link $ vertexIndex v)
             in implode (numberOfFreeLoops link, border, body)
 
     in (tangle, star)

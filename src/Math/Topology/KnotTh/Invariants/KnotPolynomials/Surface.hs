@@ -36,14 +36,14 @@ homologyDecomposition link =
                                     if c
                                         then return hom
                                         else do
-                                            let d = nthOutcomingDart star i
-                                                i' = endPlace d
+                                            let d = nthOutcomingDart star (l - 1 - i)
+                                                i' = l - 1 - endPlace d
                                                 hom' = homology A.! d
                                             UMV.write visited i True
                                             UMV.write visited i' True
                                             loop (UV.zipWith (+) hom hom') (a UV.! i')
                                 ) (UV.replicate dim 0) start
-                            return $ max lp (UV.map (0 -) lp) : list
+                            return $ max lp (UV.map negate lp) : list
                 ) [] [0 .. l - 1]
 
         tokens = do

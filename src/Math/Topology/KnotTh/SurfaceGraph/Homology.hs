@@ -33,7 +33,7 @@ kernelBasis =
                                 (\ i row ->
                                     case i == y of
                                         True | pivot > 0 -> row
-                                             | otherwise -> UV.map (0 -) row
+                                             | otherwise -> UV.map negate row
                                         False            ->
                                             let pivot' = row UV.! x
                                             in UV.zipWith (\ l r -> l * pivot - r * pivot') row lead
@@ -68,6 +68,6 @@ cellularHomology graph =
         homology = A.array (dartsRange graph) $ do
             (i, (a, b)) <- [0 ..] `zip` allEdges graph
             let h = UV.generate dim $ \ j -> (basis V.! j) UV.! i
-            [(a, h), (b, UV.map (0 -) h)]
+            [(a, h), (b, UV.map negate h)]
 
     in (dim, homology)
