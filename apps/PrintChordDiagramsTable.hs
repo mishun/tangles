@@ -22,15 +22,14 @@ main = do
     putStrLn "n\t#\ttime\tdiagrams/s"
     forM_ [1 .. maxN] $ \ n -> do
         beginTime <- getCPUTime
-        let total :: Int
-            total = countChordDiagrams (generateNonPlanarRaw n)
+        let total = countChordDiagrams (generateNonPlanarRaw n) :: Int
         total `seq` return ()
         endTime <- getCPUTime
         let time = (fromInteger (endTime - beginTime) :: Double) / 1.0e12
         putStrLn $ printf "%i\t%i\t%f\t%f" n total time (realToFrac total / time)
 
         when draw $
-            renderSVG (printf "chord-diagrams-%i.svg" n) (Width 512) $ pad 1.05 $
-                vcat' with { _sep = 0.2 } $ do
+            renderSVG (printf "chord-diagrams-%i.svg" n) (mkSizeSpec $ V2 (Just 512) Nothing) $ pad 1.05 $
+                vsep 0.2 $ do
                     (cd, _) <- listChordDiagrams $ generateNonPlanarRaw n
                     return $ drawCDInsideCircleDef cd

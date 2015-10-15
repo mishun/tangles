@@ -199,7 +199,7 @@ main = do
         (const 1)
         (forM_ projections')
 
-    renderSVG (printf "torus-links-quads-%i.svg" maxN) (Width 500) $ pad 1.05 $
+    renderSVG (printf "torus-links-quads-%i.svg" maxN) (mkSizeSpec $ V2 (Just 512) Nothing) $ pad 1.05 $
         vcat' with { _sep = 0.5 } $ do
             linkGroup <- groupBy (on (==) numberOfVertices) quads
             return $ hcat' with { _sep = 0.4 } $ do

@@ -12,7 +12,7 @@ import Math.Topology.KnotTh.Draw
 main :: IO ()
 main = do
     [filePath, knotType, representation] <- getArgs
-    renderSVG filePath (Width 512) $ pad 1.05 $
+    renderSVG filePath (mkSizeSpec $ V2 (Just 512) Nothing) $ pad 1.05 $
         case knotType of
             "EmbeddedLinkDiagram"    -> drawKnotDef (implode (read representation) :: EmbeddedLinkDiagram)
             "EmbeddedLinkProjection" -> drawKnotDef (implode (read representation) :: EmbeddedLinkProjection)

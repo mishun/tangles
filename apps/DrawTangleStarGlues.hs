@@ -38,7 +38,7 @@ main = do
                     link = fromTangleAndStar cd $ transform g tangle
                 return (unrootedHomeomorphismInvariant link, (link, [(transform g tangle, cd)]))
 
-    renderSVG (printf "TangleStarGlues-%i-%i.svg" targetGenus maxN) (Width 512) $ pad 1.05 $
+    renderSVG (printf "TangleStarGlues-%i-%i.svg" targetGenus maxN) (mkSizeSpec $ V2 (Just 512) Nothing) $ pad 1.05 $
         vcat' with { _sep = 0.8 } $ do
             (link, gluings) <- makeDiagrams (forCCP_ $ primeProjections maxN)
             return $ hcat' with { _sep = 0.8 } $ ((drawKnotDef link ||| strutX 1) :) $ do
