@@ -112,8 +112,8 @@ rootCode' root dir =
         link = dartOwner root
         n = numberOfVertices link
 
-        codeWithGlobal global = UV.create $ do
-                index <- UMV.replicate (n + 1) 0
+        codeWithGlobal globalTrans = UV.create $ do
+                vertexIndex <- UMV.replicate (n + 1) 0
                 incoming <- UMV.replicate (n + 1) 0
                 queue <- MV.new n
                 free <- newSTRef 1
@@ -121,7 +121,7 @@ rootCode' root dir =
                 let {-# INLINE look #-}
                     look !d = do
                         let u = beginVertexIndex d
-                        ux <- UMV.unsafeRead index u
+                        ux <- UMV.unsafeRead vertexIndex u
                         if ux > 0
                             then do
                                 up <- UMV.unsafeRead incoming u
@@ -129,7 +129,7 @@ rootCode' root dir =
                             else do
                                 nf <- readSTRef free
                                 writeSTRef free $! nf + 1
-                                UMV.unsafeWrite index u nf
+                                UMV.unsafeWrite vertexIndex u nf
                                 UMV.unsafeWrite incoming u (beginPlace d)
                                 MV.unsafeWrite queue (nf - 1) d
                                 return $! nf `shiftL` 2
@@ -148,7 +148,7 @@ rootCode' root dir =
                             when (headI < tailI - 1) $ do
                                 input <- MV.unsafeRead queue headI
                                 void $ foldMIncomingDartsFrom input dir lookAndWrite (6 * headI + 3)
-                                case crossingCodeWithGlobal global dir input of
+                                case crossingCodeWithGlobal globalTrans dir input of
                                     (# be, le #) -> do
                                         UMV.unsafeWrite rc (6 * headI + 1) be
                                         UMV.unsafeWrite rc (6 * headI + 2) le
@@ -200,8 +200,8 @@ main = do
         (forM_ projections')
 
     renderSVG (printf "torus-links-quads-%i.svg" maxN) (mkSizeSpec $ V2 (Just 512) Nothing) $ pad 1.05 $
-        vcat' with { _sep = 0.5 } $ do
+        vsep 0.5 $ do
             linkGroup <- groupBy (on (==) numberOfVertices) quads
-            return $ hcat' with { _sep = 0.4 } $ do
+            return $ hsep 0.4 $ do
                 link <- linkGroup
                 return $ drawKnotDef link <> strutX 2 <> strutY 2

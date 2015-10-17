@@ -15,11 +15,11 @@ testMovesPictures :: (N b ~ Double, V b ~ V2, Renderable (Path V2 Double) b, Ren
 testMovesPictures =
     let illustratedMove move knot =
             let draw = scale 4 . drawKnotDef
-                right = hcat' with { _sep = 0.5 } $ map draw $ move knot
+                right = hsep 0.5 $ map draw $ move knot
             in draw knot ||| (strutX 8 <> text "->") ||| right
 
     in  [ ("PatternMatchingPass",
-            vcat' with { _sep = 0.5 } $ map (uncurry illustratedMove)
+            vsep 0.5 $ map (uncurry illustratedMove)
                 [ (searchMoves [pass1, pass2],
                     decodeCascadeCode [(WU, 0), (MO, 0)])
 
@@ -54,12 +54,12 @@ testMovesPictures =
                 ])
 
         , ("PatternMatchingFlype",
-            vcat' with { _sep = 0.5 } $ map (uncurry illustratedMove)
+            vsep 0.5 $ map (uncurry illustratedMove)
                 [ (searchMoves [flype], decodeCascadeCode [(XO, 0), (XU, 1)])
                 ])
 
         , ("PatternMatchingPerko",
-            vcat' with { _sep = 0.5 } $ map (uncurry illustratedMove)
+            vsep 0.5 $ map (uncurry illustratedMove)
                 [ (searchMoves [perko],
                     toTangle $ fromGaussCode [[-1, 2, 3, -4, 5, -6, -2, 7, -8, 9, 4, -3, -7, 1, 6, -5, -10, 8, -9, 10]])
 
@@ -96,7 +96,7 @@ testMovesPictures =
                 ])
 
         , ("PatternMatchingDoublePass",
-            vcat' with { _sep = 0.5 } $ map (uncurry illustratedMove)
+            vsep 0.5 $ map (uncurry illustratedMove)
                 [ (searchMoves [doublePass],
                     implode
                         ( 0
@@ -129,7 +129,7 @@ testMovesPictures =
                 ])
 
         , ("NewMove",
-            vcat' with { _sep = 0.5 } $ map (uncurry illustratedMove)
+            vsep 0.5 $ map (uncurry illustratedMove)
                 [ (searchMoves [flype, pass1, pass2, pass3, perko, doublePass],
                     implode
                         ( 0

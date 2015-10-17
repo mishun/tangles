@@ -59,8 +59,8 @@ main = do
 
     when (length (collisionClasses sifted) > 0) $
         renderSVG (printf "links-collisions-%i.svg" maxN) (mkSizeSpec $ V2 (Just 512) Nothing) $ pad 1.05 $
-            vcat' with { _sep = 0.5 } $ do
+            vsep 0.5 $ do
                 cls <- map (map representative) $ collisionClasses sifted
-                return $ hcat' with { _sep = 0.2 } $ do
+                return $ hsep 0.2 $ do
                     link <- cls
                     return $ drawKnotDef link
