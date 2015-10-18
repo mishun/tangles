@@ -57,6 +57,7 @@ library
     extra-libraries:    stdc++ gsl gslcblas
     include-dirs:       src/
     exposed-modules:
+        Math.Topology.KnotTh.Algebra.Homology,
         Math.Topology.KnotTh.ChordDiagram,
         Math.Topology.KnotTh.ChordDiagram.Draw,
         Math.Topology.KnotTh.ChordDiagram.Lyndon,
@@ -155,7 +156,6 @@ test-suite TestTangles
         Math.Topology.KnotTh.Cobordism.Test,
         Math.Topology.KnotTh.EmbeddedLink.Test,
         Math.Topology.KnotTh.Enumeration.Applied.Test,
-        Math.Topology.KnotTh.Invariants.KhovanovHomology.Test,
         Math.Topology.KnotTh.Invariants.Test,
         Math.Topology.KnotTh.Tabulation.Test,
         Math.Topology.KnotTh.Tangle.Test,

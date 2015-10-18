@@ -684,6 +684,7 @@ instance (ModuleCobordismGuts g, Integral a) => PreadditiveCobordism (Cobordism'
 class (CannedCobordism c, PreadditiveCobordism c, Show c, Show (CobordismBorder c)) => DottedCobordism c where
     isIsomorphism :: c -> Bool
     delooping     :: CobordismBorder c -> (CobordismBorder c, V.Vector (c, c))
+    applyTQFT     :: c -> Integer
 
 instance (Integral a, Show a) => DottedCobordism (Cobordism' (ModuleGuts DottedGuts a)) where
     -- TODO: prove/fix it
@@ -708,6 +709,13 @@ instance (Integral a, Show a) => DottedCobordism (Cobordism' (ModuleGuts DottedG
             delooped = Brd 0 arcs
 
         in (delooped, V.fromList $ generate loops [(identityCobordism delooped, identityCobordism delooped)])
+
+    applyTQFT (Cob h (MG m)) | legsN h > 0  = error "TQFT implemented for 0 legs only"
+                             | otherwise           =
+        case M.toList m of
+            []       -> 0
+            [(_, x)] -> fromIntegral x
+            _        -> error "TQFT: internal error"
 
 
 type DottedCobordism' a = Cobordism' (ModuleGuts DottedGuts a)

@@ -1,5 +1,6 @@
 module Math.Topology.KnotTh.Invariants.Test
     ( test
+    , testHard
     ) where
 
 #ifdef TESTING
@@ -18,6 +19,31 @@ import Math.Topology.KnotTh.Tangle
 import Math.Topology.KnotTh.Invariants
 #ifdef TESTING
 import Math.Topology.KnotTh.Invariants.Util.Poly
+#endif
+
+
+#ifdef TESTING
+testKauffmanFtoXRelation :: (String, LinkDiagram) -> Assertion
+testKauffmanFtoXRelation =
+    let z = monomial2 1 "z" 1
+        z' = monomial 1 "a" 1 + monomial 1 "a" (-1)
+
+        toKauffmanX (LMP.LP monomials) =
+            sum $ flip map monomials $ \ (LMP.LM m, f) ->
+                (fromIntegral f *) $ product $ flip map (M.toList m) $ \ (var, p) ->
+                    let x = case var of
+                            "a" | p >= 0    -> monomial (-1) "a" 3
+                                | otherwise -> monomial (-1) "a" (-3)
+                            "z"             -> z'
+                            _               -> undefined
+                    in x ^ abs (B.numeratorQ p)
+    in \ (name, link) ->
+        let kf = kauffmanFPolynomial link
+            kx = kauffmanXPolynomial link
+            n = numberOfVertices link -- To get rid of negative z exponents
+        in assertEqual (printf "on %s: %s vs %s" name (show kf) (show kx))
+                       (kx * (z' ^ n))
+                       (toKauffmanX $ kf * (z ^ n))
 #endif
 
 
@@ -197,57 +223,79 @@ test = testGroup "Invariants"
                 show (kauffmanFPolynomial t) @?= target
 
 #ifdef TESTING
-        , testGroup "Relation to Kauffman X polynomial" $
-            let testXRelation =
-                    let z = monomial2 1 "z" 1
-                        z' = monomial 1 "a" 1 + monomial 1 "a" (-1)
-
-                        toKauffmanX (LMP.LP monomials) =
-                            sum $ flip map monomials $ \ (LMP.LM m, f) ->
-                                (fromIntegral f *) $ product $ flip map (M.toList m) $ \ (var, p) ->
-                                    let x = case var of
-                                            "a" | p >= 0    -> monomial (-1) "a" 3
-                                                | otherwise -> monomial (-1) "a" (-3)
-                                            "z"             -> z'
-                                            _               -> undefined
-                                    in x ^ abs (B.numeratorQ p)
-                    in \ (name, link) ->
-                        let kf = kauffmanFPolynomial link
-                            kx = kauffmanXPolynomial link
-                            n = numberOfVertices link -- To get rid of negative z exponents
-                        in assertEqual (printf "on %s: %s vs %s" name (show kf) (show kx))
-                                       (kx * (z' ^ n))
-                                       (toKauffmanX $ kf * (z ^ n))
-
-            in  [ testCase "A few special knots" $
-                    mapM_ testXRelation
-                        [ ("right trefoil knot"     , rightTrefoilKnot     )
-                        , ("left trefoil knot"      , leftTrefoilKnot      )
-                        , ("figure eight knot"      , figureEightKnot      )
-                        , ("hopf link"              , hopfLink             )
-                        , ("solomon's seal knot"    , rightCinquefoilKnot  )
-                        , ("granny knot"            , grannyKnot           )
-                        , ("square knot"            , squareKnot           )
-                        , ("whitehead link"         , whiteheadLink        )
-                        , ("three-twist knot"       , threeTwistKnot       )
-                        , ("stevedore knot"         , stevedoreKnot        )
-                        , ("6_2 knot"               , knotTable 6 !! 1     )
-                        , ("6_3 kont"               , knotTable 6 !! 2     )
-                        , ("borromean rings"        , borromeanRingsLink   )
-                        , ("Conway knot"            , conwayKnot           )
-                        , ("Kinoshita-Terasaka knot", kinoshitaTerasakaKnot)
-                        ]
-
-                , testCase "Links from table" $
-                    mapM_ testXRelation $ do
-                        n <- [0 .. 10]
-                        l <- [0 .. n `div` 2]
-                        (link, i) <- linkTable n l `zip` [1 :: Int ..]
-                        return $! (printf "link %i^%i_%i" n l i, link)
+        , testCase "Relation to Kauffman X polynomial" $
+            mapM_ testKauffmanFtoXRelation
+                [ ("right trefoil knot"     , rightTrefoilKnot     )
+                , ("left trefoil knot"      , leftTrefoilKnot      )
+                , ("figure eight knot"      , figureEightKnot      )
+                , ("hopf link"              , hopfLink             )
+                , ("solomon's seal knot"    , rightCinquefoilKnot  )
+                , ("granny knot"            , grannyKnot           )
+                , ("square knot"            , squareKnot           )
+                , ("whitehead link"         , whiteheadLink        )
+                , ("three-twist knot"       , threeTwistKnot       )
+                , ("stevedore knot"         , stevedoreKnot        )
+                , ("6_2 knot"               , knotTable 6 !! 1     )
+                , ("6_3 knot"               , knotTable 6 !! 2     )
+                , ("borromean rings"        , borromeanRingsLink   )
+                , ("Conway knot"            , conwayKnot           )
+                , ("Kinoshita-Terasaka knot", kinoshitaTerasakaKnot)
                 ]
 #endif
 
         , testCase "Collision between Conway and Kinoshita-Terasaka knots" $
             kauffmanFPolynomial conwayKnot @?= kauffmanFPolynomial kinoshitaTerasakaKnot
         ]
+
+    , testGroup "Khovanov homology"
+        [ testCase "∂∘∂" $ do
+            mapM_ (\ tangle ->
+                    let kh = khovanovComplex tangle
+                    in assertBool (printf "∂∘∂ failed at: %s" (show tangle)) $ testComplexBorders kh
+                )
+                [ toTangle lonerOverCrossing
+                , toTangle lonerUnderCrossing
+                , toTangle $ rationalTangle [2]
+                , toTangle $ rationalTangle [3]
+                , toTangle $ rationalTangle [-2]
+                , toTangle $ rationalTangle [1, 2]
+                , toTangle $ rationalTangle [2, 1, 1]
+                , toTangle $ rationalTangle [-4]
+                , toTangle $ rationalTangle [2, 3, -1]
+                , toTangle leftTrefoilKnot
+                ]
+
+        , testCase "left trefoil knot" $
+            khovanovHomologyBetti (toTangle leftTrefoilKnot) @?= [(-3, 1), (-2, 1), (0, 2)]
+
+        , testCase "right trefoil knot" $
+            khovanovHomologyBetti (toTangle rightTrefoilKnot) @?= [(0, 2), (2, 1), (3, 1)]
+
+        , testCase "figure eight knot" $
+            khovanovHomologyBetti (toTangle figureEightKnot) @?= [(-2, 1), (-1, 1), (0, 2), (1, 1), (2, 1)]
+
+        , testCase "left cinquefoil knot" $
+            khovanovHomologyBetti (toTangle leftCinquefoilKnot) @?= [(-5, 1), (-4, 1), (-3, 1), (-2, 1), (0, 2)]
+
+        , testCase "three twist knot" $
+            khovanovHomologyBetti (toTangle threeTwistKnot) @?= [(-5, 1), (-4, 1), (-3, 1), (-2, 2), (-1, 1), (0, 2)]
+
+        , testCase "hopf link" $
+            khovanovHomologyBetti (toTangle hopfLink) @?= [(0, 2), (2, 2)]
+        ]
     ]
+
+
+testHard :: Test
+testHard =
+    testGroup "Invariants"
+        [
+#ifdef TESTING
+          testCase "Relation to Kauffman X polynomial on entire links table" $
+            mapM_ testKauffmanFtoXRelation $ do
+                n <- [0 .. 10]
+                l <- [0 .. n `div` 2]
+                (link, i) <- linkTable n l `zip` [1 :: Int ..]
+                return $! (printf "link %i^%i_%i" n l i, link)
+#endif
+        ]

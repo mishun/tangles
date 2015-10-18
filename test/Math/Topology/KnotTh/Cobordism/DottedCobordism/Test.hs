@@ -18,14 +18,14 @@ test :: Test
 test = testGroup "Dotted cobordisms"
     [ generalCobordism3Tests (undefined :: Cob)
     , generalCannedCobordismTests (undefined :: Cob)
-    , generalDottedCobordismTests (undefined :: Cob) 2
+    , barNatanConditionsTests (undefined :: Cob) 2
     ]
 
 
-generalDottedCobordismTests :: forall cob. (DottedCobordism cob) => cob -> Int -> Test
-generalDottedCobordismTests _ torusValue =
+barNatanConditionsTests :: forall cob. (DottedCobordism cob) => cob -> Int -> Test
+barNatanConditionsTests _ torusValue =
     let (=?~=) = (@?=) :: cob -> cob -> Assertion
-    in testGroup "Dotted cobordism tests"
+    in testGroup "Bar-Natan conditions"
         [ testCase "Sphere" $ do
             sphereCobordism =?~= 0
 

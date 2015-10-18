@@ -3,13 +3,15 @@ module Math.Topology.KnotTh.Invariants.KhovanovHomology
     ( module Math.Topology.KnotTh.Cobordism.DottedCobordism
     , KhovanovComplex(..)
     , testComplexBorders
-    , overCrossingComplex
-    , underCrossingComplex
     , khovanovComplex
+    , khovanovHomologyBetti
     ) where
 
+import Control.Monad (guard)
+import qualified Data.Array.Unboxed as A
 import qualified Data.Vector as V
 import Text.Printf
+import Math.Topology.KnotTh.Algebra.Homology
 import qualified Math.Topology.KnotTh.Cobordism.CobordismMatrix as M
 import Math.Topology.KnotTh.Cobordism.DottedCobordism
 import Math.Topology.KnotTh.PlanarAlgebra.Reduction
@@ -131,11 +133,18 @@ simplifyChain (Chain borders) = Chain $ goL 0 $ goE 0 borders
 stripChain :: (PreadditiveCobordism c) => BoundedChain c -> (Int, BoundedChain c)
 stripChain (Singl x) = (0, Singl x)
 stripChain (Chain chain) =
-    let dim = V.length chain
-        (zeroes, rest) = V.span ((== M.emptyVector) . cobordismBorder0) chain
-    in if V.length zeroes < dim
-        then (V.length zeroes, Chain $ V.force rest)
-        else error "zero chain"
+    let zeroL = (== M.emptyVector) . cobordismBorder0 . (chain V.!)
+        zeroR = (== M.emptyVector) . cobordismBorder1 . (chain V.!)
+
+        go !l !r | l > r      = let brd = M.toVector $ cobordismBorder1 $ chain V.! r
+                                in if V.length brd == 1
+                                    then (l, Singl $ V.head brd)
+                                    else error "zero chain bad case"
+                 | zeroL l    = go (l + 1) r
+                 | zeroR r    = go l (r - 1)
+                 | otherwise  = (l, Chain $ V.force $ V.slice l (r - l + 1) chain)
+
+    in go 0 (V.length chain - 1)
 
 
 data KhovanovComplex c =
@@ -204,3 +213,35 @@ khovanovComplex =
                     then overCrossingComplex
                     else underCrossingComplex
         )
+
+
+khovanovHomologyBetti :: TangleDiagram -> [(Int, Int)]
+khovanovHomologyBetti tangle =
+    let w = selfWritheArray tangle
+        nminus = length $ filter (< 0) $ map (w A.!) $ allVertices tangle
+        kh = khovanovComplex tangle
+    in case complexChain kh of
+        Singl _     -> [(1, chainOffset kh)]
+        Chain chain ->
+            let dim = V.length chain
+
+                borderTQFT m =
+                    let rows = M.numberOfRows m
+                        cols = M.numberOfCols m
+                    in V.generate rows $ \ row ->
+                        V.generate cols $ \ col ->
+                            applyTQFT $ m M.! (row, col)
+
+                smith = V.map (smithNormalForm . borderTQFT) chain
+
+                kerDim d | d == dim   = M.numberOfRows $ chain V.! (d - 1)
+                         | otherwise  = M.numberOfCols (chain V.! d) - V.length (smith V.! d)
+
+                imDim 0 = 0
+                imDim d = V.length $ smith V.! (d - 1)
+
+            in do
+                d <- [0 .. dim]
+                let betti = kerDim d - imDim d
+                guard $ betti > 0
+                return $! (d + chainOffset kh - nminus, betti)
