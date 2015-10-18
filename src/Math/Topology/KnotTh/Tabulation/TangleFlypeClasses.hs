@@ -5,13 +5,13 @@ module Math.Topology.KnotTh.Tabulation.TangleFlypeClasses
     , generateFlypeEquivalentInTriangle
     ) where
 
-import Data.Function (fix, on)
-import Data.Maybe (maybeToList)
-import Data.List (nubBy)
-import Data.Array ((!), (//), listArray)
-import Control.Monad.State.Strict (evalStateT, execStateT, get, put, lift)
 import Control.Arrow (first)
 import Control.Monad (forM_, when, guard)
+import Control.Monad.State.Strict (evalStateT, execStateT, get, put, lift)
+import Data.Function (fix, on)
+import Data.List (nubBy)
+import Data.Maybe (maybeToList)
+import qualified Data.Vector as V
 import Math.Topology.KnotTh.Dihedral.Dn
 import Math.Topology.KnotTh.Dihedral.D4 (fromDnSubGroup, subGroupD4)
 import Math.Topology.KnotTh.Knotted.Crossings.SubTangle
@@ -109,27 +109,27 @@ generateFlypeEquivalentDecomposition' triangle maxN yield = do
     let halfN = maxN `div` 2
 
     (finalFree, finalCrossings, rootList) <-
-        flip execStateT (0, listArray (1, halfN) $ repeat [], []) $
+        flip execStateT (0, V.replicate (halfN + 1) [], []) $
             let lonerSymmetry = maximumSubGroup 4
                 loner = makeSubTangle lonerProjection subGroupD4 NonDirectSumDecomposable 0
             in flip fix (lonerTangle loner, lonerSymmetry) $ \ growTree (rootTemplate, rootSymmetry) -> do
                 (!free, !prevCrossings, !prevList) <- get
                 let rootCrossing = buildCrossingType rootTemplate (fromDnSubGroup rootSymmetry) free
                 let rootN = numberOfCrossingVertices rootCrossing
-                let crossings = prevCrossings // [(rootN, rootCrossing : (prevCrossings ! rootN))]
+                let crossings = prevCrossings V.// [(rootN, rootCrossing : (prevCrossings V.! rootN))]
                 let root = lonerTangle rootCrossing
                 put (free + 1, crossings, ((root, rootSymmetry), crossings) : prevList)
 
                 let glueTemplates curN ancestor =
                         forM_ [1 .. halfN - curN] $ \ cn ->
-                            forM_ (templateDescendants True halfN (crossings ! cn) cn curN ancestor) $ \ child@(childTangle, _) ->
+                            forM_ (templateDescendants True halfN (crossings V.! cn) cn curN ancestor) $ \ child@(childTangle, _) ->
                                 case numberOfLegs childTangle of
                                     4 -> growTree $ first tangle4 child
                                     _ -> glueTemplates (curN + cn) child
 
                 let glueDirectSums curN ancestor =
                         forM_ [1 .. halfN - curN] $ \ cn ->
-                            forM_ (directSumDescendants (crossings ! cn) ancestor) $ \ child -> do
+                            forM_ (directSumDescendants (crossings V.! cn) ancestor) $ \ child -> do
                                 growTree child
                                 glueDirectSums (curN + cn) child
 
@@ -147,14 +147,14 @@ generateFlypeEquivalentDecomposition' triangle maxN yield = do
 
         let glueTemplates curN ancestor =
                 forM_ [1 .. min halfN (maxN - curN)] $ \ cn ->
-                    forM_ (templateDescendants triangle maxN (crossings ! cn) cn curN ancestor) $ \ child@(childTangle, childSymmetry) ->
+                    forM_ (templateDescendants triangle maxN (crossings V.! cn) cn curN ancestor) $ \ child@(childTangle, childSymmetry) ->
                         case numberOfLegs childTangle of
                             4 -> tree (curN + cn) $ first tangle4 child
                             _ -> lift (yield (childTangle, childSymmetry)) >> glueTemplates (curN + cn) child
 
         let glueDirectSums curN ancestor =
                 forM_ [1 .. min halfN (maxN - curN)] $ \ cn ->
-                    forM_ (directSumDescendants (crossings ! cn) ancestor) $ \ child -> do
+                    forM_ (directSumDescendants (crossings V.! cn) ancestor) $ \ child -> do
                         tree (curN + cn) child
                         glueDirectSums (curN + cn) child
 

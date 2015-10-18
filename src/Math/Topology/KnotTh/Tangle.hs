@@ -64,7 +64,6 @@ import Control.Monad (void, forM, forM_, when, foldM_, foldM, filterM, (>=>), gu
 import Control.Monad.IfElse (unlessM)
 import qualified Control.Monad.ST as ST
 import qualified Control.Monad.Reader as Reader
-import qualified Data.Array.Unboxed as A
 import Data.Bits ((.&.), complement, shiftL, shiftR)
 import Data.Char (isSpace)
 import Data.List (nub, sort, foldl', find)
@@ -501,7 +500,7 @@ instance KnottedDiagram Tangle where
         any (\ ab ->
                 let ba = opposite ab
                     ac = nextCCW ab
-                in (ac == ba) || (isDart ba && passOver ab == passOver ba && opposite ac == nextCW ba)
+                in (ac == ba) || (isDart ba && isPassingOver ab == isPassingOver ba && opposite ac == nextCW ba)
             ) . allOutcomingDarts
 
     tryReduceReidemeisterI tangle =  do
@@ -517,7 +516,7 @@ instance KnottedDiagram Tangle where
         abl <- find (\ abl ->
                 let bal = opposite abl
                     abr = nextCCW abl
-                in isDart bal && passOver abl == passOver bal && opposite abr == nextCW bal
+                in isDart bal && isPassingOver abl == isPassingOver bal && opposite abr == nextCW bal
             ) (allOutcomingDarts tangle)
 
         return $! modifyKnot tangle $ do
@@ -582,10 +581,10 @@ instance KnottedDiagram Tangle where
             c = beginVertex ca
 
         guard $ (a /= b) && (a /= c) && (b /= c)
-        guard $ passOver bc == passOver cb
+        guard $ isPassingOver bc == isPassingOver cb
 
-        guard $ let altRoot | passOver ab == passOver ba  = ca
-                            | otherwise                   = bc
+        guard $ let altRoot | isPassingOver ab == isPassingOver ba  = ca
+                            | otherwise                             = bc
                 in ab < altRoot
 
         let ap = threadContinuation ab
@@ -990,8 +989,8 @@ instance ModifyDSL Tangle where
             msk <- readMaskST st $ beginVertex d
             case msk of
                 Masked    -> fail $ printf "Tangle.passOverC: touching masked crossing when taking from %s" (show d)
-                Direct t  -> return $! passOver' t (beginPlace d)
-                Flipped t -> return $! passOver' t (3 - beginPlace d)
+                Direct t  -> return $! isPassingOver' t (beginPlace d)
+                Flipped t -> return $! isPassingOver' t (3 - beginPlace d)
 
     maskC crossings =
         withState $ \ !st ->
@@ -1311,12 +1310,12 @@ instance Surgery Tangle where
 twistedSatellite :: (Surgery k) => Int -> k DiagramCrossing -> k DiagramCrossing
 twistedSatellite n tangle = tensorSubst n wrap tangle
     where
-        w = selfWritheArray tangle
+        writhe = selfWrithe tangle
 
         wrap v | wc == 0    = cross
                | otherwise  = let half = reversingBraid n (overCrossingIf $ wc < 0)
                               in toTangle (promoteTangle n (3 * n) cross ∘ half ∘ half)
-            where wc = w A.! v
+            where wc = writhe v
                   cross = gridTangle (n, n) (const $ vertexCrossing v)
 
 

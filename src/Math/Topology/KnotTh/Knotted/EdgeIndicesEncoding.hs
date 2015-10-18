@@ -17,8 +17,8 @@ instance EdgeIndicesCrossing ProjectionCrossing where
 
 
 instance EdgeIndicesCrossing DiagramCrossing where
-    indexPlace d | passOver (nthOutcomingDart c 0)  = p
-                 | otherwise                        = (p - 1) `mod` 4
+    indexPlace d | isOverCrossing (vertexCrossing c)  = p
+                 | otherwise                          = (p - 1) `mod` 4
         where
             (c, p) = beginPair d
 

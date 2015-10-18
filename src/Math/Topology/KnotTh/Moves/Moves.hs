@@ -53,7 +53,7 @@ pass2 = makePattern False $ do
     ([a0, a1, a2, a3], _) <- crossingP
     ([b0, b1, b2, b3], _) <- crossingP
     connectionP [(a3, b1)]
-    guard $ passOver a3 == passOver b1
+    guard $ isPassingOver a3 == isPassingOver b1
 
     mplus
         (do
@@ -77,10 +77,10 @@ pass3 = makePattern False $ do
     ([a0, a1, a2, a3], _) <- crossingP
     ([b0, b1, b2, b3], _) <- crossingP
     connectionP [(a3, b1)]
-    guard $ passOver a3 == passOver b1
+    guard $ isPassingOver a3 == isPassingOver b1
     ([c0, c1, c2, c3], _) <- crossingP
     connectionP [(b3, c1)]
-    guard $ passOver b3 == passOver c1
+    guard $ isPassingOver b3 == isPassingOver c1
 
     mplus
         (do
@@ -107,7 +107,7 @@ perko = makePattern True $ do
     ([b0, b1, b2, b3], _) <- crossingP
     ([c0, c1, _, c3], c) <- crossingP
     connectionP [(a0, b0), (b1, c0)]
-    guard $ (passOver a0 == passOver b0) && (passOver b1 == passOver c0)
+    guard $ (isPassingOver a0 == isPassingOver b0) && (isPassingOver b1 == isPassingOver c0)
 
     ([x0, x1, x2, x3, x4, x5], x) <- subTangleP 6
     connectionP [(a1, x0), (b3, x1), (b2, x2), (c3, x3)]
@@ -115,12 +115,12 @@ perko = makePattern True $ do
     ([y0, y1, y2, y3], _) <- subTangleP 4
     ([d0, d1, d2, d3], _) <- crossingP
     connectionP [(d2, x4), (y3, x5), (y0, d1), (y1, d0)]
-    guard $ passOver d0 == passOver a0
+    guard $ isPassingOver d0 == isPassingOver a0
 
     reconnectP $ do
         substituteC [(b1, a3), (b2, c1), (d1, y2), (y0, d3)]
         connectC [(a3, b0), (b3, c1), (y2, d3), (d2, x4), (a1, x3), (a0, x2), (c0, x1), (c3, x0)]
-        modifyC False invertCrossing [a, c]
+        modifyC False flipCrossing [a, c]
         modifyC True id x
 
 
@@ -129,13 +129,13 @@ doublePass = makePattern True $ do
     ([a0, a1, a2, a3], _) <- crossingP
     ([b0, b1, b2, b3], _) <- crossingP
     connectionP [(a0, b0)]
-    guard $ passOver a0 == passOver b0
+    guard $ isPassingOver a0 == isPassingOver b0
     ([c0, c1, c2, c3], _) <- crossingP
     connectionP [(b1, c1)]
-    guard $ passOver b1 /= passOver c1
+    guard $ isPassingOver b1 /= isPassingOver c1
     ([d0, d1, d2, d3], _) <- crossingP
     connectionP [(c0, d0)]
-    guard $ passOver c0 == passOver d0
+    guard $ isPassingOver c0 == isPassingOver d0
 
     ([x0, x1, x2, x3, x4, x5], _) <- subTangleP 6
     connectionP [(x0, c3), (x1, c2), (x2, a3), (x3, a2)]

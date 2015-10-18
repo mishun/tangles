@@ -345,7 +345,7 @@ instance KnottedDiagram EmbeddedLink where
         any (\ ab ->
                 let ba = opposite ab
                     ac = nextCCW ab
-                in (ac == ba) || (passOver ab == passOver ba && opposite ac == nextCW ba)
+                in (ac == ba) || (isPassingOver ab == isPassingOver ba && opposite ac == nextCW ba)
             ) . allOutcomingDarts
 
     tryReduceReidemeisterI link = do
@@ -362,7 +362,7 @@ instance KnottedDiagram EmbeddedLink where
                 let bal = opposite abl
                     abr = nextCCW abl
                     bar = nextCW bal
-                in passOver abl == passOver bal
+                in isPassingOver abl == isPassingOver bal
                     && abr == opposite bar
                     && beginVertex abl /= beginVertex bal
             ) (allOutcomingDarts link)
@@ -419,9 +419,9 @@ instance KnottedDiagram EmbeddedLink where
             c = beginVertex ca
 
         guard $ (a /= b) && (a /= c) && (b /= c)
-        guard $ passOver bc == passOver cb
+        guard $ isPassingOver bc == isPassingOver cb
 
-        guard $ let altRoot | passOver ab == passOver ba  = ca
+        guard $ let altRoot | isPassingOver ab == isPassingOver ba  = ca
                             | otherwise                   = bc
                 in ab < altRoot
 
@@ -622,7 +622,7 @@ testLayering link | numberOfFreeLoops link > 0  = False
 
             forM_ (snd $ fromJust $ find ((== u) . fst) threads) $ \ (_, d) -> do
                 let v = abs (marks A.! nextCCW d)
-                when (passUnder d && v /= u) $ do
+                when (isPassingUnder d && v /= u) $ do
                     do
                         vlw <- STArray.readArray lowlink v
                         unless (vlw > 0) $ dfs v
@@ -915,8 +915,8 @@ instance ModifyDSL EmbeddedLink where
             msk <- MV.read (stateMask s) $ vertexIndex $ beginVertex d
             case msk of
                 Masked    -> fail "EmbeddedLink.passOverC: touching masked crossing when taking from %s" (show d)
-                Direct  t -> return $! passOver' t (beginPlace d)
-                Flipped t -> return $! passOver' t (3 - beginPlace d)
+                Direct  t -> return $! isPassingOver' t (beginPlace d)
+                Flipped t -> return $! isPassingOver' t (3 - beginPlace d)
 
     maskC crossings =
         withState $ \ !s ->

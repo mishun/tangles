@@ -196,7 +196,7 @@ instance (KauffmanXArg a) => SkeinRelation KauffmanXStateSum a where
     finalNormalization tangle =
         let factor =
                 let writheFactor =
-                        let w = selfWrithe tangle
+                        let w = totalSelfWrithe tangle
                         in (if w <= 0 then -aFactor else -bFactor) ^ abs (3 * w)
                     loopsFactor = loopFactor ^ numberOfFreeLoops tangle
                 in writheFactor * loopsFactor

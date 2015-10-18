@@ -19,6 +19,8 @@ module Math.Topology.KnotTh.Link
     , fromGaussCode
     , linkTable
     , knotTable
+    , linkT
+    , knotT
     , unlink
     , unknot
     , singleCrossingUnknot
@@ -188,7 +190,7 @@ fromDTCode code =
 
 toGaussCode :: LinkDiagram -> [[Int]]
 toGaussCode link =
-    let encode d = vertexIndex (beginVertex d) * (if passOver d then 1 else -1)
+    let encode d = vertexIndex (beginVertex d) * (if isPassingOver d then 1 else -1)
     in map (map (encode . snd)) $ allThreads link
 
 
@@ -339,6 +341,14 @@ knotTable :: Int -> [LinkDiagram]
 knotTable cross = linkTable cross 1
 
 
+knotT :: Int -> Int -> LinkDiagram
+knotT cross n = knotTable cross !! (n - 1)
+
+
+linkT :: Int -> Int -> Int -> LinkDiagram
+linkT cross comps n = linkTable cross comps !! (n - 1)
+
+
 unlink :: Int -> LinkDiagram
 unlink k | k < 0      = error $ printf "unlink: number of components %i is negative" k
          | otherwise  = implode (k, [])
@@ -353,35 +363,35 @@ singleCrossingUnknot = fromGaussCode [[1, -1]]
 
 
 hopfLink :: LinkDiagram
-hopfLink = fromDTCode [[4], [2]]
+hopfLink = linkT 2 2 1
 
 
 leftTrefoilKnot :: LinkDiagram
-leftTrefoilKnot = invertCrossings rightTrefoilKnot
+leftTrefoilKnot = flipCrossings rightTrefoilKnot
 
 
 rightTrefoilKnot :: LinkDiagram
-rightTrefoilKnot = fromDTCode [[4, 6, 2]]
+rightTrefoilKnot = knotT 3 1
 
 
 figureEightKnot :: LinkDiagram
-figureEightKnot = fromDTCode [[4, 6, 8, 2]]
+figureEightKnot = knotT 4 1
 
 
 leftCinquefoilKnot :: LinkDiagram
-leftCinquefoilKnot = invertCrossings rightCinquefoilKnot
+leftCinquefoilKnot = flipCrossings rightCinquefoilKnot
 
 
 rightCinquefoilKnot :: LinkDiagram
-rightCinquefoilKnot = fromDTCode [[6, 8, 10, 2, 4]]
+rightCinquefoilKnot = knotT 5 1
 
 
 threeTwistKnot :: LinkDiagram
-threeTwistKnot = invertCrossings $ fromDTCode [[4, 8, 10, 2, 6]]
+threeTwistKnot = flipCrossings $ knotT 5 2
 
 
 whiteheadLink :: LinkDiagram
-whiteheadLink = fromGaussCode [[-1, 4, -5, 3], [-3, 1, -2, 5, -4, 2]]
+whiteheadLink = linkT 5 2 1
 
 
 grannyKnot :: LinkDiagram
@@ -393,16 +403,16 @@ squareKnot = fromGaussCode [[1, -2, 3, -1, 2, -3, -4, 5, -6, 4, -5, 6]]
 
 
 stevedoreKnot :: LinkDiagram
-stevedoreKnot = invertCrossings $ fromDTCode [[4, 8, 12, 10, 2, 6]]
+stevedoreKnot = flipCrossings $ knotT 6 1
 
 
 borromeanRingsLink :: LinkDiagram
-borromeanRingsLink = fromGaussCode [[1, -6, 5, -3], [4, -1, 2, -5], [6, -4, 3, -2]]
+borromeanRingsLink = linkT 6 3 2
 
 
 conwayKnot :: LinkDiagram
-conwayKnot = invertCrossings $ fromDTCode [[4, 8, 12, 2, -16, -18, 6, -20, -22, -14, -10]]
+conwayKnot = flipCrossings $ fromDTCode [[4, 8, 12, 2, -16, -18, 6, -20, -22, -14, -10]]
 
 
 kinoshitaTerasakaKnot :: LinkDiagram
-kinoshitaTerasakaKnot = invertCrossings $ fromDTCode [[4, 8, 12, 2, -18, -20, 6, -10, -22, -14, -16]]
+kinoshitaTerasakaKnot = flipCrossings $ fromDTCode [[4, 8, 12, 2, -18, -20, 6, -10, -22, -14, -16]]

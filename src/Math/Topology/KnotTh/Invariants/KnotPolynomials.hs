@@ -23,8 +23,7 @@ class (Functor f, PlanarAlgebra (f p)) => SkeinRelation f p where
 reduceSkein :: (SkeinRelation f p) => TangleDiagram -> f p
 reduceSkein =
     reduceWithDefaultStrategy
-        (\ v -> let d = nthOutcomingDart v 0
-                in if passOver d
+        (\ v -> if isOverCrossing $ vertexCrossing v
                     then skeinLPlus
                     else skeinLMinus
         )
@@ -38,12 +37,12 @@ skeinRelationPostMinimization invariant tangle = minimum $ do
 
 skeinRelationMidMinimization :: (Ord (f p), MirrorAction (f p), SkeinRelation f p) => (TangleDiagram -> f p) -> TangleDiagram -> f p
 skeinRelationMidMinimization invariant tangle = minimum $ do
-    p <- map invariant [tangle, invertCrossings tangle]
+    p <- map invariant [tangle, flipCrossings tangle]
     allOrientationsOf p
 
 
 skeinRelationPreMinimization :: (Ord (f p), SkeinRelation f p) => (TangleDiagram -> f p) -> TangleDiagram -> f p 
 skeinRelationPreMinimization invariant tangle = minimum $ do
-    inv <- [id, invertCrossings]
+    inv <- [id, flipCrossings]
     tangle' <- allOrientationsOf tangle
     return $ invariant $ inv tangle'

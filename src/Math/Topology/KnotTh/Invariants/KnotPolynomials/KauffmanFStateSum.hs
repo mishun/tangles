@@ -4,7 +4,7 @@ module Math.Topology.KnotTh.Invariants.KnotPolynomials.KauffmanFStateSum
     ) where
 
 import Control.DeepSeq
-import Data.Array (Array, (!), array)
+import qualified Data.Array as A
 import Data.Function (on)
 import Data.List (intercalate, foldl')
 import qualified Data.Map as M
@@ -146,8 +146,8 @@ irregularCrossings tangle =
     let ((_, _, threads), _) = threadsWithLinkingNumbers tangle
 
         expectedPassOver =
-            let tags :: Array TangleDiagramDart ThreadTag
-                tags = array (dartsRange tangle) $ do
+            let tags :: A.Array TangleDiagramDart ThreadTag
+                tags = A.array (dartsRange tangle) $ do
                     (tid, thread) <- threads
                     let make = case thread of
                             []                     -> error "internal error"
@@ -166,18 +166,18 @@ irregularCrossings tangle =
                     | haveIntersection a b  = canonicalOver n a b
                     | otherwise             = a < b
 
-            in \ d -> on (tagPassOver $ numberOfLegs tangle) (tags !) d (nextCCW d)
+            in \ d -> on (tagPassOver $ numberOfLegs tangle) (tags A.!) d (nextCCW d)
 
     in filter (\ c ->
             let d0 = nthOutcomingDart c 0
-            in passOver d0 /= expectedPassOver d0
+            in isPassingOver d0 /= expectedPassOver d0
        ) $ allVertices tangle
 
 
 decomposeTangle :: (KauffmanFArg a) => [(Int, [(Int, Int)], [([(Int, Int)], DiagramCrossing)])] -> a -> TangleDiagram -> ChordDiagramsSum a
 decomposeTangle path !initialFactor !tangle' =
     let splices [] toInvert factor inter =
-            let tangle = modifyKnot tangle' $ modifyC False invertCrossing toInvert
+            let tangle = modifyKnot tangle' $ modifyC False flipCrossing toInvert
 
                 (n, _, threads) = allThreadsWithMarks tangle
 
@@ -193,11 +193,11 @@ decomposeTangle path !initialFactor !tangle' =
             in {- (if length path >= 10 then trace (show $ explode tangle' : path) else id) $ -}
                     (: map (uncurry $ decomposeTangle (explode tangle' : path)) inter) $
                         singletonStateSum $ ChordDiagram a $
-                            factor * twistFactor (selfWrithe tangle) * loopFactor ^ (n - numberOfLegs tangle `div` 2)
+                            factor * twistFactor (totalSelfWrithe tangle) * loopFactor ^ (n - numberOfLegs tangle `div` 2)
 
         splices (h : r) toInvert factor inter =
-            let a = (factor * smoothFactor, modifyKnot tangle' $ modifyC False invertCrossing toInvert >> smoothA h >> greedy [reduce2nd])
-                b = (factor * smoothFactor, modifyKnot tangle' $ modifyC False invertCrossing toInvert >> smoothB h >> greedy [reduce2nd])
+            let a = (factor * smoothFactor, modifyKnot tangle' $ modifyC False flipCrossing toInvert >> smoothA h >> greedy [reduce2nd])
+                b = (factor * smoothFactor, modifyKnot tangle' $ modifyC False flipCrossing toInvert >> smoothB h >> greedy [reduce2nd])
             in splices r (h : toInvert) (-factor) (a : b : inter)
 
     in concatStateSums $ splices (irregularCrossings tangle') [] initialFactor []
@@ -245,7 +245,7 @@ instance (KauffmanFArg a) => SkeinRelation ChordDiagramsSum a where
             ]
 
     finalNormalization tangle =
-        let factor = twistFactor (-selfWrithe tangle) * loopFactor ^ numberOfFreeLoops tangle
+        let factor = twistFactor (-totalSelfWrithe tangle) * loopFactor ^ numberOfFreeLoops tangle
         in fmap (* factor)
 
     invertCrossingsAction = fmap swapTwists

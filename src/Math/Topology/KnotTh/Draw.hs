@@ -139,7 +139,7 @@ instance DrawableCrossing DiagramCrossing where
     crossingDependentSegmentation s knot embedding = do
         thread <- filter (not . null) $ allThreads knot
         cutThread thread embedding
-            (\ d -> isDart d && passUnder d)
+            (\ d -> isDart d && isPassingUnder d)
             (\ (a, b) chain ->
                 let n = length chain
 

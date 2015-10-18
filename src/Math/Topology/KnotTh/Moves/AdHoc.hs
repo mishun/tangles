@@ -149,7 +149,7 @@ instance AdHocMoves Tangle where
                     , do
                         guard $ isDart ph
                         let pa' = nextCW ph
-                        guard $ passOver pa' == passOver tb && pa' /= tb
+                        guard $ isPassingOver pa' == isPassingOver tb && pa' /= tb
                         guard $ pa' /= head incoming
                         tryPass (n + 1) pa' tb (opposite pa' : incoming)
                     ]
@@ -240,7 +240,7 @@ weak tangle = neighboursBorderCrossing ++ neighboursBorderLoop
 
                 guard $ yb == opposite by
                 guard $ abl == opposite bal
-                guard $ passOver ax /= passOver by
+                guard $ isPassingOver ax /= isPassingOver by
 
                 return $! modifyKnot tangle $ do
                     substituteC [(abl, ap), (bal, bq)]

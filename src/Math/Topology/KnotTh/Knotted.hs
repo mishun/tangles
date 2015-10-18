@@ -10,6 +10,7 @@ module Math.Topology.KnotTh.Knotted
     , forMIncomingDarts
     , foldMIncomingDarts
     , foldMIncomingDartsFrom
+    , flipCrossings
     ) where
 
 import Data.Bits ((.&.))
@@ -20,6 +21,7 @@ import Math.Topology.KnotTh.Dihedral.D4
 
 
 class (RotationAction a, MirrorAction a, GroupAction D4 a) => Crossing a where
+    flipCrossing           :: a -> a
     globalTransformations  :: (Knotted k) => k a -> Maybe [D4]
     crossingCode           :: (Knotted k) => RotationDirection -> Dart k a -> (# Int, Int #)
     crossingCodeWithGlobal :: (Knotted k) => D4 -> RotationDirection -> Dart k a -> (# Int, Int #)
@@ -96,3 +98,7 @@ foldMIncomingDarts c f = foldMOutcomingDarts c (f . opposite)
 {-# INLINE foldMIncomingDartsFrom #-}
 foldMIncomingDartsFrom :: (Monad m, Knotted k) => Dart k a -> RotationDirection -> (Dart k a -> s -> m s) -> s -> m s
 foldMIncomingDartsFrom dart direction f = foldMOutcomingDartsFrom dart direction (f . opposite)
+
+
+flipCrossings :: (Knotted k, Crossing a) => k a -> k a
+flipCrossings = fmap flipCrossing

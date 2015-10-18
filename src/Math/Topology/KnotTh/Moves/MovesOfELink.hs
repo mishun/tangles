@@ -120,7 +120,7 @@ connectionP = mapM_ (\ (a, b) -> guard (opposite a == b))
 
 
 connectionNonAltP :: [(EmbeddedLinkDiagramDart, EmbeddedLinkDiagramDart)] -> PatternM s DiagramCrossing ()
-connectionNonAltP = mapM_ (\ (a, b) -> guard (opposite a == b && passOver a == passOver b))
+connectionNonAltP = mapM_ (\ (a, b) -> guard (opposite a == b && isPassingOver a == isPassingOver b))
 
 
 reconnectP :: (Show a) => (forall s. ModifyM EmbeddedLink a s ()) -> PatternM s' a (EmbeddedLink a)
@@ -231,7 +231,7 @@ handleFlype :: PatternM s DiagramCrossing EmbeddedLinkDiagram
 handleFlype = do
     ([a0, a1, a2, a3], _) <- crossingP
     ([b0, b1, b2, b3], _) <- crossingP
-    guard $ passOver a0 == passOver b0
+    guard $ isPassingOver a0 == isPassingOver b0
 
     ([x0, x1, x2, x3, x4, x5], sub) <- subTangleP 6
     connectionP [(a0, x1), (a3, x2), (a1, x3), (b0, x5), (b1, x4), (b2, x0)]

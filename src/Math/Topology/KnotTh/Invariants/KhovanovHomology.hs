@@ -8,7 +8,6 @@ module Math.Topology.KnotTh.Invariants.KhovanovHomology
     ) where
 
 import Control.Monad (guard)
-import qualified Data.Array.Unboxed as A
 import qualified Data.Vector as V
 import Text.Printf
 import Math.Topology.KnotTh.Algebra.Homology
@@ -208,8 +207,7 @@ underCrossingComplex =
 khovanovComplex :: TangleDiagram -> KhovanovComplex (DottedCobordism' Integer)
 khovanovComplex =
     reduceWithDefaultStrategy
-        (\ v -> let d = nthOutcomingDart v 0
-                in if passOver d
+        (\ v -> if isOverCrossing $ vertexCrossing v
                     then overCrossingComplex
                     else underCrossingComplex
         )
@@ -217,8 +215,8 @@ khovanovComplex =
 
 khovanovHomologyBetti :: TangleDiagram -> [(Int, Int)]
 khovanovHomologyBetti tangle =
-    let w = selfWritheArray tangle
-        nminus = length $ filter (< 0) $ map (w A.!) $ allVertices tangle
+    let writhe = selfWrithe tangle
+        nminus = length $ filter (< 0) $ map writhe $ allVertices tangle
         kh = khovanovComplex tangle
     in case complexChain kh of
         Singl _     -> [(1, chainOffset kh)]

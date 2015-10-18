@@ -67,7 +67,7 @@ instance KnottedWithKauffmanXPolynomial EmbeddedLink where
                 return $ weight * (loopFactor ^ length trivial) * monomial 1 "x" (fromIntegral $ length nonTrivial)
 
     minimalKauffmanXPolynomial link =
-        min (kauffmanXPolynomial link) (kauffmanXPolynomial $ invertCrossings link)
+        min (kauffmanXPolynomial link) (kauffmanXPolynomial $ flipCrossings link)
 
 
 class (KnottedWithKauffmanXPolynomial k) => KnottedWithJonesPolynomial k where

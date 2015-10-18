@@ -26,12 +26,11 @@ testNo2ndReidemeisterReduction :: DiagramCrossing -> TangleDiagramDart -> Int ->
 testNo2ndReidemeisterReduction cr leg gl =
     let legs = take gl $ iterate nextCW leg
         test (i, a, b)
-            | isLeg a' || isLeg b' || beginVertex a' /= beginVertex b'                  = True
-            | (passOver a' == passOver' cr i) && (passOver b' == passOver' cr (i + 1))  = False
-            | otherwise                                                                 = True
-            where
-                a' = opposite a
-                b' = opposite b
+            | isLeg a' || isLeg b' || beginVertex a' /= beginVertex b'                                      = True
+            | (isPassingOver a' == isPassingOver' cr i) && (isPassingOver b' == isPassingOver' cr (i + 1))  = False
+            | otherwise                                                                                     = True
+            where a' = opposite a
+                  b' = opposite b
     in all test $ zip3 [0 ..] legs (tail legs)
 
 
