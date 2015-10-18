@@ -265,6 +265,12 @@ test = testGroup "Invariants"
                 , toTangle leftTrefoilKnot
                 ]
 
+        , testCase "unknot" $ do
+            khovanovHomologyBetti (toTangle unknot) @?= [(0, 1)]
+
+        , testCase "unknot 8" $ do
+            khovanovHomologyBetti (toTangle singleCrossingUnknot) @?= [(0, 1)]
+
         , testCase "left trefoil knot" $
             khovanovHomologyBetti (toTangle leftTrefoilKnot) @?= [(-3, 1), (-2, 1), (0, 2)]
 
@@ -282,6 +288,9 @@ test = testGroup "Invariants"
 
         , testCase "hopf link" $
             khovanovHomologyBetti (toTangle hopfLink) @?= [(0, 2), (2, 2)]
+
+        , testCase "borromean rings" $
+            khovanovHomologyBetti (toTangle borromeanRingsLink) @?= [(0, 1), (1, 3), (2, 2), (3, 8), (4, 2), (5, 3), (6, 1)]
         ]
     ]
 

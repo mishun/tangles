@@ -219,7 +219,7 @@ khovanovHomologyBetti tangle =
         nminus = length $ filter (< 0) $ map writhe $ allVertices tangle
         kh = khovanovComplex tangle
     in case complexChain kh of
-        Singl _     -> [(1, chainOffset kh)]
+        Singl _     -> [(chainOffset kh - nminus, 1)]
         Chain chain ->
             let dim = V.length chain
 
