@@ -55,7 +55,7 @@ glueChains gl (Chain a, posA) (Chain b, posB) =
                     let (pa, pb) = coords (d + 1) w
                     in horizontalComposition gl (layerA pa, posA) (layerB pb, posB)
 
-        in M.flatten $ M.generate cols rows $ \ row col ->
+        in M.flatten $ M.matrix cols rows $ \ row col ->
             let (pa0, pb0) = coords d col
                 (pa1, pb1) = coords (d + 1) row
             in if | pb1 == pb0             -> horizontalComposition gl (a V.! pa0, posA) (identityCobordism $ layerB pb0, posB)
@@ -110,7 +110,7 @@ simplifyChain (Chain borders) = Chain $ goL 0 $ goE 0 borders
                     let cols = M.toVector $ cobordismBorder0 m
                         rows = let v = M.toVector $ cobordismBorder1 m
                                in V.take loopPos v V.++ V.replicate newLines delooped V.++ V.drop (loopPos + 1) v
-                    in M.generate cols rows $ \ row col ->
+                    in M.matrix cols rows $ \ row col ->
                         if | row < loopPos             -> m M.! (row, col)
                            | row >= loopPos + newLines -> m M.! (row - newLines + 1, col)
                            | otherwise                 -> fst (pairs V.! (row - loopPos)) ∘ (m M.! (loopPos, col))
@@ -119,7 +119,7 @@ simplifyChain (Chain borders) = Chain $ goL 0 $ goE 0 borders
                     let rows = M.toVector $ cobordismBorder1 m
                         cols = let v = M.toVector $ cobordismBorder0 m
                                in V.take loopPos v V.++ V.replicate newLines delooped V.++ V.drop (loopPos + 1) v
-                    in M.generate cols rows $ \ row col ->
+                    in M.matrix cols rows $ \ row col ->
                         if | col < loopPos             -> m M.! (row, col)
                            | col >= loopPos + newLines -> m M.! (row, col - newLines + 1)
                            | otherwise                 -> (m M.! (row, loopPos)) ∘ snd (pairs V.! (col - loopPos))

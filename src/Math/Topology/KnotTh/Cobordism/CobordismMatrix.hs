@@ -8,7 +8,7 @@ module Math.Topology.KnotTh.Cobordism.CobordismMatrix
     , removeRow
     , removeCol
     , minor
-    , generate
+    , matrix
     , findIndex
     , emptyVector
     , toVector
@@ -25,7 +25,7 @@ import Math.Topology.KnotTh.PlanarAlgebra
 data (Cobordism c) => CobordismMatrix c =
     CM  { object0 :: !(V.Vector (CobordismBorder c))
         , object1 :: !(V.Vector (CobordismBorder c))
-        , matrix  :: !(V.Vector c)
+        , vector  :: !(V.Vector c)
         }
 
 deriving instance (Cobordism c, Eq c) => Eq (CobordismMatrix c)
@@ -35,7 +35,7 @@ deriving instance (Cobordism c, Show (CobordismBorder c)) => Show (CobordismBord
 
 
 checkMatrix :: (Cobordism c) => CobordismMatrix c -> CobordismMatrix c
-checkMatrix m | V.length (matrix m) /= numberOfRows m * numberOfCols m  = error "bad size"
+checkMatrix m | V.length (vector m) /= numberOfRows m * numberOfCols m  = error "bad size"
               | not ok                                                  = error "bad content"
               | otherwise                                               = m
     where ok = and $ do
@@ -59,7 +59,7 @@ singleton :: (Cobordism c) => c -> CobordismMatrix c
 singleton c =
     CM  { object0 = V.singleton (cobordismBorder0 c)
         , object1 = V.singleton (cobordismBorder1 c)
-        , matrix  = V.singleton c
+        , vector  = V.singleton c
         }
 
 
@@ -67,7 +67,7 @@ singleton c =
 (!) :: (Cobordism c) => CobordismMatrix c -> (Int, Int) -> c
 (!) m (row, col) | row < 0 || row >= rows  = error $ printf "CobordismMatrix.(!): row index %i is out of bounds [0, %i)" row rows
                  | col < 0 || col >= cols  = error $ printf "CobordismMatrix.(!): col index %i is out of bounds [0, %i)" col cols
-                 | otherwise               = matrix m V.! (cols * row + col)
+                 | otherwise               = vector m V.! (cols * row + col)
     where rows = numberOfRows m
           cols = numberOfCols m
 
@@ -77,7 +77,7 @@ removeRow row m | row < 0 || row >= rows  = error $ printf "CobordismMatrix.remo
                 | otherwise               =
                     CM  { object0 = object0 m
                         , object1 = V.take row (object1 m) V.++ V.drop (row + 1) (object1 m)
-                        , matrix  = V.ifilter (\ !i !_ -> i `div` cols /= row) (matrix m)
+                        , vector  = V.ifilter (\ !i !_ -> i `div` cols /= row) (vector m)
                         }
     where rows = numberOfRows m
           cols = numberOfCols m
@@ -88,7 +88,7 @@ removeCol col m | col < 0 || col >= cols  = error $ printf "CobordismMatrix.remo
                 | otherwise               =
                     CM  { object0 = V.take col (object0 m) V.++ V.drop (col + 1) (object0 m)
                         , object1 = object1 m
-                        , matrix  = V.ifilter (\ !i !_ -> i `mod` cols /= col) (matrix m)
+                        , vector  = V.ifilter (\ !i !_ -> i `mod` cols /= col) (vector m)
                         }
     where cols = numberOfCols m
 
@@ -99,34 +99,34 @@ minor (row, col) m | row < 0 || row >= rows  = error $ printf "CobordismMatrix.m
                    | otherwise               =
                         let res = CM { object0 = V.take col (object0 m) V.++ V.drop (col + 1) (object0 m)
                                      , object1 = V.take row (object1 m) V.++ V.drop (row + 1) (object1 m)
-                                     , matrix  = V.ifilter (\ !i !_ -> i `div` cols /= row && i `mod` cols /= col) (matrix m)
+                                     , vector  = V.ifilter (\ !i !_ -> i `div` cols /= row && i `mod` cols /= col) (vector m)
                                      }
 
                             rowV = CM { object0 = V.take col (object0 m) V.++ V.drop (col + 1) (object0 m)
                                       , object1 = V.singleton (object1 m V.! row)
-                                      , matrix  = V.map (\ i -> m ! (row, i)) $
-                                            V.enumFromN 0 col V.++ V.enumFromN (col + 1) (cols - col - 1)
+                                      , vector  = V.map (\ i -> m ! (row, i)) $
+                                                        V.enumFromN 0 col V.++ V.enumFromN (col + 1) (cols - col - 1)
                                       }
 
                             colV = CM { object0 = V.singleton (object0 m V.! col)
                                       , object1 = V.take row (object1 m) V.++ V.drop (row + 1) (object1 m)
-                                      , matrix  = V.map (\ i -> m ! (i, col)) $
-                                            V.enumFromN 0 row V.++ V.enumFromN (row + 1) (rows - row - 1)
+                                      , vector  = V.map (\ i -> m ! (i, col)) $
+                                                        V.enumFromN 0 row V.++ V.enumFromN (row + 1) (rows - row - 1)
                                       }
                         in (res, rowV, colV)
     where rows = numberOfRows m
           cols = numberOfCols m
 
 
-{-# INLINE generate #-}
-generate :: (Cobordism c) => V.Vector (CobordismBorder c) -> V.Vector (CobordismBorder c) -> (Int -> Int -> c) -> CobordismMatrix c
-generate obj0 obj1 f =
+{-# INLINE matrix #-}
+matrix :: (Cobordism c) => V.Vector (CobordismBorder c) -> V.Vector (CobordismBorder c) -> (Int -> Int -> c) -> CobordismMatrix c
+matrix obj0 obj1 f =
     let rows = V.length obj1
         cols = V.length obj0
     in checkMatrix $
         CM  { object0 = obj0
             , object1 = obj1
-            , matrix  =
+            , vector  =
                 V.generate (rows * cols) $ \ !i ->
                     let (row, col) = i `divMod` cols
                     in f row col
@@ -134,7 +134,7 @@ generate obj0 obj1 f =
 
 findIndex :: (Cobordism c) => (c -> Bool) -> CobordismMatrix c -> Maybe (Int, Int)
 findIndex predicate m = do
-    i <- V.findIndex predicate $ matrix m
+    i <- V.findIndex predicate $ vector m
     return $! i `divMod` numberOfCols m
 
 
@@ -154,13 +154,13 @@ flatten m | numberOfRows m <= 0  = error "flatten: numberOfRows is zero"
     checkMatrix $ CM
         { object0 = V.concatMap (\ (CB x) -> x) (object0 m)
         , object1 = V.concatMap (\ (CB x) -> x) (object1 m)
-        , matrix  = V.concat $ do
+        , vector  = V.concat $ do
             row <- [0 .. numberOfRows m - 1]
             row' <- [0 .. numberOfRows (m ! (row, 0)) - 1]
             col <- [0 .. numberOfCols m - 1]
             let sub = m ! (row, col)
                 n = numberOfCols sub
-            return $! V.slice (n * row') n (matrix sub)
+            return $! V.slice (n * row') n (vector sub)
         }
 
 
@@ -168,7 +168,7 @@ instance (PreadditiveCobordism c) => Composition (CobordismMatrix c) where
     m1 ∘ m0 | numberOfCols m1 /= numberOfRows m0  = error $ printf "CobordismMatrix.(∘): different dimensions %i and %i" (numberOfCols m1) (numberOfRows m0)
             | object0 m1      /= object1 m0       = error "CobordismMatrix.(∘): different borders"
             | otherwise                           =
-        generate (object0 m0) (object1 m1) $ \ !row !col ->
+        matrix (object0 m0) (object1 m1) $ \ !row !col ->
             foldl' (\ carry mid -> carry + ((m1 ! (row, mid)) ∘ (m0 ! (mid, col))))
                    (zeroCobordism (object0 m0 V.! col) (object1 m1 V.! row))
                    [0 .. numberOfCols m1 - 1]
@@ -180,7 +180,7 @@ instance (PreadditiveCobordism c) => TensorProduct (CobordismMatrix c) where
     a ⊗ b =
         let obj0 = V.concatMap (\ a' -> V.map (a' ⊗) $ object0 b) $ object0 a
             obj1 = V.concatMap (\ a' -> V.map (a' ⊗) $ object1 b) $ object1 a
-        in generate obj0 obj1 $ \ !row !col ->
+        in matrix obj0 obj1 $ \ !row !col ->
             let (rowA, rowB) = row `divMod` numberOfRows b
                 (colA, colB) = col `divMod` numberOfCols b
             in (a ! (rowA, colA)) ⊗ (b ! (rowB, colB))
@@ -192,16 +192,16 @@ instance (PreadditiveCobordism c) => Cobordism (CobordismMatrix c) where
     cobordismBorder1 m = CB (object1 m)
 
     identityCobordism (CB objs) =
-        generate objs objs $ \ !row !col ->
+        matrix objs objs $ \ !row !col ->
             if | row == col -> identityCobordism $ objs V.! row
                | otherwise  -> zeroCobordism (objs V.! col) (objs V.! row)
 
 instance (PreadditiveCobordism c) => Num (CobordismMatrix c) where
     a + b | object0 a /= object0 b  = error "CobordismMatrix.(+): can not sum"
           | object1 a /= object1 b  = error "CobordismMatrix.(+): can not sum"
-          | otherwise               = a { matrix = V.zipWith (+) (matrix a) (matrix b) }
+          | otherwise               = a { vector = V.zipWith (+) (vector a) (vector b) }
 
-    negate m = m { matrix = V.map negate $ matrix m }
+    negate m = m { vector = V.map negate $ vector m }
 
     (*) = (∘)
 
@@ -211,15 +211,15 @@ instance (PreadditiveCobordism c) => Num (CobordismMatrix c) where
     signum x = identityCobordism (cobordismBorder0 x)
 
 instance (PreadditiveCobordism c) => PreadditiveCobordism (CobordismMatrix c) where
-    isZeroCobordism = V.all isZeroCobordism . matrix
+    isZeroCobordism = V.all isZeroCobordism . vector
 
     zeroCobordism (CB obj0) (CB obj1) =
-        generate obj0 obj1 $ \ !row !col ->
+        matrix obj0 obj1 $ \ !row !col ->
             zeroCobordism (obj0 V.! col) (obj1 V.! row)
 
 instance (Cobordism3 c, PreadditiveCobordism c) => Cobordism3 (CobordismMatrix c) where
     transposeCobordism m =
-        generate (object1 m) (object0 m) $ \ !row !col ->
+        matrix (object1 m) (object0 m) $ \ !row !col ->
             transposeCobordism $ m ! (col, row)
 
     numberOfLoops (CB objs) = V.sum $ V.map numberOfLoops objs
@@ -255,7 +255,7 @@ instance (CannedCobordism c, PreadditiveCobordism c) => RotationAction (Cobordis
     rotateBy !rot m =
         CM  { object0 = V.map (rotateBy rot) $ object0 m
             , object1 = V.map (rotateBy rot) $ object1 m
-            , matrix  = V.map (rotateBy rot) $ matrix m
+            , vector  = V.map (rotateBy rot) $ vector m
             }
 
 instance (CannedCobordism c, PreadditiveCobordism c) => PlanarAlgebra (CobordismMatrix c) where
@@ -268,7 +268,7 @@ instance (CannedCobordism c, PreadditiveCobordism c) => PlanarAlgebra (Cobordism
     horizontalCompositionUnchecked !gl (!a, !posA) (!b, !posB) =
         let CB obj0 = horizontalComposition gl (CB $ object0 a, posA) (CB $ object0 b, posB)
             CB obj1 = horizontalComposition gl (CB $ object1 a, posA) (CB $ object1 b, posB)
-        in generate obj0 obj1 $ \ !row !col ->
+        in matrix obj0 obj1 $ \ !row !col ->
             let (rowA, rowB) = row `divMod` numberOfRows b
                 (colA, colB) = col `divMod` numberOfCols b
             in horizontalComposition gl (a ! (rowA, colA), posA) (b ! (rowB, colB), posB)
