@@ -1,14 +1,14 @@
 module Main where
 
-import Data.Ord (comparing)
-import Data.Function (on)
-import Data.List (sort, sortBy, groupBy, nub)
-import Data.Maybe (mapMaybe)
 import Control.Arrow ((&&&))
-import Control.Monad (forM_, unless, guard)
-import Text.Printf
-import System.IO (withFile, IOMode(..), hPrint)
+import Control.Monad (forM_, unless, when)
+import Data.Function (on)
+import Data.List (sort, sortBy, groupBy)
+import Data.Maybe (mapMaybe)
+import Data.Ord (comparing)
 import System.Environment (getArgs)
+import System.IO (withFile, IOMode(..), hPrint, hPutStrLn)
+import Text.Printf
 import Diagrams.Prelude
 import Diagrams.Backend.SVG
 import Math.Topology.KnotTh.ChordDiagram (generateNonPlanarRaw, listChordDiagrams, genusOfChordDiagram)
@@ -25,6 +25,7 @@ import Math.Topology.KnotTh.Enumeration.DiagramInfo
 import Math.Topology.KnotTh.Enumeration.DiagramInfo.MinimalDiagramInfo
 import Math.Topology.KnotTh.Enumeration.DiagramInfo.AllDiagramsInfo
 import Math.Topology.KnotTh.Moves.MovesOfELink
+import Math.Topology.KnotTh.Tangle
 import TestUtil.Table
 
 {-
@@ -61,36 +62,49 @@ main = do
     [maxN] <- fmap (map read) getArgs
 
     let diagrams =
-            filter (\ link -> not (isReidemeisterReducible link) && testPrime link) $
-                tangleStarGlue
-                    (\ n -> filter ((== 1) . genusOfChordDiagram . fst) $ listChordDiagrams $ generateNonPlanarRaw n)
-                    (forCCP_ $ primeIrreducibleDiagrams maxN)
+            let cds = map (\ n ->filter ((== 1) . genusOfChordDiagram . fst) $ listChordDiagrams $ generateNonPlanarRaw n) [0 ..]
+            in filter (\ link -> not (isReidemeisterReducible link) && testPrime link) $
+                tangleStarGlue (cds !!) (forCCP_ $ primeIrreducibleDiagrams maxN)
+
+    let invariantSet link = ( minimalKauffmanXPolynomial link
+                            -- , minimalKauffmanXPolynomial $ twistedSatellite 2 link
+                            )
 
     do
         let classes = map (sortBy (comparing numberOfVertices) . allDiagrams) $
                 equivalenceClasses (map (map reidemeisterReduction .) [reidemeisterIII, movesOfELink]) $
                     forM_ diagrams
-
-        renderSVG "data/classes.svg" (Width 500) $ pad 1.05 $
-            vcat' with { _sep = 0.6 } $ do
+{-
+        renderSVG "vlinks/classes.svg" (Width 500) $ pad 1.05 $
+            vsep 0.6 $ do
                cls <- classes
-               guard $ any (\ l -> numberOfVertices l <= 4 && numberOfThreads l == 1) cls
-               return $ hcat' with { _sep = 0.5 } $ do
-                   link <- cls
-                   return $ drawKnotDef link
+               return $ hsep 0.5 $ map drawKnotDef cls
+-}
 
-        forM_ classes $ \ cls -> do
-            let invs = sort $ map minimalKauffmanXPolynomial cls
-            unless (all (== head invs) invs) $
-                putStrLn $ "Class failed: " ++ show (nub invs)
+        let failed = filter (\ cls ->
+                    let invs = sort $ map invariantSet cls
+                    in any (/= head invs) invs
+                ) classes
+
+        unless (null failed) $ do
+            withFile "vlinks/failed_invariants.txt" WriteMode $ \ handle ->
+                forM_ failed $ \ cls -> do
+                    forM_ cls $ \ link -> do
+                        hPrint handle $ minimalKauffmanXPolynomial link
+                        when (numberOfVertices link > 0) $ do
+                            let (t, _) = splitIntoTangleAndStar link
+                            hPrint handle $ kauffmanXPolynomial t
+                        hPutStrLn handle ""
+                    hPutStrLn handle ""
+                    hPutStrLn handle ""
+
+            renderSVG "vlinks/failed.svg" (mkSizeSpec $ V2 (Just 512) Nothing) $ pad 1.05 $
+                vsep 0.6 $ do
+                   cls <- failed
+                   return $ hsep 0.5 $ map drawKnotDef cls
 
     let sifted =
-            siftByInvariant
-                (\ l ->
-                    ( minimalKauffmanXPolynomial l
-                    -- , minimalKauffmanXPolynomial $ twistedDoubleSatelliteELink l
-                    )
-                ) $
+            siftByInvariant invariantSet $
                 equivalenceClasses
                     (map (map reidemeisterReduction .) [reidemeisterIII, movesOfELink])
                     (forM_ diagrams)
@@ -101,20 +115,20 @@ main = do
         (forM_ (mapMaybe maybePrimeDiagram $ singleRepresentativeClasses sifted))
     putStrLn $ printf "Collision classes: %i" (length $ collisionClasses sifted)
 
-    do
+    unless (null $ collisionClasses sifted) $ do
         let classes = map (map representative) $ collisionClasses sifted
 
-        renderSVG "data/collisions.svg" (Width 500) $ pad 1.05 $
-            vcat' with { _sep = 0.5 } $ do
+        renderSVG "vlinks/collisions.svg" (mkSizeSpec $ V2 (Just 512) Nothing) $ pad 1.05 $
+            vsep 0.5 $ do
                 cls <- classes
-                return $ hcat' with { _sep = 0.2 } $ do
+                return $ hsep 0.2 $ do
                     link <- cls
                     return $ drawKnotDef link
 
         forM_ (classes `zip` [1 :: Int ..]) $ \ (cls, i) -> do
-            withFile (printf "data/collision_%i.txt" i) WriteMode $ \ handle ->
+            withFile (printf "vlinks/collision_%i.txt" i) WriteMode $ \ handle ->
                 mapM_ (hPrint handle . edgeIndicesEncoding) cls
-            withFile (printf "data/collision_poly_%i" i) WriteMode $ \ handle ->
+            withFile (printf "vlinks/collision_poly_%i" i) WriteMode $ \ handle ->
                 mapM_ (hPrint handle . minimalKauffmanXPolynomial) cls
 
     do
@@ -127,14 +141,14 @@ main = do
             links = filter ((> 0) . numberOfVertices) $
                         mapMaybe maybePrimeDiagram $ singleRepresentativeClasses sifted
 
-        renderSVG "data/links.svg" (Width 500) $ pad 1.05 $
-            vcat' with { _sep = 5 } $ do
+        renderSVG "vlinks/links.svg" (mkSizeSpec $ V2 (Just 512) Nothing) $ pad 1.05 $
+            vsep 5 $ do
                 byThreads <- group' numberOfThreads links
-                return $ hcat' with { _sep = 3 } $ do
+                return $ hsep 3 $ do
                     byCross <- group' numberOfVertices byThreads
-                    return $ hcat' with { _sep = 0.5 } $ do
+                    return $ hsep 0.5 $ do
                         page <- paginate 8 byCross
-                        return $ vcat' with { _sep = 0.5 } $ do
+                        return $ vsep 0.5 $ do
                             link <- page
                             return $ drawKnotDef link
 
@@ -142,7 +156,7 @@ main = do
             forM_ (group' numberOfVertices byThreads) $ \ list -> do
                 let n = numberOfVertices $ head list
                     k = numberOfThreads $ head list
-                withFile (printf "data/links_%i^%i.txt" n k) WriteMode $ \ handle ->
+                withFile (printf "vlinks/links_%i^%i.txt" n k) WriteMode $ \ handle ->
                     mapM_ (hPrint handle . edgeIndicesEncoding) list
-                withFile (printf "data/poly_%i^%i" n k) WriteMode $ \ handle ->
+                withFile (printf "vlinks/poly_%i^%i" n k) WriteMode $ \ handle ->
                     mapM_ (hPrint handle . minimalKauffmanXPolynomial) list

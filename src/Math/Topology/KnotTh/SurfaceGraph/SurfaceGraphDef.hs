@@ -1,6 +1,6 @@
 {-# LANGUAGE TypeFamilies #-}
-module Math.Topology.KnotTh.SurfaceGraph.Definition
-    ( module Math.Topology.KnotTh.PlanarAlgebra
+module Math.Topology.KnotTh.SurfaceGraph.SurfaceGraphDef
+    ( module Math.Topology.KnotTh.Algebra.PlanarAlgebra
     , SurfaceGraph
     , dual
     , constructFromList
@@ -11,13 +11,13 @@ module Math.Topology.KnotTh.SurfaceGraph.Definition
 
 import Control.Monad (forM_, foldM)
 import qualified Control.Monad.ST as ST
-import Data.Array ((!), array)
+import qualified Data.Array as A
 import Data.List (intercalate)
 import qualified Data.Vector as V
 import qualified Data.Vector.Unboxed as UV
 import qualified Data.Vector.Unboxed.Mutable as UMV
 import Text.Printf
-import Math.Topology.KnotTh.PlanarAlgebra
+import Math.Topology.KnotTh.Algebra.PlanarAlgebra
 
 
 data SurfaceGraph a =
@@ -30,9 +30,10 @@ data SurfaceGraph a =
         }
 
 
-instance DartDiagram SurfaceGraph where
+instance DartDiagram' SurfaceGraph where
     data Dart SurfaceGraph a = Dart !(SurfaceGraph a) {-# UNPACK #-} !Int
 
+instance DartDiagram SurfaceGraph where
     dartOwner (Dart g _) = g
     dartIndex (Dart _ i) = i
 
@@ -51,8 +52,11 @@ instance DartDiagram SurfaceGraph where
 
     dartIndicesRange g = (0, numberOfDarts g - 1)
 
-instance VertexDiagram SurfaceGraph where
+instance VertexDiagram' SurfaceGraph where
     data Vertex SurfaceGraph a = Vertex !(SurfaceGraph a) {-# UNPACK #-} !Int
+
+instance VertexDiagram SurfaceGraph where
+    vertexContent _ = undefined
 
     vertexOwner (Vertex g _) = g
     vertexIndex (Vertex _ i) = i
@@ -221,20 +225,20 @@ barycentricSubdivision g = constructFromList $ concat [vertexPart, facePart, edg
 
         newFaceIndex fc = v + faceIndex fc
 
-        edgeIndexLookup = array (0, numberOfDarts g - 1) $
-            concatMap (\ ((a, b), eId) -> [(dartIndex a, eId), (dartIndex b, eId)]) $
-                zip edges [(v + f) ..]
+        edgeIndexLookup = A.array (0, numberOfDarts g - 1) $ do
+            ((a, b), eId) <- edges `zip` [(v + f) ..]
+            [(dartIndex a, eId), (dartIndex b, eId)]
 
         vertexPart = map make $ allVertices g
             where
-                vertexToEdge d = (edgeIndexLookup ! dartIndex d, if d < opposite d then 0 else 2)
+                vertexToEdge d = (edgeIndexLookup A.! dartIndex d, if d < opposite d then 0 else 2)
                 vertexToFace d = let (fc, place) = leftPair d
                                  in (newFaceIndex fc, 2 * place)
                 make = concatMap (\ d -> [vertexToEdge d, vertexToFace d]) . outcomingDarts
 
         facePart = map make $ allFaces g
             where
-                faceToEdge d = (edgeIndexLookup ! dartIndex d, if d < opposite d then 3 else 1)
+                faceToEdge d = (edgeIndexLookup A.! dartIndex d, if d < opposite d then 3 else 1)
                 faceToVertex d = let (ver, place) = beginPair d
                                  in (vertexIndex ver, 2 * place + 1)
                 make = concatMap (\ d -> [faceToVertex d, faceToEdge d]) . faceTraverseCCW

@@ -21,7 +21,6 @@ import Diagrams.TwoD.Text (Text)
 import Math.Topology.KnotTh.SurfaceGraph
 import Math.Topology.KnotTh.Knotted.Threads
 import Math.Topology.KnotTh.Tangle
-import Math.Topology.KnotTh.Link
 import Math.Topology.KnotTh.EmbeddedLink
 
 
@@ -213,7 +212,7 @@ instance DrawableKnotted Tangle where
             ]
 
 
-instance DrawableKnotted Link where
+instance DrawableKnotted Tangle0 where
     drawKnot s link =  drawKnot s $ toTangle link
 
 

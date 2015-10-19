@@ -1,5 +1,5 @@
 {-# LANGUAGE TypeFamilies #-}
-module Math.Topology.KnotTh.Dihedral
+module Math.Topology.KnotTh.Algebra.Dihedral
     ( RotationAction(..)
     , allRotationsOf
     , naivePeriodOf

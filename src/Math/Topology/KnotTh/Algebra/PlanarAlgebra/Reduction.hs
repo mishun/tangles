@@ -1,5 +1,5 @@
 {-# LANGUAGE RankNTypes #-}
-module Math.Topology.KnotTh.PlanarAlgebra.Reduction
+module Math.Topology.KnotTh.Algebra.PlanarAlgebra.Reduction
     ( PlanarM
     , VertexM
     , StrategyResult(..)
@@ -20,8 +20,8 @@ import qualified Data.Vector.Unboxed as UV
 import qualified Data.Vector.Unboxed.Mutable as UMV
 import Data.STRef (STRef, newSTRef, readSTRef, writeSTRef, modifySTRef')
 import Text.Printf
-import Math.Topology.KnotTh.Dihedral
-import Math.Topology.KnotTh.PlanarAlgebra
+import Math.Topology.KnotTh.Algebra.Dihedral
+import Math.Topology.KnotTh.Algebra.PlanarAlgebra
 
 
 {-
@@ -121,7 +121,7 @@ oppositeM (VertexM !v, p) = ask >>= \ !s -> lift $ do
     return (VertexM u, q)
 
 
-reduceWithDefaultStrategy :: (LeggedDiagram d, VertexDiagram d, PlanarAlgebra a) => (Vertex d x -> a) -> d x -> a
+reduceWithDefaultStrategy :: (LeggedDiagram d, VertexDiagram d, PlanarAlgebra a) => d a -> a
 reduceWithDefaultStrategy =
     reduceWithStrategy $
         let try [] = error "standardReductionStrategy: no reduction places left"
@@ -133,8 +133,8 @@ reduceWithDefaultStrategy =
         in try
 
 
-reduceWithStrategy :: (LeggedDiagram d, VertexDiagram d, PlanarAlgebra a) => Strategy a -> (Vertex d x -> a) -> d x -> a
-reduceWithStrategy strategy weight diagram =
+reduceWithStrategy :: (LeggedDiagram d, VertexDiagram d, PlanarAlgebra a) => Strategy a -> d a -> a
+reduceWithStrategy strategy diagram =
     ST.runST $ do
         context <- do
             s <- do
@@ -164,7 +164,7 @@ reduceWithStrategy strategy weight diagram =
                     }
 
             forM_ (allVertices diagram) $ \ v -> do
-                let w = weight v
+                let w = vertexContent v
                 unless (planarDegree w == vertexDegree v) $
                     fail $ printf "Bad state degree: %i instead of %i" (planarDegree w) (vertexDegree v)
                 setStateSumST s (vertexIndex v) w

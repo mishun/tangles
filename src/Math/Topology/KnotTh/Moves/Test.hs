@@ -6,7 +6,6 @@ module Math.Topology.KnotTh.Moves.Test
 import Diagrams.Prelude
 import Diagrams.TwoD.Text (Text)
 import Math.Topology.KnotTh.Tangle
-import Math.Topology.KnotTh.Link
 import Math.Topology.KnotTh.Draw
 import Math.Topology.KnotTh.Moves.Moves
 

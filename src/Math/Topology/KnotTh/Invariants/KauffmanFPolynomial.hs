@@ -8,7 +8,6 @@ module Math.Topology.KnotTh.Invariants.KauffmanFPolynomial
 import Math.Topology.KnotTh.Invariants.Util.Poly
 import Math.Topology.KnotTh.Invariants.KnotPolynomials
 import Math.Topology.KnotTh.Invariants.KnotPolynomials.KauffmanFStateSum
-import Math.Topology.KnotTh.Link
 import Math.Topology.KnotTh.Tangle
 
 
@@ -24,17 +23,14 @@ instance KnottedWithKauffmanFPolynomial Tangle where
     minimalKauffmanFPolynomial = skeinRelationPreMinimization kauffmanFPolynomial
 
 
-instance KnottedWithKauffmanFPolynomial Link where
-    type KauffmanFPolynomial Link = Poly2
+instance KnottedWithKauffmanFPolynomial Tangle0 where
+    type KauffmanFPolynomial Tangle0 = Poly2
     kauffmanFPolynomial = takeAsScalar . kauffmanFPolynomial . toTangle
     minimalKauffmanFPolynomial = takeAsScalar . minimalKauffmanFPolynomial . toTangle
 
 
 normalizedKauffmanFPolynomialOfLink :: LinkDiagram -> Poly2
-normalizedKauffmanFPolynomialOfLink link
-    | isEmptyKnotted link  = error "normalizedKauffmanFPolynomialOfLink: empty link provided"
-    | otherwise            =
-        let common = twistFactor 1 * smoothFactor
-        in normalizeBy2
-            (common * loopFactor)
-            (common * kauffmanFPolynomial link)
+normalizedKauffmanFPolynomialOfLink link | isEmpty    = error "normalizedKauffmanFPolynomialOfLink: empty link provided"
+                                         | otherwise  = normalizeBy2 (common * loopFactor) (common * kauffmanFPolynomial link)
+    where isEmpty = numberOfVertices link == 0 && numberOfFreeLoops link == 0
+          common = twistFactor 1 * smoothFactor

@@ -19,7 +19,6 @@ import Control.Applicative (Applicative(..), Alternative(..))
 import Control.Monad.State (execState, gets, modify)
 import Control.Monad (MonadPlus(..), unless, guard)
 import Math.Topology.KnotTh.Tangle
-import Math.Topology.KnotTh.Link
 import Math.Topology.KnotTh.Moves.ModifyDSL
 
 
@@ -153,6 +152,6 @@ instance PatternMatching Tangle where
         patternMatching pattern tangle
 
 
-instance PatternMatching Link where
+instance PatternMatching Tangle0 where
     searchMoves patterns =
-        map (tangleToLink . tangle0) . searchMoves patterns . toTangle
+        map tangle0 . searchMoves patterns . toTangle

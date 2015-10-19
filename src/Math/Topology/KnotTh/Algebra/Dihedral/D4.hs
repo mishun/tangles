@@ -1,6 +1,6 @@
 {-# LANGUAGE TypeFamilies #-}
-module Math.Topology.KnotTh.Dihedral.D4
-    ( module Math.Topology.KnotTh.Dihedral
+module Math.Topology.KnotTh.Algebra.Dihedral.D4
+    ( module Math.Topology.KnotTh.Algebra.Dihedral
     , D4
     , d4I, d4E, d4C, d4EC, d4C2, d4EC2, d4C3, d4EC3
     , fromRotation
@@ -16,8 +16,8 @@ import Data.Bits ((.&.), shiftL, shiftR, xor)
 import Data.Char (isSpace)
 import qualified Data.Vector.Primitive as PV
 import Text.Printf
-import Math.Topology.KnotTh.Dihedral
-import qualified Math.Topology.KnotTh.Dihedral.Dn as Dn
+import Math.Topology.KnotTh.Algebra.Dihedral
+import qualified Math.Topology.KnotTh.Algebra.Dihedral.Dn as Dn
 
 
 -- Element = (E^mirror) * (C^rotation)

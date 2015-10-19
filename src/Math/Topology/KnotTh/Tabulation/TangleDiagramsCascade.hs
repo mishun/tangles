@@ -16,8 +16,8 @@ module Math.Topology.KnotTh.Tabulation.TangleDiagramsCascade
 
 import Control.Arrow (first)
 import Control.Monad (guard)
-import Math.Topology.KnotTh.Dihedral.D4 hiding (fromRotation)
-import Math.Topology.KnotTh.Dihedral.Dn
+import Math.Topology.KnotTh.Algebra.Dihedral.D4 hiding (fromRotation)
+import Math.Topology.KnotTh.Algebra.Dihedral.Dn
 import Math.Topology.KnotTh.Tabulation.CanonicalConstructionPath
 import Math.Topology.KnotTh.Tabulation.TangleDiagramsCascade.IncrementalTests
 import Math.Topology.KnotTh.Tabulation.TangleDiagramsCascade.RootingTest

@@ -7,7 +7,7 @@ module Math.Topology.KnotTh.Invariants.KnotPolynomials
     , skeinRelationPreMinimization
     ) where
 
-import Math.Topology.KnotTh.PlanarAlgebra.Reduction
+import Math.Topology.KnotTh.Algebra.PlanarAlgebra.Reduction
 import Math.Topology.KnotTh.Tangle
 
 
@@ -22,11 +22,11 @@ class (Functor f, PlanarAlgebra (f p)) => SkeinRelation f p where
 
 reduceSkein :: (SkeinRelation f p) => TangleDiagram -> f p
 reduceSkein =
-    reduceWithDefaultStrategy
-        (\ v -> if isOverCrossing $ vertexCrossing v
-                    then skeinLPlus
-                    else skeinLMinus
-        )
+    reduceWithDefaultStrategy .
+        fmap (\ c -> if isOverCrossing c
+                        then skeinLPlus
+                        else skeinLMinus
+             )
 
 
 skeinRelationPostMinimization :: (Ord (f p), MirrorAction (f p), SkeinRelation f p) => (TangleDiagram -> f p) -> TangleDiagram -> f p

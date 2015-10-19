@@ -10,7 +10,7 @@ import Data.Array.IO (IOArray, IOUArray)
 import Data.IORef (newIORef, readIORef, writeIORef, modifyIORef)
 import Data.Ix (Ix)
 import System.IO.Unsafe (unsafePerformIO)
-import Math.Topology.KnotTh.SurfaceGraph.Definition
+import Math.Topology.KnotTh.SurfaceGraph.SurfaceGraphDef
 import Math.Topology.KnotTh.SurfaceGraph.Embedding.Optimization
 
 

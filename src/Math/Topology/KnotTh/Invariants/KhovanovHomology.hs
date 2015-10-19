@@ -1,6 +1,6 @@
 {-# LANGUAGE StandaloneDeriving, UndecidableInstances #-}
 module Math.Topology.KnotTh.Invariants.KhovanovHomology
-    ( module Math.Topology.KnotTh.Cobordism.DottedCobordism
+    ( module Math.Topology.KnotTh.Algebra.Cobordism.DottedCobordism
     , KhovanovComplex(..)
     , testComplexBorders
     , khovanovComplex
@@ -11,9 +11,9 @@ import Control.Monad (guard)
 import qualified Data.Vector as V
 import Text.Printf
 import Math.Topology.KnotTh.Algebra.Homology
-import qualified Math.Topology.KnotTh.Cobordism.CobordismMatrix as M
-import Math.Topology.KnotTh.Cobordism.DottedCobordism
-import Math.Topology.KnotTh.PlanarAlgebra.Reduction
+import qualified Math.Topology.KnotTh.Algebra.Cobordism.CobordismMatrix as M
+import Math.Topology.KnotTh.Algebra.Cobordism.DottedCobordism
+import Math.Topology.KnotTh.Algebra.PlanarAlgebra.Reduction
 import Math.Topology.KnotTh.Tangle
 
 
@@ -206,11 +206,11 @@ underCrossingComplex =
 
 khovanovComplex :: TangleDiagram -> KhovanovComplex (DottedCobordism' Integer)
 khovanovComplex =
-    reduceWithDefaultStrategy
-        (\ v -> if isOverCrossing $ vertexCrossing v
-                    then overCrossingComplex
-                    else underCrossingComplex
-        )
+    reduceWithDefaultStrategy .
+        fmap (\ c -> if isOverCrossing c
+                        then overCrossingComplex
+                        else underCrossingComplex
+             )
 
 
 khovanovHomologyBetti :: TangleDiagram -> [(Int, Int)]

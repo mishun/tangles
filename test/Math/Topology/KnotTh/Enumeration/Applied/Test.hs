@@ -10,7 +10,6 @@ import Test.Framework (Test, testGroup)
 import Test.Framework.Providers.HUnit (testCase)
 import Test.HUnit hiding (Test, test)
 import Math.Topology.KnotTh.Tangle
-import Math.Topology.KnotTh.Link (tangleDoublingLink)
 import Math.Topology.KnotTh.Enumeration.DiagramInfo.MinimalDiagramInfo
 import Math.Topology.KnotTh.Enumeration.DiagramInfo.AllDiagramsInfo
 import Math.Topology.KnotTh.Enumeration.EquivalenceClasses
@@ -64,7 +63,7 @@ test = testGroup "Enumeration tests"
             testInvariantness tangleClasses 5 minimalKauffmanFPolynomial
 
         , testCase "Jones polynomial of gluing with mirror image (weak classes invariant)" $
-            testInvariantness weakTangleClasses 5 (kauffmanXPolynomial . tangleDoublingLink id)
+            testInvariantness weakTangleClasses 5 (kauffmanXPolynomial . tangleDoubling)
 
         , testCase "Jones polynomial of doubling satellite" $
             testInvariantness tangleClasses 4 (minimalKauffmanXPolynomial . twistedSatellite 2)

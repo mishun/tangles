@@ -1,6 +1,6 @@
 {-# LANGUAGE TypeFamilies #-}
-module Math.Topology.KnotTh.Cobordism
-    ( module Math.Topology.KnotTh.Dihedral
+module Math.Topology.KnotTh.Algebra.Cobordism
+    ( module Math.Topology.KnotTh.Algebra.Dihedral
     , Cobordism(..)
     , Cobordism3(..)
     , PreadditiveCobordism(..)
@@ -8,8 +8,8 @@ module Math.Topology.KnotTh.Cobordism
     ) where
 
 import Math.Topology.KnotTh.ChordDiagram
-import Math.Topology.KnotTh.Dihedral
-import Math.Topology.KnotTh.PlanarAlgebra
+import Math.Topology.KnotTh.Algebra.Dihedral
+import Math.Topology.KnotTh.Algebra.PlanarAlgebra
 
 
 class (Composition c, TensorProduct c, TensorProduct (CobordismBorder c), Eq (CobordismBorder c)) => Cobordism c where

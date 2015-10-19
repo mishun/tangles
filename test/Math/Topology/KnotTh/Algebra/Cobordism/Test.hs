@@ -1,5 +1,5 @@
 {-# LANGUAGE ScopedTypeVariables, FlexibleContexts #-}
-module Math.Topology.KnotTh.Cobordism.Test
+module Math.Topology.KnotTh.Algebra.Cobordism.Test
     ( generalCobordism3Tests
     , generalCannedCobordismTests
     ) where
@@ -7,8 +7,8 @@ module Math.Topology.KnotTh.Cobordism.Test
 import Test.Framework (Test, testGroup)
 import Test.Framework.Providers.HUnit (testCase)
 import Test.HUnit hiding (Test, test)
-import Math.Topology.KnotTh.Cobordism
-import Math.Topology.KnotTh.PlanarAlgebra
+import Math.Topology.KnotTh.Algebra.Cobordism
+import Math.Topology.KnotTh.Algebra.PlanarAlgebra
 
 
 generalCobordism3Tests :: forall cob. (Cobordism3 cob, Eq cob, Show cob, Show (CobordismBorder cob)) => cob -> Test

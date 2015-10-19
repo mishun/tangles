@@ -9,11 +9,10 @@ import Text.Printf
 import System.Environment (getArgs)
 import Diagrams.Prelude hiding (transform)
 import Diagrams.Backend.SVG
-import Math.Topology.KnotTh.Dihedral.Dn
+import Math.Topology.KnotTh.Algebra.Dihedral.Dn
 import Math.Topology.KnotTh.ChordDiagram (generateNonPlanarRaw, listChordDiagrams, genusOfChordDiagram)
 import Math.Topology.KnotTh.ChordDiagram.Draw (drawCDInsideCircleDef)
 import Math.Topology.KnotTh.EmbeddedLink
-import Math.Topology.KnotTh.Tangle
 import Math.Topology.KnotTh.Tabulation.TangleDiagramsCascade
 import Math.Topology.KnotTh.Draw
 

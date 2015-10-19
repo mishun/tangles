@@ -1,14 +1,13 @@
 module Main (main) where
 
-import Data.Maybe (mapMaybe)
 import Control.Arrow ((&&&))
 import Control.Monad (when, forM_)
-import Text.Printf
+import Data.Maybe (mapMaybe)
 import System.Environment (getArgs)
+import Text.Printf
 import Diagrams.Prelude
 import Diagrams.Backend.SVG
 import Math.Topology.KnotTh.Knotted.Threads
-import Math.Topology.KnotTh.Link
 import Math.Topology.KnotTh.Tangle
 import Math.Topology.KnotTh.Tabulation.LinkDiagrams
 import Math.Topology.KnotTh.Draw

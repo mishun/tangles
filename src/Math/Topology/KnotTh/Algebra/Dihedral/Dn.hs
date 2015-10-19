@@ -1,6 +1,6 @@
 {-# LANGUAGE TypeFamilies #-}
-module Math.Topology.KnotTh.Dihedral.Dn
-    ( module Math.Topology.KnotTh.Dihedral
+module Math.Topology.KnotTh.Algebra.Dihedral.Dn
+    ( module Math.Topology.KnotTh.Algebra.Dihedral
     , Dn
     , fromRotation
     , fromReflectionRotation
@@ -17,7 +17,7 @@ module Math.Topology.KnotTh.Dihedral.Dn
     ) where
 
 import Text.Printf
-import Math.Topology.KnotTh.Dihedral
+import Math.Topology.KnotTh.Algebra.Dihedral
 
 
 -- Dn = (E^mirror) ∘ (C^rotation)

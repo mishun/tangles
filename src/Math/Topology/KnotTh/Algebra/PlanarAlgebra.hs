@@ -1,8 +1,10 @@
 {-# LANGUAGE TypeFamilies #-}
-module Math.Topology.KnotTh.PlanarAlgebra
+module Math.Topology.KnotTh.Algebra.PlanarAlgebra
     ( PlanarAlgebra(..)
+    , DartDiagram'(..)
     , DartDiagram(..)
     , hasDarts
+    , VertexDiagram'(..)
     , VertexDiagram(..)
     , hasVertices
     , allOutcomingDarts
@@ -25,7 +27,7 @@ import Control.Arrow ((***), first)
 import Data.Bits (shiftL, shiftR)
 import qualified Data.Ix as Ix
 import Text.Printf
-import Math.Topology.KnotTh.Dihedral
+import Math.Topology.KnotTh.Algebra.Dihedral
 
 
 class (RotationAction a) => PlanarAlgebra a where
@@ -58,8 +60,11 @@ class (RotationAction a) => PlanarAlgebra a where
     horizontalCompositionUnchecked = horizontalComposition
 
 
-class DartDiagram d where
-    data Dart d   :: * -> *
+-- | To trick GeneralizedNewtypeDeriving
+class DartDiagram' (d :: * -> *) where
+    data Dart d :: * -> *
+
+class (DartDiagram' d) => DartDiagram d where
     dartOwner     :: Dart d a -> d a
     dartIndex     :: Dart d a -> Int
     opposite      :: Dart d a -> Dart d a
@@ -97,6 +102,7 @@ instance (DartDiagram d) => Eq (Dart d a) where
 instance (DartDiagram d) => Ord (Dart d a) where
     compare a b = dartIndex a `compare` dartIndex b
 
+-- TODO: remove it?
 instance (DartDiagram d) => Ix.Ix (Dart d a) where
     range     (a, b)   = map (nthDart (dartOwner b)) [dartIndex a .. dartIndex b]
     index     (a, b) c = Ix.index (dartIndex a, dartIndex b) (dartIndex c)
@@ -108,8 +114,14 @@ hasDarts :: (DartDiagram d) => d a -> Bool
 hasDarts = (> 0) . numberOfDarts
 
 
-class (DartDiagram d) => VertexDiagram d where
-    data Vertex d    :: * -> *
+-- | To trick GeneralizedNewtypeDeriving
+class (DartDiagram d) => VertexDiagram' d where
+    data Vertex d :: * -> *
+
+class (VertexDiagram' d) => VertexDiagram d where
+    vertexContent    :: Vertex d a -> a
+    mapVertices      :: (Vertex d a -> b) -> d a -> d b
+
     vertexOwner      :: Vertex d a -> d a
     vertexIndex      :: Vertex d a -> Int
     vertexDegree     :: Vertex d a -> Int
@@ -175,6 +187,7 @@ instance (VertexDiagram d) => Eq (Vertex d a) where
 instance (VertexDiagram d) => Ord (Vertex d a) where
     compare a b = vertexIndex a `compare` vertexIndex b
 
+-- TODO: remove it?
 instance (VertexDiagram d) => Ix.Ix (Vertex d a) where
     range     (a, b)   = map (nthVertex (vertexOwner b)) [vertexIndex a .. vertexIndex b]
     index     (a, b) c = Ix.index (vertexIndex a, vertexIndex b) (vertexIndex c)

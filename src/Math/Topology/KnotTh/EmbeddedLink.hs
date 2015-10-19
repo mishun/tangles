@@ -1,4 +1,4 @@
-{-# LANGUAGE TypeFamilies, UnboxedTuples, RankNTypes, GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE DeriveFunctor, GeneralizedNewtypeDeriving, TypeFamilies, UnboxedTuples #-}
 module Math.Topology.KnotTh.EmbeddedLink
     ( module Math.Topology.KnotTh.Knotted
     , module Math.Topology.KnotTh.Knotted.Crossings.Projection
@@ -40,7 +40,7 @@ import qualified Data.Vector.Primitive.Mutable as PMV
 import qualified Data.Vector.Unboxed as UV
 import qualified Data.Vector.Unboxed.Mutable as UMV
 import Text.Printf
-import Math.Topology.KnotTh.Dihedral.D4
+import Math.Topology.KnotTh.Algebra.Dihedral.D4
 import qualified Math.Topology.KnotTh.SurfaceGraph as SG
 import Math.Topology.KnotTh.ChordDiagram
 import Math.Topology.KnotTh.Knotted
@@ -48,7 +48,6 @@ import Math.Topology.KnotTh.Knotted.Crossings.Projection
 import Math.Topology.KnotTh.Knotted.Crossings.Diagram
 import Math.Topology.KnotTh.Knotted.Threads
 import Math.Topology.KnotTh.Moves.ModifyDSL
-import Math.Topology.KnotTh.Link
 import Math.Topology.KnotTh.Tangle
 
 
@@ -60,6 +59,7 @@ data EmbeddedLink a =
         , crossingsArray  :: {-# UNPACK #-} !(V.Vector a)
         , faceSystem      :: FaceSystem
         }
+    deriving (Functor)
 
 data FaceSystem =
     FaceSystem
@@ -70,9 +70,10 @@ data FaceSystem =
         }
 
 
-instance DartDiagram EmbeddedLink where
+instance DartDiagram' EmbeddedLink where
     data Dart EmbeddedLink a = Dart !(EmbeddedLink a) {-# UNPACK #-} !Int
 
+instance DartDiagram EmbeddedLink where
     dartOwner (Dart k _) = k
     dartIndex (Dart _ i) = i
 
@@ -104,9 +105,17 @@ instance DartDiagram EmbeddedLink where
 
     dartIndicesRange k = (0, numberOfDarts k - 1)
 
+instance VertexDiagram' EmbeddedLink where
+    data Vertex EmbeddedLink a = Vertex !(EmbeddedLink a) {-# UNPACK #-} !Int
 
 instance VertexDiagram EmbeddedLink where
-    data Vertex EmbeddedLink a = Vertex !(EmbeddedLink a) {-# UNPACK #-} !Int
+    vertexContent (Vertex k i) = crossingsArray k `V.unsafeIndex` i
+
+    mapVertices f t =
+        t { crossingsArray =
+                V.generate (numberOfVertices t) $! \ i ->
+                    f (nthVertex t $! i + 1)
+          }
 
     vertexOwner (Vertex k _) = k
     vertexIndex (Vertex _ i) = i + 1
@@ -135,7 +144,6 @@ instance VertexDiagram EmbeddedLink where
 
     vertexIndicesRange k = (1, numberOfVertices k)
 
-
 instance (NFData a) => NFData (EmbeddedLink a) where
     rnf k = rnf (crossingsArray k) `seq` k `seq` ()
 
@@ -143,19 +151,7 @@ instance (NFData a) => NFData (Vertex EmbeddedLink a)
 
 instance (NFData a) => NFData (Dart EmbeddedLink a)
 
-
-instance Functor EmbeddedLink where
-    fmap f k = k { crossingsArray = f `fmap` crossingsArray k }
-
-
 instance Knotted EmbeddedLink where
-    vertexCrossing (Vertex k i) = crossingsArray k `V.unsafeIndex` i
-
-    mapCrossings f t =
-        t { crossingsArray =
-                V.generate (numberOfVertices t) $ \ i -> f (nthVertex t $ i + 1)
-          }
-
     unrootedHomeomorphismInvariant link = UV.singleton (numberOfFreeLoops link) UV.++ internal
         where
             internal | numberOfVertices link == 0  = UV.empty
@@ -222,26 +218,12 @@ instance Knotted EmbeddedLink where
     changeNumberOfFreeLoops loops k | loops >= 0  = k { loopsCount = loops }
                                     | otherwise   = error $ printf "changeNumberOfFreeLoops: number of free loops %i is negative" loops
 
-    emptyKnotted =
-        EmbeddedLink
-            { loopsCount      = 0
-            , vertexCount     = 0
-            , involutionArray = PV.empty
-            , crossingsArray  = V.empty
-            , faceSystem      =
-                FaceSystem
-                    { faceCount       = 1
-                    , faceDataOffset  = PV.replicate 2 0
-                    , faceCCWBrdDart  = PV.empty
-                    , faceLLookup     = PV.empty
-                    }
-            }
-
+instance ExplodeKnotted EmbeddedLink where
     type ExplodeType EmbeddedLink a = (Int, [([(Int, Int)], a)])
 
     explode link =
         ( numberOfFreeLoops link
-        , map (\ v -> (map endPair' $ outcomingDarts v, vertexCrossing v)) $ allVertices link
+        , map (\ v -> (map endPair' $ outcomingDarts v, vertexContent v)) $ allVertices link
         )
 
     implode (loops, list) = ST.runST $ do
@@ -285,6 +267,23 @@ instance Knotted EmbeddedLink where
                 }
 
         return $! link
+
+
+emptyELink :: EmbeddedLink a
+emptyELink =
+    EmbeddedLink
+        { loopsCount      = 0
+        , vertexCount     = 0
+        , involutionArray = PV.empty
+        , crossingsArray  = V.empty
+        , faceSystem      =
+            FaceSystem
+                { faceCount       = 1
+                , faceDataOffset  = PV.replicate 2 0
+                , faceCCWBrdDart  = PV.empty
+                , faceLLookup     = PV.empty
+                }
+        }
 
 
 makeFaceSystem :: EmbeddedLink a -> FaceSystem
@@ -382,7 +381,7 @@ instance KnottedDiagram EmbeddedLink where
             sb = opposite bs
 
         return $! if rightFace (nextCW abl) == leftFace (nextCCW bal)
-            then emptyKnotted
+            then emptyELink
             else modifyKnot link $ do
                 if | qa == ap || rb == bs ->
                         if qa == ap && rb == bs
@@ -443,7 +442,7 @@ instance (Show a) => Show (Vertex EmbeddedLink a) where
     show v =
         printf "(Crossing %i %s [ %s ])"
             (vertexIndex v)
-            (show $ vertexCrossing v)
+            (show $ vertexContent v)
             (unwords $ map (show . opposite) $ outcomingDarts v)
 
 
@@ -522,7 +521,7 @@ fromTangleAndStar' withLeg tangle =
                 | otherwise  = watch $ opposite $ withLeg d
     in implode
         ( numberOfFreeLoops tangle + div (length $ filter (\ l -> opposite l == withLeg l) $ allLegs tangle) 2
-        , map (\ v -> (map watch $ incomingDarts v, vertexCrossing v)) $ allVertices tangle
+        , map (\ v -> (map watch $ incomingDarts v, vertexContent v)) $ allVertices tangle
         )
 
 
@@ -545,7 +544,7 @@ splitIntoTangleAndStar link =
 
                 body = do
                     v <- tail $ allVertices $ vertexOwner sp
-                    return (map tend $ outcomingDarts v, vertexCrossing $ nthVertex link $ vertexIndex v)
+                    return (map tend $ outcomingDarts v, vertexContent $ nthVertex link $ vertexIndex v)
             in implode (numberOfFreeLoops link, border, body)
 
     in (tangle, star)
@@ -554,14 +553,17 @@ splitIntoTangleAndStar link =
 instance Surgery EmbeddedLink where
     surgery = error "not implemented"
 
-    tensorSubst k crossF link = implode (k * numberOfFreeLoops link, body)
+    multiSurgery = tensorSurgery 1 . fmap toTangle
+
+instance TensorSurgery EmbeddedLink where
+    tensorSurgery k link = implode (k * numberOfFreeLoops link, body)
         where
             n = numberOfVertices link
 
             crossSubst =
                 let substList = do
-                        c <- allVertices link
-                        let t = crossF c
+                        v <- allVertices link
+                        let t = vertexContent v
                         when (numberOfLegs t /= 4 * k) $
                             fail "EmbeddedLink.tensorSubst: bad number of legs"
                         return $! t
@@ -587,7 +589,7 @@ instance Surgery EmbeddedLink where
                 c <- allVertices link
                 let t = crossSubst V.! vertexIndex c
                 c' <- allVertices t
-                return (map (resolveInCrossing c) $ incomingDarts c', vertexCrossing c')
+                return (map (resolveInCrossing c) $ incomingDarts c', vertexContent c')
 
 
 instance KnotWithPrimeTest EmbeddedLink ProjectionCrossing where

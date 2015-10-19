@@ -10,7 +10,7 @@ import Test.Framework.Providers.QuickCheck2 (testProperty)
 import Test.HUnit hiding (Test, test)
 import Math.Topology.KnotTh.ChordDiagram
 import Math.Topology.KnotTh.ChordDiagram.Lyndon
-import Math.Topology.KnotTh.Dihedral
+import Math.Topology.KnotTh.Algebra.Dihedral
 
 
 naiveMinShift :: (Ord a) => [a] -> [a]

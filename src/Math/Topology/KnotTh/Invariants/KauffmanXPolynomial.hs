@@ -14,7 +14,6 @@ import Math.Topology.KnotTh.Invariants.Util.Poly
 import Math.Topology.KnotTh.Invariants.KnotPolynomials
 import Math.Topology.KnotTh.Invariants.KnotPolynomials.KauffmanXStateSum
 import Math.Topology.KnotTh.Invariants.KnotPolynomials.Surface
-import Math.Topology.KnotTh.Link
 import Math.Topology.KnotTh.EmbeddedLink
 import Math.Topology.KnotTh.Tangle
 
@@ -86,6 +85,6 @@ instance KnottedWithJonesPolynomial Link where
 
 
 normalizedJonesPolynomialOfLink :: LinkDiagram -> Poly
-normalizedJonesPolynomialOfLink link
-    | isEmptyKnotted link  = error "normalizedJonesPolynomialOfLink: empty link provided"
-    | otherwise            = normalizeBy (1 + monomial 1 "t" 1) (monomial (-1) "t" (1 / 2) * jonesPolynomial link)
+normalizedJonesPolynomialOfLink link | isEmpty    = error "normalizedJonesPolynomialOfLink: empty link provided"
+                                     | otherwise  = normalizeBy (1 + monomial 1 "t" 1) (monomial (-1) "t" (1 / 2) * jonesPolynomial link)
+    where isEmpty = numberOfVertices link == 0 && numberOfFreeLoops link == 0

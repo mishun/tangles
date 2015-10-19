@@ -9,7 +9,7 @@ import Data.Array.Unboxed (UArray)
 import Data.Array.ST (STArray, STUArray)
 import Data.Function (fix)
 import Data.Ix (Ix)
-import Math.Topology.KnotTh.SurfaceGraph.Definition
+import Math.Topology.KnotTh.SurfaceGraph.SurfaceGraphDef
 import Math.Topology.KnotTh.SurfaceGraph.SphereStar.Backtrack
 
 

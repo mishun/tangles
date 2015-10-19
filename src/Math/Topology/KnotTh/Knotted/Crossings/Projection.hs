@@ -7,7 +7,7 @@ module Math.Topology.KnotTh.Knotted.Crossings.Projection
     ) where
 
 import Control.DeepSeq
-import Math.Topology.KnotTh.Dihedral.D4
+import Math.Topology.KnotTh.Algebra.Dihedral.D4
 import Math.Topology.KnotTh.Knotted
 import Math.Topology.KnotTh.Knotted.Threads
 

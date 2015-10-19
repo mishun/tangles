@@ -12,8 +12,8 @@ import Data.Function (fix, on)
 import Data.List (nubBy)
 import Data.Maybe (maybeToList)
 import qualified Data.Vector as V
-import Math.Topology.KnotTh.Dihedral.Dn
-import Math.Topology.KnotTh.Dihedral.D4 (fromDnSubGroup, subGroupD4)
+import Math.Topology.KnotTh.Algebra.Dihedral.Dn
+import Math.Topology.KnotTh.Algebra.Dihedral.D4 (fromDnSubGroup, subGroupD4)
 import Math.Topology.KnotTh.Knotted.Crossings.SubTangle
 import Math.Topology.KnotTh.Tangle
 import Math.Topology.KnotTh.Tabulation.TangleDiagramsCascade
@@ -45,7 +45,7 @@ directSumDescendants :: [SubTangleCrossing ProjectionCrossing]
 directSumDescendants crossings (t4, symmetry) = do
     let preTest t cr legIndex =
             let leg = nthLeg t legIndex
-                lp = directSumDecompositionTypeOfCrossing cr
+                lp = directSumDecompositionType cr
                 rp = directSumDecompositionTypeInVertex (opposite leg)
             in if | numberOfLegs t /= 4     -> False
                   | testNoMultiEdges leg 2  -> False
@@ -57,7 +57,7 @@ directSumDescendants crossings (t4, symmetry) = do
             let leg = nthLeg t legIndex
                 coLeg = nextCCW $ nextCCW leg
                 flypeS =
-                    case additionalFlypeSymmetry (vertexOwner root) of
+                    case additionalFlypeSymmetry (tangle4 $ vertexOwner root) of
                         Just x  -> addSymmetryToSubGroup s x
                         Nothing -> s
             in case (isLonerInVertex root, isLonerInVertex $ endVertex leg, isLonerInVertex $ endVertex coLeg) of
@@ -75,7 +75,7 @@ directSumDescendants crossings (t4, symmetry) = do
 
     cr <- crossings
     let tangle = toTangle t4
-    if isLonerCrossing cr
+    if isLonerInSub cr
         then map snd $ nubBy (on (==) fst) $ do
             leg <- [0 .. 3]
             st <- possibleSubTangleOrientations cr Nothing
@@ -104,18 +104,18 @@ generateFlypeEquivalentDecomposition' triangle maxN yield = do
                         | otherwise                         = NonDirectSumDecomposable
                     where
                         [a, b, c, d] = map endVertex $ allLegs $ toTangle template
-            in makeSubTangle' template symmetry sumType
+            in makeSubTangleCrossing' template symmetry sumType
 
     let halfN = maxN `div` 2
 
     (finalFree, finalCrossings, rootList) <-
         flip execStateT (0, V.replicate (halfN + 1) [], []) $
             let lonerSymmetry = maximumSubGroup 4
-                loner = makeSubTangle lonerProjection subGroupD4 NonDirectSumDecomposable 0
+                loner = makeSubTangleCrossing lonerProjection subGroupD4 NonDirectSumDecomposable 0
             in flip fix (lonerTangle loner, lonerSymmetry) $ \ growTree (rootTemplate, rootSymmetry) -> do
                 (!free, !prevCrossings, !prevList) <- get
                 let rootCrossing = buildCrossingType rootTemplate (fromDnSubGroup rootSymmetry) free
-                let rootN = numberOfCrossingVertices rootCrossing
+                let rootN = numberOfVerticesInSub rootCrossing
                 let crossings = prevCrossings V.// [(rootN, rootCrossing : (prevCrossings V.! rootN))]
                 let root = lonerTangle rootCrossing
                 put (free + 1, crossings, ((root, rootSymmetry), crossings) : prevList)
@@ -158,7 +158,7 @@ generateFlypeEquivalentDecomposition' triangle maxN yield = do
                         tree (curN + cn) child
                         glueDirectSums (curN + cn) child
 
-        let rootN = numberOfVerticesAfterSubstitution $ toTangle $ fst root
+        let rootN = sum $ map numberOfVerticesInVertex $ allVertices $ fst root --numberOfVerticesAfterSubstitution $ toTangle $ fst root
         glueTemplates rootN $ first toTangle root
         glueDirectSums rootN root
 
@@ -175,9 +175,9 @@ generateFlypeEquivalentDecompositionInTriangle =
 
 generateFlypeEquivalent :: (Monad m) => Int -> ((TangleProjection, SubGroup Dn) -> m ()) -> m ()
 generateFlypeEquivalent maxN =
-    generateFlypeEquivalentDecomposition maxN . (. first substituteTangles)
+    generateFlypeEquivalentDecomposition maxN . (. first substituteSubTangles)
 
 
 generateFlypeEquivalentInTriangle :: (Monad m) => Int -> ((TangleProjection, SubGroup Dn) -> m ()) -> m ()
 generateFlypeEquivalentInTriangle maxN =
-    generateFlypeEquivalentDecompositionInTriangle maxN . (. first substituteTangles)
+    generateFlypeEquivalentDecompositionInTriangle maxN . (. first substituteSubTangles)

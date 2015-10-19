@@ -14,8 +14,8 @@ import qualified Data.Vector.Unboxed.Mutable as UMV
 import Data.STRef (newSTRef, readSTRef, writeSTRef)
 import Control.Monad.ST (runST)
 import Control.Monad (when, guard)
-import Math.Topology.KnotTh.Dihedral.Dn
-import Math.Topology.KnotTh.Dihedral.D4
+import Math.Topology.KnotTh.Algebra.Dihedral.Dn
+import Math.Topology.KnotTh.Algebra.Dihedral.D4
 import Math.Topology.KnotTh.Knotted.Crossings.SubTangle
 import Math.Topology.KnotTh.Tangle
 

@@ -31,16 +31,16 @@ test = testGroup "Basic tangle tests"
 
     , testCase "Show tangle" $ do
         assertEqual "empty tangle" "implode (0,[],[])" $
-            show (emptyTangle :: Tangle0 ProjectionCrossing)
+            show (toTangle emptyTangle :: TangleProjection)
 
         assertEqual "zero tangle" "implode (0,[(0,3),(0,2),(0,1),(0,0)],[])" $
-            show (zeroTangle :: Tangle4 ProjectionCrossing)
+            show (toTangle zeroTangle :: TangleProjection)
 
         assertEqual "infinity tangle" "implode (0,[(0,1),(0,0),(0,3),(0,2)],[])" $
-            show (infinityTangle :: Tangle4 ProjectionCrossing)
+            show (toTangle infinityTangle :: TangleProjection)
 
         assertEqual "loner tangle" "implode (0,[(1,0),(1,1),(1,2),(1,3)],[([(0,0),(0,1),(0,2),(0,3)],projectionCrossing)])" $
-            show lonerProjection
+            show (toTangle lonerProjection)
 
         assertEqual "implode" "implode (0,[(1,0),(1,1),(1,2),(1,3)],[([(0,0),(0,1),(0,2),(0,3)],projectionCrossing)])" $
             show (implode (0, [(1, 0), (1, 1), (1, 2), (1, 3)], [([(0, 0), (0, 1), (0, 2), (0, 3)], projectionCrossing)]) :: TangleProjection)

@@ -1,5 +1,5 @@
 {-# LANGUAGE StandaloneDeriving, TypeFamilies, UndecidableInstances #-}
-module Math.Topology.KnotTh.Cobordism.CobordismMatrix
+module Math.Topology.KnotTh.Algebra.Cobordism.CobordismMatrix
     ( CobordismMatrix
     , numberOfRows
     , numberOfCols
@@ -18,8 +18,8 @@ module Math.Topology.KnotTh.Cobordism.CobordismMatrix
 import Data.List (foldl')
 import qualified Data.Vector as V
 import Text.Printf
-import Math.Topology.KnotTh.Cobordism
-import Math.Topology.KnotTh.PlanarAlgebra
+import Math.Topology.KnotTh.Algebra.Cobordism
+import Math.Topology.KnotTh.Algebra.PlanarAlgebra
 
 
 data (Cobordism c) => CobordismMatrix c =

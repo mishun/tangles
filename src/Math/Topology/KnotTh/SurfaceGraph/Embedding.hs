@@ -8,7 +8,7 @@ import Data.Maybe (fromJust)
 import Data.List (find, groupBy)
 import qualified Data.Array as A
 import qualified Data.Vector.Unboxed as UV
-import Math.Topology.KnotTh.SurfaceGraph.Definition
+import Math.Topology.KnotTh.SurfaceGraph.SurfaceGraphDef
 import Math.Topology.KnotTh.SurfaceGraph.Embedding.QuadraticInitialization
 import Math.Topology.KnotTh.SurfaceGraph.Embedding.RelaxEmbedding
 

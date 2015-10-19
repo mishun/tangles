@@ -7,7 +7,7 @@ import qualified Data.Map as M
 import Control.Monad.State.Strict (execState, modify)
 import Control.DeepSeq
 import Control.Parallel.Strategies (parMap, rdeepseq)
-import Math.Topology.KnotTh.Dihedral.Dn
+import Math.Topology.KnotTh.Algebra.Dihedral.Dn
 import Math.Topology.KnotTh.ChordDiagram
 import Math.Topology.KnotTh.Tangle
 import Math.Topology.KnotTh.EmbeddedLink

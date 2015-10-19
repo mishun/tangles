@@ -25,8 +25,7 @@ module Math.Topology.KnotTh.Knotted.Crossings.Diagram
 import Control.DeepSeq
 import Data.Bits ((.&.), xor)
 import qualified Data.Array.Unboxed as A
-import qualified Data.Vector.Unboxed as UV
-import Math.Topology.KnotTh.Dihedral.D4
+import Math.Topology.KnotTh.Algebra.Dihedral.D4
 import Math.Topology.KnotTh.Knotted
 import Math.Topology.KnotTh.Knotted.Threads
 
@@ -67,14 +66,14 @@ instance Crossing DiagramCrossing where
 
     {-# INLINE crossingCode #-}
     crossingCode !_ !d =
-        let DC x = vertexCrossing $ beginVertex d
+        let DC x = vertexContent $ beginVertex d
             p = beginPlace d
         in (# 1, x `xor` (p .&. 1) #)
 
     {-# INLINE crossingCodeWithGlobal #-}
     crossingCodeWithGlobal !g !_ !d =
         let t = equivalenceClassId subGroupDS g
-            DC x = vertexCrossing $ beginVertex d
+            DC x = vertexContent $ beginVertex d
             p = beginPlace d
         in (# 1, (x `xor` t) `xor` (p .&. 1) #)
 
@@ -122,12 +121,12 @@ overCrossingOnly = [overCrossing]
 
 {-# INLINE isPassingOver #-}
 isPassingOver :: (Knotted k) => Dart k DiagramCrossing -> Bool
-isPassingOver d = isPassingOver' (vertexCrossing $ beginVertex d) (beginPlace d)
+isPassingOver d = isPassingOver' (vertexContent $ beginVertex d) (beginPlace d)
 
 
 {-# INLINE isPassingUnder #-}
 isPassingUnder :: (Knotted k) => Dart k DiagramCrossing -> Bool
-isPassingUnder d = isPassingUnder' (vertexCrossing $ beginVertex d) (beginPlace d)
+isPassingUnder d = isPassingUnder' (vertexContent $ beginVertex d) (beginPlace d)
 
 
 {-# INLINE isPassingOver' #-}

@@ -23,7 +23,7 @@ import Data.STRef (modifySTRef', newSTRef, readSTRef, writeSTRef)
 import qualified Data.Vector.Unboxed as UV
 import qualified Data.Vector.Unboxed.Mutable as UMV
 import Math.Topology.KnotTh.ChordDiagram.Lyndon
-import Math.Topology.KnotTh.Dihedral
+import Math.Topology.KnotTh.Algebra.Dihedral
 
 
 class (RotationAction cd, MirrorAction cd) => ChordDiagram cd where

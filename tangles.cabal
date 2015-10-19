@@ -57,16 +57,18 @@ library
     extra-libraries:    stdc++ gsl gslcblas
     include-dirs:       src/
     exposed-modules:
+        Math.Topology.KnotTh.Algebra.Cobordism,
+        Math.Topology.KnotTh.Algebra.Cobordism.CobordismMatrix,
+        Math.Topology.KnotTh.Algebra.Cobordism.DottedCobordism,
+        Math.Topology.KnotTh.Algebra.Dihedral,
+        Math.Topology.KnotTh.Algebra.Dihedral.D4,
+        Math.Topology.KnotTh.Algebra.Dihedral.Dn,
         Math.Topology.KnotTh.Algebra.Homology,
+        Math.Topology.KnotTh.Algebra.PlanarAlgebra,
+        Math.Topology.KnotTh.Algebra.PlanarAlgebra.Reduction,
         Math.Topology.KnotTh.ChordDiagram,
         Math.Topology.KnotTh.ChordDiagram.Draw,
         Math.Topology.KnotTh.ChordDiagram.Lyndon,
-        Math.Topology.KnotTh.Cobordism,
-        Math.Topology.KnotTh.Cobordism.CobordismMatrix,
-        Math.Topology.KnotTh.Cobordism.DottedCobordism,
-        Math.Topology.KnotTh.Dihedral,
-        Math.Topology.KnotTh.Dihedral.D4,
-        Math.Topology.KnotTh.Dihedral.Dn,
         Math.Topology.KnotTh.Draw,
         Math.Topology.KnotTh.EmbeddedLink,
         Math.Topology.KnotTh.Enumeration.DiagramInfo,
@@ -82,15 +84,11 @@ library
         Math.Topology.KnotTh.Knotted.Crossings.SubTangle,
         Math.Topology.KnotTh.Knotted.EdgeIndicesEncoding,
         Math.Topology.KnotTh.Knotted.Threads,
-        Math.Topology.KnotTh.Link,
         Math.Topology.KnotTh.Moves.Moves,
         Math.Topology.KnotTh.Moves.MovesOfELink,
         Math.Topology.KnotTh.Moves.PatternMatching,
         Math.Topology.KnotTh.Moves.AdHoc,
-        Math.Topology.KnotTh.PlanarAlgebra,
-        Math.Topology.KnotTh.PlanarAlgebra.Reduction,
         Math.Topology.KnotTh.SurfaceGraph,
-        Math.Topology.KnotTh.SurfaceGraph.Definition,
         Math.Topology.KnotTh.SurfaceGraph.Embedding,
         Math.Topology.KnotTh.SurfaceGraph.Embedding.Optimization,
         Math.Topology.KnotTh.SurfaceGraph.Embedding.QuadraticInitialization,
@@ -114,12 +112,17 @@ library
         Math.Topology.KnotTh.Invariants.KnotPolynomials.KauffmanXStateSum,
         Math.Topology.KnotTh.Invariants.KnotPolynomials.Surface,
         Math.Topology.KnotTh.Invariants.LinkingNumber,
-        Math.Topology.KnotTh.Link.TableOfCodes,
         Math.Topology.KnotTh.Moves.AdHoc.Resting,
         Math.Topology.KnotTh.Moves.ModifyDSL,
+        Math.Topology.KnotTh.SurfaceGraph.SurfaceGraphDef,
         Math.Topology.KnotTh.Tabulation.TangleDiagramsCascade.IncrementalTests,
         Math.Topology.KnotTh.Tabulation.TangleDiagramsCascade.RootingTest,
-        Math.Topology.KnotTh.Tabulation.TangleFlypeClasses.Flypes
+        Math.Topology.KnotTh.Tabulation.TangleFlypeClasses.Flypes,
+        Math.Topology.KnotTh.Tangle.CascadeCode,
+        Math.Topology.KnotTh.Tangle.GaussCode,
+        Math.Topology.KnotTh.Tangle.TableOfLinks,
+        Math.Topology.KnotTh.Tangle.TangleCat,
+        Math.Topology.KnotTh.Tangle.TangleDef
     if flag(internal-tests)
         cpp-options:        -DTESTING
         exposed-modules:
@@ -150,10 +153,10 @@ test-suite TestTangles
         tangles
     main-is:            TestTangles.hs
     other-modules:
+        Math.Topology.KnotTh.Algebra.Cobordism.CobordismMatrix.Test,
+        Math.Topology.KnotTh.Algebra.Cobordism.DottedCobordism.Test,
+        Math.Topology.KnotTh.Algebra.Cobordism.Test,
         Math.Topology.KnotTh.ChordDiagram.Test,
-        Math.Topology.KnotTh.Cobordism.CobordismMatrix.Test,
-        Math.Topology.KnotTh.Cobordism.DottedCobordism.Test,
-        Math.Topology.KnotTh.Cobordism.Test,
         Math.Topology.KnotTh.EmbeddedLink.Test,
         Math.Topology.KnotTh.Enumeration.Applied.Test,
         Math.Topology.KnotTh.Invariants.Test,

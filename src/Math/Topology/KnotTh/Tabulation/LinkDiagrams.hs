@@ -11,8 +11,8 @@ import Data.STRef (newSTRef, readSTRef, writeSTRef)
 import qualified Data.Vector.Mutable as MV
 import qualified Data.Vector.Unboxed as UV
 import qualified Data.Vector.Unboxed.Mutable as UMV
-import Math.Topology.KnotTh.Dihedral.D4
-import Math.Topology.KnotTh.Link
+import Math.Topology.KnotTh.Algebra.Dihedral.D4
+import Math.Topology.KnotTh.Tangle
 
 
 p0 :: (Crossing a) => a -> Dart Link a -> ((Int, UV.Vector Int), Link a)
@@ -30,7 +30,7 @@ p0 cross ab =
                          | x == dc    = (n, 2)
                          | x == cd    = (n, 3)
                          | otherwise  = endPair' x
-              in map (\ v -> (map opp' $ outcomingDarts v, vertexCrossing v)) (allVertices link)
+              in map (\ v -> (map opp' $ outcomingDarts v, vertexContent v)) (allVertices link)
                      ++ [(map beginPair' [ab, ba, dc, cd], cross)]
             )
 
@@ -58,7 +58,7 @@ p1 cross ab =
                          | x == db    = (n, 2)
                          | x == ca    = (n, 3)
                          | otherwise  = endPair' x
-              in map (\ v -> (map opp' $ outcomingDarts v, vertexCrossing v)) (allVertices link)
+              in map (\ v -> (map opp' $ outcomingDarts v, vertexContent v)) (allVertices link)
                      ++ [(map beginPair' [ac, bd, db, ca], cross)]
             )
 

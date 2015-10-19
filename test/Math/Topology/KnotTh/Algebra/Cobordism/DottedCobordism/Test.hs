@@ -1,5 +1,5 @@
 {-# LANGUAGE ScopedTypeVariables, FlexibleContexts #-}
-module Math.Topology.KnotTh.Cobordism.DottedCobordism.Test
+module Math.Topology.KnotTh.Algebra.Cobordism.DottedCobordism.Test
     ( test
     ) where
 
@@ -8,8 +8,8 @@ import Test.Framework.Providers.HUnit (testCase)
 import Test.Framework.Providers.QuickCheck2 (testProperty)
 import Test.HUnit hiding (Test, test)
 import Test.QuickCheck
-import Math.Topology.KnotTh.Cobordism.DottedCobordism
-import Math.Topology.KnotTh.Cobordism.Test
+import Math.Topology.KnotTh.Algebra.Cobordism.DottedCobordism
+import Math.Topology.KnotTh.Algebra.Cobordism.Test
 
 
 type Cob = DottedCobordism' Integer

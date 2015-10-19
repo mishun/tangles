@@ -15,7 +15,7 @@ import Text.Printf
 import System.Environment (getArgs)
 import Diagrams.Prelude
 import Diagrams.Backend.SVG
-import Math.Topology.KnotTh.Dihedral.D4
+import Math.Topology.KnotTh.Algebra.Dihedral.D4
 import Math.Topology.KnotTh.ChordDiagram (generateNonPlanarRaw, listChordDiagrams, genusOfChordDiagram)
 import Math.Topology.KnotTh.Knotted.Threads
 import Math.Topology.KnotTh.EmbeddedLink
@@ -40,7 +40,7 @@ p0 cross ab =
                          | x == dc    = (n, 2)
                          | x == cd    = (n, 3)
                          | otherwise  = endPair' x
-              in map (\ v -> (map opp' $ outcomingDarts v, vertexCrossing v)) (allVertices link)
+              in map (\ v -> (map opp' $ outcomingDarts v, vertexContent v)) (allVertices link)
                      ++ [(map beginPair' [ab, ba, dc, cd], cross)]
             )
 
@@ -68,7 +68,7 @@ p1 cross ab =
                          | x == db    = (n, 2)
                          | x == ca    = (n, 3)
                          | otherwise  = endPair' x
-              in map (\ v -> (map opp' $ outcomingDarts v, vertexCrossing v)) (allVertices link)
+              in map (\ v -> (map opp' $ outcomingDarts v, vertexContent v)) (allVertices link)
                      ++ [(map beginPair' [ac, bd, db, ca], cross)]
             )
 
@@ -113,7 +113,7 @@ rootCode' root dir =
         n = numberOfVertices link
 
         codeWithGlobal globalTrans = UV.create $ do
-                vertexIndex <- UMV.replicate (n + 1) 0
+                vertexId <- UMV.replicate (n + 1) 0
                 incoming <- UMV.replicate (n + 1) 0
                 queue <- MV.new n
                 free <- newSTRef 1
@@ -121,7 +121,7 @@ rootCode' root dir =
                 let {-# INLINE look #-}
                     look !d = do
                         let u = beginVertexIndex d
-                        ux <- UMV.unsafeRead vertexIndex u
+                        ux <- UMV.unsafeRead vertexId u
                         if ux > 0
                             then do
                                 up <- UMV.unsafeRead incoming u
@@ -129,7 +129,7 @@ rootCode' root dir =
                             else do
                                 nf <- readSTRef free
                                 writeSTRef free $! nf + 1
-                                UMV.unsafeWrite vertexIndex u nf
+                                UMV.unsafeWrite vertexId u nf
                                 UMV.unsafeWrite incoming u (beginPlace d)
                                 MV.unsafeWrite queue (nf - 1) d
                                 return $! nf `shiftL` 2

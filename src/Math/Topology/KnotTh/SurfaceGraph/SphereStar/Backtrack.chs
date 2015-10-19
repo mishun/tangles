@@ -11,7 +11,7 @@ import Data.Ix (Ix)
 import Foreign.C.Types
 import Foreign.Ptr (Ptr)
 import System.IO.Unsafe (unsafePerformIO)
-import Math.Topology.KnotTh.SurfaceGraph.Definition
+import Math.Topology.KnotTh.SurfaceGraph.SurfaceGraphDef
 
 
 foreign import ccall "sphereStarDecomposition"

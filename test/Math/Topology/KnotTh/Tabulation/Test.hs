@@ -7,7 +7,7 @@ import Control.Arrow ((&&&))
 import Control.Monad (when)
 import Test.Framework (Test, testGroup)
 import Test.Framework.Providers.HUnit (testCase)
-import Math.Topology.KnotTh.Dihedral.Dn
+import Math.Topology.KnotTh.Algebra.Dihedral.Dn
 import Math.Topology.KnotTh.Tangle
 import Math.Topology.KnotTh.Tabulation.TangleDiagramsCascade
 import Math.Topology.KnotTh.Tabulation.TangleFlypeClasses

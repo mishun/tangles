@@ -5,7 +5,6 @@ module Math.Topology.KnotTh.Knotted.EdgeIndicesEncoding
 import Data.List (sort)
 import Math.Topology.KnotTh.EmbeddedLink
 import Math.Topology.KnotTh.Tangle
-import Math.Topology.KnotTh.Link
 
 
 class EdgeIndicesCrossing a where
@@ -17,8 +16,8 @@ instance EdgeIndicesCrossing ProjectionCrossing where
 
 
 instance EdgeIndicesCrossing DiagramCrossing where
-    indexPlace d | isOverCrossing (vertexCrossing c)  = p
-                 | otherwise                          = (p - 1) `mod` 4
+    indexPlace d | isOverCrossing (vertexContent c)  = p
+                 | otherwise                         = (p - 1) `mod` 4
         where
             (c, p) = beginPair d
 
@@ -37,7 +36,7 @@ instance EdgeIndicesEncoding Tangle where
             [(offset a, i) | isDart a] ++ [(offset b, i) | isDart b]
 
 
-instance EdgeIndicesEncoding Link where
+instance EdgeIndicesEncoding Tangle0 where
     edgeIndicesEncoding =
         edgeIndicesEncoding . toTangle
 

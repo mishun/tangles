@@ -1,7 +1,7 @@
 {-# LANGUAGE TypeFamilies #-}
-module Math.Topology.KnotTh.Cobordism.DottedCobordism
-    ( module Math.Topology.KnotTh.Cobordism
-    , module Math.Topology.KnotTh.PlanarAlgebra
+module Math.Topology.KnotTh.Algebra.Cobordism.DottedCobordism
+    ( module Math.Topology.KnotTh.Algebra.Cobordism
+    , module Math.Topology.KnotTh.Algebra.PlanarAlgebra
     , DottedCobordism(..)
     , DottedCobordism'
     ) where
@@ -16,8 +16,8 @@ import qualified Data.Vector.Unboxed as UV
 import qualified Data.Vector.Unboxed.Mutable as UMV
 import Text.Printf
 import Math.Topology.KnotTh.ChordDiagram
-import Math.Topology.KnotTh.Cobordism
-import Math.Topology.KnotTh.PlanarAlgebra
+import Math.Topology.KnotTh.Algebra.Cobordism
+import Math.Topology.KnotTh.Algebra.PlanarAlgebra
 
 
 data CobordismHeader =

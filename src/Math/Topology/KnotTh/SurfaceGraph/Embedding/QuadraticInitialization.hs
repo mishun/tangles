@@ -13,7 +13,7 @@ import Data.Array.IO (IOUArray)
 import Data.Ix (Ix)
 import qualified Data.Sequence as Seq
 import System.IO.Unsafe (unsafePerformIO)
-import Math.Topology.KnotTh.SurfaceGraph.Definition
+import Math.Topology.KnotTh.SurfaceGraph.SurfaceGraphDef
 import Math.Topology.KnotTh.SurfaceGraph.Embedding.Optimization
 
 

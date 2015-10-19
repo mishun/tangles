@@ -14,7 +14,6 @@ import Text.Printf
 import qualified Math.Algebra.Field.Base as B
 import qualified Math.Projects.KnotTheory.LaurentMPoly as LMP
 #endif
-import Math.Topology.KnotTh.Link
 import Math.Topology.KnotTh.Tangle
 import Math.Topology.KnotTh.Invariants
 #ifdef TESTING

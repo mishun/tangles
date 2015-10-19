@@ -14,7 +14,6 @@ import qualified Data.Vector.Unboxed as UV
 import Control.Monad (when, unless, msum, guard, liftM2)
 import Math.Topology.KnotTh.Knotted.Threads
 import Math.Topology.KnotTh.Tangle
-import Math.Topology.KnotTh.Link
 import Math.Topology.KnotTh.Moves.ModifyDSL
 import Math.Topology.KnotTh.Moves.AdHoc.Resting
 
@@ -167,9 +166,9 @@ instance AdHocMoves Tangle where
                     maskC $ map endVertex toRemove
 
 
-instance AdHocMoves Link where
-    flype = map (tangleToLink . tangle0) . flype . toTangle
-    pass = map (tangleToLink . tangle0) . pass . toTangle
+instance AdHocMoves Tangle0 where
+    flype = map tangle0 . flype . toTangle
+    pass = map tangle0 . pass . toTangle
 
 
 smoothA :: TangleDiagramVertex -> ModifyM Tangle DiagramCrossing s ()
