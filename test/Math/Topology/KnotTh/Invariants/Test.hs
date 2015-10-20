@@ -290,7 +290,7 @@ test = testGroup "Invariants"
             khovanovHomologyBetti (toTangle unknot) @?= [(0, 1)]
 
         , testCase "unknot 8" $ do
-            khovanovHomologyBetti (toTangle singleCrossingUnknot) @?= [(0, 1)]
+            khovanovHomologyBetti (toTangle singleCrossingUnknot) @?= [(0, 2)]
 
         , testCase "left trefoil knot" $
             khovanovHomologyBetti (toTangle leftTrefoilKnot) @?= [(-3, 1), (-2, 1), (0, 2)]

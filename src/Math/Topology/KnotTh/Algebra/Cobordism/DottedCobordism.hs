@@ -9,7 +9,8 @@ module Math.Topology.KnotTh.Algebra.Cobordism.DottedCobordism
 import Control.Monad (foldM, forM_, liftM2, when)
 import Control.Monad.IfElse (unlessM, whenM)
 import qualified Control.Monad.ST as ST
-import qualified Data.Map.Strict as M
+import qualified Data.Map.Strict as Map
+import qualified Data.Matrix as M
 import Data.STRef (newSTRef, readSTRef, writeSTRef)
 import qualified Data.Vector as V
 import qualified Data.Vector.Unboxed as UV
@@ -102,44 +103,44 @@ class (CommonGuts g, Ord g) => ModuleCobordismGuts g where
     identityGutsM  :: Int -> Int -> g
 
 
-newtype ModuleGuts g a = MG (M.Map g a)
+newtype ModuleGuts g a = MG (Map.Map g a)
     deriving (Eq, Ord, Show)
 
 singletonModuleGuts :: (ModuleCobordismGuts g, Integral a) => (g, a) -> ModuleGuts g a
-singletonModuleGuts (g, a) = MG $ M.fromList $ do
+singletonModuleGuts (g, a) = MG $ Map.fromList $ do
     (g', a') <- normalizeGutsM g
     return (g', a' * a)
 
 instance (ModuleCobordismGuts g, Integral a) => CommonGuts (ModuleGuts g a) where
     flipGuts (MG m) =
-        MG $ M.filter (/= 0) $ M.fromListWith (+) $ do
-            (g, factor) <- M.toList m
+        MG $ Map.filter (/= 0) $ Map.fromListWith (+) $ do
+            (g, factor) <- Map.toList m
             (g', factorNorm) <- normalizeGutsM $ flipGuts g
             return $! (g', factor * factorNorm)
 
     rotateGuts rot (MG m) =
-        MG $ M.filter (/= 0) $ M.fromListWith (+) $ do
-            (g, factor) <- M.toList m
+        MG $ Map.filter (/= 0) $ Map.fromListWith (+) $ do
+            (g, factor) <- Map.toList m
             (g', factorNorm) <- normalizeGutsM $ rotateGuts rot g
             return $! (g', factor * factorNorm)
 
     verComposeGuts h (h1, MG map1) (h0, MG map0) =
-        MG $ M.filter (/= 0) $ M.fromListWith (+) $ do
-            (g0, factor0) <- M.toList map0
-            (g1, factor1) <- M.toList map1
+        MG $ Map.filter (/= 0) $ Map.fromListWith (+) $ do
+            (g0, factor0) <- Map.toList map0
+            (g1, factor1) <- Map.toList map1
             (g, factorNorm) <- normalizeGutsM $ verComposeGuts h (h1, g1) (h0, g0)
             return $! (g, factor0 * factor1 * factorNorm)
 
     horComposeGuts tmp (MG mapA, hA, posA) (MG mapB, hB, posB) =
-        MG $ M.filter (/= 0) $ M.fromListWith (+) $ do
-            (gA, factorA) <- M.toList mapA
-            (gB, factorB) <- M.toList mapB
+        MG $ Map.filter (/= 0) $ Map.fromListWith (+) $ do
+            (gA, factorA) <- Map.toList mapA
+            (gB, factorB) <- Map.toList mapB
             (g, factorNorm) <- normalizeGutsM $ horComposeGuts tmp (gA, hA, posA) (gB, hB, posB)
             return $! (g, factorA * factorB * factorNorm)
 
 
 instance (ModuleCobordismGuts g, Integral a) => CobordismGuts (ModuleGuts g a) where
-    emptyGuts = MG M.empty
+    emptyGuts = MG Map.empty
 
     surfGuts   = singletonModuleGuts . surfGutsM
     capGuts    = singletonModuleGuts . capGutsM
@@ -661,30 +662,31 @@ instance (CobordismGuts g) => ChordDiagram (CobordismBorder (Cobordism' g)) wher
 instance (ModuleCobordismGuts g, Integral a) => Num (Cobordism' (ModuleGuts g a)) where
     Cob h0 (MG m0) + Cob h1 (MG m1) | h0 /= h1   = error "(+): can not sum"
                                     | otherwise  =
-        Cob h0 $ MG $ M.filter (/= 0) $ M.unionWith (+) m0 m1
+        Cob h0 $ MG $ Map.filter (/= 0) $ Map.unionWith (+) m0 m1
 
     negate (Cob h (MG m)) =
-        Cob h $ MG $ M.map negate m
+        Cob h $ MG $ Map.map negate m
 
     (*) = (∘)
 
-    fromInteger 0 = Cob (emptyHeader 0 0) $ MG M.empty
-    fromInteger n = Cob (emptyHeader 0 0) $ MG $ M.singleton emptyGutsM (fromIntegral n)
+    fromInteger 0 = Cob (emptyHeader 0 0) $ MG Map.empty
+    fromInteger n = Cob (emptyHeader 0 0) $ MG $ Map.singleton emptyGutsM (fromIntegral n)
 
     abs = id
     signum x = identityCobordism (cobordismBorder0 x)
 
 instance (ModuleCobordismGuts g, Integral a) => PreadditiveCobordism (Cobordism' (ModuleGuts g a)) where
     zeroCobordism (Brd l0 a0) (Brd l1 a1) | UV.length a0 /= UV.length a1  = error "zeroCobordism: different number of legs"
-                                          | otherwise                     = Cob (makeHeader (UV.length a0) (a0, l0) (a1, l1)) (MG M.empty)
+                                          | otherwise                     = Cob (makeHeader (UV.length a0) (a0, l0) (a1, l1)) (MG Map.empty)
 
-    isZeroCobordism (Cob _ (MG m)) = M.null m
+    isZeroCobordism (Cob _ (MG m)) = Map.null m
 
 
 class (CannedCobordism c, PreadditiveCobordism c, Show c, Show (CobordismBorder c)) => DottedCobordism c where
     isIsomorphism :: c -> Bool
     delooping     :: CobordismBorder c -> (CobordismBorder c, V.Vector (c, c))
-    applyTQFT     :: c -> Integer
+    tqftBorderDim :: CobordismBorder c -> Int
+    prepareTQFT   :: Int -> (Int, c -> M.Matrix Integer)
 
 instance (Integral a, Show a) => DottedCobordism (Cobordism' (ModuleGuts DottedGuts a)) where
     -- TODO: prove/fix it
@@ -695,8 +697,8 @@ instance (Integral a, Show a) => DottedCobordism (Cobordism' (ModuleGuts DottedG
               b1 = cobordismBorder1 c
 
     delooping (Brd loops arcs) =
-        let cap0 = Cob (emptyHeader 1 0) $ MG $ uncurry M.singleton $ capGutsM 0
-            cap1 = Cob (emptyHeader 1 0) $ MG $ let (g, f) = capGutsM 1 in M.singleton g (f `div` 2)
+        let cap0 = Cob (emptyHeader 1 0) $ MG $ uncurry Map.singleton $ capGutsM 0
+            cap1 = Cob (emptyHeader 1 0) $ MG $ let (g, f) = capGutsM 1 in Map.singleton g (f `div` 2)
             cup0 = transposeCobordism cap0
             cup1 = transposeCobordism cap1
 
@@ -710,12 +712,39 @@ instance (Integral a, Show a) => DottedCobordism (Cobordism' (ModuleGuts DottedG
 
         in (delooped, V.fromList $ generate loops [(identityCobordism delooped, identityCobordism delooped)])
 
-    applyTQFT (Cob h (MG m)) | legsN h > 0  = error "TQFT implemented for 0 legs only"
-                             | otherwise           =
-        case M.toList m of
-            []       -> 0
-            [(_, x)] -> fromIntegral x
-            _        -> error "TQFT: internal error"
+    tqftBorderDim b = 2 ^ (numberOfChords b)
+
+    prepareTQFT legs =
+        let dim = 2 ^ (legs `div` 2)
+
+            zero = M.zero dim dim
+
+            functor =
+                Map.fromList $
+                    case legs of
+                        0 -> [ (UV.empty, 1) ]
+
+                        2 -> [ (UV.singleton 0, M.identity 2)
+                             , (UV.singleton 1, M.fromList 2 2 [0, 0, 1, 0])
+                             ]
+
+                        4 -> [ (UV.fromList [0, 0], M.identity 4)
+                             , (UV.fromList [1, 0], M.fromList 4 4 [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0])
+                             , (UV.fromList [0, 1], M.fromList 4 4 [0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0])
+                             , (UV.fromList [1, 1], M.fromList 4 4 [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0])
+                             , (UV.fromList [0], M.fromList 4 4 [0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 1, 1, 0])
+                             , (UV.fromList [1], M.fromList 4 4 [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0])
+                             ]
+
+                        l -> error $ printf "TQFT is not implemented for %i legs" l
+
+            elementaryValue g =
+                functor Map.! surfHandlesN g
+
+            tqft (Cob h (MG m)) | legsN h == legs  = Map.foldlWithKey' (\ carry k v -> carry + elementaryValue k * fromIntegral v) zero m
+                                | otherwise        = error "tqft: bad number of legs"
+
+        in (dim, tqft)
 
 
 type DottedCobordism' a = Cobordism' (ModuleGuts DottedGuts a)

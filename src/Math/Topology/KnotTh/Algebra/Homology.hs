@@ -1,9 +1,11 @@
 module Math.Topology.KnotTh.Algebra.Homology
     ( smithNormalForm
+    , cohomologyBettiNumbers
     ) where
 
 import Control.Monad (when)
 import qualified Control.Monad.State.Strict as S
+import qualified Data.Matrix as M
 import qualified Data.Vector as V
 
 
@@ -107,3 +109,21 @@ smithNormalForm a0 =
     in if | rows == 0 -> V.empty
           | cols == 0 -> V.empty
           | otherwise -> S.evalState (eliminate 0) a0
+
+
+cohomologyBettiNumbers :: (Integral a, Show a) => V.Vector (M.Matrix a) -> V.Vector Int
+cohomologyBettiNumbers chain =
+    let dim = V.length chain
+
+        smith = V.map (\ m -> smithNormalForm $ V.generate (M.nrows m) (\ row -> M.getRow (row + 1) m)) chain
+
+        kerDim d | d == dim   = M.nrows $ chain V.! (d - 1)
+                 | otherwise  = M.ncols (chain V.! d) - V.length (smith V.! d)
+
+        imDim 0 = 0
+        imDim d = V.length $ smith V.! (d - 1)
+
+    in if dim == 0
+        then error "cohomologyBettiNumbers: expected non-empty chain"
+        else V.generate (dim + 1) $ \ d ->
+                kerDim d - imDim d

@@ -8,29 +8,26 @@ module Math.Topology.KnotTh.Invariants.KhovanovHomology
     ) where
 
 import Control.Monad (guard)
+import qualified Data.Matrix as M
 import qualified Data.Vector as V
 import Text.Printf
 import Math.Topology.KnotTh.Algebra.Homology
-import qualified Math.Topology.KnotTh.Algebra.Cobordism.CobordismMatrix as M
+import qualified Math.Topology.KnotTh.Algebra.Cobordism.CobordismMatrix as CM
 import Math.Topology.KnotTh.Algebra.Cobordism.DottedCobordism
 import Math.Topology.KnotTh.Algebra.PlanarAlgebra.Reduction
 import Math.Topology.KnotTh.Tangle
 
 
-data BoundedChain c = Chain !(V.Vector (M.CobordismMatrix c))
-                    | Singl !(CobordismBorder c)
+data BoundedChain c = Chain !(V.Vector (CM.CobordismMatrix c))
+                    | Singl !(CobordismBorder (CM.CobordismMatrix c))
 
 deriving instance (DottedCobordism c) => Show (BoundedChain c)
 
 
 glueChains :: (DottedCobordism c) => Int -> (BoundedChain c, Int) -> (BoundedChain c, Int) -> BoundedChain c
-glueChains gl (Singl a, posA) (Singl b, posB) = Singl $ horizontalComposition gl (a, posA) (b, posB)
-glueChains gl (Singl a, posA) (Chain bc, posB) =
-    let arrow = M.singleton $ identityCobordism a
-    in Chain $ V.map (\ b -> horizontalComposition gl (arrow, posA) (b, posB)) bc
-glueChains gl (Chain ac, posA) (Singl b, posB) =
-    let arrow = M.singleton $ identityCobordism b
-    in Chain $ V.map (\ a -> horizontalComposition gl (a, posA) (arrow, posB)) ac
+glueChains gl (Singl a, posA) (Singl b, posB)  = Singl $ horizontalComposition gl (a, posA) (b, posB)
+glueChains gl (Singl a, posA) (Chain bc, posB) = Chain $ V.map (\ b -> horizontalComposition gl (identityCobordism a, posA) (b, posB)) bc
+glueChains gl (Chain ac, posA) (Singl b, posB) = Chain $ V.map (\ a -> horizontalComposition gl (a, posA) (identityCobordism b, posB)) ac
 glueChains gl (Chain a, posA) (Chain b, posB) =
     let spanA = V.length a
         spanB = V.length b
@@ -56,7 +53,7 @@ glueChains gl (Chain a, posA) (Chain b, posB) =
                     let (pa, pb) = coords (d + 1) w
                     in horizontalComposition gl (layerA pa, posA) (layerB pb, posB)
 
-        in M.flatten $ M.matrix cols rows $ \ row col ->
+        in CM.flatten $ CM.matrix cols rows $ \ row col ->
             let (pa0, pb0) = coords d col
                 (pa1, pb1) = coords (d + 1) row
             in if | pb1 == pb0             -> horizontalComposition gl (a V.! pa0, posA) (identityCobordism $ layerB pb0, posB)
@@ -66,7 +63,11 @@ glueChains gl (Chain a, posA) (Chain b, posB) =
 
 
 simplifyChain :: (DottedCobordism c) => BoundedChain c -> BoundedChain c
-simplifyChain (Singl b) = Singl b
+simplifyChain (Singl b) =
+    Singl $ CM.fromVector $ V.concatMap (\ x ->
+            let (delooped, factors) = delooping x
+            in V.replicate (V.length factors) delooped
+        ) $ CM.toVector b
 simplifyChain (Chain borders) = Chain $ goL 0 $ goE 0 borders
     where
         test msg pre b =
@@ -77,7 +78,7 @@ simplifyChain (Chain borders) = Chain $ goL 0 $ goE 0 borders
 
         goE d kh | d >= V.length kh  = kh
                  | otherwise          =
-                     case M.findIndex isIsomorphism $ kh V.! d of
+                     case CM.findIndex isIsomorphism $ kh V.! d of
                          Nothing         -> goE (d + 1) kh
                          Just (row, col) ->
                             let msg = printf "elimination at d = %i pos = %s" d (show (row, col)) :: String
@@ -85,8 +86,8 @@ simplifyChain (Chain borders) = Chain $ goL 0 $ goE 0 borders
 
         goL d kh | d > V.length kh  = goE 0 kh
                  | otherwise        =
-                     let level | d == 0     = M.toVector $ cobordismBorder0 $ kh V.! d
-                               | otherwise  = M.toVector $ cobordismBorder1 $ kh V.! (d - 1)
+                     let level | d == 0     = CM.toVector $ cobordismBorder0 $ kh V.! d
+                               | otherwise  = CM.toVector $ cobordismBorder1 $ kh V.! (d - 1)
                      in case V.findIndex ((> 0) . numberOfLoops) level of
                             Nothing      -> goL (d + 1) kh
                             Just loopPos ->
@@ -95,35 +96,35 @@ simplifyChain (Chain borders) = Chain $ goL 0 $ goE 0 borders
 
         eliminateAt d row col kh =
             let m = (kh V.! d)
-                (eps, delta, gamma) = M.minor (row, col) m
-            in (kh V.//) $ [(d, eps - gamma ∘ (M.singleton $ m M.! (row, col)) ∘ delta)]
-                                ++ [(d - 1, M.removeRow col (kh V.! (d - 1))) | d > 0]
-                                ++ [(d + 1, M.removeCol row (kh V.! (d + 1))) | d < V.length kh - 1]
+                (eps, delta, gamma) = CM.minor (row, col) m
+            in (kh V.//) $ [(d, eps - gamma ∘ (CM.singleton $ m CM.! (row, col)) ∘ delta)]
+                                ++ [(d - 1, CM.removeRow col (kh V.! (d - 1))) | d > 0]
+                                ++ [(d + 1, CM.removeCol row (kh V.! (d + 1))) | d < V.length kh - 1]
 
         deloopAt d loopPos kh =
             let (delooped, pairs) = delooping $
-                    if | d == 0    -> M.toVector (cobordismBorder0 $ kh V.! d) V.! loopPos
-                       | otherwise -> M.toVector (cobordismBorder1 $ kh V.! (d - 1)) V.! loopPos
+                    if | d == 0    -> CM.toVector (cobordismBorder0 $ kh V.! d) V.! loopPos
+                       | otherwise -> CM.toVector (cobordismBorder1 $ kh V.! (d - 1)) V.! loopPos
 
                 newLines = V.length pairs
 
                 postDeloop m =
-                    let cols = M.toVector $ cobordismBorder0 m
-                        rows = let v = M.toVector $ cobordismBorder1 m
+                    let cols = CM.toVector $ cobordismBorder0 m
+                        rows = let v = CM.toVector $ cobordismBorder1 m
                                in V.take loopPos v V.++ V.replicate newLines delooped V.++ V.drop (loopPos + 1) v
-                    in M.matrix cols rows $ \ row col ->
-                        if | row < loopPos             -> m M.! (row, col)
-                           | row >= loopPos + newLines -> m M.! (row - newLines + 1, col)
-                           | otherwise                 -> fst (pairs V.! (row - loopPos)) ∘ (m M.! (loopPos, col))
+                    in CM.matrix cols rows $ \ row col ->
+                        if | row < loopPos             -> m CM.! (row, col)
+                           | row >= loopPos + newLines -> m CM.! (row - newLines + 1, col)
+                           | otherwise                 -> fst (pairs V.! (row - loopPos)) ∘ (m CM.! (loopPos, col))
 
                 preDeloop m =
-                    let rows = M.toVector $ cobordismBorder1 m
-                        cols = let v = M.toVector $ cobordismBorder0 m
+                    let rows = CM.toVector $ cobordismBorder1 m
+                        cols = let v = CM.toVector $ cobordismBorder0 m
                                in V.take loopPos v V.++ V.replicate newLines delooped V.++ V.drop (loopPos + 1) v
-                    in M.matrix cols rows $ \ row col ->
-                        if | col < loopPos             -> m M.! (row, col)
-                           | col >= loopPos + newLines -> m M.! (row, col - newLines + 1)
-                           | otherwise                 -> (m M.! (row, loopPos)) ∘ snd (pairs V.! (col - loopPos))
+                    in CM.matrix cols rows $ \ row col ->
+                        if | col < loopPos             -> m CM.! (row, col)
+                           | col >= loopPos + newLines -> m CM.! (row, col - newLines + 1)
+                           | otherwise                 -> (m CM.! (row, loopPos)) ∘ snd (pairs V.! (col - loopPos))
 
             in (kh V.//) $ [(d - 1, postDeloop $ kh V.! (d - 1)) | d > 0]
                         ++ [(d, preDeloop $ kh V.! d) | d < V.length kh]
@@ -132,13 +133,12 @@ simplifyChain (Chain borders) = Chain $ goL 0 $ goE 0 borders
 stripChain :: (PreadditiveCobordism c) => BoundedChain c -> (Int, BoundedChain c)
 stripChain (Singl x) = (0, Singl x)
 stripChain (Chain chain) =
-    let zeroL = (== M.emptyVector) . cobordismBorder0 . (chain V.!)
-        zeroR = (== M.emptyVector) . cobordismBorder1 . (chain V.!)
+    let zeroL = (== 0) . CM.vectorLength . cobordismBorder0 . (chain V.!)
+        zeroR = (== 0) . CM.vectorLength . cobordismBorder1 . (chain V.!)
 
-        go !l !r | l > r      = let brd = M.toVector $ cobordismBorder1 $ chain V.! r
-                                in if V.length brd == 1
-                                    then (l, Singl $ V.head brd)
-                                    else error "zero chain bad case"
+        go !l !r | l > r      = let brd | r >= 0     = cobordismBorder1 $ chain V.! r
+                                        | otherwise  = cobordismBorder0 $ chain V.! l
+                                in (l, Singl brd)
                  | zeroL l    = go (l + 1) r
                  | zeroR r    = go l (r - 1)
                  | otherwise  = (l, Chain $ V.force $ V.slice l (r - l + 1) chain)
@@ -172,7 +172,7 @@ instance (DottedCobordism c) => PlanarAlgebra (KhovanovComplex c) where
         KhovanovComplex
             { legsN        = 2 * n
             , chainOffset  = 0
-            , complexChain = Singl $ planarPropagator n
+            , complexChain = Singl $ CM.singletonVector $ planarPropagator n
             }
 
     horizontalCompositionUnchecked !gl (!a, !posA) (!b, !posB) =
@@ -194,13 +194,13 @@ overCrossingComplex =
     KhovanovComplex
         { legsN        = 4
         , chainOffset  = 0
-        , complexChain = Chain $ V.singleton $ M.singleton saddleCobordism
+        , complexChain = Chain $ V.singleton $ CM.singleton saddleCobordism
         }
 underCrossingComplex =
     KhovanovComplex
         { legsN        = 4
         , chainOffset  = 0
-        , complexChain = Chain $ V.singleton $ M.singleton saddleCobordism'
+        , complexChain = Chain $ V.singleton $ CM.singleton saddleCobordism'
         }
 
 
@@ -219,27 +219,23 @@ khovanovHomologyBetti tangle =
         nminus = length $ filter (< 0) $ map writhe $ allVertices tangle
         kh = khovanovComplex tangle
     in case complexChain kh of
-        Singl _     -> [(chainOffset kh - nminus, 1)]
+        Singl brd   -> [(chainOffset kh - nminus, V.sum $ V.map tqftBorderDim $ CM.toVector brd)]
         Chain chain ->
             let dim = V.length chain
 
+                (tqftDim, tqft) = prepareTQFT $ numberOfLegs tangle
+
                 borderTQFT m =
-                    let rows = M.numberOfRows m
-                        cols = M.numberOfCols m
-                    in V.generate rows $ \ row ->
-                        V.generate cols $ \ col ->
-                            applyTQFT $ m M.! (row, col)
+                    let rows = tqftDim * CM.numberOfRows m
+                        cols = tqftDim * CM.numberOfCols m
+                    in M.matrix rows cols $ \ (!row, !col) ->
+                        let (extRow, intRow) = (row - 1) `divMod` tqftDim
+                            (extCol, intCol) = (col - 1) `divMod` tqftDim
+                        in (tqft $ m CM.! (extRow, extCol)) M.! (intRow + 1, intCol + 1)
 
-                smith = V.map (smithNormalForm . borderTQFT) chain
-
-                kerDim d | d == dim   = M.numberOfRows $ chain V.! (d - 1)
-                         | otherwise  = M.numberOfCols (chain V.! d) - V.length (smith V.! d)
-
-                imDim 0 = 0
-                imDim d = V.length $ smith V.! (d - 1)
-
+                bettiVector = cohomologyBettiNumbers $ V.map borderTQFT chain
             in do
                 d <- [0 .. dim]
-                let betti = kerDim d - imDim d
+                let betti = bettiVector V.! d
                 guard $ betti > 0
                 return $! (d + chainOffset kh - nminus, betti)

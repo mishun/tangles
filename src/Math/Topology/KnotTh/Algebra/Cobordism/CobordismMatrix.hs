@@ -11,7 +11,10 @@ module Math.Topology.KnotTh.Algebra.Cobordism.CobordismMatrix
     , matrix
     , findIndex
     , emptyVector
+    , singletonVector
+    , vectorLength
     , toVector
+    , fromVector
     , flatten
     ) where
 
@@ -142,9 +145,22 @@ emptyVector :: (Cobordism c) => CobordismBorder (CobordismMatrix c)
 emptyVector = CB V.empty
 
 
+singletonVector :: (Cobordism c) => CobordismBorder c -> CobordismBorder (CobordismMatrix c)
+singletonVector = CB . V.singleton
+
+
+vectorLength :: (Cobordism c) => CobordismBorder (CobordismMatrix c) -> Int
+vectorLength (CB v) = V.length v
+
+
 {-# INLINE toVector #-}
 toVector :: (Cobordism c) => CobordismBorder (CobordismMatrix c) -> V.Vector (CobordismBorder c)
 toVector (CB v) = v
+
+
+{-# INLINE fromVector #-}
+fromVector :: (Cobordism c) => V.Vector (CobordismBorder c) -> CobordismBorder (CobordismMatrix c)
+fromVector = CB
 
 
 flatten :: (PreadditiveCobordism c) => CobordismMatrix (CobordismMatrix c) -> CobordismMatrix c

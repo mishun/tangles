@@ -39,6 +39,7 @@ library
         base >=4.6,
         vector >=0.10,
         array,
+        matrix,
         deepseq,
         parallel,
         mtl,
