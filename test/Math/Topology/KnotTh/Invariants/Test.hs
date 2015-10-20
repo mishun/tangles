@@ -3,6 +3,7 @@ module Math.Topology.KnotTh.Invariants.Test
     , testHard
     ) where
 
+import Control.Monad (forM_)
 #ifdef TESTING
 import qualified Data.Map as M
 #endif
@@ -46,6 +47,23 @@ testKauffmanFtoXRelation =
 #endif
 
 
+testReidemeisterMoves :: (Eq a, Show a) => (TangleDiagram -> a) -> Test
+testReidemeisterMoves invariant =
+    testGroup "Reidemeister moves"
+        [ testCase "Reidemeister I" $
+            forM_ reidemeisterIExamples $ \ (before, after) ->
+                invariant (toTangle after) @?= invariant (toTangle before)
+
+        , testCase "Reidemeister II" $
+            forM_ reidemeisterIIExamples $ \ (before, after) ->
+                invariant (toTangle after) @?= invariant (toTangle before)
+
+        , testCase "Reidemeister III" $
+            forM_ reidemeisterIIIExamples $ \ (before, after) ->
+                invariant (toTangle after) @?= invariant (toTangle before)
+        ]
+
+
 test :: Test
 test = testGroup "Invariants"
     [ testGroup "Linking numbers" $ do
@@ -58,8 +76,10 @@ test = testGroup "Invariants"
         return $ testCase header $
             linkingNumbersInvariant l @?= target
 
-    , testGroup "Jones polynomial"
-        [ testGroup "Some special knots and links" $ do
+    , testGroup "Kauffman X (Jones) polynomial"
+        [ testReidemeisterMoves kauffmanXPolynomial
+
+        , testGroup "Jones on a few special knots and links" $ do
             (header, l, target) <-
                 [ ("unknot"                 , unknot               , "1"                                             )
                 , ("unknot '8'"             , singleCrossingUnknot , "1"                                             )
@@ -95,7 +115,7 @@ test = testGroup "Invariants"
             return $ testCase header $
                 show (normalizedJonesPolynomialOfLink l) @?= target
 
-        , testGroup "Knots and links from table" $ do
+        , testGroup "Jones on knots and links from table" $ do
             ((cross, comps), polys) <-
                 [ ((2, 2),
                     [ "-t^-1-t"
@@ -160,7 +180,7 @@ test = testGroup "Invariants"
             return $ testCase header $
                 show (normalizedJonesPolynomialOfLink link) @?= poly
 
-        , testGroup "Exact values on tangles" $ do
+        , testGroup "Kauffman X values on a few tangles" $ do
             (header, t, target) <-
                 [ ("empty"         , planarEmpty                   , "(1)[]"                            )
                 , ("identity"      , planarPropagator 1            , "(1)[1,0]"                         )
@@ -193,7 +213,9 @@ test = testGroup "Invariants"
         ]
 
     , testGroup "Kauffman F polynomial"
-        [ testGroup "Exact values on links" $ do
+        [ testReidemeisterMoves kauffmanFPolynomial
+
+        , testGroup "Exact values on links" $ do
             (header, l, target) <-
                 [ ("unknot"             , unknot                            , "1"                                                                                       )
                 , ("unknot left '8'"    , singleCrossingUnknot              , "1"                                                                                       )
@@ -290,6 +312,8 @@ test = testGroup "Invariants"
 
         , testCase "borromean rings" $
             khovanovHomologyBetti (toTangle borromeanRingsLink) @?= [(0, 1), (1, 3), (2, 2), (3, 8), (4, 2), (5, 3), (6, 1)]
+
+        , testReidemeisterMoves khovanovHomologyBetti
         ]
     ]
 

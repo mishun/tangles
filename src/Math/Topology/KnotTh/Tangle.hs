@@ -26,6 +26,15 @@ module Math.Topology.KnotTh.Tangle
     , rationalTangle
     , rationalTangle'
     , twistedSatellite
+    , conwayRecip
+    , conwayProduct
+    , conwayRamification
+    , propagatorClosure
+    , numeratorClosure
+    , denominatorClosure
+    , reidemeisterIExamples
+    , reidemeisterIIExamples
+    , reidemeisterIIIExamples
     , linkTable
     , knotTable
     , linkT
@@ -123,6 +132,64 @@ twistedSatellite n tangle = tensorSurgery n $ mapVertices wrap tangle
                               in toTangle (promoteTangle n (3 * n) cross ∘ half ∘ half)
             where wc = writhe v
                   cross = gridTangle (n, n) (const $ vertexContent v)
+
+
+conwayRecip :: (MirrorAction a) => Tangle4 a -> Tangle4 a
+conwayRecip = mirrorIt
+
+
+conwayProduct :: (MirrorAction a) => Tangle4 a -> Tangle4 a -> Tangle4 a
+conwayProduct a = conwaySum (conwayRecip a)
+
+
+conwayRamification :: (MirrorAction a) => Tangle4 a -> Tangle4 a -> Tangle4 a
+conwayRamification a = conwaySum (conwayRecip a) . conwayRecip
+
+
+propagatorClosure :: Tangle2 a -> Tangle0 a
+propagatorClosure t = zipTangles2 t emptyPropagatorTangle
+
+
+numeratorClosure :: Tangle4 a -> Tangle0 a
+numeratorClosure t = zipTangles4 t infinityTangle
+
+
+denominatorClosure :: Tangle4 a -> Tangle0 a
+denominatorClosure t = zipTangles4 t zeroTangle
+
+
+reidemeisterIExamples :: [(Tangle2 DiagramCrossing, Tangle2 DiagramCrossing)]
+reidemeisterIExamples =
+    [ (emptyPropagatorTangle, lonerPropagatorTangle overCrossing)
+    , (emptyPropagatorTangle, lonerPropagatorTangle underCrossing)
+    , (emptyPropagatorTangle, mirrorIt $ lonerPropagatorTangle overCrossing)
+    , (emptyPropagatorTangle, mirrorIt $ lonerPropagatorTangle overCrossing)
+    ]
+
+
+reidemeisterIIExamples :: [(Tangle4 DiagramCrossing, Tangle4 DiagramCrossing)]
+reidemeisterIIExamples =
+    let redII a = rationalTangle' [V.fromList [a, flipCrossing a]]
+    in  [ (zeroTangle, redII overCrossing)
+        , (zeroTangle, redII underCrossing)
+        , (infinityTangle, rotateBy 1 $ redII overCrossing)
+        , (infinityTangle, rotateBy 1 $ redII underCrossing)
+        ]
+
+
+reidemeisterIIIExamples :: [(Tangle6 DiagramCrossing, Tangle6 DiagramCrossing)]
+reidemeisterIIIExamples =
+    let preparePair a b =
+            let at = toTangle $ lonerTangle a
+                bt = toTangle $ lonerTangle b
+                d = horizontalComposition 1 (at, 0) (at, 0)
+            in ( tangle6 $ horizontalComposition 2 (bt, 0) (d, 5)
+               , tangle6 $ rotateBy (-1) $ horizontalComposition 2 (d, 2) (bt, 0))
+    in  [ preparePair overCrossing overCrossing
+        , preparePair overCrossing underCrossing
+        , preparePair underCrossing overCrossing
+        , preparePair underCrossing underCrossing
+        ]
 
 
 linkTable :: Int -> Int -> [LinkDiagram]

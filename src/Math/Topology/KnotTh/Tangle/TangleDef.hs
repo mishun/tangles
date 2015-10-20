@@ -11,6 +11,8 @@ module Math.Topology.KnotTh.Tangle.TangleDef
 
     , glueToBorder
     , emptyTangle
+    , emptyPropagatorTangle
+    , lonerPropagatorTangle
     , loopTangle
     , zeroTangle
     , infinityTangle
@@ -24,11 +26,6 @@ module Math.Topology.KnotTh.Tangle.TangleDef
     , zipTangles4
     , zipTangles6
     , conwaySum
-    , conwayRecip
-    , conwayProduct
-    , conwayRamification
-    , numeratorClosure
-    , denominatorClosure
 
     , tangle0
     , tangle2
@@ -92,6 +89,9 @@ instance DartDiagram' Tangle0 where
 
 instance VertexDiagram' Tangle0 where
     newtype Vertex Tangle0 a = V0 (Vertex Tangle a)
+
+instance TensorSurgery Tangle0 where
+    tensorSurgery k (T0 t) = T0 $ tensorSurgery k t
 
 instance ExplodeKnotted Tangle0 where
     type ExplodeType Tangle0 a = (Int, [([(Int, Int)], a)])
@@ -1008,14 +1008,36 @@ loopTangle n | n < 0      = error "loopTangle: negative number of loops"
         }
 
 
+emptyPropagatorTangle :: Tangle2 a
+emptyPropagatorTangle =
+    T2 $ Tangle
+        { loopsN   = 0
+        , vertexN  = 0
+        , involArr = PV.fromList [1, 0]
+        , crossArr = V.empty
+        , legsN    = 2
+        }
+
+
+lonerPropagatorTangle :: a -> Tangle2 a
+lonerPropagatorTangle cr =
+    T2 $ Tangle
+        { loopsN   = 0
+        , vertexN  = 1
+        , involArr = PV.fromList [4, 5, 3, 2, 0, 1]
+        , crossArr = V.singleton cr
+        , legsN    = 2
+        }
+
+
 zeroTangle :: Tangle4 a
 zeroTangle =
     T4 $ Tangle
-        { loopsN      = 0
-        , vertexN     = 0
+        { loopsN   = 0
+        , vertexN  = 0
         , involArr = PV.fromList [3, 2, 1, 0]
-        , crossArr  = V.empty
-        , legsN       = 4
+        , crossArr = V.empty
+        , legsN    = 4
         }
 
 
@@ -1096,26 +1118,6 @@ zipTangles6 (T6 a) (T6 b) = T0 $ horizontalComposition 6 (a, 0) (b, 1)
 -- See http://www.mi.sanu.ac.rs/vismath/sl/l14.htm
 conwaySum :: Tangle4 a -> Tangle4 a -> Tangle4 a
 conwaySum (T4 a) (T4 b) = T4 $ horizontalComposition 2 (a, 2) (b, 0)
-
-
-conwayRecip :: (MirrorAction a) => Tangle4 a -> Tangle4 a
-conwayRecip (T4 t) = T4 (mirrorIt t)
-
-
-conwayProduct :: (MirrorAction a) => Tangle4 a -> Tangle4 a -> Tangle4 a
-conwayProduct a b = conwayRecip a `conwaySum` b
-
-
-conwayRamification :: (MirrorAction a) => Tangle4 a -> Tangle4 a -> Tangle4 a
-conwayRamification a b = conwayRecip a `conwaySum` conwayRecip b
-
-
-numeratorClosure :: Tangle4 a -> Tangle0 a
-numeratorClosure t = zipTangles4 t infinityTangle
-
-
-denominatorClosure :: Tangle4 a -> Tangle0 a
-denominatorClosure t = zipTangles4 t zeroTangle
 
 
 {-# INLINE tangle0 #-}
