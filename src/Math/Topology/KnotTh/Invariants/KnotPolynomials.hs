@@ -1,4 +1,4 @@
-{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 module Math.Topology.KnotTh.Invariants.KnotPolynomials
     ( SkeinRelation(..)
     , reduceSkein

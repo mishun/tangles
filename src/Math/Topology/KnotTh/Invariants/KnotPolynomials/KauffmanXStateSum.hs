@@ -1,3 +1,4 @@
+{-# LANGUAGE MultiParamTypeClasses #-}
 module Math.Topology.KnotTh.Invariants.KnotPolynomials.KauffmanXStateSum
     ( KauffmanXArg(..)
     , PlanarChordDiagram(..)
@@ -31,7 +32,8 @@ instance KauffmanXArg Poly where
     swapFactors = invert "a"
 
 
-data PlanarChordDiagram a = PlanarChordDiagram !(UV.Vector Int) !a deriving (Eq, Ord)
+data PlanarChordDiagram a = PlanarChordDiagram !(UV.Vector Int) !a
+    deriving (Eq, Ord)
 
 
 instance Functor PlanarChordDiagram where
@@ -44,7 +46,8 @@ instance (Show a) => Show (PlanarChordDiagram a) where
         printf "(%s)%s" (show x) (show $ UV.toList a)
 
 
-data KauffmanXStateSum a = KauffmanXStateSum !Int ![PlanarChordDiagram a] deriving (Eq, Ord)
+data KauffmanXStateSum a = KauffmanXStateSum !Int ![PlanarChordDiagram a]
+    deriving (Eq, Ord)
 
 
 instance Functor KauffmanXStateSum where

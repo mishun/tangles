@@ -1,4 +1,4 @@
-{-# LANGUAGE DeriveFunctor, GeneralizedNewtypeDeriving, TypeFamilies, UnboxedTuples #-}
+{-# LANGUAGE DeriveFunctor, GeneralizedNewtypeDeriving, MultiParamTypeClasses, TypeFamilies, UnboxedTuples #-}
 module Math.Topology.KnotTh.Tangle.TangleDef
     ( Tangle
     , AsTangle(..)
@@ -31,6 +31,8 @@ module Math.Topology.KnotTh.Tangle.TangleDef
     , tangle2
     , tangle4
     , tangle6
+
+    , OrientedTangle
     ) where
 
 import Control.Applicative (Applicative)
@@ -1316,3 +1318,85 @@ instance ModifyDSL Tangle where
 
             (reconnectST st =<<) $ forM reconnections $ \ (a, b) ->
                 (,) a `fmap` MV.read arr (dartIndex b)
+
+
+data OrientedTangle a = OrientedTangle !(Tangle a) (UV.Vector Int)
+    deriving (Functor)
+
+instance DartDiagram' OrientedTangle where
+    data Dart OrientedTangle a = OrientedDart !(OrientedTangle a)!(Dart Tangle a)
+
+instance DartDiagram OrientedTangle where
+    dartOwner (OrientedDart t _) = t
+    dartIndex (OrientedDart _ d) = dartIndex d
+    opposite  (OrientedDart t d) = OrientedDart t (opposite d)
+    nextCCW   (OrientedDart t d) = OrientedDart t (nextCCW d)
+    nextCW    (OrientedDart t d) = OrientedDart t (nextCW d)
+    nextBy k  (OrientedDart t d) = OrientedDart t (nextBy k d)
+
+    numberOfDarts (OrientedTangle t _) = numberOfDarts t
+    numberOfEdges (OrientedTangle t _) = numberOfEdges t
+
+    nthDart  t@(OrientedTangle t' _) n = OrientedDart t (nthDart t' n)
+    allDarts t@(OrientedTangle t' _)   = map (OrientedDart t) $ allDarts t'
+
+    dartIndicesRange (OrientedTangle t _) = dartIndicesRange t
+
+instance VertexDiagram' OrientedTangle where
+    data Vertex OrientedTangle a = OrientedVertex !(OrientedTangle a) !(Vertex Tangle a)
+
+instance VertexDiagram OrientedTangle where
+    vertexContent (OrientedVertex _ v) = vertexContent v
+
+    mapVertices f t@(OrientedTangle t' orient) =
+        OrientedTangle (mapVertices (\ v -> f $ OrientedVertex t v) t') orient
+
+    vertexOwner (OrientedVertex t _) = t
+    vertexIndex (OrientedVertex _ v) = vertexIndex v
+
+    vertexDegree _ = 4
+
+    nthOutcomingDart (OrientedVertex t v) n = OrientedDart t (nthOutcomingDart v n)
+    nthIncomingDart  (OrientedVertex t v) n = OrientedDart t (nthIncomingDart v n)
+
+    numberOfVertices (OrientedTangle t _) = numberOfVertices t
+
+    nthVertex t@(OrientedTangle t' _) n = OrientedVertex t (nthVertex t' n)
+
+    allVertices t@(OrientedTangle t' _) = map (OrientedVertex t) $ allVertices t'
+
+    maybeBeginVertex (OrientedDart t d) = OrientedVertex t `fmap` maybeBeginVertex d
+    maybeEndVertex   (OrientedDart t d) = OrientedVertex t `fmap` maybeEndVertex   d
+    beginVertex      (OrientedDart t d) = OrientedVertex t (beginVertex d)
+    endVertex        (OrientedDart t d) = OrientedVertex t (endVertex d)
+    beginVertexIndex (OrientedDart _ d) = beginVertexIndex d
+    endVertexIndex   (OrientedDart _ d) = endVertexIndex d
+    beginPlace       (OrientedDart _ d) = beginPlace d
+    endPlace         (OrientedDart _ d) = endPlace d
+    --beginPair        :: Dart d a -> (Vertex d a, Int)
+    --endPair          :: Dart d a -> (Vertex d a, Int)
+    --beginPair'       :: Dart d a -> (Int, Int)
+    --endPair'         :: Dart d a -> (Int, Int)
+
+    outcomingDarts (OrientedVertex t v) = map (OrientedDart t) $ outcomingDarts v
+    incomingDarts  (OrientedVertex t v) = map (OrientedDart t) $ incomingDarts v
+
+    isDart (OrientedDart _ d) = isDart d
+
+    vertexIndicesRange (OrientedTangle t _) = vertexIndicesRange t
+
+instance Knotted OrientedTangle where
+    unrootedHomeomorphismInvariant (OrientedTangle t _) =
+        unrootedHomeomorphismInvariant t
+
+    numberOfFreeLoops (OrientedTangle t _) = numberOfFreeLoops t
+
+    changeNumberOfFreeLoops n (OrientedTangle t orient) =
+        OrientedTangle (changeNumberOfFreeLoops n t) orient
+
+    isConnected (OrientedTangle t _) = isConnected t
+
+instance OrientedKnotted OrientedTangle Tangle where
+    dropOrientation (OrientedTangle t _) = t
+
+    anyOrientation t = OrientedTangle t undefined

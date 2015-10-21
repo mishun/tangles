@@ -1,4 +1,4 @@
-{-# LANGUAGE TypeFamilies, UnboxedTuples #-}
+{-# LANGUAGE FunctionalDependencies, MultiParamTypeClasses, TypeFamilies, UnboxedTuples #-}
 module Math.Topology.KnotTh.Knotted
     ( module Math.Topology.KnotTh.Algebra.PlanarAlgebra
     , module Math.Topology.KnotTh.Algebra.Dihedral
@@ -11,6 +11,8 @@ module Math.Topology.KnotTh.Knotted
     , foldMIncomingDarts
     , foldMIncomingDartsFrom
     , flipCrossings
+    , OrientedCrossing(..)
+    , OrientedKnotted(..)
     ) where
 
 import Data.Bits ((.&.))
@@ -91,3 +93,17 @@ foldMIncomingDartsFrom dart direction f = foldMOutcomingDartsFrom dart direction
 
 flipCrossings :: (Knotted k, Crossing a) => k a -> k a
 flipCrossings = fmap transposeIt
+
+
+class (Crossing a) => OrientedCrossing a where
+    strandContinuation :: (OrientedKnotted k k') => Dart k a -> Dart k a
+
+
+class (Knotted k, Knotted k') => OrientedKnotted k k' | k -> k', k' -> k where
+    dropOrientation :: k a -> k' a
+    anyOrientation  :: (OrientedCrossing a) => k' a -> k a
+    --allOrientations :: (OrientedCrossing a) => k' a -> [k a]
+
+    --numberOfStrands :: k a -> Int
+    --strandIndex     :: Dart k a -> Int
+    --dartOrientation :: Dart k a -> Int

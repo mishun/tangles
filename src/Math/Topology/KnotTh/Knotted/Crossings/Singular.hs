@@ -1,4 +1,4 @@
-{-# LANGUAGE UnboxedTuples #-}
+{-# LANGUAGE MultiParamTypeClasses, UnboxedTuples #-}
 module Math.Topology.KnotTh.Knotted.Crossings.Singular
     ( SingularCrossing
     ) where

@@ -29,8 +29,6 @@ library
         BangPatterns,
         FlexibleContexts,
         FlexibleInstances,
-        FunctionalDependencies,
-        MultiParamTypeClasses,
         MultiWayIf
     ghc-options:        -Wall
     ghc-prof-options:   -prof -auto-all -caf-all

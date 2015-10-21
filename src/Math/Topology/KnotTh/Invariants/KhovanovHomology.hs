@@ -7,7 +7,6 @@ module Math.Topology.KnotTh.Invariants.KhovanovHomology
     , khovanovHomologyBetti
     ) where
 
-import Control.Monad (guard)
 import qualified Data.Matrix as M
 import qualified Data.Vector as V
 import qualified Data.Vector.Unboxed as UV
@@ -26,10 +25,10 @@ deriving instance (DottedCobordism c) => Show (BoundedChain c)
 
 
 glueChains :: (DottedCobordism c) => Int -> (BoundedChain c, Int) -> (BoundedChain c, Int) -> BoundedChain c
-glueChains gl (Singl a, posA) (Singl b, posB)  = Singl $ horizontalComposition gl (a, posA) (b, posB)
-glueChains gl (Singl a, posA) (Chain bc, posB) = Chain $ V.map (\ b -> horizontalComposition gl (identityCobordism a, posA) (b, posB)) bc
-glueChains gl (Chain ac, posA) (Singl b, posB) = Chain $ V.map (\ a -> horizontalComposition gl (a, posA) (identityCobordism b, posB)) ac
-glueChains gl (Chain a, posA) (Chain b, posB) =
+glueChains gl (Singl a, posA)  (Singl b, posB)  = Singl $ horizontalComposition gl (a, posA) (b, posB)
+glueChains gl (Singl a, posA)  (Chain bc, posB) = Chain $ V.map (\ b -> horizontalComposition gl (identityCobordism a, posA) (b, posB)) bc
+glueChains gl (Chain ac, posA) (Singl b, posB)  = Chain $ V.map (\ a -> horizontalComposition gl (a, posA) (identityCobordism b, posB)) ac
+glueChains gl (Chain a, posA)  (Chain b, posB)  =
     let spanA = V.length a
         spanB = V.length b
 
@@ -238,5 +237,4 @@ khovanovHomologyBetti tangle =
             in do
                 d <- [0 .. dim]
                 let betti = bettiVector UV.! d
-                guard $ betti > 0
-                return $! (d + chainOffset kh - nminus, betti)
+                [(d + chainOffset kh - nminus, betti) | betti > 0]

@@ -1,4 +1,4 @@
-{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE MultiParamTypeClasses, TypeFamilies #-}
 module Math.Topology.KnotTh.Algebra
     ( Composition(..)
     , Group(..)
@@ -15,6 +15,7 @@ instance Composition (a -> a) where
     (∘) = (.)
 
 
+-- Groupoid actually
 class (Composition g) => Group g where
     data SubGroup g :: *
 

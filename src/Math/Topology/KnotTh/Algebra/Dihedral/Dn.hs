@@ -1,4 +1,4 @@
-{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE MultiParamTypeClasses, TypeFamilies #-}
 module Math.Topology.KnotTh.Algebra.Dihedral.Dn
     ( module Math.Topology.KnotTh.Algebra
     , module Math.Topology.KnotTh.Algebra.Dihedral

@@ -1,3 +1,4 @@
+{-# LANGUAGE MultiParamTypeClasses #-}
 module Math.Topology.KnotTh.Invariants.KnotPolynomials.KauffmanFStateSum
     ( KauffmanFArg(..)
     , ChordDiagramsSum
@@ -33,7 +34,8 @@ instance KauffmanFArg Poly2 where
     swapTwists    = invert2 "a"
 
 
-data ChordDiagram a = ChordDiagram !(UV.Vector Int) !a deriving (Eq, Ord)
+data ChordDiagram a = ChordDiagram !(UV.Vector Int) !a
+    deriving (Eq, Ord)
 
 
 instance Functor ChordDiagram where
@@ -49,7 +51,8 @@ instance (Show a) => Show (ChordDiagram a) where
         printf "(%s)%s" (show x) (show $ UV.toList a)
 
 
-data ChordDiagramsSum a = ChordDiagramsSum {-# UNPACK #-} !Int ![ChordDiagram a] deriving (Eq, Ord)
+data ChordDiagramsSum a = ChordDiagramsSum {-# UNPACK #-} !Int ![ChordDiagram a]
+    deriving (Eq, Ord)
 
 
 instance Functor ChordDiagramsSum where

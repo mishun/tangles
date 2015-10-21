@@ -1,4 +1,4 @@
-{-# LANGUAGE DeriveFunctor, GeneralizedNewtypeDeriving, TypeFamilies, UnboxedTuples #-}
+{-# LANGUAGE DeriveFunctor, GeneralizedNewtypeDeriving, MultiParamTypeClasses, TypeFamilies, UnboxedTuples #-}
 module Math.Topology.KnotTh.EmbeddedLink
     ( module Math.Topology.KnotTh.Knotted
     , module Math.Topology.KnotTh.Knotted.Crossings.Projection
