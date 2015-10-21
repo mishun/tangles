@@ -14,7 +14,7 @@ import Math.Topology.KnotTh.Tangle
 test :: Test
 test = testGroup "Basic tangle tests"
     [ testCase "Very basic functions" $ do
-        let t = vertexOwner $ glueToBorder 1 (lonerProjection, 0) projectionCrossing
+        let t = vertexOwner $ glueToBorder 1 (lonerProjection, 0) ProjectionCrossing
         let c1 = nthVertex t 1
         vertexIndex c1 @?= 1
         opposite (nthLeg t 3) @?= nthOutcomingDart c1 1
@@ -39,22 +39,22 @@ test = testGroup "Basic tangle tests"
         assertEqual "infinity tangle" "implode (0,[(0,1),(0,0),(0,3),(0,2)],[])" $
             show (toTangle infinityTangle :: TangleProjection)
 
-        assertEqual "loner tangle" "implode (0,[(1,0),(1,1),(1,2),(1,3)],[([(0,0),(0,1),(0,2),(0,3)],projectionCrossing)])" $
+        assertEqual "loner tangle" "implode (0,[(1,0),(1,1),(1,2),(1,3)],[([(0,0),(0,1),(0,2),(0,3)],ProjectionCrossing)])" $
             show (toTangle lonerProjection)
 
-        assertEqual "implode" "implode (0,[(1,0),(1,1),(1,2),(1,3)],[([(0,0),(0,1),(0,2),(0,3)],projectionCrossing)])" $
-            show (implode (0, [(1, 0), (1, 1), (1, 2), (1, 3)], [([(0, 0), (0, 1), (0, 2), (0, 3)], projectionCrossing)]) :: TangleProjection)
+        assertEqual "implode" "implode (0,[(1,0),(1,1),(1,2),(1,3)],[([(0,0),(0,1),(0,2),(0,3)],ProjectionCrossing)])" $
+            show (implode (0, [(1, 0), (1, 1), (1, 2), (1, 3)], [([(0, 0), (0, 1), (0, 2), (0, 3)], ProjectionCrossing)]) :: TangleProjection)
 
     , testCase "Cascade code" $
         explode (decodeCascadeCodeFromPairs [(1, 0), (0, 5), (0, 3), (0, 3), (0, 5)]) @?=
             ( 0
             , [(6, 2), (6, 3), (5, 3), (2, 3), (4, 2), (4, 3)]
-            ,   [ ([(2, 0), (4, 1), (4, 0), (6, 1)], projectionCrossing)
-                , ([(1, 0), (3, 1), (3, 0), (0, 3)], projectionCrossing)
-                , ([(2, 2), (2, 1), (5, 1), (5, 0)], projectionCrossing)
-                , ([(1, 2), (1, 1), (0, 4), (0, 5)], projectionCrossing)
-                , ([(3, 3), (3, 2), (6, 0), (0, 2)], projectionCrossing)
-                , ([(5, 2), (1, 3), (0, 0), (0, 1)], projectionCrossing)
+            ,   [ ([(2, 0), (4, 1), (4, 0), (6, 1)], ProjectionCrossing)
+                , ([(1, 0), (3, 1), (3, 0), (0, 3)], ProjectionCrossing)
+                , ([(2, 2), (2, 1), (5, 1), (5, 0)], ProjectionCrossing)
+                , ([(1, 2), (1, 1), (0, 4), (0, 5)], ProjectionCrossing)
+                , ([(3, 3), (3, 2), (6, 0), (0, 2)], ProjectionCrossing)
+                , ([(5, 2), (1, 3), (0, 0), (0, 1)], ProjectionCrossing)
                 ]
             )
 
@@ -64,47 +64,47 @@ test = testGroup "Basic tangle tests"
 
     , testGroup "Glue crossing"
         [ testCase "With 0 legs" $
-            explode (vertexOwner $ glueToBorder 0 (lonerProjection, 0) projectionCrossing) @?=
+            explode (vertexOwner $ glueToBorder 0 (lonerProjection, 0) ProjectionCrossing) @?=
                 ( 0
                 , [(2, 0), (2, 1), (2, 2), (2, 3), (1, 1), (1, 2), (1, 3), (1, 0)]
-                ,   [ ([(0, 7), (0, 4), (0, 5), (0, 6)], projectionCrossing)
-                    , ([(0, 0), (0, 1), (0, 2), (0, 3)], projectionCrossing)
+                ,   [ ([(0, 7), (0, 4), (0, 5), (0, 6)], ProjectionCrossing)
+                    , ([(0, 0), (0, 1), (0, 2), (0, 3)], ProjectionCrossing)
                     ]
                 )
 
         , testCase "With 1 leg" $
-            explode (vertexOwner $ glueToBorder 1 (lonerProjection, 0) projectionCrossing) @?=
+            explode (vertexOwner $ glueToBorder 1 (lonerProjection, 0) ProjectionCrossing) @?=
                 ( 0
                 , [(2, 1), (2, 2), (2, 3), (1, 1), (1, 2), (1, 3)]
-                ,   [ ([(2, 0), (0, 3), (0, 4), (0, 5)], projectionCrossing)
-                    , ([(1, 0), (0, 0), (0, 1), (0, 2)], projectionCrossing)
+                ,   [ ([(2, 0), (0, 3), (0, 4), (0, 5)], ProjectionCrossing)
+                    , ([(1, 0), (0, 0), (0, 1), (0, 2)], ProjectionCrossing)
                     ]
                 )
 
         , testCase "With 2 legs" $
-            explode (vertexOwner $ glueToBorder 2 (lonerProjection, 1) projectionCrossing) @?=
+            explode (vertexOwner $ glueToBorder 2 (lonerProjection, 1) ProjectionCrossing) @?=
                 ( 0
                 , [(2, 2), (2, 3), (1, 2), (1, 3)]
-                ,   [ ([(2, 1), (2, 0), (0, 2), (0, 3)], projectionCrossing)
-                    , ([(1, 1), (1, 0), (0, 0), (0, 1)], projectionCrossing)
+                ,   [ ([(2, 1), (2, 0), (0, 2), (0, 3)], ProjectionCrossing)
+                    , ([(1, 1), (1, 0), (0, 0), (0, 1)], ProjectionCrossing)
                     ]
                 )
 
         , testCase "with 3 legs" $
-            explode (vertexOwner $ glueToBorder 3 (lonerProjection, 3) projectionCrossing) @?=
+            explode (vertexOwner $ glueToBorder 3 (lonerProjection, 3) ProjectionCrossing) @?=
                 ( 0
                 , [(2, 3), (1, 0)]
-                ,   [ ([(0, 1), (2, 2), (2, 1), (2, 0)], projectionCrossing)
-                    , ([(1, 3), (1, 2), (1, 1), (0, 0)], projectionCrossing)
+                ,   [ ([(0, 1), (2, 2), (2, 1), (2, 0)], ProjectionCrossing)
+                    , ([(1, 3), (1, 2), (1, 1), (0, 0)], ProjectionCrossing)
                     ]
                 )
 
         , testCase "With 4 legs" $
-            explode (vertexOwner $ glueToBorder 4 (lonerProjection, 1) projectionCrossing) @?=
+            explode (vertexOwner $ glueToBorder 4 (lonerProjection, 1) ProjectionCrossing) @?=
                 ( 0
                 , []
-                ,   [ ([(2, 1), (2, 0), (2, 3), (2, 2)], projectionCrossing)
-                    , ([(1, 1), (1, 0), (1, 3), (1, 2)], projectionCrossing)
+                ,   [ ([(2, 1), (2, 0), (2, 3), (2, 2)], ProjectionCrossing)
+                    , ([(1, 1), (1, 0), (1, 3), (1, 2)], ProjectionCrossing)
                     ]
                 )
         ]
@@ -115,8 +115,8 @@ test = testGroup "Basic tangle tests"
             in explode (horizontalComposition 1 (t, 0) (t, 1)) @?=
                 ( 0
                 , [(1, 1), (1, 2), (1, 3), (2, 2), (2, 3), (2, 0)]
-                ,   [ ([(2, 1), (0, 0), (0, 1), (0, 2)], projectionCrossing)
-                    , ([(0, 5), (1, 0), (0, 3), (0, 4)], projectionCrossing)
+                ,   [ ([(2, 1), (0, 0), (0, 1), (0, 2)], ProjectionCrossing)
+                    , ([(0, 5), (1, 0), (0, 3), (0, 4)], ProjectionCrossing)
                     ]
                 )
 
@@ -133,7 +133,7 @@ test = testGroup "Basic tangle tests"
             explode (horizontalComposition 2 (toTangle lonerProjection, 0) (planarPropagator 1, 0)) @?=
                 ( 0
                 , [(1, 2), (1, 3)]
-                ,   [ ([(1, 1), (1, 0), (0, 0), (0, 1)], projectionCrossing)
+                ,   [ ([(1, 1), (1, 0), (0, 0), (0, 1)], ProjectionCrossing)
                     ]
                 )
         ]

@@ -10,6 +10,7 @@ module Math.Topology.KnotTh.Invariants.KhovanovHomology
 import Control.Monad (guard)
 import qualified Data.Matrix as M
 import qualified Data.Vector as V
+import qualified Data.Vector.Unboxed as UV
 import Text.Printf
 import Math.Topology.KnotTh.Algebra.Homology
 import qualified Math.Topology.KnotTh.Algebra.Cobordism.CobordismMatrix as CM
@@ -236,6 +237,6 @@ khovanovHomologyBetti tangle =
                 bettiVector = cohomologyBettiNumbers $ V.map borderTQFT chain
             in do
                 d <- [0 .. dim]
-                let betti = bettiVector V.! d
+                let betti = bettiVector UV.! d
                 guard $ betti > 0
                 return $! (d + chainOffset kh - nminus, betti)

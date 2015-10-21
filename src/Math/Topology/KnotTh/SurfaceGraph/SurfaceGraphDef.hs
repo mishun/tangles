@@ -57,6 +57,7 @@ instance VertexDiagram' SurfaceGraph where
 
 instance VertexDiagram SurfaceGraph where
     vertexContent _ = undefined
+    mapVertices = undefined
 
     vertexOwner (Vertex g _) = g
     vertexIndex (Vertex _ i) = i

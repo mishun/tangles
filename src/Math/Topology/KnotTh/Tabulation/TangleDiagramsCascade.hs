@@ -108,7 +108,7 @@ primeProjections maxN =
             (leg, _) <- uniqueGlueSites gl ts
             return (tangle, gl, leg)
         , tryAscent = \ (tangle, gl, leg) -> do
-            let root = glueToBorder gl (tangle, leg) projectionCrossing
+            let root = glueToBorder gl (tangle, leg) ProjectionCrossing
             (sym, adj, _) <- rootingSymmetryTest root
             return (root, (sym, adj))
         , lowerProjection  = first vertexOwner

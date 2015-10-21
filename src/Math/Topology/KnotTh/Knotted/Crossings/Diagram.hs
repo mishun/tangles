@@ -7,8 +7,6 @@ module Math.Topology.KnotTh.Knotted.Crossings.Diagram
     , underCrossingIf
     , isOverCrossing
     , isUnderCrossing
-    , bothDiagramCrossings
-    , overCrossingOnly
     , isPassingOver
     , isPassingUnder
     , isPassingOver'
@@ -23,14 +21,15 @@ module Math.Topology.KnotTh.Knotted.Crossings.Diagram
     ) where
 
 import Control.DeepSeq
-import Data.Bits ((.&.), xor)
 import qualified Data.Array.Unboxed as A
+import Data.Bits ((.&.), xor)
 import Math.Topology.KnotTh.Algebra.Dihedral.D4
 import Math.Topology.KnotTh.Knotted
 import Math.Topology.KnotTh.Knotted.Threads
 
 
-newtype DiagramCrossing = DC Int deriving (Eq)
+newtype DiagramCrossing = DC Int
+    deriving (Eq)
 
 instance Show DiagramCrossing where
     show s | isOverCrossing s  = "overCrossing"
@@ -91,13 +90,13 @@ underCrossing = DC 1
 
 {-# INLINE overCrossingIf #-}
 overCrossingIf :: Bool -> DiagramCrossing
-overCrossingIf True = overCrossing
+overCrossingIf True  = overCrossing
 overCrossingIf False = underCrossing
 
 
 {-# INLINE underCrossingIf #-}
 underCrossingIf :: Bool -> DiagramCrossing
-underCrossingIf True = underCrossing
+underCrossingIf True  = underCrossing
 underCrossingIf False = overCrossing
 
 
@@ -203,12 +202,7 @@ selfWrithe knot =
             else 0
 
 
-threadsWithLinkingNumbers
-    :: (Knotted k) => k DiagramCrossing
-        -> ( (Int, A.UArray (Dart k DiagramCrossing) Int, [(Int, [(Dart k DiagramCrossing, Dart k DiagramCrossing)])])
-           , A.UArray (Int, Int) Int
-           )
-
+threadsWithLinkingNumbers :: (Knotted k) => k DiagramCrossing -> ( (Int, A.UArray (Dart k DiagramCrossing) Int, [(Int, [(Dart k DiagramCrossing, Dart k DiagramCrossing)])]), A.UArray (Int, Int) Int)
 threadsWithLinkingNumbers knot =
     let ts@(n, tag, _) = allThreadsWithMarks knot
         ln = A.accumArray (+) 0 ((1, 1), (n, n)) $ do

@@ -1064,7 +1064,7 @@ lonerTangle cr =
 
 
 lonerProjection :: Tangle4 ProjectionCrossing
-lonerProjection = lonerTangle projectionCrossing
+lonerProjection = lonerTangle ProjectionCrossing
 
 
 lonerOverCrossing, lonerUnderCrossing :: Tangle4 DiagramCrossing

@@ -7,15 +7,8 @@ import Control.Monad (when)
 import qualified Control.Monad.State.Strict as S
 import qualified Data.Matrix as M
 import qualified Data.Vector as V
-
-
-extendedGCD :: (Integral a) => a -> a -> (a, a, a)
-extendedGCD !a 0 | a >= 0     = (a, 1, 0)
-                 | otherwise  = (-a, -1, 0)
-extendedGCD !a !b =
-    let (quotient, remainder) = divMod a b
-        (g, x, y) = extendedGCD b remainder
-    in (g, y, x - quotient * y)
+import qualified Data.Vector.Unboxed as UV
+import Math.Topology.KnotTh.Algebra
 
 
 smithNormalForm :: (Integral a) => V.Vector (V.Vector a) -> V.Vector a
@@ -111,19 +104,16 @@ smithNormalForm a0 =
           | otherwise -> S.evalState (eliminate 0) a0
 
 
-cohomologyBettiNumbers :: (Integral a, Show a) => V.Vector (M.Matrix a) -> V.Vector Int
+cohomologyBettiNumbers :: (Integral a) => V.Vector (M.Matrix a) -> UV.Vector Int
 cohomologyBettiNumbers chain =
     let dim = V.length chain
-
-        smith = V.map (\ m -> smithNormalForm $ V.generate (M.nrows m) (\ row -> M.getRow (row + 1) m)) chain
-
-        kerDim d | d == dim   = M.nrows $ chain V.! (d - 1)
-                 | otherwise  = M.ncols (chain V.! d) - V.length (smith V.! d)
-
-        imDim 0 = 0
-        imDim d = V.length $ smith V.! (d - 1)
-
     in if dim == 0
         then error "cohomologyBettiNumbers: expected non-empty chain"
-        else V.generate (dim + 1) $ \ d ->
-                kerDim d - imDim d
+        else let smith = V.map (\ m -> smithNormalForm $ V.generate (M.nrows m) (\ row -> M.getRow (row + 1) m)) chain
+             in UV.generate (dim + 1) $ \ d ->
+                    let kerDim  | d == dim   = M.nrows $ chain V.! (d - 1)
+                                | otherwise  = M.ncols (chain V.! d) - V.length (smith V.! d)
+
+                        imDim | d == 0     = 0
+                              | otherwise  = V.length $ smith V.! (d - 1)
+                    in kerDim - imDim

@@ -16,6 +16,7 @@ import Math.Topology.KnotTh.SurfaceGraph.Homology
 import Math.Topology.KnotTh.Invariants.KnotPolynomials
 import Math.Topology.KnotTh.Invariants.KnotPolynomials.KauffmanXStateSum
 import Math.Topology.KnotTh.EmbeddedLink
+import Math.Topology.KnotTh.Algebra
 
 
 homologyDecomposition :: (KauffmanXArg a) => EmbeddedLinkDiagram -> (Int, [([UV.Vector Int], a)])
@@ -68,7 +69,7 @@ torusMinimization list =
                 y' = y `div` g
             return $ max (x', y') (-x', -y')
 
-        let (1, y2, x2) = extendedEuclid x1 y1
+        let (1, y2, x2) = extendedGCD x1 y1
 
         n <- S.toList $ S.fromList $ (0 :) $ do
             ((x', y'), _) <- list
@@ -90,11 +91,3 @@ torusMinimization list =
             let y' = -y1 * x + x1 * y
                 x' = y2 * x + x2 * y - n * y'
             return (max (x', y') (-x', -y'), value)
-
-
-extendedEuclid :: (Show a, Integral a) => a -> a -> (a, a, a)
-extendedEuclid a 0 | a >= 0     = (a, 1, 0)
-                   | otherwise  = (-a, -1, 0)
-extendedEuclid a b =
-    let (g, x, y) = extendedEuclid b (a `mod` b)
-    in (g, y, x - (a `div` b) * y)

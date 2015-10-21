@@ -58,6 +58,7 @@ library
     extra-libraries:    stdc++ gsl gslcblas
     include-dirs:       src/
     exposed-modules:
+        Math.Topology.KnotTh.Algebra,
         Math.Topology.KnotTh.Algebra.Cobordism,
         Math.Topology.KnotTh.Algebra.Cobordism.CobordismMatrix,
         Math.Topology.KnotTh.Algebra.Cobordism.DottedCobordism,
@@ -82,6 +83,7 @@ library
         Math.Topology.KnotTh.Knotted,
         Math.Topology.KnotTh.Knotted.Crossings.Diagram,
         Math.Topology.KnotTh.Knotted.Crossings.Projection,
+        Math.Topology.KnotTh.Knotted.Crossings.Singular,
         Math.Topology.KnotTh.Knotted.Crossings.SubTangle,
         Math.Topology.KnotTh.Knotted.EdgeIndicesEncoding,
         Math.Topology.KnotTh.Knotted.Threads,

@@ -25,9 +25,9 @@ instance CascadeCodePattern ProjectionCrossing where
 
     cascadeCodeRoot = toTangle lonerProjection
 
-    decodeCrossing W = (W, 1, 0, projectionCrossing)
-    decodeCrossing X = (X, 1, 0, projectionCrossing)
-    decodeCrossing M = (M, 0, -1, projectionCrossing)
+    decodeCrossing W = (W, 1, 0, ProjectionCrossing)
+    decodeCrossing X = (X, 1, 0, ProjectionCrossing)
+    decodeCrossing M = (M, 0, -1, ProjectionCrossing)
 
 instance CascadeCodePattern DiagramCrossing where
     data CascadePattern DiagramCrossing = WO | WU | XO | XU | MO | MU
