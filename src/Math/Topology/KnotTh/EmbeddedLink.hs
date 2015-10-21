@@ -3,6 +3,7 @@ module Math.Topology.KnotTh.EmbeddedLink
     ( module Math.Topology.KnotTh.Knotted
     , module Math.Topology.KnotTh.Knotted.Crossings.Projection
     , module Math.Topology.KnotTh.Knotted.Crossings.Diagram
+    , module Math.Topology.KnotTh.Algebra.SurfaceDiagram
 
     , EmbeddedLink
     , EmbeddedLinkProjection
@@ -41,13 +42,14 @@ import qualified Data.Vector.Unboxed as UV
 import qualified Data.Vector.Unboxed.Mutable as UMV
 import Text.Printf
 import Math.Topology.KnotTh.Algebra.Dihedral.D4
-import qualified Math.Topology.KnotTh.SurfaceGraph as SG
+import Math.Topology.KnotTh.Algebra.SurfaceDiagram
 import Math.Topology.KnotTh.ChordDiagram
 import Math.Topology.KnotTh.Knotted
 import Math.Topology.KnotTh.Knotted.Crossings.Projection
 import Math.Topology.KnotTh.Knotted.Crossings.Diagram
 import Math.Topology.KnotTh.Knotted.Threads
 import Math.Topology.KnotTh.Moves.ModifyDSL
+import qualified Math.Topology.KnotTh.SurfaceGraph as SG
 import Math.Topology.KnotTh.Tangle
 
 
@@ -482,9 +484,6 @@ instance SurfaceDiagram EmbeddedLink where
         in Dart l $ faceCCWBrdDart (faceSystem l) `PV.unsafeIndex` (cur + p `mod` (nxt - cur))
 
     faceIndicesRange l = (1, numberOfFaces l)
-
-
-instance SurfaceKnotted EmbeddedLink
 
 
 type EmbeddedLinkProjection = EmbeddedLink ProjectionCrossing

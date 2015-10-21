@@ -6,7 +6,6 @@ module Math.Topology.KnotTh.Knotted
     , Knotted(..)
     , ExplodeKnotted(..)
     , KnotWithPrimeTest(..)
-    , SurfaceKnotted
     , nthCrossing
     , forMIncomingDarts
     , foldMIncomingDarts
@@ -69,8 +68,6 @@ class (Knotted k) => ExplodeKnotted k where
 
 class (Knotted k, Crossing a) => KnotWithPrimeTest k a where
     isPrime :: k a -> Bool
-
-class (Knotted k, SurfaceDiagram k) => SurfaceKnotted k where
 
 
 {-# INLINE nthCrossing #-}

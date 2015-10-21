@@ -1008,6 +1008,7 @@ loopTangle n | n < 0      = error "loopTangle: negative number of loops"
         }
 
 
+-- TODO: better name?
 emptyPropagatorTangle :: Tangle2 a
 emptyPropagatorTangle =
     T2 $ Tangle
@@ -1019,6 +1020,7 @@ emptyPropagatorTangle =
         }
 
 
+-- TODO: better name?
 lonerPropagatorTangle :: a -> Tangle2 a
 lonerPropagatorTangle cr =
     T2 $ Tangle

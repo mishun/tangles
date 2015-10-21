@@ -1,6 +1,7 @@
 {-# LANGUAGE TypeFamilies #-}
 module Math.Topology.KnotTh.SurfaceGraph.SurfaceGraphDef
     ( module Math.Topology.KnotTh.Algebra.PlanarAlgebra
+    , module Math.Topology.KnotTh.Algebra.SurfaceDiagram
     , SurfaceGraph
     , dual
     , constructFromList
@@ -18,6 +19,7 @@ import qualified Data.Vector.Unboxed as UV
 import qualified Data.Vector.Unboxed.Mutable as UMV
 import Text.Printf
 import Math.Topology.KnotTh.Algebra.PlanarAlgebra
+import Math.Topology.KnotTh.Algebra.SurfaceDiagram
 
 
 data SurfaceGraph a =

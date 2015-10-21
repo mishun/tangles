@@ -146,6 +146,7 @@ conwayRamification :: (MirrorAction a) => Tangle4 a -> Tangle4 a -> Tangle4 a
 conwayRamification a = conwaySum (conwayRecip a) . conwayRecip
 
 
+-- TODO: better name?
 propagatorClosure :: Tangle2 a -> Tangle0 a
 propagatorClosure t = zipTangles2 t emptyPropagatorTangle
 
@@ -169,7 +170,7 @@ reidemeisterIExamples =
 
 reidemeisterIIExamples :: [(Tangle4 DiagramCrossing, Tangle4 DiagramCrossing)]
 reidemeisterIIExamples =
-    let redII a = rationalTangle' [V.fromList [a, flipCrossing a]]
+    let redII a = chainTangle $ V.fromList [a, flipCrossing a]
     in  [ (zeroTangle, redII OverCrossing)
         , (zeroTangle, redII UnderCrossing)
         , (infinityTangle, rotateBy 1 $ redII OverCrossing)
@@ -192,6 +193,7 @@ reidemeisterIIIExamples =
         ]
 
 
+-- TODO: better names for theese table related functions?
 linkTable :: Int -> Int -> [LinkDiagram]
 linkTable cross comps =
     maybe [] (map fromDTCode) $
