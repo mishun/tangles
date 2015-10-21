@@ -11,7 +11,9 @@ module Math.Topology.KnotTh.Tangle.TangleCat
     ) where
 
 import Text.Printf
+import Math.Topology.KnotTh.Algebra
 import Math.Topology.KnotTh.Algebra.Cobordism
+import Math.Topology.KnotTh.Algebra.Dihedral
 import Math.Topology.KnotTh.Algebra.PlanarAlgebra
 import Math.Topology.KnotTh.Tangle.TangleDef
 

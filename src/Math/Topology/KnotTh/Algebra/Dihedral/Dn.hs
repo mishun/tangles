@@ -1,6 +1,7 @@
 {-# LANGUAGE TypeFamilies #-}
 module Math.Topology.KnotTh.Algebra.Dihedral.Dn
-    ( module Math.Topology.KnotTh.Algebra.Dihedral
+    ( module Math.Topology.KnotTh.Algebra
+    , module Math.Topology.KnotTh.Algebra.Dihedral
     , Dn
     , fromRotation
     , fromReflectionRotation
@@ -17,6 +18,7 @@ module Math.Topology.KnotTh.Algebra.Dihedral.Dn
     ) where
 
 import Text.Printf
+import Math.Topology.KnotTh.Algebra
 import Math.Topology.KnotTh.Algebra.Dihedral
 
 

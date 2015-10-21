@@ -1,6 +1,32 @@
+{-# LANGUAGE TypeFamilies #-}
 module Math.Topology.KnotTh.Algebra
-    ( extendedGCD
+    ( Composition(..)
+    , Group(..)
+    , GroupAction(..)
+    , TensorProduct(..)
+    , extendedGCD
     ) where
+
+
+class Composition a where
+    (∘) :: a -> a -> a
+
+instance Composition (a -> a) where
+    (∘) = (.)
+
+
+class (Composition g) => Group g where
+    data SubGroup g :: *
+
+    inverse :: g -> g
+
+
+class (Group g) => GroupAction g a where
+    transform :: g -> a -> a
+
+
+class TensorProduct a where
+    (⊗) :: a -> a -> a
 
 
 extendedGCD :: (Integral a) => a -> a -> (a, a, a)

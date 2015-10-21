@@ -170,7 +170,7 @@ reidemeisterIExamples =
 
 reidemeisterIIExamples :: [(Tangle4 DiagramCrossing, Tangle4 DiagramCrossing)]
 reidemeisterIIExamples =
-    let redII a = chainTangle $ V.fromList [a, flipCrossing a]
+    let redII a = chainTangle $ V.fromList [a, transposeIt a]
     in  [ (zeroTangle, redII OverCrossing)
         , (zeroTangle, redII UnderCrossing)
         , (infinityTangle, rotateBy 1 $ redII OverCrossing)

@@ -1,15 +1,15 @@
 {-# LANGUAGE TypeFamilies #-}
 module Math.Topology.KnotTh.Algebra.Cobordism
-    ( module Math.Topology.KnotTh.Algebra.Dihedral
-    , Cobordism(..)
+    ( Cobordism(..)
     , Cobordism3(..)
     , PreadditiveCobordism(..)
     , CannedCobordism(..)
     ) where
 
-import Math.Topology.KnotTh.ChordDiagram
+import Math.Topology.KnotTh.Algebra
 import Math.Topology.KnotTh.Algebra.Dihedral
 import Math.Topology.KnotTh.Algebra.PlanarAlgebra
+import Math.Topology.KnotTh.ChordDiagram
 
 
 class (Composition c, TensorProduct c, TensorProduct (CobordismBorder c), Eq (CobordismBorder c)) => Cobordism c where
@@ -19,8 +19,7 @@ class (Composition c, TensorProduct c, TensorProduct (CobordismBorder c), Eq (Co
     cobordismBorder1  :: c -> CobordismBorder c
     identityCobordism :: CobordismBorder c -> c
 
-class (Cobordism c) => Cobordism3 c where
-    transposeCobordism   :: c -> c
+class (Cobordism c, TransposeAction c) => Cobordism3 c where
     numberOfLoops        :: CobordismBorder c -> Int
     surfOfGenusCobordism :: Int -> c
     sphereCobordism      :: c
@@ -38,9 +37,9 @@ class (Cobordism c) => Cobordism3 c where
     torusCobordism      = surfOfGenusCobordism 1
     capCobordism        = capOfGenusCobordism 0
     cupCobordism        = cupOfGenusCobordism 0
-    capOfGenusCobordism = transposeCobordism . cupOfGenusCobordism
-    cupOfGenusCobordism = transposeCobordism . capOfGenusCobordism
-    pantsCobordism'     = transposeCobordism pantsCobordism
+    capOfGenusCobordism = transposeIt . cupOfGenusCobordism
+    cupOfGenusCobordism = transposeIt . capOfGenusCobordism
+    pantsCobordism'     = transposeIt pantsCobordism
 
 class (Cobordism c, Eq c, Num c) => PreadditiveCobordism c where
     zeroCobordism   :: CobordismBorder c -> CobordismBorder c -> c
@@ -54,6 +53,6 @@ class (Cobordism3 c, PlanarAlgebra c, PlanarAlgebra (CobordismBorder c), ChordDi
     sideCutPantsCobordism  :: c
     sideCutPantsCobordism' :: c
 
-    saddleCobordism'       = transposeCobordism saddleCobordism
+    saddleCobordism'       = transposeIt saddleCobordism
     sideCutPantsCobordism  = horizontalComposition 2 (saddleCobordism', 0) (planarPropagator 1, 0)
     sideCutPantsCobordism' = horizontalComposition 2 (saddleCobordism, 0) (planarPropagator 1, 0)

@@ -1,6 +1,7 @@
 {-# LANGUAGE TypeFamilies #-}
 module Math.Topology.KnotTh.Algebra.Cobordism.DottedCobordism
-    ( module Math.Topology.KnotTh.Algebra.Cobordism
+    ( module Math.Topology.KnotTh.Algebra
+    , module Math.Topology.KnotTh.Algebra.Cobordism
     , module Math.Topology.KnotTh.Algebra.PlanarAlgebra
     , DottedCobordism(..)
     , DottedCobordism'
@@ -16,9 +17,11 @@ import qualified Data.Vector as V
 import qualified Data.Vector.Unboxed as UV
 import qualified Data.Vector.Unboxed.Mutable as UMV
 import Text.Printf
-import Math.Topology.KnotTh.ChordDiagram
+import Math.Topology.KnotTh.Algebra
 import Math.Topology.KnotTh.Algebra.Cobordism
+import Math.Topology.KnotTh.Algebra.Dihedral
 import Math.Topology.KnotTh.Algebra.PlanarAlgebra
+import Math.Topology.KnotTh.ChordDiagram
 
 
 data CobordismHeader =
@@ -574,11 +577,12 @@ instance (CobordismGuts g) => Cobordism (Cobordism' g) where
         let h = makeHeader (UV.length arcs) (arcs, loops) (arcs, loops)
         in Cob h (identityGuts (wallHolesN h) loops)
 
-instance (CobordismGuts g) => Cobordism3 (Cobordism' g) where
-    transposeCobordism (Cob h g) =
+instance (CobordismGuts g) => TransposeAction (Cobordism' g) where
+    transposeIt (Cob h g) =
         Cob (h { arcs0 = arcs1 h, arcs1 = arcs0 h, loops0 = loops1 h, loops1 = loops0 h })
             (flipGuts g)
 
+instance (CobordismGuts g) => Cobordism3 (Cobordism' g) where
     numberOfLoops (Brd ls _) = ls
 
     surfOfGenusCobordism genus | genus < 0  = error $ printf "surfOfGenusCobordism: genus must be non-negative, but %i passed" genus
@@ -699,8 +703,8 @@ instance (Integral a, Show a) => DottedCobordism (Cobordism' (ModuleGuts DottedG
     delooping (Brd loops arcs) =
         let cap0 = Cob (emptyHeader 1 0) $ MG $ uncurry Map.singleton $ capGutsM 0
             cap1 = Cob (emptyHeader 1 0) $ MG $ let (g, f) = capGutsM 1 in Map.singleton g (f `div` 2)
-            cup0 = transposeCobordism cap0
-            cup1 = transposeCobordism cap1
+            cup0 = transposeIt cap0
+            cup1 = transposeIt cap1
 
             generate 0 cobs = cobs
             generate n cobs =

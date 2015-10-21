@@ -1,6 +1,7 @@
 {-# LANGUAGE TypeFamilies #-}
 module Math.Topology.KnotTh.Algebra.Dihedral.D4
-    ( module Math.Topology.KnotTh.Algebra.Dihedral
+    ( module Math.Topology.KnotTh.Algebra
+    , module Math.Topology.KnotTh.Algebra.Dihedral
     , D4
     , d4I, d4E, d4C, d4EC, d4C2, d4EC2, d4C3, d4EC3
     , fromRotation
@@ -16,6 +17,7 @@ import Data.Bits ((.&.), shiftL, shiftR, xor)
 import Data.Char (isSpace)
 import qualified Data.Vector.Primitive as PV
 import Text.Printf
+import Math.Topology.KnotTh.Algebra
 import Math.Topology.KnotTh.Algebra.Dihedral
 import qualified Math.Topology.KnotTh.Algebra.Dihedral.Dn as Dn
 

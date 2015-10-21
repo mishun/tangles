@@ -35,7 +35,8 @@ instance NFData DiagramCrossing
 instance RotationAction DiagramCrossing where
     rotationOrder _ = 4
 
-    rotateBy rot | odd rot    = flipCrossing
+    {-# INLINE rotateBy #-}
+    rotateBy rot | odd rot    = transposeIt
                  | otherwise  = id
 
 instance MirrorAction DiagramCrossing where
@@ -44,11 +45,12 @@ instance MirrorAction DiagramCrossing where
 instance GroupAction D4 DiagramCrossing where
     transform g = rotateBy (rotation g)
 
-instance Crossing DiagramCrossing where
-    {-# INLINE flipCrossing #-}
-    flipCrossing OverCrossing  = UnderCrossing
-    flipCrossing UnderCrossing = OverCrossing
+instance TransposeAction DiagramCrossing where
+    {-# INLINE transposeIt #-}
+    transposeIt OverCrossing  = UnderCrossing
+    transposeIt UnderCrossing = OverCrossing
 
+instance Crossing DiagramCrossing where
     {-# INLINE globalTransformations #-}
     globalTransformations _ = Just [d4I, d4EC]
 

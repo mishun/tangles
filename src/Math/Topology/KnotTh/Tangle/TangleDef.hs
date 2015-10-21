@@ -52,7 +52,6 @@ import qualified Data.Vector.Unboxed.Mutable as UMV
 import qualified Data.Vector.Primitive as PV
 import qualified Data.Vector.Primitive.Mutable as PMV
 import Text.Printf
-import Math.Topology.KnotTh.Algebra.Cobordism
 import Math.Topology.KnotTh.Algebra.Dihedral.D4
 import Math.Topology.KnotTh.Knotted
 import Math.Topology.KnotTh.Knotted.Crossings.Projection
@@ -79,7 +78,7 @@ instance AsTangle Tangle where
 
 
 newtype Tangle0 a = T0 (Tangle a)
-    deriving (Show, Functor, NFData, MirrorAction, DartDiagram, VertexDiagram, Knotted, KnottedDiagram, Surgery)
+    deriving (Show, Functor, NFData, MirrorAction, TransposeAction, DartDiagram, VertexDiagram, Knotted, KnottedDiagram, Surgery)
 
 instance AsTangle Tangle0 where
     toTangle (T0 t) = t
@@ -109,7 +108,7 @@ instance Show (Dart Tangle0 a) where
 
 
 newtype Tangle2 a = T2 (Tangle a)
-    deriving (Show, Functor, NFData, RotationAction, MirrorAction, DartDiagram, LeggedDiagram, VertexDiagram, Knotted, Surgery)
+    deriving (Show, Functor, NFData, RotationAction, MirrorAction, TransposeAction, DartDiagram, LeggedDiagram, VertexDiagram, Knotted, Surgery)
 
 instance AsTangle Tangle2 where
     toTangle (T2 t) = t
@@ -128,7 +127,7 @@ instance Show (Dart Tangle2 a) where
 
 
 newtype Tangle4 a = T4 (Tangle a)
-    deriving (Show, Functor, NFData, RotationAction, MirrorAction, DartDiagram, LeggedDiagram, VertexDiagram, Knotted, Surgery)
+    deriving (Show, Functor, NFData, RotationAction, MirrorAction, TransposeAction, DartDiagram, LeggedDiagram, VertexDiagram, Knotted, Surgery)
 
 instance AsTangle Tangle4 where
     toTangle (T4 t) = t
@@ -151,7 +150,7 @@ instance (MirrorAction a) => GroupAction D4 (Tangle4 a) where
 
 
 newtype Tangle6 a = T6 (Tangle a)
-    deriving (Show, Functor, NFData, RotationAction, MirrorAction, DartDiagram, LeggedDiagram, VertexDiagram, Knotted, Surgery)
+    deriving (Show, Functor, NFData, RotationAction, MirrorAction, TransposeAction, DartDiagram, LeggedDiagram, VertexDiagram, Knotted, Surgery)
 
 instance AsTangle Tangle6 where
     toTangle (T6 t) = t
@@ -210,6 +209,9 @@ instance (MirrorAction a) => MirrorAction (Tangle a) where
 
             , crossArr = mirrorIt `fmap` crossArr tangle
             }
+
+instance (TransposeAction a) => TransposeAction (Tangle a) where
+    transposeIt = fmap transposeIt
 
 instance DartDiagram' Tangle where
     data Dart Tangle a = Dart !(Tangle a) {-# UNPACK #-} !Int

@@ -177,7 +177,7 @@ irregularCrossings tangle =
 decomposeTangle :: (KauffmanFArg a) => [(Int, [(Int, Int)], [([(Int, Int)], DiagramCrossing)])] -> a -> TangleDiagram -> ChordDiagramsSum a
 decomposeTangle path !initialFactor !tangle' =
     let splices [] toInvert factor inter =
-            let tangle = modifyKnot tangle' $ modifyC False flipCrossing toInvert
+            let tangle = modifyKnot tangle' $ modifyC False transposeIt toInvert
 
                 (n, _, threads) = allThreadsWithMarks tangle
 
@@ -196,8 +196,8 @@ decomposeTangle path !initialFactor !tangle' =
                             factor * twistFactor (totalSelfWrithe tangle) * loopFactor ^ (n - numberOfLegs tangle `div` 2)
 
         splices (h : r) toInvert factor inter =
-            let a = (factor * smoothFactor, modifyKnot tangle' $ modifyC False flipCrossing toInvert >> smoothA h >> greedy [reduce2nd])
-                b = (factor * smoothFactor, modifyKnot tangle' $ modifyC False flipCrossing toInvert >> smoothB h >> greedy [reduce2nd])
+            let a = (factor * smoothFactor, modifyKnot tangle' $ modifyC False transposeIt toInvert >> smoothA h >> greedy [reduce2nd])
+                b = (factor * smoothFactor, modifyKnot tangle' $ modifyC False transposeIt toInvert >> smoothB h >> greedy [reduce2nd])
             in splices r (h : toInvert) (-factor) (a : b : inter)
 
     in concatStateSums $ splices (irregularCrossings tangle') [] initialFactor []

@@ -21,7 +21,9 @@ module Math.Topology.KnotTh.Algebra.Cobordism.CobordismMatrix
 import Data.List (foldl')
 import qualified Data.Vector as V
 import Text.Printf
+import Math.Topology.KnotTh.Algebra
 import Math.Topology.KnotTh.Algebra.Cobordism
+import Math.Topology.KnotTh.Algebra.Dihedral
 import Math.Topology.KnotTh.Algebra.PlanarAlgebra
 
 
@@ -226,6 +228,11 @@ instance (PreadditiveCobordism c) => Num (CobordismMatrix c) where
     abs = id
     signum x = identityCobordism (cobordismBorder0 x)
 
+instance (Cobordism c, TransposeAction c) => TransposeAction (CobordismMatrix c) where
+    transposeIt m =
+        matrix (object1 m) (object0 m) $ \ !row !col ->
+            transposeIt $ m ! (col, row)
+
 instance (PreadditiveCobordism c) => PreadditiveCobordism (CobordismMatrix c) where
     isZeroCobordism = V.all isZeroCobordism . vector
 
@@ -234,10 +241,6 @@ instance (PreadditiveCobordism c) => PreadditiveCobordism (CobordismMatrix c) wh
             zeroCobordism (obj0 V.! col) (obj1 V.! row)
 
 instance (Cobordism3 c, PreadditiveCobordism c) => Cobordism3 (CobordismMatrix c) where
-    transposeCobordism m =
-        matrix (object1 m) (object0 m) $ \ !row !col ->
-            transposeCobordism $ m ! (col, row)
-
     numberOfLoops (CB objs) = V.sum $ V.map numberOfLoops objs
 
     surfOfGenusCobordism = singleton . surfOfGenusCobordism

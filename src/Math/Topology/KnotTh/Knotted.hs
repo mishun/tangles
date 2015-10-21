@@ -20,8 +20,7 @@ import Math.Topology.KnotTh.Algebra.Dihedral
 import Math.Topology.KnotTh.Algebra.Dihedral.D4
 
 
-class (RotationAction a, MirrorAction a, GroupAction D4 a) => Crossing a where
-    flipCrossing           :: a -> a
+class (RotationAction a, MirrorAction a, TransposeAction a, GroupAction D4 a) => Crossing a where
     globalTransformations  :: (Knotted k) => k a -> Maybe [D4]
     crossingCode           :: (Knotted k) => RotationDirection -> Dart k a -> (# Int, Int #)
     crossingCodeWithGlobal :: (Knotted k) => D4 -> RotationDirection -> Dart k a -> (# Int, Int #)
@@ -91,4 +90,4 @@ foldMIncomingDartsFrom dart direction f = foldMOutcomingDartsFrom dart direction
 
 
 flipCrossings :: (Knotted k, Crossing a) => k a -> k a
-flipCrossings = fmap flipCrossing
+flipCrossings = fmap transposeIt

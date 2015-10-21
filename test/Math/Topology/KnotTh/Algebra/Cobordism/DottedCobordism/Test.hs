@@ -8,6 +8,7 @@ import Test.Framework.Providers.HUnit (testCase)
 import Test.Framework.Providers.QuickCheck2 (testProperty)
 import Test.HUnit hiding (Test, test)
 import Test.QuickCheck
+import Math.Topology.KnotTh.Algebra.Dihedral
 import Math.Topology.KnotTh.Algebra.Cobordism.DottedCobordism
 import Math.Topology.KnotTh.Algebra.Cobordism.Test
 
@@ -43,7 +44,7 @@ barNatanConditionsTests _ torusValue =
                 cup = cupCobordism
                 tube = tubeCobordism
                 arc = cap ∘ pantsCobordism
-                arc' = transposeCobordism arc
+                arc' = transposeIt arc
                 cut = cup ∘ cap
             (((cup ⊗ cup) ∘ arc) + (arc' ∘ (cap ⊗ cap))) =?~= ((tube ⊗ cut) + (cut ⊗ tube))
             ((arc ∘ (tube ⊗ cap ⊗ cap ⊗ tube)) + (cap ⊗ arc ⊗ cap)) =?~= ((arc ⊗ cap ⊗ cap) + (cap ⊗ cap ⊗ arc))

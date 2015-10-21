@@ -72,6 +72,9 @@ data FaceSystem =
         }
 
 
+instance (TransposeAction a) => TransposeAction (EmbeddedLink a) where
+    transposeIt = fmap transposeIt
+
 instance DartDiagram' EmbeddedLink where
     data Dart EmbeddedLink a = Dart !(EmbeddedLink a) {-# UNPACK #-} !Int
 

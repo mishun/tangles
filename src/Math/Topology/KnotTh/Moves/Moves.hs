@@ -120,7 +120,7 @@ perko = makePattern True $ do
     reconnectP $ do
         substituteC [(b1, a3), (b2, c1), (d1, y2), (y0, d3)]
         connectC [(a3, b0), (b3, c1), (y2, d3), (d2, x4), (a1, x3), (a0, x2), (c0, x1), (c3, x0)]
-        modifyC False flipCrossing [a, c]
+        modifyC False transposeIt [a, c]
         modifyC True id x
 
 

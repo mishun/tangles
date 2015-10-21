@@ -70,10 +70,11 @@ instance MirrorAction (SubTangleCrossing a) where
 instance GroupAction D4 (SubTangleCrossing a) where
     transform g s = s { orientation = g ∘ orientation s }
 
-instance Crossing (SubTangleCrossing a) where
+instance TransposeAction (SubTangleCrossing a) where
     -- TODO: actually this is not right
-    flipCrossing = id
+    transposeIt = id
 
+instance Crossing (SubTangleCrossing a) where
     {-# INLINE globalTransformations #-}
     globalTransformations _ = Nothing
 

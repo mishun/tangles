@@ -5,6 +5,7 @@ module Math.Topology.KnotTh.Algebra.Dihedral
     , naivePeriodOf
     , MirrorAction(..)
     , allOrientationsOf
+    , TransposeAction(..)
     , RotationDirection
     , cw
     , ccw
@@ -12,16 +13,14 @@ module Math.Topology.KnotTh.Algebra.Dihedral
     , isCounterClockwise
     , isClockwise
     , directionSign
-    , Composition(..)
-    , TensorProduct(..)
-    , Group(..)
-    , power
     , RotationGroup(..)
     , DihedralGroup(..)
     , GroupAction(..)
+    , power
     ) where
 
 import Control.Monad ((>=>))
+import Math.Topology.KnotTh.Algebra
 
 
 class RotationAction a where
@@ -57,6 +56,10 @@ allOrientationsOf :: (RotationAction a, MirrorAction a) => a -> [a]
 allOrientationsOf = allRotationsOf >=> (\ t -> [t, mirrorIt t])
 
 
+class TransposeAction a where
+    transposeIt :: a -> a
+
+
 newtype RotationDirection = RD Int deriving (Eq, Ord)
 
 instance Show RotationDirection where
@@ -88,33 +91,6 @@ directionSign :: RotationDirection -> Int
 directionSign (RD d) = d
 
 
-class Composition a where
-    (∘) :: a -> a -> a
-
-instance Composition (a -> a) where
-    (∘) = (.)
-
-
-class TensorProduct a where
-    (⊗) :: a -> a -> a
-
-
-class (Composition g) => Group g where
-    data SubGroup g :: *
-
-    inverse :: g -> g
-
-power :: (RotationGroup g) => Int -> g -> g
-power =
-    let go 0 _ !r              = r
-        go n x !r | even n     = go (n `div` 2) (x ∘ x) r
-                  | otherwise  = go (n `div` 2) (x ∘ x) (x ∘ r)
-    in \ n x ->
-        if n >= 0
-            then go n x (identity $ rotationOrder x)
-            else go (-n) (inverse x) (identity $ rotationOrder x)
-
-
 class (Group g, RotationAction g) => RotationGroup g where
     identity         :: Int -> g
     pointsUnderSub   :: SubGroup g -> Int
@@ -126,5 +102,12 @@ class (RotationGroup g, MirrorAction g) => DihedralGroup g where
     reflection :: g -> Bool
 
 
-class (Group g) => GroupAction g a where
-    transform :: g -> a -> a
+power :: (RotationGroup g) => Int -> g -> g
+power =
+    let go 0 _ !r              = r
+        go n x !r | even n     = go (n `div` 2) (x ∘ x) r
+                  | otherwise  = go (n `div` 2) (x ∘ x) (x ∘ r)
+    in \ n x ->
+        if n >= 0
+            then go n x (identity $ rotationOrder x)
+            else go (-n) (inverse x) (identity $ rotationOrder x)

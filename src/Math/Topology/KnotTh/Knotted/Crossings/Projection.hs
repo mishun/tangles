@@ -26,8 +26,10 @@ instance MirrorAction ProjectionCrossing where
 instance GroupAction D4 ProjectionCrossing where
     transform _ = id
 
+instance TransposeAction ProjectionCrossing where
+    transposeIt = id
+
 instance Crossing ProjectionCrossing where
-    flipCrossing = id
     globalTransformations _ = Nothing
     crossingCode _ _ = (# 0, 0 #)
     crossingCodeWithGlobal _ _ _ = (# 0, 0 #)
