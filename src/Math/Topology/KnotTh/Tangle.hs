@@ -160,20 +160,20 @@ denominatorClosure t = zipTangles4 t zeroTangle
 
 reidemeisterIExamples :: [(Tangle2 DiagramCrossing, Tangle2 DiagramCrossing)]
 reidemeisterIExamples =
-    [ (emptyPropagatorTangle, lonerPropagatorTangle overCrossing)
-    , (emptyPropagatorTangle, lonerPropagatorTangle underCrossing)
-    , (emptyPropagatorTangle, mirrorIt $ lonerPropagatorTangle overCrossing)
-    , (emptyPropagatorTangle, mirrorIt $ lonerPropagatorTangle overCrossing)
+    [ (emptyPropagatorTangle, lonerPropagatorTangle OverCrossing)
+    , (emptyPropagatorTangle, lonerPropagatorTangle UnderCrossing)
+    , (emptyPropagatorTangle, mirrorIt $ lonerPropagatorTangle OverCrossing)
+    , (emptyPropagatorTangle, mirrorIt $ lonerPropagatorTangle OverCrossing)
     ]
 
 
 reidemeisterIIExamples :: [(Tangle4 DiagramCrossing, Tangle4 DiagramCrossing)]
 reidemeisterIIExamples =
     let redII a = rationalTangle' [V.fromList [a, flipCrossing a]]
-    in  [ (zeroTangle, redII overCrossing)
-        , (zeroTangle, redII underCrossing)
-        , (infinityTangle, rotateBy 1 $ redII overCrossing)
-        , (infinityTangle, rotateBy 1 $ redII underCrossing)
+    in  [ (zeroTangle, redII OverCrossing)
+        , (zeroTangle, redII UnderCrossing)
+        , (infinityTangle, rotateBy 1 $ redII OverCrossing)
+        , (infinityTangle, rotateBy 1 $ redII UnderCrossing)
         ]
 
 
@@ -185,10 +185,10 @@ reidemeisterIIIExamples =
                 d = horizontalComposition 1 (at, 0) (at, 0)
             in ( tangle6 $ horizontalComposition 2 (bt, 0) (d, 5)
                , tangle6 $ rotateBy (-1) $ horizontalComposition 2 (d, 2) (bt, 0))
-    in  [ preparePair overCrossing overCrossing
-        , preparePair overCrossing underCrossing
-        , preparePair underCrossing overCrossing
-        , preparePair underCrossing underCrossing
+    in  [ preparePair OverCrossing OverCrossing
+        , preparePair OverCrossing UnderCrossing
+        , preparePair UnderCrossing OverCrossing
+        , preparePair UnderCrossing UnderCrossing
         ]
 
 

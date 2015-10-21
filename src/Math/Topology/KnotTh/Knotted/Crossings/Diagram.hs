@@ -1,8 +1,6 @@
 {-# LANGUAGE UnboxedTuples #-}
 module Math.Topology.KnotTh.Knotted.Crossings.Diagram
-    ( DiagramCrossing
-    , overCrossing
-    , underCrossing
+    ( DiagramCrossing(..)
     , overCrossingIf
     , underCrossingIf
     , isOverCrossing
@@ -28,51 +26,48 @@ import Math.Topology.KnotTh.Knotted
 import Math.Topology.KnotTh.Knotted.Threads
 
 
-newtype DiagramCrossing = DC Int
-    deriving (Eq)
-
-instance Show DiagramCrossing where
-    show s | isOverCrossing s  = "overCrossing"
-           | otherwise         = "underCrossing"
-
-instance Read DiagramCrossing where
-    readsPrec _ s = do
-        (token, t) <- lex s
-        case token of
-            "overCrossing"  -> [(overCrossing, t)]
-            "underCrossing" -> [(underCrossing, t)]
-            _               -> []
+data DiagramCrossing = OverCrossing
+                     | UnderCrossing
+    deriving (Eq, Show, Read)
 
 instance NFData DiagramCrossing
 
 instance RotationAction DiagramCrossing where
     rotationOrder _ = 4
 
-    rotateBy rot (DC x) = DC $ (x `xor` rot) .&. 1
+    rotateBy rot | odd rot    = flipCrossing
+                 | otherwise  = id
 
 instance MirrorAction DiagramCrossing where
     mirrorIt = id
 
 instance GroupAction D4 DiagramCrossing where
-    transform g (DC x) = DC $ (x `xor` rotation g) .&. 1
+    transform g = rotateBy (rotation g)
 
 instance Crossing DiagramCrossing where
     {-# INLINE flipCrossing #-}
-    flipCrossing (DC x) = DC (x `xor` 1)
+    flipCrossing OverCrossing  = UnderCrossing
+    flipCrossing UnderCrossing = OverCrossing
 
     {-# INLINE globalTransformations #-}
     globalTransformations _ = Just [d4I, d4EC]
 
     {-# INLINE crossingCode #-}
     crossingCode !_ !d =
-        let DC x = vertexContent $ beginVertex d
+        let -- DC x = vertexContent $ beginVertex d
+            x = case vertexContent $ beginVertex d of
+                    OverCrossing  -> 0
+                    UnderCrossing -> 1
             p = beginPlace d
         in (# 1, x `xor` (p .&. 1) #)
 
     {-# INLINE crossingCodeWithGlobal #-}
     crossingCodeWithGlobal !g !_ !d =
         let t = equivalenceClassId subGroupDS g
-            DC x = vertexContent $ beginVertex d
+            --DC x = vertexContent $ beginVertex d
+            x = case vertexContent $ beginVertex d of
+                    OverCrossing  -> 0
+                    UnderCrossing -> 1
             p = beginPlace d
         in (# 1, (x `xor` t) `xor` (p .&. 1) #)
 
@@ -80,42 +75,28 @@ instance Crossing DiagramCrossing where
 instance ThreadedCrossing DiagramCrossing
 
 
-overCrossing :: DiagramCrossing
-overCrossing = DC 0
-
-
-underCrossing :: DiagramCrossing
-underCrossing = DC 1
-
-
 {-# INLINE overCrossingIf #-}
 overCrossingIf :: Bool -> DiagramCrossing
-overCrossingIf True  = overCrossing
-overCrossingIf False = underCrossing
+overCrossingIf True  = OverCrossing
+overCrossingIf False = UnderCrossing
 
 
 {-# INLINE underCrossingIf #-}
 underCrossingIf :: Bool -> DiagramCrossing
-underCrossingIf True  = underCrossing
-underCrossingIf False = overCrossing
+underCrossingIf True  = UnderCrossing
+underCrossingIf False = OverCrossing
 
 
 {-# INLINE isOverCrossing #-}
 isOverCrossing :: DiagramCrossing -> Bool
-isOverCrossing (DC x) = x == 0
+isOverCrossing OverCrossing  = True
+isOverCrossing UnderCrossing = False
 
 
 {-# INLINE isUnderCrossing #-}
 isUnderCrossing :: DiagramCrossing -> Bool
-isUnderCrossing (DC x) = x == 1
-
-
-bothDiagramCrossings :: [DiagramCrossing]
-bothDiagramCrossings = [overCrossing, underCrossing]
-
-
-overCrossingOnly :: [DiagramCrossing]
-overCrossingOnly = [overCrossing]
+isUnderCrossing OverCrossing  = False
+isUnderCrossing UnderCrossing = True
 
 
 {-# INLINE isPassingOver #-}
@@ -130,20 +111,22 @@ isPassingUnder d = isPassingUnder' (vertexContent $ beginVertex d) (beginPlace d
 
 {-# INLINE isPassingOver' #-}
 isPassingOver' :: DiagramCrossing -> Int -> Bool
-isPassingOver' (DC x) p = (x `xor` (p .&. 1)) == 0
+isPassingOver' OverCrossing  = even
+isPassingOver' UnderCrossing = odd
 
 
 {-# INLINE  isPassingUnder' #-}
 isPassingUnder' :: DiagramCrossing -> Int -> Bool
-isPassingUnder' (DC x) p = (x `xor` (p .&. 1)) == 1
+isPassingUnder' OverCrossing  = odd
+isPassingUnder' UnderCrossing = even
 
 
 possibleDiagramOrientations :: Maybe D4 -> [DiagramCrossing]
 possibleDiagramOrientations induced =
     case induced of
-        Nothing                                       -> bothDiagramCrossings
-        Just g | equivalenceClassId subGroupDS g == 0 -> bothDiagramCrossings
-               | otherwise                            -> overCrossingOnly
+        Nothing                                       -> [OverCrossing, UnderCrossing]
+        Just g | equivalenceClassId subGroupDS g == 0 -> [OverCrossing, UnderCrossing]
+               | otherwise                            -> [OverCrossing]
 
 
 class (Knotted k) => KnottedDiagram k where

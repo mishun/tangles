@@ -144,16 +144,16 @@ test = testGroup "Basic tangle tests"
                 (0, [(0, 7), (0, 6), (0, 5), (0, 4), (0, 3), (0, 2), (0, 1), (0, 0)], [])
 
         , testCase "Braid generator" $
-            explode (toTangle (braid 3 [(1, overCrossing)])) @?=
-                (0, [(0, 5), (1, 0), (1, 1), (1, 2), (1, 3), (0, 0)], [([(0, 1), (0, 2), (0, 3), (0, 4)], overCrossing)])
+            explode (toTangle (braid 3 [(1, OverCrossing)])) @?=
+                (0, [(0, 5), (1, 0), (1, 1), (1, 2), (1, 3), (0, 0)], [([(0, 1), (0, 2), (0, 3), (0, 4)], OverCrossing)])
 
         , testCase "Braid tangle" $
-            explode (toTangle (braid 3 [(0, overCrossing), (1, overCrossing), (0, overCrossing)])) @?=
+            explode (toTangle (braid 3 [(0, OverCrossing), (1, OverCrossing), (0, OverCrossing)])) @?=
                 ( 0
                 , [(1, 0), (1, 1), (2, 1), (2, 2), (3, 2), (3, 3)]
-                ,   [ ([(0, 0), (0, 1), (2, 0), (3, 0)], overCrossing)
-                    , ([(1, 2), (0, 2), (0, 3), (3, 1)], overCrossing)
-                    , ([(1, 3), (2, 3), (0, 4), (0, 5)], overCrossing)
+                ,   [ ([(0, 0), (0, 1), (2, 0), (3, 0)], OverCrossing)
+                    , ([(1, 2), (0, 2), (0, 3), (3, 1)], OverCrossing)
+                    , ([(1, 3), (2, 3), (0, 4), (0, 5)], OverCrossing)
                     ]
                 )
         ]

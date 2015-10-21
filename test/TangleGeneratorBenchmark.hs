@@ -20,7 +20,7 @@ main = do
     printTable "Prime diagrams"       $ generateTable $ forCCP_ (primeDiagrams 6)
     printTable "Prime irr. diagrams"  $ generateTable $ forCCP_ (primeIrreducibleDiagrams 6)
 
-    renderSVG "tangles.svg" (Width 250) $ pad 1.05 $ flip execState mempty $
+    renderSVG "tangles.svg" (mkSizeSpec $ V2 (Just 256) Nothing) $ pad 1.05 $ flip execState mempty $
         forCCP_ (primeIrreducibleDiagrams 3) $ \ (tangle, _) ->
             when (numberOfLegs tangle == 4) $
                 modify (=== pad 1.1 (drawKnotDef tangle))

@@ -35,12 +35,12 @@ instance CascadeCodePattern DiagramCrossing where
 
     cascadeCodeRoot = toTangle lonerOverCrossing
 
-    decodeCrossing WO = (W, 1, 0, underCrossing)
-    decodeCrossing WU = (W, 1, 0, overCrossing)
-    decodeCrossing XO = (X, 1, 0, overCrossing)
-    decodeCrossing XU = (X, 1, 0, underCrossing)
-    decodeCrossing MO = (M, 0, -1, overCrossing)
-    decodeCrossing MU = (M, 0, -1, underCrossing)
+    decodeCrossing WO = (W, 1, 0, UnderCrossing)
+    decodeCrossing WU = (W, 1, 0, OverCrossing)
+    decodeCrossing XO = (X, 1, 0, OverCrossing)
+    decodeCrossing XU = (X, 1, 0, UnderCrossing)
+    decodeCrossing MO = (M, 0, -1, OverCrossing)
+    decodeCrossing MU = (M, 0, -1, UnderCrossing)
 
 instance Show (CascadePattern DiagramCrossing) where
     show p = case p of

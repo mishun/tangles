@@ -1068,8 +1068,8 @@ lonerProjection = lonerTangle ProjectionCrossing
 
 
 lonerOverCrossing, lonerUnderCrossing :: Tangle4 DiagramCrossing
-lonerOverCrossing = lonerTangle overCrossing
-lonerUnderCrossing = lonerTangle underCrossing
+lonerOverCrossing = lonerTangle OverCrossing
+lonerUnderCrossing = lonerTangle UnderCrossing
 
 
 chainTangle :: V.Vector a -> Tangle4 a
