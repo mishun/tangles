@@ -20,13 +20,13 @@ class (Functor f, PlanarAlgebra (f p)) => SkeinRelation f p where
     finalNormalization _ = id
 
 
+crossingSkein :: (SkeinRelation f p) => DiagramCrossing -> f p
+crossingSkein OverCrossing  = skeinLPlus
+crossingSkein UnderCrossing = skeinLMinus
+
+
 reduceSkein :: (SkeinRelation f p) => TangleDiagram -> f p
-reduceSkein =
-    reduceWithDefaultStrategy .
-        fmap (\ c -> if isOverCrossing c
-                        then skeinLPlus
-                        else skeinLMinus
-             )
+reduceSkein = reduceWithDefaultStrategy . fmap crossingSkein
 
 
 skeinRelationPostMinimization :: (Ord (f p), MirrorAction (f p), SkeinRelation f p) => (TangleDiagram -> f p) -> TangleDiagram -> f p
@@ -37,12 +37,12 @@ skeinRelationPostMinimization invariant tangle = minimum $ do
 
 skeinRelationMidMinimization :: (Ord (f p), MirrorAction (f p), SkeinRelation f p) => (TangleDiagram -> f p) -> TangleDiagram -> f p
 skeinRelationMidMinimization invariant tangle = minimum $ do
-    p <- map invariant [tangle, flipCrossings tangle]
+    p <- map invariant [tangle, transposeCrossings tangle]
     allOrientationsOf p
 
 
 skeinRelationPreMinimization :: (Ord (f p), SkeinRelation f p) => (TangleDiagram -> f p) -> TangleDiagram -> f p 
 skeinRelationPreMinimization invariant tangle = minimum $ do
-    inv <- [id, flipCrossings]
+    inv <- [id, transposeCrossings]
     tangle' <- allOrientationsOf tangle
     return $ invariant $ inv tangle'

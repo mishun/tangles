@@ -41,7 +41,8 @@ module Math.Topology.KnotTh.Tangle
     , knotT
     , unlink
     , unknot
-    , singleCrossingUnknot
+    , singleCrossingUnknotL
+    , singleCrossingUnknotR
     , hopfLink
     , leftTrefoilKnot
     , rightTrefoilKnot
@@ -220,8 +221,12 @@ unknot :: LinkDiagram
 unknot = unlink 1
 
 
-singleCrossingUnknot :: LinkDiagram
-singleCrossingUnknot = fromGaussCode [[1, -1]]
+singleCrossingUnknotL :: LinkDiagram
+singleCrossingUnknotL = fromGaussCode [[1, -1]]
+
+
+singleCrossingUnknotR :: LinkDiagram
+singleCrossingUnknotR = transposeCrossings singleCrossingUnknotL
 
 
 hopfLink :: LinkDiagram
@@ -229,7 +234,7 @@ hopfLink = linkT 2 2 1
 
 
 leftTrefoilKnot :: LinkDiagram
-leftTrefoilKnot = flipCrossings rightTrefoilKnot
+leftTrefoilKnot = transposeCrossings rightTrefoilKnot
 
 
 rightTrefoilKnot :: LinkDiagram
@@ -241,7 +246,7 @@ figureEightKnot = knotT 4 1
 
 
 leftCinquefoilKnot :: LinkDiagram
-leftCinquefoilKnot = flipCrossings rightCinquefoilKnot
+leftCinquefoilKnot = transposeCrossings rightCinquefoilKnot
 
 
 rightCinquefoilKnot :: LinkDiagram
@@ -249,7 +254,7 @@ rightCinquefoilKnot = knotT 5 1
 
 
 threeTwistKnot :: LinkDiagram
-threeTwistKnot = flipCrossings $ knotT 5 2
+threeTwistKnot = transposeCrossings $ knotT 5 2
 
 
 whiteheadLink :: LinkDiagram
@@ -265,7 +270,7 @@ squareKnot = fromGaussCode [[1, -2, 3, -1, 2, -3, -4, 5, -6, 4, -5, 6]]
 
 
 stevedoreKnot :: LinkDiagram
-stevedoreKnot = flipCrossings $ knotT 6 1
+stevedoreKnot = transposeCrossings $ knotT 6 1
 
 
 borromeanRingsLink :: LinkDiagram
@@ -273,8 +278,8 @@ borromeanRingsLink = linkT 6 3 2
 
 
 conwayKnot :: LinkDiagram
-conwayKnot = flipCrossings $ fromDTCode [[4, 8, 12, 2, -16, -18, 6, -20, -22, -14, -10]]
+conwayKnot = transposeCrossings $ fromDTCode [[4, 8, 12, 2, -16, -18, 6, -20, -22, -14, -10]]
 
 
 kinoshitaTerasakaKnot :: LinkDiagram
-kinoshitaTerasakaKnot = flipCrossings $ fromDTCode [[4, 8, 12, 2, -18, -20, 6, -10, -22, -14, -16]]
+kinoshitaTerasakaKnot = transposeCrossings $ fromDTCode [[4, 8, 12, 2, -18, -20, 6, -10, -22, -14, -16]]

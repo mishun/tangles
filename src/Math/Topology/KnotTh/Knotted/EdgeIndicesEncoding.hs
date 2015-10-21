@@ -16,10 +16,11 @@ instance EdgeIndicesCrossing ProjectionCrossing where
 
 
 instance EdgeIndicesCrossing DiagramCrossing where
-    indexPlace d | isOverCrossing (vertexContent c)  = p
-                 | otherwise                         = (p - 1) `mod` 4
-        where
-            (c, p) = beginPair d
+    indexPlace d =
+        let (c, p) = beginPair d
+        in case vertexContent c of
+            OverCrossing  -> p
+            UnderCrossing -> (p - 1) `mod` 4
 
 
 class (Knotted k) => EdgeIndicesEncoding k where

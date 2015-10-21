@@ -10,7 +10,7 @@ module Math.Topology.KnotTh.Knotted
     , forMIncomingDarts
     , foldMIncomingDarts
     , foldMIncomingDartsFrom
-    , flipCrossings
+    , transposeCrossings
     , OrientedCrossing(..)
     , OrientedKnotted(..)
     ) where
@@ -91,8 +91,8 @@ foldMIncomingDartsFrom :: (Monad m, Knotted k) => Dart k a -> RotationDirection 
 foldMIncomingDartsFrom dart direction f = foldMOutcomingDartsFrom dart direction (f . opposite)
 
 
-flipCrossings :: (Knotted k, Crossing a) => k a -> k a
-flipCrossings = fmap transposeIt
+transposeCrossings :: (Knotted k, Crossing a) => k a -> k a
+transposeCrossings = fmap transposeIt
 
 
 class (Crossing a) => OrientedCrossing a where

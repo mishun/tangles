@@ -189,14 +189,14 @@ testComplexBorders (KhovanovComplex { complexChain = Singl _ }) = True
 testComplexBorders (KhovanovComplex { complexChain = Chain b }) = V.all isZeroCobordism (V.zipWith (∘) (V.tail b) b)
 
 
-overCrossingComplex, underCrossingComplex :: KhovanovComplex (DottedCobordism' Integer)
-overCrossingComplex =
+crossingComplex :: DiagramCrossing -> KhovanovComplex (DottedCobordism' Integer)
+crossingComplex OverCrossing =
     KhovanovComplex
         { legsN        = 4
         , chainOffset  = 0
         , complexChain = Chain $ V.singleton $ CM.singleton saddleCobordism
         }
-underCrossingComplex =
+crossingComplex UnderCrossing =
     KhovanovComplex
         { legsN        = 4
         , chainOffset  = 0
@@ -205,12 +205,7 @@ underCrossingComplex =
 
 
 khovanovComplex :: TangleDiagram -> KhovanovComplex (DottedCobordism' Integer)
-khovanovComplex =
-    reduceWithDefaultStrategy .
-        fmap (\ c -> if isOverCrossing c
-                        then overCrossingComplex
-                        else underCrossingComplex
-             )
+khovanovComplex = reduceWithDefaultStrategy . fmap crossingComplex
 
 
 khovanovHomologyBetti :: TangleDiagram -> [(Int, Int)]
