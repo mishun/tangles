@@ -33,6 +33,7 @@ module Math.Topology.KnotTh.Tangle.TangleDef
     , tangle6
 
     , OrientedTangle
+    , OrientedTangle0
     ) where
 
 import Control.Applicative (Applicative)
@@ -1320,11 +1321,11 @@ instance ModifyDSL Tangle where
                 (,) a `fmap` MV.read arr (dartIndex b)
 
 
-data OrientedTangle a = OrientedTangle !(Tangle a) (UV.Vector Int)
+data OrientedTangle a = OrientedTangle !(Tangle a) (Int, UV.Vector Int)
     deriving (Functor)
 
 instance DartDiagram' OrientedTangle where
-    data Dart OrientedTangle a = OrientedDart !(OrientedTangle a)!(Dart Tangle a)
+    data Dart OrientedTangle a = OrientedDart !(OrientedTangle a) !(Dart Tangle a)
 
 instance DartDiagram OrientedTangle where
     dartOwner (OrientedDart t _) = t
@@ -1341,6 +1342,9 @@ instance DartDiagram OrientedTangle where
     allDarts t@(OrientedTangle t' _)   = map (OrientedDart t) $ allDarts t'
 
     dartIndicesRange (OrientedTangle t _) = dartIndicesRange t
+
+instance Show (Dart OrientedTangle a) where
+    show (OrientedDart _ d) = show d
 
 instance VertexDiagram' OrientedTangle where
     data Vertex OrientedTangle a = OrientedVertex !(OrientedTangle a) !(Vertex Tangle a)
@@ -1385,6 +1389,9 @@ instance VertexDiagram OrientedTangle where
 
     vertexIndicesRange (OrientedTangle t _) = vertexIndicesRange t
 
+instance (Show a) => Show (Vertex OrientedTangle a) where
+    show (OrientedVertex _ v) = show v
+
 instance Knotted OrientedTangle where
     unrootedHomeomorphismInvariant (OrientedTangle t _) =
         unrootedHomeomorphismInvariant t
@@ -1399,4 +1406,78 @@ instance Knotted OrientedTangle where
 instance OrientedKnotted OrientedTangle Tangle where
     dropOrientation (OrientedTangle t _) = t
 
-    anyOrientation t = OrientedTangle t undefined
+    arbitraryOrientation tangle =
+        let orientation = ST.runST $ do
+                visited <- UMV.replicate (numberOfDarts tangle) 0
+
+                n <- foldM (\ !sid (!startA, !startB) -> do
+
+                        let cont d | isLeg d    = Nothing
+                                   | otherwise  = let (v, p) = beginPair d
+                                                  in Just $! nthOutcomingDart v $! strandContinuation (vertexContent v) p
+
+                            traceBackward !b = do
+                                let a = opposite b
+                                UMV.write visited (dartIndex a) sid
+                                UMV.write visited (dartIndex b) (-sid)
+                                case cont a of
+                                    Nothing                -> return True
+                                    Just b' | b' == startB -> return False
+                                            | otherwise    -> traceBackward b'
+
+                            traceForward !b' =
+                                case cont b' of
+                                    Nothing -> return ()
+                                    Just a  -> do
+                                        let b = opposite a
+                                        UMV.write visited (dartIndex a) sid
+                                        UMV.write visited (dartIndex b) (-sid)
+                                        traceForward b
+
+                        v <- UMV.read visited (dartIndex startA)
+                        if v /= 0
+                            then return $! sid
+                            else do
+                                t <- traceBackward startB
+                                when t $ traceForward startB
+                                return $! sid + 1
+
+                    ) 1 (allEdges tangle)
+
+                visited' <- UV.unsafeFreeze visited
+                return $! (n - 1, visited')
+
+        in OrientedTangle tangle orientation
+
+    numberOfStrands (OrientedTangle _ (n, _)) = n
+
+    dartOrientation (OrientedDart (OrientedTangle _ (_, x)) d) =
+        let p = x UV.! dartIndex d
+        in p > 0
+
+    dartStrandIndex (OrientedDart (OrientedTangle _ (_, x)) d) =
+        let p = x UV.! dartIndex d
+        in abs p - 1
+
+
+newtype OrientedTangle0 a = OT0 (OrientedTangle a)
+    deriving (Functor, {- MirrorAction, TransposeAction, -} DartDiagram, VertexDiagram, Knotted)
+
+instance DartDiagram' OrientedTangle0 where
+    newtype Dart OrientedTangle0 a = OD0 (Dart OrientedTangle a)
+
+instance VertexDiagram' OrientedTangle0 where
+    newtype Vertex OrientedTangle0 a = OV0 (Vertex OrientedTangle a)
+
+instance OrientedKnotted OrientedTangle0 Tangle0 where
+    dropOrientation (OT0 t) = T0 $ dropOrientation t
+    arbitraryOrientation (T0 t) = OT0 $ arbitraryOrientation t
+    numberOfStrands (OT0 t) = numberOfStrands t
+    dartOrientation (OD0 d) = dartOrientation d
+    dartStrandIndex (OD0 d) = dartStrandIndex d
+
+instance (Show a) => Show (Vertex OrientedTangle0 a) where
+    show (OV0 v) = show v
+
+instance Show (Dart OrientedTangle0 a) where
+    show (OD0 d) = show d

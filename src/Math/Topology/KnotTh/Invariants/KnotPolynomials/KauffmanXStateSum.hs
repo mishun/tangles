@@ -1,6 +1,7 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 module Math.Topology.KnotTh.Invariants.KnotPolynomials.KauffmanXStateSum
     ( KauffmanXArg(..)
+    , loopFactor
     , PlanarChordDiagram(..)
     , KauffmanXStateSum(..)
     ) where
@@ -14,22 +15,23 @@ import qualified Data.Vector.Unboxed as UV
 import qualified Data.Vector.Unboxed.Mutable as UMV
 import Text.Printf
 import Math.Topology.KnotTh.Knotted
-import Math.Topology.KnotTh.Knotted.Crossings.Diagram
 import Math.Topology.KnotTh.Invariants.KnotPolynomials
 import Math.Topology.KnotTh.Invariants.Util.Poly
 
 
 class (Eq a, Ord a, Num a) => KauffmanXArg a where
-    aFactor, bFactor, loopFactor :: a
-    swapFactors                  :: a -> a
+    aFactor, bFactor :: a
+    transposeFactors :: a -> a
 
-    loopFactor = -(aFactor * aFactor + bFactor * bFactor)
+
+loopFactor :: (KauffmanXArg a) => a
+loopFactor = -(aFactor * aFactor + bFactor * bFactor)
 
 
 instance KauffmanXArg Poly where
     aFactor = monomial 1 "a" 1
     bFactor = monomial 1 "a" (-1)
-    swapFactors = invert "a"
+    transposeFactors = invert "a"
 
 
 data PlanarChordDiagram a = PlanarChordDiagram !(UV.Vector Int) !a
@@ -183,6 +185,9 @@ instance (KauffmanXArg a) => PlanarAlgebra (KauffmanXStateSum a) where
                        | otherwise      -> k
     horizontalLooping n _ = error $ printf "KauffmanXStateSum.horizontalLooping: not implemented for %i" n
 
+instance (KauffmanXArg a) => TransposeAction (KauffmanXStateSum a) where
+    transposeIt = fmap transposeFactors
+
 instance (KauffmanXArg a) => SkeinRelation KauffmanXStateSum a where
     skeinLPlus =
         concatStateSums $ map singletonStateSum
@@ -195,17 +200,6 @@ instance (KauffmanXArg a) => SkeinRelation KauffmanXStateSum a where
             [ PlanarChordDiagram (UV.fromList [3, 2, 1, 0]) bFactor
             , PlanarChordDiagram (UV.fromList [1, 0, 3, 2]) aFactor
             ]
-
-    finalNormalization tangle =
-        let factor =
-                let writheFactor =
-                        let w = totalSelfWrithe tangle
-                        in (if w <= 0 then -aFactor else -bFactor) ^ abs (3 * w)
-                    loopsFactor = loopFactor ^ numberOfFreeLoops tangle
-                in writheFactor * loopsFactor
-        in fmap (* factor)
-
-    invertCrossingsAction = fmap swapFactors
 
     takeAsScalar s =
         case s of

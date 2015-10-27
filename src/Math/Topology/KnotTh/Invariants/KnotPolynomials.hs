@@ -11,13 +11,9 @@ import Math.Topology.KnotTh.Algebra.PlanarAlgebra.Reduction
 import Math.Topology.KnotTh.Tangle
 
 
-class (Functor f, PlanarAlgebra (f p)) => SkeinRelation f p where
+class (Functor f, TransposeAction (f p), PlanarAlgebra (f p)) => SkeinRelation f p where
     skeinLPlus, skeinLMinus :: f p
-    finalNormalization      :: (Knotted k) => k DiagramCrossing -> f p -> f p
-    invertCrossingsAction   :: f p -> f p
     takeAsScalar            :: f p -> p
-
-    finalNormalization _ = id
 
 
 crossingSkein :: (SkeinRelation f p) => DiagramCrossing -> f p
@@ -32,7 +28,7 @@ reduceSkein = reduceWithDefaultStrategy . fmap crossingSkein
 skeinRelationPostMinimization :: (Ord (f p), MirrorAction (f p), SkeinRelation f p) => (TangleDiagram -> f p) -> TangleDiagram -> f p
 skeinRelationPostMinimization invariant tangle = minimum $ do
     p <- allOrientationsOf $ invariant tangle
-    [p, invertCrossingsAction p]
+    [p, transposeIt p]
 
 
 skeinRelationMidMinimization :: (Ord (f p), MirrorAction (f p), SkeinRelation f p) => (TangleDiagram -> f p) -> TangleDiagram -> f p

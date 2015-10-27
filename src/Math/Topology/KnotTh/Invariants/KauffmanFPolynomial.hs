@@ -8,6 +8,7 @@ module Math.Topology.KnotTh.Invariants.KauffmanFPolynomial
 import Math.Topology.KnotTh.Invariants.Util.Poly
 import Math.Topology.KnotTh.Invariants.KnotPolynomials
 import Math.Topology.KnotTh.Invariants.KnotPolynomials.KauffmanFStateSum
+import Math.Topology.KnotTh.Invariants.LinkingNumbers
 import Math.Topology.KnotTh.Tangle
 
 
@@ -19,7 +20,14 @@ class (Knotted k) => KnottedWithKauffmanFPolynomial k where
 
 instance KnottedWithKauffmanFPolynomial Tangle where
     type KauffmanFPolynomial Tangle = ChordDiagramsSum Poly2
-    kauffmanFPolynomial tangle = finalNormalization tangle (reduceSkein tangle)
+
+    kauffmanFPolynomial tangle =
+        let factor =
+                let writheFactor = twistFactor (-totalSelfWrithe' tangle)
+                    loopsFactor = loopFactor ^ numberOfFreeLoops tangle
+                in writheFactor * loopsFactor
+        in fmap (factor *) $ reduceSkein tangle
+
     minimalKauffmanFPolynomial = skeinRelationPreMinimization kauffmanFPolynomial
 
 

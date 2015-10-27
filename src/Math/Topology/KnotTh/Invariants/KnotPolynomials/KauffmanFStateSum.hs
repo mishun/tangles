@@ -17,6 +17,7 @@ import Math.Topology.KnotTh.Tangle
 import Math.Topology.KnotTh.Moves.AdHoc
 import Math.Topology.KnotTh.Moves.ModifyDSL
 import Math.Topology.KnotTh.Invariants.KnotPolynomials
+import Math.Topology.KnotTh.Invariants.LinkingNumbers
 import Math.Topology.KnotTh.Invariants.Util.Poly
 
 
@@ -71,7 +72,7 @@ instance (Show a) => Show (ChordDiagramsSum a) where
 
 
 singletonStateSum :: ChordDiagram a -> ChordDiagramsSum a
-singletonStateSum summand @ (ChordDiagram a _) =
+singletonStateSum summand@(ChordDiagram a _) =
     ChordDiagramsSum (UV.length a) [summand]
 
 
@@ -146,7 +147,7 @@ data ThreadTag = BorderThread {-# UNPACK #-} !(Int, Int) {-# UNPACK #-} !Int
 
 irregularCrossings :: TangleDiagram -> [TangleDiagramVertex]
 irregularCrossings tangle =
-    let ((_, _, threads), _) = threadsWithLinkingNumbers tangle
+    let (_, _, threads) = allThreadsWithMarks tangle
 
         expectedPassOver =
             let tags :: A.Array TangleDiagramDart ThreadTag
@@ -196,7 +197,8 @@ decomposeTangle path !initialFactor !tangle' =
             in {- (if length path >= 10 then trace (show $ explode tangle' : path) else id) $ -}
                     (: map (uncurry $ decomposeTangle (explode tangle' : path)) inter) $
                         singletonStateSum $ ChordDiagram a $
-                            factor * twistFactor (totalSelfWrithe tangle) * loopFactor ^ (n - numberOfLegs tangle `div` 2)
+                            let w = totalSelfWrithe' tangle
+                            in factor * twistFactor w * loopFactor ^ (n - numberOfLegs tangle `div` 2)
 
         splices (h : r) toInvert factor inter =
             let a = (factor * smoothFactor, modifyKnot tangle' $ modifyC False transposeIt toInvert >> smoothA h >> greedy [reduce2nd])
@@ -236,6 +238,9 @@ instance (KauffmanFArg a) => PlanarAlgebra (ChordDiagramsSum a) where
                 in decomposeTangle [explode ta, explode tb] (ka * kb) $
                     horizontalComposition gl (ta, posA) (tb, posB)
 
+instance (KauffmanFArg a) => TransposeAction (ChordDiagramsSum a) where
+    transposeIt = fmap swapTwists
+
 instance (KauffmanFArg a) => SkeinRelation ChordDiagramsSum a where
     skeinLPlus =
         singletonStateSum $ ChordDiagram (UV.fromList [2, 3, 0, 1]) 1
@@ -246,12 +251,6 @@ instance (KauffmanFArg a) => SkeinRelation ChordDiagramsSum a where
             , ChordDiagram (UV.fromList [3, 2, 1, 0]) smoothFactor
             , ChordDiagram (UV.fromList [1, 0, 3, 2]) smoothFactor
             ]
-
-    finalNormalization tangle =
-        let factor = twistFactor (-totalSelfWrithe tangle) * loopFactor ^ numberOfFreeLoops tangle
-        in fmap (* factor)
-
-    invertCrossingsAction = fmap swapTwists
 
     takeAsScalar s =
         case s of

@@ -5,7 +5,6 @@ module Math.Topology.KnotTh.Invariants.HomflyPolynomial
     ) where
 
 import Math.Topology.KnotTh.Invariants.Util.Poly
-import Math.Topology.KnotTh.Invariants.KnotPolynomials
 import Math.Topology.KnotTh.Invariants.KnotPolynomials.KauffmanFStateSum
 import Math.Topology.KnotTh.Tangle
 
@@ -16,7 +15,7 @@ class (Knotted k) => KnottedWithHomflyPolynomial k where
     minimalHomflyPolynomial :: k DiagramCrossing -> HomflyPolynomial k
 
 
-instance KnottedWithHomflyPolynomial Tangle where
-    type HomflyPolynomial Tangle = ChordDiagramsSum Poly2
-    homflyPolynomial = reduceSkein
-    minimalHomflyPolynomial = skeinRelationPreMinimization homflyPolynomial
+instance KnottedWithHomflyPolynomial OrientedTangle where
+    type HomflyPolynomial OrientedTangle = ChordDiagramsSum Poly2
+    homflyPolynomial = error "not implemented"
+    minimalHomflyPolynomial = error "not implemented"

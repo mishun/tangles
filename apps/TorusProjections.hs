@@ -181,7 +181,7 @@ main = do
             let walk link | numberOfVertices link >= maxN  = [link]
                           | otherwise                      = link : next
                     where
-                        next = concatMap walk (nextGeneration projectionCrossings link)
+                        next = concatMap walk (nextGeneration [ProjectionCrossing] link)
             walk root
 
     printTable "Projections" $ generateTable'

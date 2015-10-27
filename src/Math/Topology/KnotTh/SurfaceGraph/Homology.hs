@@ -51,7 +51,7 @@ kernelBasis =
                  in V.map snd $ V.filter (UV.all (== 0) . fst) $ V.map (UV.splitAt m) a
 
 
-cellularHomology :: SurfaceGraph a -> (Int, A.Array (Dart SurfaceGraph a) (UV.Vector Int))
+cellularHomology :: SurfaceGraph a -> (Int, Dart SurfaceGraph a -> UV.Vector Int)
 cellularHomology graph =
     let vars = A.array (dartsRange graph) $ do
             (i, (a, b)) <- [0 ..] `zip` allEdges graph
@@ -70,4 +70,4 @@ cellularHomology graph =
             let h = UV.generate dim $ \ j -> (basis V.! j) UV.! i
             [(a, h), (b, UV.map negate h)]
 
-    in (dim, homology)
+    in (dim, (homology A.!))

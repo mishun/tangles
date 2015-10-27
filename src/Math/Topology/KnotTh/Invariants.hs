@@ -6,7 +6,7 @@ module Math.Topology.KnotTh.Invariants
 import Data.Function (on)
 import Data.Ord (comparing)
 import Data.List (groupBy, sortBy)
-import Math.Topology.KnotTh.Invariants.LinkingNumber as X
+import Math.Topology.KnotTh.Invariants.LinkingNumbers as X
 import Math.Topology.KnotTh.Invariants.KauffmanFPolynomial as X
 import Math.Topology.KnotTh.Invariants.KauffmanXPolynomial as X
 import Math.Topology.KnotTh.Invariants.KhovanovHomology as X

@@ -7,14 +7,20 @@ module Math.Topology.KnotTh.Invariants.KauffmanXPolynomial
     , normalizedJonesPolynomialOfLink
     ) where
 
+import Control.Monad (foldM)
+import qualified Control.Monad.ST as ST
+import Data.Function (fix)
 import Data.List (partition)
 import qualified Data.Map as M
 import qualified Data.Vector.Unboxed as UV
+import qualified Data.Vector.Unboxed.Mutable as UMV
 import Math.Topology.KnotTh.Invariants.Util.Poly
 import Math.Topology.KnotTh.Invariants.KnotPolynomials
 import Math.Topology.KnotTh.Invariants.KnotPolynomials.KauffmanXStateSum
 import Math.Topology.KnotTh.Invariants.KnotPolynomials.Surface
+import Math.Topology.KnotTh.Invariants.LinkingNumbers
 import Math.Topology.KnotTh.EmbeddedLink
+import Math.Topology.KnotTh.SurfaceGraph.Homology
 import Math.Topology.KnotTh.Tangle
 
 
@@ -26,7 +32,16 @@ class (Knotted k) => KnottedWithKauffmanXPolynomial k where
 
 instance KnottedWithKauffmanXPolynomial Tangle where
     type KauffmanXPolynomial Tangle = KauffmanXStateSum Poly
-    kauffmanXPolynomial tangle = finalNormalization tangle (reduceSkein tangle)
+
+    kauffmanXPolynomial tangle =
+        let factor =
+                let writheFactor =
+                        let w = totalSelfWrithe' tangle
+                        in (if w <= 0 then -aFactor else -bFactor) ^ abs (3 * w)
+                    loopsFactor = loopFactor ^ numberOfFreeLoops tangle
+                in writheFactor * loopsFactor
+        in fmap (factor *) $ reduceSkein tangle
+
     minimalKauffmanXPolynomial = skeinRelationPostMinimization kauffmanXPolynomial
 
 
@@ -68,6 +83,43 @@ instance KnottedWithKauffmanXPolynomial EmbeddedLink where
     minimalKauffmanXPolynomial link =
         min (kauffmanXPolynomial link)
             (kauffmanXPolynomial $ transposeCrossings link)
+
+
+homologyDecomposition :: EmbeddedLinkDiagram -> (Int, [([UV.Vector Int], Poly)])
+homologyDecomposition link =
+    let (tangle, star) = splitIntoTangleAndStar link
+        l = numberOfLegs tangle
+        (dim, homology) = cellularHomology $ vertexOwner star
+
+        homologyClasses a = ST.runST $ do
+            visited <- UMV.replicate l False
+            foldM (\ !list !start -> do
+                    vs <- UMV.read visited start
+                    if vs
+                        then return list
+                        else do
+                            lp <- fix (\ loop hom !i -> do
+                                    c <- UMV.read visited i
+                                    if c
+                                        then return hom
+                                        else do
+                                            let d = nthOutcomingDart star (l - 1 - i)
+                                                i' = l - 1 - endPlace d
+                                                hom' = homology d
+                                            UMV.write visited i True
+                                            UMV.write visited i' True
+                                            loop (UV.zipWith (+) hom hom') (a UV.! i')
+                                ) (UV.replicate dim 0) start
+                            return $ max lp (UV.map negate lp) : list
+                ) [] [0 .. l - 1]
+
+        tokens = do
+            PlanarChordDiagram a factor <-
+                let KauffmanXStateSum _ list = kauffmanXPolynomial tangle
+                in list
+            return (homologyClasses a, factor)
+
+    in (dim, tokens)
 
 
 class (KnottedWithKauffmanXPolynomial k) => KnottedWithJonesPolynomial k where

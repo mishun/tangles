@@ -5,6 +5,7 @@ module Math.Topology.KnotTh.Knotted.Crossings.Projection
     ) where
 
 import Control.DeepSeq
+import Data.Bits ((.&.))
 import Math.Topology.KnotTh.Algebra.Dihedral.D4
 import Math.Topology.KnotTh.Knotted
 import Math.Topology.KnotTh.Knotted.Threads
@@ -33,6 +34,9 @@ instance Crossing ProjectionCrossing where
     globalTransformations _ = Nothing
     crossingCode _ _ = (# 0, 0 #)
     crossingCodeWithGlobal _ _ _ = (# 0, 0 #)
+
+instance OrientedCrossing ProjectionCrossing where
+    strandContinuation _ x = (x + 2) .&. 3
 
 instance ThreadedCrossing ProjectionCrossing
 

@@ -1,59 +1,12 @@
 module Math.Topology.KnotTh.Invariants.KnotPolynomials.Surface
-    ( homologyDecomposition
-    , torusMinimization
+    ( torusMinimization
     ) where
 
-import Data.Function (fix)
-import Data.Ord (comparing)
+import Control.Monad (guard)
 import Data.List (sortBy, minimumBy)
+import Data.Ord (comparing)
 import qualified Data.Set as S
-import qualified Data.Vector.Unboxed as UV
-import qualified Data.Vector.Unboxed.Mutable as UMV
-import qualified Data.Array as A
-import Control.Monad.ST (runST)
-import Control.Monad (foldM, guard)
-import Math.Topology.KnotTh.SurfaceGraph.Homology
-import Math.Topology.KnotTh.Invariants.KnotPolynomials
-import Math.Topology.KnotTh.Invariants.KnotPolynomials.KauffmanXStateSum
-import Math.Topology.KnotTh.EmbeddedLink
 import Math.Topology.KnotTh.Algebra
-
-
-homologyDecomposition :: (KauffmanXArg a) => EmbeddedLinkDiagram -> (Int, [([UV.Vector Int], a)])
-homologyDecomposition link =
-    let (tangle, star) = splitIntoTangleAndStar link
-        l = numberOfLegs tangle
-        (dim, homology) = cellularHomology $ vertexOwner star
-
-        homologyClasses a = runST $ do
-            visited <- UMV.replicate l False
-            foldM (\ !list !start -> do
-                    vs <- UMV.read visited start
-                    if vs
-                        then return list
-                        else do
-                            lp <- fix (\ loop hom !i -> do
-                                    c <- UMV.read visited i
-                                    if c
-                                        then return hom
-                                        else do
-                                            let d = nthOutcomingDart star (l - 1 - i)
-                                                i' = l - 1 - endPlace d
-                                                hom' = homology A.! d
-                                            UMV.write visited i True
-                                            UMV.write visited i' True
-                                            loop (UV.zipWith (+) hom hom') (a UV.! i')
-                                ) (UV.replicate dim 0) start
-                            return $ max lp (UV.map negate lp) : list
-                ) [] [0 .. l - 1]
-
-        tokens = do
-            PlanarChordDiagram a factor <-
-                let KauffmanXStateSum _ list = finalNormalization link $ reduceSkein tangle
-                in list
-            return (homologyClasses a, factor)
-
-    in (dim, tokens)
 
 
 torusMinimization :: (Ord a) => [((Int, Int), a)] -> [((Int, Int), a)]

@@ -62,6 +62,7 @@ module Math.Topology.KnotTh.Tangle
 import qualified Data.Vector as V
 import Text.Printf
 import Math.Topology.KnotTh.Algebra.Dihedral.D4
+import Math.Topology.KnotTh.Invariants.LinkingNumbers
 import Math.Topology.KnotTh.Knotted
 import Math.Topology.KnotTh.Knotted.Crossings.Projection
 import Math.Topology.KnotTh.Knotted.Crossings.Diagram
@@ -123,15 +124,15 @@ rationalTangle' :: (MirrorAction a) => [V.Vector a] -> Tangle4 a
 rationalTangle' = foldl conwayProduct infinityTangle . map chainTangle
 
 
-twistedSatellite :: (TensorSurgery k) => Int -> k DiagramCrossing -> k DiagramCrossing
+twistedSatellite :: (TensorSurgery k, OrientedKnotted k' k) => Int -> k DiagramCrossing -> k DiagramCrossing
 twistedSatellite n tangle = tensorSurgery n $ mapVertices wrap tangle
     where
-        writhe = selfWrithe tangle
+        oriented = arbitraryOrientation tangle
 
         wrap v | wc == 0    = cross
                | otherwise  = let half = reversingBraid n (overCrossingIf $ wc < 0)
                               in toTangle (promoteTangle n (3 * n) cross ∘ half ∘ half)
-            where wc = writhe v
+            where wc = selfWrithe $ nthVertex oriented $ vertexIndex v
                   cross = gridTangle (n, n) (const $ vertexContent v)
 
 

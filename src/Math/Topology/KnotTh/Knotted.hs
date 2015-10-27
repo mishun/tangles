@@ -13,6 +13,7 @@ module Math.Topology.KnotTh.Knotted
     , transposeCrossings
     , OrientedCrossing(..)
     , OrientedKnotted(..)
+    , isSelfIntersection
     ) where
 
 import Data.Bits ((.&.))
@@ -96,14 +97,19 @@ transposeCrossings = fmap transposeIt
 
 
 class (Crossing a) => OrientedCrossing a where
-    strandContinuation :: (OrientedKnotted k k') => Dart k a -> Dart k a
+    strandContinuation :: a -> Int -> Int
 
 
 class (Knotted k, Knotted k') => OrientedKnotted k k' | k -> k', k' -> k where
-    dropOrientation :: k a -> k' a
-    anyOrientation  :: (OrientedCrossing a) => k' a -> k a
-    --allOrientations :: (OrientedCrossing a) => k' a -> [k a]
+    dropOrientation      :: k a -> k' a
+    arbitraryOrientation :: (OrientedCrossing a) => k' a -> k a
 
-    --numberOfStrands :: k a -> Int
-    --strandIndex     :: Dart k a -> Int
-    --dartOrientation :: Dart k a -> Int
+    numberOfStrands :: k a -> Int
+    dartOrientation :: Dart k a -> Bool
+    dartStrandIndex :: Dart k a -> Int
+
+
+isSelfIntersection :: (OrientedKnotted k k') => Vertex k a -> Bool
+isSelfIntersection v =
+    let s = map dartStrandIndex $ outcomingDarts v
+    in all (== head s) s

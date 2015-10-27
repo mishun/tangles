@@ -27,7 +27,7 @@ main = do
                           | otherwise                      = p ++ next
                     where
                         p = [link | not (isReidemeisterReducible link)]
-                        next = concatMap walk (nextGeneration bothDiagramCrossings link)
+                        next = concatMap walk (nextGeneration [OverCrossing, UnderCrossing] link)
             in forM_ (walk hopfLink)
 
         linkClasses maxN =

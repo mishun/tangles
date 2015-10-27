@@ -15,6 +15,7 @@ import Math.Topology.KnotTh.Algebra.Homology
 import qualified Math.Topology.KnotTh.Algebra.Cobordism.CobordismMatrix as CM
 import Math.Topology.KnotTh.Algebra.Cobordism.DottedCobordism
 import Math.Topology.KnotTh.Algebra.PlanarAlgebra.Reduction
+import Math.Topology.KnotTh.Invariants.LinkingNumbers
 import Math.Topology.KnotTh.Tangle
 
 
@@ -210,11 +211,22 @@ khovanovComplex = reduceWithDefaultStrategy . fmap crossingComplex
 
 khovanovHomologyBetti :: TangleDiagram -> [(Int, Int)]
 khovanovHomologyBetti tangle =
-    let writhe = selfWrithe tangle
-        nminus = length $ filter (< 0) $ map writhe $ allVertices tangle
-        kh = khovanovComplex tangle
+    let kh = khovanovComplex tangle
+
+        offset =
+            let oriented = arbitraryOrientation tangle
+
+                nminus = length $ filter (< 0) $ map selfWrithe $ allVertices oriented
+
+                lns = V.sum $ V.imap (\ !i -> UV.sum . UV.imap (\ j w -> if i < j then abs w else 0)) $
+                        linkingNumbersTable oriented
+
+                crs = length $ filter (not . isSelfIntersection) $ allVertices oriented
+
+            in chainOffset kh - nminus - (crs - lns) `div` 2
+
     in case complexChain kh of
-        Singl brd   -> [(chainOffset kh - nminus, V.sum $ V.map tqftBorderDim $ CM.toVector brd)]
+        Singl brd   -> [(offset, V.sum $ V.map tqftBorderDim $ CM.toVector brd)]
         Chain chain ->
             let dim = V.length chain
 
@@ -232,4 +244,4 @@ khovanovHomologyBetti tangle =
             in do
                 d <- [0 .. dim]
                 let betti = bettiVector UV.! d
-                [(d + chainOffset kh - nminus, betti) | betti > 0]
+                [(offset + d, betti) | betti > 0]

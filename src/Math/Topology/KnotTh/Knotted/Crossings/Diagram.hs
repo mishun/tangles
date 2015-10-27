@@ -12,14 +12,9 @@ module Math.Topology.KnotTh.Knotted.Crossings.Diagram
     , possibleDiagramOrientations
     , KnottedDiagram(..)
     , isAlternating
-    , totalSelfWrithe
-    , selfWritheByThread
-    , selfWrithe
-    , threadsWithLinkingNumbers
     ) where
 
 import Control.DeepSeq
-import qualified Data.Array.Unboxed as A
 import Data.Bits ((.&.), xor)
 import Math.Topology.KnotTh.Algebra.Dihedral.D4
 import Math.Topology.KnotTh.Knotted
@@ -73,6 +68,8 @@ instance Crossing DiagramCrossing where
             p = beginPlace d
         in (# 1, (x `xor` t) `xor` (p .&. 1) #)
 
+instance OrientedCrossing DiagramCrossing where
+    strandContinuation _ x = (x + 2) .&. 3
 
 instance ThreadedCrossing DiagramCrossing
 
@@ -160,47 +157,3 @@ class (Knotted k) => KnottedDiagram k where
 
 isAlternating :: (KnottedDiagram k) => k DiagramCrossing -> Bool
 isAlternating = (== 0) . totalAlternatingDefect
-
-
-totalSelfWrithe :: (Knotted k) => k DiagramCrossing -> Int
-totalSelfWrithe knot =
-    let writhe = selfWrithe knot
-    in sum $ map writhe $ allVertices knot
-
-
-selfWritheByThread :: (Knotted k) => k DiagramCrossing -> A.UArray Int Int
-selfWritheByThread knot =
-    let (n, tag, _) = allThreadsWithMarks knot
-    in A.accumArray (+) 0 (1, n) $ do
-        c <- allVertices knot
-        let ((a, b), w) = crossingWrithe tag c
-        [(a, w) | a == b]
-
-
-selfWrithe :: (Knotted k) => k DiagramCrossing -> Vertex k DiagramCrossing -> Int
-selfWrithe knot =
-    let (_, tag, _) = allThreadsWithMarks knot
-    in \ v ->
-        let ((a, b), w) = crossingWrithe tag v
-        in if a == b
-            then w
-            else 0
-
-
-threadsWithLinkingNumbers :: (Knotted k) => k DiagramCrossing -> ( (Int, A.UArray (Dart k DiagramCrossing) Int, [(Int, [(Dart k DiagramCrossing, Dart k DiagramCrossing)])]), A.UArray (Int, Int) Int)
-threadsWithLinkingNumbers knot =
-    let ts@(n, tag, _) = allThreadsWithMarks knot
-        ln = A.accumArray (+) 0 ((1, 1), (n, n)) $ do
-            c <- allVertices knot
-            let ((a, b), w) = crossingWrithe tag c
-            ((a, b), w) : [((b, a), w) | a /= b]
-    in (ts, ln)
-
-
-{-# INLINE crossingWrithe #-}
-crossingWrithe :: (Knotted k) => A.UArray (Dart k DiagramCrossing) Int -> Vertex k DiagramCrossing -> ((Int, Int), Int)
-crossingWrithe t cross =
-    let d0 = nthOutcomingDart cross 0
-        t0 = t A.! d0
-        t1 = t A.! nextCCW d0
-    in ((abs t0, abs t1), if (signum t0 == signum t1) == isPassingOver d0 then 1 else -1)
