@@ -591,7 +591,7 @@ instance (CobordismGuts g) => Cobordism3 (Cobordism' g) where
     capOfGenusCobordism genus | genus < 0  = error $ printf "capOfGenusCobordism: genus must be non-negative, but %i passed" genus
                               | otherwise  = Cob (emptyHeader 1 0) (capGuts genus)
 
-    tubeCobordism = planarLoop
+    tubeCobordism = planarLoop 1
 
     swapCobordism = Cob (emptyHeader 2 2) swapGuts
 
@@ -624,7 +624,7 @@ instance (CobordismGuts g) => PlanarAlgebra (Cobordism' g) where
 
     planarEmpty = identityCobordism planarEmpty
 
-    planarLoop = identityCobordism planarLoop
+    planarLoop = identityCobordism . planarLoop
 
     planarPropagator = identityCobordism . planarPropagator
 
@@ -648,7 +648,8 @@ instance (CobordismGuts g) => PlanarAlgebra (CobordismBorder (Cobordism' g)) whe
 
     planarEmpty = Brd 0 UV.empty
 
-    planarLoop = Brd 1 UV.empty
+    planarLoop n | n >= 0     = Brd n UV.empty
+                 | otherwise  = error $ printf "planarLoop: number of loops %i is negative" n
 
     planarPropagator n | n < 0      = error $ printf "planarPropagator: parameter must be non-negative, but %i passed" n
                        | otherwise  = Brd 0 $ UV.generate (2 * n) (\ i -> 2 * n - 1 - i)

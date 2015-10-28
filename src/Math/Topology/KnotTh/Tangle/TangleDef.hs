@@ -557,7 +557,7 @@ instance PlanarAlgebra (Tangle a) where
 
     planarEmpty = toTangle emptyTangle
 
-    planarLoop = toTangle (loopTangle 1)
+    planarLoop = toTangle . loopTangle
 
     planarPropagator n | n < 0      = error $ printf "Tangle.planarPropagator: parameter must be non-negative, but %i passed" n
                        | otherwise  =

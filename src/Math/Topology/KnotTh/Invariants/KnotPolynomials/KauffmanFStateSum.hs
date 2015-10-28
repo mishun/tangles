@@ -225,7 +225,7 @@ instance (KauffmanFArg a) => PlanarAlgebra (ChordDiagramsSum a) where
 
     planarEmpty = ChordDiagramsSum 0 [ChordDiagram UV.empty 1]
 
-    planarLoop = ChordDiagramsSum 0 [ChordDiagram UV.empty loopFactor]
+    planarLoop n = ChordDiagramsSum 0 [ChordDiagram UV.empty (loopFactor ^ n)]
 
     planarPropagator n | n < 0      = error $ printf "planarPropagator: parameter must be non-negative, but %i passed" n
                        | otherwise  = ChordDiagramsSum (2 * n) [ChordDiagram (UV.generate (2 * n) $ \ i -> 2 * n - 1 - i) 1]

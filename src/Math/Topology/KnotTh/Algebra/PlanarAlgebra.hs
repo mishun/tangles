@@ -26,7 +26,7 @@ import Math.Topology.KnotTh.Algebra.Dihedral
 class (RotationAction a) => PlanarAlgebra a where
     planarDegree          :: a -> Int
     planarEmpty           :: a
-    planarLoop            :: a
+    planarLoop            :: Int -> a
     planarPropagator      :: Int -> a
     horizontalComposition :: Int -> (a, Int) -> (a, Int) -> a
     horizontalLooping     :: Int -> (a, Int) -> a
@@ -36,7 +36,9 @@ class (RotationAction a) => PlanarAlgebra a where
 
     planarEmpty = planarPropagator 0
 
-    planarLoop = horizontalComposition 2 (planarPropagator 1, 0) (planarPropagator 1, 0)
+    planarLoop n =
+        let p = planarPropagator n
+        in horizontalComposition (2 * n) (p, 0) (p, 0)
 
     horizontalLooping gl (x, pos) =
         horizontalComposition (2 * gl) (x, pos) (planarPropagator gl, 0)

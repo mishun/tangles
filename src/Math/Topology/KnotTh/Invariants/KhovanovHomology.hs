@@ -166,8 +166,20 @@ instance (DottedCobordism c) => RotationAction (KhovanovComplex c) where
                     Chain c -> Chain $ V.map (rotateBy rot) c
            }
 
+instance (DottedCobordism c) => TensorProduct (KhovanovComplex c) where
+    a ⊗ b = horizontalComposition 0 (a, 0) (b, 0)
+
 instance (DottedCobordism c) => PlanarAlgebra (KhovanovComplex c) where
     planarDegree = legsN
+
+    planarLoop n =
+        let (offset, chain) = stripChain $ simplifyChain $
+                                Singl $ CM.fromVector $ V.singleton (planarLoop n)
+        in KhovanovComplex
+            { legsN        = 0
+            , chainOffset  = offset
+            , complexChain = chain
+            }
 
     planarPropagator n =
         KhovanovComplex
@@ -206,7 +218,10 @@ crossingComplex UnderCrossing =
 
 
 khovanovComplex :: TangleDiagram -> KhovanovComplex (DottedCobordism' Integer)
-khovanovComplex = reduceWithDefaultStrategy . fmap crossingComplex
+khovanovComplex tangle | ls == 0    = kh
+                       | otherwise  = kh ⊗ planarLoop ls
+    where ls = numberOfFreeLoops tangle
+          kh = reduceWithDefaultStrategy $ fmap crossingComplex tangle
 
 
 khovanovHomologyBetti :: TangleDiagram -> [(Int, Int)]

@@ -115,7 +115,7 @@ instance (KauffmanXArg a) => PlanarAlgebra (KauffmanXStateSum a) where
 
     planarEmpty = KauffmanXStateSum 0 [PlanarChordDiagram UV.empty 1]
 
-    planarLoop = KauffmanXStateSum 0 [PlanarChordDiagram UV.empty loopFactor]
+    planarLoop n = KauffmanXStateSum 0 [PlanarChordDiagram UV.empty (loopFactor ^ n)]
 
     planarPropagator n | n < 0      = error $ printf "planarPropagator: parameter must be non-negative, but %i passed" n
                        | otherwise  = KauffmanXStateSum (2 * n) [PlanarChordDiagram (UV.generate (2 * n) $ \ i -> 2 * n - 1 - i) 1]
