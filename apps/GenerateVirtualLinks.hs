@@ -25,7 +25,6 @@ import Math.Topology.KnotTh.Enumeration.DiagramInfo
 import Math.Topology.KnotTh.Enumeration.DiagramInfo.MinimalDiagramInfo
 import Math.Topology.KnotTh.Enumeration.DiagramInfo.AllDiagramsInfo
 import Math.Topology.KnotTh.Moves.MovesOfELink
-import Math.Topology.KnotTh.Tangle
 import TestUtil.Table
 
 {-

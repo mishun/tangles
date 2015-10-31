@@ -3,6 +3,7 @@ module Math.Topology.KnotTh.Algebra.Cobordism.CobordismMatrix
     ( CobordismMatrix
     , numberOfRows
     , numberOfCols
+    , isEmpty
     , singleton
     , (!)
     , removeRow
@@ -58,6 +59,10 @@ numberOfRows = V.length . object1
 {-# INLINE numberOfCols #-}
 numberOfCols :: (Cobordism c) => CobordismMatrix c -> Int
 numberOfCols = V.length . object0
+
+
+isEmpty :: (Cobordism c) => CobordismMatrix c -> Bool
+isEmpty m = numberOfRows m == 0 && numberOfCols m == 0
 
 
 singleton :: (Cobordism c) => c -> CobordismMatrix c

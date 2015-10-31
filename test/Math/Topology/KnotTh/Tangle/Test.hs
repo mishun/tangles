@@ -168,6 +168,6 @@ test = testGroup "Basic tangle tests"
             in all ((< 12) . abs) list ==> f (conwayRecip t) == f (conwayProduct t zeroTangle)
 
         , testCase "Numerator closure" $ do
-            numberOfFreeLoops (toTangle $ numeratorClosure zeroTangle) @?= 2
+            numberOfFreeLoops (numeratorClosure zeroTangle :: Tangle0 DiagramCrossing) @?= 2
         ]
     ]
