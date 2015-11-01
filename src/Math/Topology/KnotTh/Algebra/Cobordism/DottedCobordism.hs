@@ -239,13 +239,12 @@ renumerateSurfaces g = assert (surfacesN g == UV.length (surfHoles g)) $
                  }
 
 
-verComposeGuts :: CobordismHeader -> (CobordismHeader, Guts) -> (CobordismHeader, Guts) -> Guts
-verComposeGuts !h (!h1, !g1) (!h0, !g0) =
+verComposeGuts :: Int -> UV.Vector (Int, Int) -> UV.Vector Int -> UV.Vector Int -> Guts -> Guts -> Guts
+verComposeGuts !newBorderHolesN !segmsToGlueHoles !cornerHoles0 !newCornerHoles !g1 !g0 =
     ST.runST $ do
-        let segmsToGlue = UV.generate (legsN h) $ \ leg ->
-                (wallSurfs g0 UV.! (wallMap h0 UV.! leg), wallSurfs g1 UV.! (wallMap h1 UV.! leg))
+        let segmsToGlueSurf = UV.map (\ (hole0, hole1) -> (wallSurfs g0 UV.! hole0, wallSurfs g1 UV.! hole1)) segmsToGlueHoles
 
-            loopsToGlue = UV.zip (loopSurfs1 g0) (loopSurfs0 g1)
+            loopsToGlueSurf = UV.zip (loopSurfs1 g0) (loopSurfs0 g1)
 
         (newS0, newS1, surfN) <- do
             newS0 <- UMV.replicate (surfacesN g0) (-1)
@@ -254,14 +253,14 @@ verComposeGuts !h (!h1, !g1) (!h0, !g0) =
             let mark0 !color !surf = do
                     whenM ((< 0) `fmap` UMV.read newS0 surf) $ do
                         UMV.write newS0 surf color
-                        UV.forM_ segmsToGlue $ \ (s0, s1) -> when (surf == s0) $ mark1 color s1
-                        UV.forM_ loopsToGlue $ \ (s0, s1) -> when (surf == s0) $ mark1 color s1
+                        UV.forM_ segmsToGlueSurf $ \ (s0, s1) -> when (surf == s0) $ mark1 color s1
+                        UV.forM_ loopsToGlueSurf $ \ (s0, s1) -> when (surf == s0) $ mark1 color s1
 
                 mark1 !color !surf =
                     whenM ((< 0) `fmap` UMV.read newS1 surf) $ do
                         UMV.write newS1 surf color
-                        UV.forM_ segmsToGlue $ \ (s0, s1) -> when (surf == s1) $ mark0 color s0
-                        UV.forM_ loopsToGlue $ \ (s0, s1) -> when (surf == s1) $ mark0 color s0
+                        UV.forM_ segmsToGlueSurf $ \ (s0, s1) -> when (surf == s1) $ mark0 color s0
+                        UV.forM_ loopsToGlueSurf $ \ (s0, s1) -> when (surf == s1) $ mark0 color s0
 
             freeColor <- newSTRef 0
             let tryMark0 !s =
@@ -278,7 +277,7 @@ verComposeGuts !h (!h1, !g1) (!h0, !g0) =
 
             -- the order is important!
             -- wall adjacent surfaces:
-            UV.forM_ (wallMap h0) $ tryMark0 . (wallSurfs g0 UV.!)
+            UV.mapM_ (tryMark0 . (wallSurfs g0 UV.!)) cornerHoles0
             -- bottom and top loops:
             UV.mapM_ tryMark0 $ loopSurfs0 g0
             UV.mapM_ tryMark1 $ loopSurfs1 g1
@@ -293,8 +292,8 @@ verComposeGuts !h (!h1, !g1) (!h0, !g0) =
             return $! (newS0', newS1', surfN)
 
         let wallS = UV.create $ do
-                ws <- UMV.new (wallHolesN h)
-                UV.zipWithM_ (\ s s0 -> UMV.write ws s s0) (wallMap h) (UV.backpermute newS0 $ wallMap h0)
+                ws <- UMV.new newBorderHolesN
+                UV.zipWithM_ (\ s s0 -> UMV.write ws s s0) newCornerHoles (UV.backpermute newS0 cornerHoles0)
                 return ws
 
             loopS0 = UV.backpermute newS0 (loopSurfs0 g0)
@@ -306,13 +305,13 @@ verComposeGuts !h (!h1, !g1) (!h0, !g0) =
                     wallS UV.++ loopS0 UV.++ loopS1
                 return hs
 
-            newHandles = UV.map (\ g4 -> assert (mod g4 4 == 0) (g4 `div` 4)) $ UV.create $ do
-                g4 <- UMV.replicate surfN 0
-                UV.imapM_ (\ s hi -> UMV.modify g4 (+ (4 - 2 * hi)) s) holes
-                UV.zipWithM_ (\ hi s' -> UMV.modify g4 (+ (2 * hi - 4)) s') (surfHoles g0) newS0
-                UV.zipWithM_ (\ hi s' -> UMV.modify g4 (+ (2 * hi - 4)) s') (surfHoles g1) newS1
-                UV.mapM_ (\ (s0, _) -> UMV.modify g4 (+ 1) (newS0 UV.! s0)) segmsToGlue
-                return g4
+            newHandles = UV.map (\ g2 -> assert (even g2) (g2 `div` 2)) $ UV.create $ do
+                g2 <- UMV.replicate surfN 0
+                UV.imapM_ (\ s hi -> UMV.modify g2 (+ (2 - hi)) s) holes
+                UV.zipWithM_ (\ hi -> UMV.modify g2 (+ (hi - 2))) (surfHoles g0) newS0
+                UV.zipWithM_ (\ hi -> UMV.modify g2 (+ (hi - 2))) (surfHoles g1) newS1
+                UV.mapM_ (\ (s0, _) -> UMV.modify g2 (+ 1) (newS0 UV.! s0)) segmsToGlueSurf
+                return g2
 
         return $!
             Guts
@@ -329,16 +328,10 @@ verComposeGuts !h (!h1, !g1) (!h0, !g0) =
                 }
 
 
-horComposeGuts :: (CobordismHeader, Int, UV.Vector Int, UV.Vector Int) -> (Guts, CobordismHeader, Int) -> (Guts, CobordismHeader, Int) -> Guts
-horComposeGuts (!h, !gl, !exLpReps0, !exLpReps1) (!gA, !hA, !posA) (!gB, !hB, !posB) =
+horComposeGuts :: Int -> UV.Vector (Int, Int) -> (UV.Vector Int, UV.Vector Int) -> (UV.Vector Int, UV.Vector Int, Guts) -> (UV.Vector Int, UV.Vector Int, Guts) -> Guts
+horComposeGuts !newBorderHolesN !segmsToGlueHoles (!exLpRepsA0, !exLpRepsA1) (!cornerHolesA, newCornerHolesA, !gA) (!cornerHolesB, newCornerHolesB, !gB) =
     ST.runST $ do
-        let legsA = legsN hA
-            legsB = legsN hB
-
-            segmsToGlue = UV.generate gl $ \ i ->
-                let legA = (posA + i) `mod` legsA
-                    legB = (posB + gl - 1 - i) `mod` legsB
-                in (wallSurfs gA UV.! (wallMap hA UV.! legA), wallSurfs gB UV.! (wallMap hB UV.! legB))
+        let segmsToGlueSurf = UV.map (\ (holeA, holeB) -> (wallSurfs gA UV.! holeA, wallSurfs gB UV.! holeB)) segmsToGlueHoles
 
         (newSA, newSB, surfN) <- do
             newSA <- UMV.replicate (surfacesN gA) (-1)
@@ -347,12 +340,12 @@ horComposeGuts (!h, !gl, !exLpReps0, !exLpReps1) (!gA, !hA, !posA) (!gB, !hB, !p
             let markA !color !surf = do
                     whenM ((< 0) `fmap` UMV.read newSA surf) $ do
                         UMV.write newSA surf color
-                        UV.forM_ segmsToGlue $ \ (sA, sB) -> when (surf == sA) $ markB color sB
+                        UV.forM_ segmsToGlueSurf $ \ (sA, sB) -> when (surf == sA) $ markB color sB
 
                 markB !color !surf =
                     whenM ((< 0) `fmap` UMV.read newSB surf) $ do
                         UMV.write newSB surf color
-                        UV.forM_ segmsToGlue $ \ (sA, sB) -> when (surf == sB) $ markA color sA
+                        UV.forM_ segmsToGlueSurf $ \ (sA, sB) -> when (surf == sB) $ markA color sA
 
             freeColor <- newSTRef 0
             let tryMarkA !s =
@@ -369,10 +362,10 @@ horComposeGuts (!h, !gl, !exLpReps0, !exLpReps1) (!gA, !hA, !posA) (!gB, !hB, !p
 
             -- the order is important!
             -- wall adjacent surfaces:
-            forM_ [0 .. legsA - gl - 1] $ \ !i -> tryMarkA $ wallMap hA UV.! ((posA + gl + i) `mod` legsA)
-            forM_ [0 .. legsB - gl - 1] $ \ !i -> tryMarkB $ wallMap hB UV.! ((posB + gl + i) `mod` legsB)
+            UV.mapM_ (tryMarkA . (wallSurfs gA UV.!)) cornerHolesA
+            UV.mapM_ (tryMarkB . (wallSurfs gB UV.!)) cornerHolesB
             -- bottom loops:
-            forM_ [0 .. gl - 1] $ \ !i -> tryMarkA $ wallMap hA UV.! ((posA + i) `mod` legsA)
+            UV.mapM_ (tryMarkA . fst) segmsToGlueSurf
             UV.mapM_ tryMarkA $ loopSurfs0 gA
             UV.mapM_ tryMarkB $ loopSurfs0 gB
             -- top loops:
@@ -388,27 +381,21 @@ horComposeGuts (!h, !gl, !exLpReps0, !exLpReps1) (!gA, !hA, !posA) (!gB, !hB, !p
             return $! (newSA', newSB', surfN)
 
         let wallS = UV.create $ do
-                ws <- UMV.new (wallHolesN h)
-                forM_ [0 .. legsA - gl - 1] $ \ !i ->
-                    let leg = i
-                        legA = (posA + gl + i) `mod` legsA
-                    in UMV.write ws (wallMap h UV.! leg) $ (newSA UV.!) $ wallMap hA UV.! legA
-                forM_ [0 .. legsB - gl - 1] $ \ !i ->
-                    let leg = legsA - gl + i
-                        legB = (posB + gl + i) `mod` legsB
-                    in UMV.write ws (wallMap h UV.! leg) $ (newSB UV.!) $ wallMap hB UV.! legB
+                ws <- UMV.new newBorderHolesN
+                UV.zipWithM_ (\ hole surf -> UMV.write ws hole surf) newCornerHolesA (UV.backpermute newSA cornerHolesA)
+                UV.zipWithM_ (\ hole surf -> UMV.write ws hole surf) newCornerHolesB (UV.backpermute newSB cornerHolesB)
                 return ws
 
             loopS0 =
-                UV.concat [ UV.map (\ !i -> (newSA UV.!) $ (wallMap hA UV.!) $ (posA + i) `mod` legsA) exLpReps0
-                          , UV.backpermute newSA $ loopSurfs0 gA
-                          , UV.backpermute newSB $ loopSurfs0 gB
+                UV.concat [ UV.backpermute newSA exLpRepsA0
+                          , UV.backpermute newSA (loopSurfs0 gA)
+                          , UV.backpermute newSB (loopSurfs0 gB)
                           ]
 
             loopS1 =
-                UV.concat [ UV.map (\ !i -> (newSA UV.!) $ (wallMap hA UV.!) $ (posA + i) `mod` legsA) exLpReps1
-                          , UV.backpermute newSA $ loopSurfs1 gA
-                          , UV.backpermute newSB $ loopSurfs1 gB
+                UV.concat [ UV.backpermute newSA exLpRepsA1
+                          , UV.backpermute newSA (loopSurfs1 gA)
+                          , UV.backpermute newSB (loopSurfs1 gB)
                           ]
 
             holes = UV.create $ do
@@ -419,10 +406,10 @@ horComposeGuts (!h, !gl, !exLpReps0, !exLpReps1) (!gA, !hA, !posA) (!gB, !hB, !p
 
             newHandles = UV.map (\ g2 -> assert (even g2) (g2 `div` 2)) $ UV.create $ do
                 g2 <- UMV.replicate surfN 0
-                UV.imapM_ (\ s hi -> UMV.modify g2 (+ (2 - hi)) s) holes
-                UV.zipWithM_ (\ hi s' -> UMV.modify g2 (+ (hi - 2)) s') (surfHoles gA) newSA
-                UV.zipWithM_ (\ hi s' -> UMV.modify g2 (+ (hi - 2)) s') (surfHoles gB) newSB
-                UV.mapM_ (\ (sA, _) -> UMV.modify g2 (+ 1) (newSA UV.! sA)) segmsToGlue
+                UV.imapM_ (\ s hs -> UMV.modify g2 (+ (2 - hs)) s) holes
+                UV.zipWithM_ (\ hs -> UMV.modify g2 (+ (hs - 2))) (surfHoles gA) newSA
+                UV.zipWithM_ (\ hs -> UMV.modify g2 (+ (hs - 2))) (surfHoles gB) newSB
+                UV.mapM_ (\ (sA, _) -> UMV.modify g2 (+ 1) (newSA UV.! sA)) segmsToGlueSurf
                 return g2
 
         return $!
@@ -441,7 +428,7 @@ horComposeGuts (!h, !gl, !exLpReps0, !exLpReps1) (!gA, !hA, !posA) (!gB, !hB, !p
 
 
 {-# INLINE glueArcs #-}
-glueArcs :: Int -> (UV.Vector Int, Int) -> (UV.Vector Int, Int) -> (UV.Vector Int, [Int])
+glueArcs :: Int -> (UV.Vector Int, Int) -> (UV.Vector Int, Int) -> (UV.Vector Int, UV.Vector Int)
 glueArcs !gl (!a, !posA) (!b, !posB) =
     ST.runST $ do
         let legsA = UV.length a
@@ -464,25 +451,27 @@ glueArcs !gl (!a, !posA) (!b, !posB) =
                               (UV.generateM (legsB - gl) (\ !i -> mateB $ (posB + gl + i) `mod` legsB))
 
         loops <-
-            let markA !x = do
-                    unlessM (UMV.read visited x) $ do
-                        UMV.write visited x True
-                        markB $ (`mod` legsA) $ (+ negate posA) $ (a UV.!) $ (posA + x) `mod` legsA
+            let markA !i = do
+                    unlessM (UMV.read visited i) $ do
+                        UMV.write visited i True
+                        let x = (posA + i) `mod` legsA
+                        markB $ ((a UV.! x) - posA) `mod` legsA
 
-                markB !x = do
-                    unlessM (UMV.read visited x) $ do
-                        UMV.write visited x True
-                        markA $ (`mod` legsB) $ (\ p -> posB - p + gl - 1) $ (b UV.!) $ (posB + gl - 1 - x) `mod` legsB
+                markB !i = do
+                    unlessM (UMV.read visited i) $ do
+                        UMV.write visited i True
+                        let x = (posB + gl - 1 - i) `mod` legsB
+                        markA $ (posB + gl - 1 - (b UV.! x)) `mod` legsB
 
             in foldM (\ !lst !i -> do
                     v <- UMV.read visited i
                     if v then return $! lst
                          else do
                              markA i
-                             return $! i : lst
+                             return $! ((posA + i) `mod` legsA) : lst
                 ) [] [0 .. gl - 1]
 
-        return $! (arcs, loops)
+        return $! (arcs, UV.fromList loops)
 
 
 {-# INLINE rotateArcs #-}
@@ -505,8 +494,8 @@ normalizeDottedGuts :: (Num a) => Guts -> [(Guts, a)]
 normalizeDottedGuts =
     let removeClosed g =
             let (holes, handles) = UV.unzip $ UV.filter ((> 0) . fst) $ UV.zip (surfHoles g) (surfHandles g)
-            in cutNecks $ g { surfacesN = UV.length holes
-                            , surfHoles = holes
+            in cutNecks $ g { surfacesN   = UV.length holes
+                            , surfHoles   = holes
                             , surfHandles = handles
                             }
 
@@ -536,9 +525,9 @@ normalizeDottedGuts =
 normalizeDottedCobordism :: (Eq a, Num a) => DottedCobordism' a -> DottedCobordism' a
 normalizeDottedCobordism (Cob h m) =
     Cob h $ Map.filter (/= 0) $ Map.fromListWith (+) $ do
-        (g, factor) <- Map.toList m
-        (g', factorNorm) <- normalizeDottedGuts g
-        return $! (g', factor * factorNorm)
+        (g, f) <- Map.toList m
+        (g', f') <- normalizeDottedGuts g
+        return $! (g', f * f')
 
 
 instance (Eq a, Num a) => Composition (DottedCobordism' a) where
@@ -547,11 +536,16 @@ instance (Eq a, Num a) => Composition (DottedCobordism' a) where
                               | arcs1 h0  /= arcs0 h1   = error "(∘): different border arcs"
                               | otherwise               =
         let h = makeHeader (legsN h0) (arcs0 h0, loops0 h0) (arcs1 h1, loops1 h1)
+
+            segmsToGlueHoles =
+                let mate = (arcs1 h0 UV.!)
+                in UV.ifilter (\ i _ -> i < mate i) $ UV.zip (wallMap h0) (wallMap h1)
+
         in Cob h $ Map.filter (/= 0) $ Map.fromListWith (+) $ do
             (g0, f0) <- Map.toList map0
             (g1, f1) <- Map.toList map1
-            let g = verComposeGuts h (h1, g1) (h0, g0)
-                f = f0 * f1 * 2 ^ (genusOfGuts g - genusOfGuts g0 - genusOfGuts g1)
+            let f = f0 * f1 * 2 ^ (genusOfGuts g - genusOfGuts g0 - genusOfGuts g1)
+                g = verComposeGuts (wallHolesN h) segmsToGlueHoles (wallMap h0) (wallMap h) g1 g0
             (g', f') <- normalizeDottedGuts g
             return $! (g', f * f')
 
@@ -590,7 +584,7 @@ instance (Eq a, Num a) => Cobordism3 (DottedCobordism' a) where
 
     capOfGenusCobordism 0 = Cob (emptyHeader 1 0) $ Map.singleton (capGuts 0) 1
     capOfGenusCobordism 1 = Cob (emptyHeader 1 0) $ Map.singleton (capGuts 1) 2
-    capOfGenusCobordism _ = Cob (emptyHeader 1 0) $ Map.empty
+    capOfGenusCobordism _ = Cob (emptyHeader 1 0) Map.empty
 
     tubeCobordism = planarLoop 1
 
@@ -638,18 +632,34 @@ instance (Eq a, Num a) => PlanarAlgebra (DottedCobordism' a) where
     planarPropagator = identityCobordism . planarPropagator
 
     horizontalCompositionUnchecked !gl (Cob hA mapA, !posA) (Cob hB mapB, !posB) =
-        let (resArcs0, extraLoops0) = glueArcs gl (arcs0 hA, posA) (arcs0 hB, posB)
+        let legsA = legsN hA
+            legsB = legsN hB
+
+            (resArcs0, extraLoops0) = glueArcs gl (arcs0 hA, posA) (arcs0 hB, posB)
             (resArcs1, extraLoops1) = glueArcs gl (arcs1 hA, posA) (arcs1 hB, posB)
 
-            h = makeHeader (legsN hA + legsN hB - 2 * gl) (resArcs0, length extraLoops0 + loops0 hA + loops0 hB)
-                                                          (resArcs1, length extraLoops1 + loops1 hA + loops1 hB)
+            cornerHolesA = UV.backpermute (wallMap hA) $ UV.generate (legsA - gl) (\ i -> (posA + gl + i) `mod` legsA)
+            cornerHolesB = UV.backpermute (wallMap hB) $ UV.generate (legsB - gl) (\ i -> (posB + gl + i) `mod` legsB)
 
-            tmp = (h, gl, UV.fromList extraLoops0, UV.fromList extraLoops1)
+            segmsToGlueHoles = UV.generate gl $ \ i ->
+                let legA = (posA + i) `mod` legsN hA
+                    legB = (posB + gl - 1 - i) `mod` legsN hB
+                in (wallMap hA UV.! legA, wallMap hB UV.! legB)
+
+            h = makeHeader (legsA + legsB - 2 * gl)
+                           (resArcs0, UV.length extraLoops0 + loops0 hA + loops0 hB)
+                           (resArcs1, UV.length extraLoops1 + loops1 hA + loops1 hB)
+
+            (newCornerHolesA, newCornerHolesB) = UV.splitAt (legsA - gl) (wallMap h)
+
+            tmp = (UV.backpermute (wallMap hA) extraLoops0, UV.backpermute (wallMap hA) extraLoops1)
+
         in Cob h $ Map.filter (/= 0) $ Map.fromListWith (+) $ do
             (gA, fA) <- Map.toList mapA
             (gB, fB) <- Map.toList mapB
-            let g = horComposeGuts tmp (gA, hA, posA) (gB, hB, posB)
-                f = fA * fB * 2 ^ (genusOfGuts g - genusOfGuts gA - genusOfGuts gB)
+            let f = fA * fB * 2 ^ (genusOfGuts g - genusOfGuts gA - genusOfGuts gB)
+                g = horComposeGuts (wallHolesN h) segmsToGlueHoles tmp (cornerHolesA, newCornerHolesA, gA)
+                                                                       (cornerHolesB, newCornerHolesB, gB)
             (g', f') <- normalizeDottedGuts g
             return $! (g', f * f')
 
@@ -674,7 +684,7 @@ instance PlanarAlgebra (CobordismBorder (DottedCobordism' a)) where
 
     horizontalCompositionUnchecked !gl (Brd loopsA a, !posA) (Brd loopsB b, !posB) =
         let (arcs, extraLoops) = glueArcs gl (a, posA) (b, posB)
-        in Brd (length extraLoops + loopsA + loopsB) arcs
+        in Brd (UV.length extraLoops + loopsA + loopsB) arcs
 
 instance ChordDiagram (CobordismBorder (DottedCobordism' a)) where
     numberOfChordEnds (Brd _ a) = UV.length a
