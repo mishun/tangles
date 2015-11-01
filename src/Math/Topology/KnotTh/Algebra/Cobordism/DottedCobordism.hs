@@ -3,10 +3,11 @@ module Math.Topology.KnotTh.Algebra.Cobordism.DottedCobordism
     ( module Math.Topology.KnotTh.Algebra
     , module Math.Topology.KnotTh.Algebra.Cobordism
     , module Math.Topology.KnotTh.Algebra.PlanarAlgebra
-    , DottedCobordism(..)
+    , KhovanovCobordism(..)
     , DottedCobordism'
     ) where
 
+import Control.Exception (assert)
 import Control.Monad (foldM, forM_, liftM2, when)
 import Control.Monad.IfElse (unlessM, whenM)
 import qualified Control.Monad.ST as ST
@@ -35,6 +36,14 @@ data CobordismHeader =
         , wallMap    :: !(UV.Vector Int)
         }
     deriving (Eq, Show)
+
+instance TransposeAction CobordismHeader where
+    transposeIt h =
+        h { arcs0  = arcs1 h
+          , loops0 = loops1 h
+          , arcs1  = arcs0 h
+          , loops1 = loops0 h
+          }
 
 emptyHeader :: Int -> Int -> CobordismHeader
 emptyHeader l0 l1 =
@@ -80,417 +89,356 @@ makeHeader !legs (!bot, !botLoops) (!top, !topLoops) =
                 }
 
 
-class (Eq g) => CommonGuts g where
-    flipGuts       :: g -> g
-    rotateGuts     :: UV.Vector Int -> g -> g
-    verComposeGuts :: CobordismHeader -> (CobordismHeader, g) -> (CobordismHeader, g) -> g
-    horComposeGuts :: (CobordismHeader, Int, UV.Vector Int, UV.Vector Int) -> (g, CobordismHeader, Int) -> (g, CobordismHeader, Int) -> g
-
-class (CommonGuts g) => CobordismGuts g where
-    emptyGuts      :: g
-    surfGuts       :: Int -> g
-    capGuts        :: Int -> g
-    swapGuts       :: g
-    pantsGuts      :: g
-    saddleGuts     :: g
-    identityGuts   :: Int -> Int -> g
-
-class (CommonGuts g, Ord g) => ModuleCobordismGuts g where
-    normalizeGutsM :: (Integral a) => g -> [(g, a)]
-    emptyGutsM     :: g
-    capGutsM       :: (Integral a) => Int -> (g, a)
-    surfGutsM      :: (Integral a) => Int -> (g, a)
-    swapGutsM      :: g
-    pantsGutsM     :: g
-    saddleGutsM    :: g
-    identityGutsM  :: Int -> Int -> g
-
-
-newtype ModuleGuts g a = MG (Map.Map g a)
-    deriving (Eq, Ord, Show)
-
-singletonModuleGuts :: (ModuleCobordismGuts g, Integral a) => (g, a) -> ModuleGuts g a
-singletonModuleGuts (g, a) = MG $ Map.fromList $ do
-    (g', a') <- normalizeGutsM g
-    return (g', a' * a)
-
-instance (ModuleCobordismGuts g, Integral a) => CommonGuts (ModuleGuts g a) where
-    flipGuts (MG m) =
-        MG $ Map.filter (/= 0) $ Map.fromListWith (+) $ do
-            (g, factor) <- Map.toList m
-            (g', factorNorm) <- normalizeGutsM $ flipGuts g
-            return $! (g', factor * factorNorm)
-
-    rotateGuts rot (MG m) =
-        MG $ Map.filter (/= 0) $ Map.fromListWith (+) $ do
-            (g, factor) <- Map.toList m
-            (g', factorNorm) <- normalizeGutsM $ rotateGuts rot g
-            return $! (g', factor * factorNorm)
-
-    verComposeGuts h (h1, MG map1) (h0, MG map0) =
-        MG $ Map.filter (/= 0) $ Map.fromListWith (+) $ do
-            (g0, factor0) <- Map.toList map0
-            (g1, factor1) <- Map.toList map1
-            (g, factorNorm) <- normalizeGutsM $ verComposeGuts h (h1, g1) (h0, g0)
-            return $! (g, factor0 * factor1 * factorNorm)
-
-    horComposeGuts tmp (MG mapA, hA, posA) (MG mapB, hB, posB) =
-        MG $ Map.filter (/= 0) $ Map.fromListWith (+) $ do
-            (gA, factorA) <- Map.toList mapA
-            (gB, factorB) <- Map.toList mapB
-            (g, factorNorm) <- normalizeGutsM $ horComposeGuts tmp (gA, hA, posA) (gB, hB, posB)
-            return $! (g, factorA * factorB * factorNorm)
-
-
-instance (ModuleCobordismGuts g, Integral a) => CobordismGuts (ModuleGuts g a) where
-    emptyGuts = MG Map.empty
-
-    surfGuts   = singletonModuleGuts . surfGutsM
-    capGuts    = singletonModuleGuts . capGutsM
-    swapGuts   = singletonModuleGuts (swapGutsM, 1)
-    pantsGuts  = singletonModuleGuts (pantsGutsM, 1)
-    saddleGuts = singletonModuleGuts (saddleGutsM, 1)
-
-    identityGuts wallHoles endHoles =
-        singletonModuleGuts (identityGutsM wallHoles endHoles, 1)
-
-
-data DottedGuts =
-    DottedGuts
-        { wallSurfs    :: !(UV.Vector Int)
-        , loopSurfs0   :: !(UV.Vector Int)
-        , loopSurfs1   :: !(UV.Vector Int)
-        , surfHolesN   :: !(UV.Vector Int)
-        , surfHandlesN :: !(UV.Vector Int)
+data Guts =
+    Guts
+        { wallSurfs   :: !(UV.Vector Int)
+        , loopSurfs0  :: !(UV.Vector Int)
+        , loopSurfs1  :: !(UV.Vector Int)
+        , surfacesN   :: !Int
+        , surfHoles   :: !(UV.Vector Int)
+        , surfHandles :: !(UV.Vector Int)
         }
     deriving (Eq, Ord, Show)
 
-instance CommonGuts DottedGuts where
-    flipGuts g =
+instance TransposeAction Guts where
+    transposeIt g =
         g { loopSurfs0 = loopSurfs1 g
           , loopSurfs1 = loopSurfs0 g
           }
 
-    rotateGuts perm g =
-        g { wallSurfs = UV.backpermute (wallSurfs g) perm }
 
-    verComposeGuts h (h1, g1) (h0, g0) =
-        ST.runST $ do
-            let legs = legsN h
-                segmsToGlue = UV.generate legs $ \ leg ->
-                    (wallSurfs g0 UV.! (wallMap h0 UV.! leg), wallSurfs g1 UV.! (wallMap h1 UV.! leg))
-                loopsToGlue = UV.zip (loopSurfs1 g0) (loopSurfs0 g1)
+emptyGuts :: Guts
+emptyGuts =
+    Guts
+        { wallSurfs   = UV.empty
+        , loopSurfs0  = UV.empty
+        , loopSurfs1  = UV.empty
+        , surfacesN   = 0
+        , surfHoles   = UV.empty
+        , surfHandles = UV.empty
+        }
 
-            (newS0, newS1, surfN) <- do
-                newS0 <- UMV.replicate (UV.length $ surfHolesN g0) (-1)
-                newS1 <- UMV.replicate (UV.length $ surfHolesN g1) (-1)
 
-                let mark0 !color !surf = do
-                        whenM ((< 0) `fmap` UMV.read newS0 surf) $ do
-                            UMV.write newS0 surf color
-                            UV.forM_ segmsToGlue $ \ (s0, s1) -> when (surf == s0) $ mark1 color s1
-                            UV.forM_ loopsToGlue $ \ (s0, s1) -> when (surf == s0) $ mark1 color s1
+surfGuts :: Int -> Guts
+surfGuts genus =
+    Guts
+        { wallSurfs   = UV.empty
+        , loopSurfs0  = UV.empty
+        , loopSurfs1  = UV.empty
+        , surfacesN   = 1
+        , surfHoles   = UV.singleton 0
+        , surfHandles = UV.singleton genus
+        }
 
-                    mark1 !color !surf =
-                        whenM ((< 0) `fmap` UMV.read newS1 surf) $ do
-                            UMV.write newS1 surf color
-                            UV.forM_ segmsToGlue $ \ (s0, s1) -> when (surf == s1) $ mark0 color s0
-                            UV.forM_ loopsToGlue $ \ (s0, s1) -> when (surf == s1) $ mark0 color s0
 
-                freeColor <- newSTRef 0
-                let tryMark0 !s =
-                        whenM ((< 0) `fmap` UMV.read newS0 s) $ do
-                            color <- readSTRef freeColor
-                            writeSTRef freeColor $! color + 1
-                            mark0 color s
+capGuts :: Int -> Guts
+capGuts genus =
+    Guts
+        { wallSurfs   = UV.empty
+        , loopSurfs0  = UV.singleton 0
+        , loopSurfs1  = UV.empty
+        , surfacesN   = 1
+        , surfHoles   = UV.singleton 1
+        , surfHandles = UV.singleton genus
+        }
 
-                    tryMark1 !s =
-                        whenM ((< 0) `fmap` UMV.read newS1 s) $ do
-                            color <- readSTRef freeColor
-                            writeSTRef freeColor $! color + 1
-                            mark1 color s
 
-                -- the order is important!
-                -- wall adjacent surfaces:
-                UV.forM_ (wallMap h0) $ tryMark0 . (wallSurfs g0 UV.!)
-                -- bottom loops:
-                UV.forM_ (loopSurfs0 g0) tryMark0
-                -- top loops:
-                UV.forM_ (loopSurfs1 g1) tryMark1
-                -- closed surfaces:
-                UV.forM_ (loopSurfs1 g0) tryMark0
-                forM_ [0 .. UV.length (surfHolesN g0) - 1] tryMark0
-                forM_ [0 .. UV.length (surfHolesN g1) - 1] tryMark1
+swapGuts :: Guts
+swapGuts =
+    Guts
+        { wallSurfs   = UV.empty
+        , loopSurfs0  = UV.fromList [0, 1]
+        , loopSurfs1  = UV.fromList [1, 0]
+        , surfacesN   = 2
+        , surfHoles   = UV.replicate 2 2
+        , surfHandles = UV.replicate 2 0
+        }
 
-                newS0' <- UV.unsafeFreeze newS0
-                newS1' <- UV.unsafeFreeze newS1
-                surfN <- readSTRef freeColor
-                return $! (newS0', newS1', surfN)
 
-            let wallS = UV.create $ do
-                    ws <- UMV.new (wallHolesN h)
-                    forM_ [0 .. legs - 1] $ \ !leg ->
-                        UMV.write ws (wallMap h UV.! leg) $ (newS0 UV.!) $ wallMap h0 UV.! leg
-                    return ws
+pantsGuts :: Guts
+pantsGuts =
+    Guts
+        { wallSurfs   = UV.empty
+        , loopSurfs0  = UV.replicate 2 0
+        , loopSurfs1  = UV.singleton 0
+        , surfacesN   = 1
+        , surfHoles   = UV.singleton 3
+        , surfHandles = UV.singleton 0
+        }
 
-                loopS0 = UV.map (newS0 UV.!) $ loopSurfs0 g0
-                loopS1 = UV.map (newS1 UV.!) $ loopSurfs1 g1
 
-            return $!
-                DottedGuts
-                    { wallSurfs    = wallS
-                    , loopSurfs0   = loopS0
-                    , loopSurfs1   = loopS1
-                    , surfHandlesN = UV.create $ do
-                        -- TODO: process new handles formation
-                        handles <- UMV.replicate surfN 0
-                        forM_ [0 .. UV.length (surfHandlesN g0) - 1] $ \ s ->
-                            let s' = newS0 UV.! s
-                                dh = surfHandlesN g0 UV.! s
-                            in UMV.read handles s' >>= (UMV.write handles s' . (+ dh))
-                        forM_ [0 .. UV.length (surfHandlesN g1) - 1] $ \ s ->
-                            let s' = newS1 UV.! s
-                                dh = surfHandlesN g1 UV.! s
-                            in UMV.read handles s' >>= UMV.write handles s' . (+ dh)
-                        return handles
-                    , surfHolesN   = UV.create $ do
-                        holes <- UMV.replicate surfN 0
-                        UV.forM_ (wallS UV.++ loopS0 UV.++ loopS1) $ \ s ->
-                            UMV.read holes s >>= UMV.write holes s . (+ 1)
-                        return holes
-                    }
+saddleGuts :: Guts
+saddleGuts =
+    Guts
+        { wallSurfs   = UV.singleton 0
+        , loopSurfs0  = UV.empty
+        , loopSurfs1  = UV.empty
+        , surfacesN   = 1
+        , surfHoles   = UV.singleton 1
+        , surfHandles = UV.singleton 0
+        }
 
-    horComposeGuts (h, !gl, !exLpReps0, !exLpReps1) (!gA, !hA, !posA) (!gB, !hB, !posB) =
-        ST.runST $ do
-            let legsA = legsN hA
-                legsB = legsN hB
 
-                segmsToGlue = UV.generate gl $ \ i ->
-                    let legA = (posA + i) `mod` legsA
-                        legB = (posB + gl - 1 - i) `mod` legsB
-                    in (wallSurfs gA UV.! (wallMap hA UV.! legA), wallSurfs gB UV.! (wallMap hB UV.! legB))
+identityGuts :: Int -> Int -> Guts
+identityGuts wallHoles endHoles =
+    let ls = UV.enumFromN wallHoles endHoles
+    in Guts
+        { wallSurfs   = UV.enumFromN 0 wallHoles
+        , loopSurfs0  = ls
+        , loopSurfs1  = ls
+        , surfacesN   = wallHoles + endHoles
+        , surfHoles   = UV.replicate wallHoles 1 UV.++ UV.replicate endHoles 2
+        , surfHandles = UV.replicate (wallHoles + endHoles) 0
+        }
 
-            (newSA, newSB, surfN) <- do
-                newSA <- UMV.replicate (UV.length $ surfHolesN gA) (-1)
-                newSB <- UMV.replicate (UV.length $ surfHolesN gB) (-1)
 
-                let markA !color !surf = do
-                        whenM ((< 0) `fmap` UMV.read newSA surf) $ do
-                            UMV.write newSA surf color
-                            UV.forM_ segmsToGlue $ \ (sA, sB) -> when (surf == sA) $ markB color sB
+genusOfGuts :: Guts -> Int
+genusOfGuts = UV.sum . surfHandles
 
-                    markB !color !surf =
-                        whenM ((< 0) `fmap` UMV.read newSB surf) $ do
-                            UMV.write newSB surf color
-                            UV.forM_ segmsToGlue $ \ (sA, sB) -> when (surf == sB) $ markA color sA
 
-                freeColor <- newSTRef 0
-                let tryMarkA !s =
-                        whenM ((< 0) `fmap` UMV.read newSA s) $ do
-                            color <- readSTRef freeColor
-                            writeSTRef freeColor $! color + 1
-                            markA color s
+rotateGuts :: UV.Vector Int -> Guts -> Guts
+rotateGuts perm g =
+    g { wallSurfs = UV.backpermute (wallSurfs g) perm }
 
-                    tryMarkB !s =
-                        whenM ((< 0) `fmap` UMV.read newSB s) $ do
-                            color <- readSTRef freeColor
-                            writeSTRef freeColor $! color + 1
-                            markB color s
 
-                -- the order is important!
-                -- wall adjacent surfaces:
-                forM_ [0 .. legsA - gl - 1] $ \ !i -> tryMarkA $ wallMap hA UV.! ((posA + gl + i) `mod` legsA)
-                forM_ [0 .. legsB - gl - 1] $ \ !i -> tryMarkB $ wallMap hB UV.! ((posB + gl + i) `mod` legsB)
-                -- bottom loops:
-                forM_ [0 .. gl - 1] $ \ !i -> tryMarkA $ wallMap hA UV.! ((posA + i) `mod` legsA)
-                UV.forM_ (loopSurfs0 gA) tryMarkA
-                UV.forM_ (loopSurfs0 gB) tryMarkB
-                -- top loops:
-                UV.forM_ (loopSurfs1 gA) tryMarkA
-                UV.forM_ (loopSurfs1 gB) tryMarkB
-                -- closed surfaces:
-                forM_ [0 .. UV.length (surfHolesN gA) - 1] tryMarkA
-                forM_ [0 .. UV.length (surfHolesN gB) - 1] tryMarkB
+renumerateSurfaces :: Guts -> Guts
+renumerateSurfaces g = assert (surfacesN g == UV.length (surfHoles g)) $
+    ST.runST $ do
+        let n = surfacesN g
 
-                newSA' <- UV.unsafeFreeze newSA
-                newSB' <- UV.unsafeFreeze newSB
-                surfN <- readSTRef freeColor
-                return $! (newSA', newSB', surfN)
+        newIndex <- UMV.replicate n (-1)
+        newHandles <- UMV.new n
+        newHoles <- UMV.new n
+        freeIndex <- newSTRef 0
 
-            let wallS = UV.create $ do
-                    ws <- UMV.new (wallHolesN h)
-                    forM_ [0 .. legsA - gl - 1] $ \ !i ->
-                        let leg = i
-                            legA = (posA + gl + i) `mod` legsA
-                        in UMV.write ws (wallMap h UV.! leg) $ (newSA UV.!) $ wallMap hA UV.! legA
-                    forM_ [0 .. legsB - gl - 1] $ \ !i ->
-                        let leg = legsA - gl + i
-                            legB = (posB + gl + i) `mod` legsB
-                        in UMV.write ws (wallMap h UV.! leg) $ (newSB UV.!) $ wallMap hB UV.! legB
-                    return ws
+        let faceId !i = do
+                tmp <- UMV.read newIndex i
+                if tmp >= 0 then return tmp
+                            else do
+                    j <- readSTRef freeIndex
+                    writeSTRef freeIndex $! j + 1
+                    UMV.write newIndex i j
+                    UMV.write newHandles j (surfHandles g UV.! i)
+                    UMV.write newHoles j (surfHoles g UV.! i)
+                    return j
 
-                loopS0 =
-                    UV.concat [ UV.map (\ !i -> (newSA UV.!) $ (wallMap hA UV.!) $ (posA + i) `mod` legsA) exLpReps0
-                              , UV.map (newSA UV.!) $ loopSurfs0 gA
-                              , UV.map (newSB UV.!) $ loopSurfs0 gB
-                              ]
+        wallS <- UV.mapM faceId $ wallSurfs g
+        loopS0 <- UV.mapM faceId $ loopSurfs0 g
+        loopS1 <- UV.mapM faceId $ loopSurfs1 g
 
-                loopS1 =
-                    UV.concat [ UV.map (\ !i -> (newSA UV.!) $ (wallMap hA UV.!) $ (posA + i) `mod` legsA) exLpReps1
-                              , UV.map (newSA UV.!) $ loopSurfs1 gA
-                              , UV.map (newSB UV.!) $ loopSurfs1 gB
-                              ]
+        handles' <- UV.unsafeFreeze newHandles
+        holes' <- UV.unsafeFreeze newHoles
 
-            return $!
-                DottedGuts
-                    { wallSurfs    = wallS
-                    , loopSurfs0   = loopS0
-                    , loopSurfs1   = loopS1
-                    , surfHandlesN = UV.create $ do
-                        handles <- UMV.replicate surfN 0
-                        forM_ [0 .. UV.length (surfHandlesN gA) - 1] $ \ s ->
-                            let s' = newSA UV.! s
-                                dh = surfHandlesN gA UV.! s
-                            in UMV.read handles s' >>= UMV.write handles s' . (+ dh)
-                        forM_ [0 .. UV.length (surfHandlesN gB) - 1] $ \ s ->
-                            let s' = newSB UV.! s
-                                dh = surfHandlesN gB UV.! s
-                            in UMV.read handles s' >>= UMV.write handles s' . (+ dh)
-                        return handles
-                    , surfHolesN   = UV.create $ do
-                        holes <- UMV.replicate surfN 0
-                        UV.forM_ (wallS UV.++ loopS0 UV.++ loopS1) $ \ s ->
-                            UMV.read holes s >>= UMV.write holes s . (+ 1)
-                        return holes
-                    }
+        return $!
+            Guts { wallSurfs   = wallS
+                 , loopSurfs0  = loopS0
+                 , loopSurfs1  = loopS1
+                 , surfacesN   = surfacesN g
+                 , surfHandles = handles'
+                 , surfHoles   = holes'
+                 }
 
-instance ModuleCobordismGuts DottedGuts where
-    normalizeGutsM =
-        let removeClosed g =
-                let (holes, handles) = UV.unzip $ UV.filter ((> 0) . fst) $ UV.zip (surfHolesN g) (surfHandlesN g)
-                in cutNecks $ g { surfHolesN = holes, surfHandlesN = handles }
 
-            cutNecks g =
-                case UV.findIndex (> 1) (surfHolesN g) of
-                    Nothing   -> [(renumerateSurfaces g, 1)]
-                    Just surf -> do
-                        let genus = surfHandlesN g UV.! surf
-                            dst = UV.length $ surfHandlesN g
-                            rew | Just i <- UV.findIndex (== surf) (wallSurfs g)   = g { wallSurfs  = wallSurfs g  UV.// [(i, dst)] }
-                                | Just i <- UV.findIndex (== surf) (loopSurfs0 g)  = g { loopSurfs0 = loopSurfs0 g UV.// [(i, dst)] }
-                                | Just i <- UV.findIndex (== surf) (loopSurfs1 g)  = g { loopSurfs1 = loopSurfs1 g UV.// [(i, dst)] }
-                                | otherwise                                        = g
-                        handles <- UV.snoc (surfHandlesN g) 1 : [ UV.snoc (surfHandlesN g) 0 UV.// [(surf, 1)] | genus == 0]
-                        cutNecks $
-                            rew { surfHolesN   = UV.snoc (surfHolesN g) 1 UV.// [(surf, (surfHolesN g UV.! surf) - 1)]
-                                , surfHandlesN = handles
-                                }
+verComposeGuts :: CobordismHeader -> (CobordismHeader, Guts) -> (CobordismHeader, Guts) -> Guts
+verComposeGuts !h (!h1, !g1) (!h0, !g0) =
+    ST.runST $ do
+        let segmsToGlue = UV.generate (legsN h) $ \ leg ->
+                (wallSurfs g0 UV.! (wallMap h0 UV.! leg), wallSurfs g1 UV.! (wallMap h1 UV.! leg))
 
-            renumerateSurfaces g =
-                ST.runST $ do
-                    let n = UV.length $ surfHolesN g
+            loopsToGlue = UV.zip (loopSurfs1 g0) (loopSurfs0 g1)
 
-                    newIndex <- UMV.replicate n (-1)
-                    newHandles <- UMV.new n
-                    newHoles <- UMV.new n
-                    freeIndex <- newSTRef 0
+        (newS0, newS1, surfN) <- do
+            newS0 <- UMV.replicate (surfacesN g0) (-1)
+            newS1 <- UMV.replicate (surfacesN g1) (-1)
 
-                    let faceId !i = do
-                            tmp <- UMV.read newIndex i
-                            if tmp >= 0 then return tmp
-                                        else do
-                                j <- readSTRef freeIndex
-                                writeSTRef freeIndex $! j + 1
-                                UMV.write newIndex i j
-                                UMV.write newHandles j (surfHandlesN g UV.! i)
-                                UMV.write newHoles j (surfHolesN g UV.! i)
-                                return j
+            let mark0 !color !surf = do
+                    whenM ((< 0) `fmap` UMV.read newS0 surf) $ do
+                        UMV.write newS0 surf color
+                        UV.forM_ segmsToGlue $ \ (s0, s1) -> when (surf == s0) $ mark1 color s1
+                        UV.forM_ loopsToGlue $ \ (s0, s1) -> when (surf == s0) $ mark1 color s1
 
-                    wallS <- UV.mapM faceId $ wallSurfs g
-                    loopS0 <- UV.mapM faceId $ loopSurfs0 g
-                    loopS1 <- UV.mapM faceId $ loopSurfs1 g
+                mark1 !color !surf =
+                    whenM ((< 0) `fmap` UMV.read newS1 surf) $ do
+                        UMV.write newS1 surf color
+                        UV.forM_ segmsToGlue $ \ (s0, s1) -> when (surf == s1) $ mark0 color s0
+                        UV.forM_ loopsToGlue $ \ (s0, s1) -> when (surf == s1) $ mark0 color s0
 
-                    handles' <- UV.unsafeFreeze newHandles
-                    holes' <- UV.unsafeFreeze newHoles
+            freeColor <- newSTRef 0
+            let tryMark0 !s =
+                    whenM ((< 0) `fmap` UMV.read newS0 s) $ do
+                        color <- readSTRef freeColor
+                        writeSTRef freeColor $! color + 1
+                        mark0 color s
 
-                    return $!
-                        DottedGuts
-                            { wallSurfs    = wallS
-                            , loopSurfs0   = loopS0
-                            , loopSurfs1   = loopS1
-                            , surfHandlesN = handles'
-                            , surfHolesN   = holes'
-                            }
-        in \ g ->
-            if | UV.any (> 1) (surfHandlesN g)                               -> []
-               | UV.any (== (0, 0)) (UV.zip (surfHolesN g) (surfHandlesN g)) -> []
-               | otherwise                                                   -> removeClosed g
+                tryMark1 !s =
+                    whenM ((< 0) `fmap` UMV.read newS1 s) $ do
+                        color <- readSTRef freeColor
+                        writeSTRef freeColor $! color + 1
+                        mark1 color s
 
-    emptyGutsM =
-        DottedGuts
-            { wallSurfs    = UV.empty
-            , loopSurfs0   = UV.empty
-            , loopSurfs1   = UV.empty
-            , surfHolesN   = UV.empty
-            , surfHandlesN = UV.empty
-            }
+            -- the order is important!
+            -- wall adjacent surfaces:
+            UV.forM_ (wallMap h0) $ tryMark0 . (wallSurfs g0 UV.!)
+            -- bottom and top loops:
+            UV.mapM_ tryMark0 $ loopSurfs0 g0
+            UV.mapM_ tryMark1 $ loopSurfs1 g1
+            -- closed surfaces:
+            UV.mapM_ tryMark0 $ loopSurfs1 g0
+            forM_ [0 .. surfacesN g0 - 1] tryMark0
+            forM_ [0 .. surfacesN g1 - 1] tryMark1
 
-    surfGutsM genus =
-        ( DottedGuts
-            { wallSurfs    = UV.empty
-            , loopSurfs0   = UV.empty
-            , loopSurfs1   = UV.empty
-            , surfHolesN   = UV.singleton 0
-            , surfHandlesN = UV.singleton genus
-            }
-        , if genus == 1 then 2 else 1)
+            newS0' <- UV.unsafeFreeze newS0
+            newS1' <- UV.unsafeFreeze newS1
+            surfN <- readSTRef freeColor
+            return $! (newS0', newS1', surfN)
 
-    capGutsM genus =
-        ( DottedGuts
-            { wallSurfs    = UV.empty
-            , loopSurfs0   = UV.singleton 0
-            , loopSurfs1   = UV.empty
-            , surfHolesN   = UV.singleton 1
-            , surfHandlesN = UV.singleton genus
-            }
-        , if genus == 1 then 2 else 1)
+        let wallS = UV.create $ do
+                ws <- UMV.new (wallHolesN h)
+                UV.zipWithM_ (\ s s0 -> UMV.write ws s s0) (wallMap h) (UV.backpermute newS0 $ wallMap h0)
+                return ws
 
-    swapGutsM =
-        DottedGuts
-            { wallSurfs    = UV.empty
-            , loopSurfs0   = UV.fromList [0, 1]
-            , loopSurfs1   = UV.fromList [1, 0]
-            , surfHolesN   = UV.replicate 2 2
-            , surfHandlesN = UV.replicate 2 0
-            }
+            loopS0 = UV.backpermute newS0 (loopSurfs0 g0)
+            loopS1 = UV.backpermute newS1 (loopSurfs1 g1)
 
-    pantsGutsM =
-        DottedGuts
-            { wallSurfs    = UV.empty
-            , loopSurfs0   = UV.replicate 2 0
-            , loopSurfs1   = UV.singleton 0
-            , surfHolesN   = UV.singleton 3
-            , surfHandlesN = UV.singleton 0
-            }
+            holes = UV.create $ do
+                hs <- UMV.replicate surfN 0
+                UV.mapM_ (UMV.modify hs (+ 1)) $
+                    wallS UV.++ loopS0 UV.++ loopS1
+                return hs
 
-    saddleGutsM =
-        DottedGuts
-            { wallSurfs    = UV.singleton 0
-            , loopSurfs0   = UV.empty
-            , loopSurfs1   = UV.empty
-            , surfHolesN   = UV.singleton 1
-            , surfHandlesN = UV.singleton 0
-            }
+            newHandles = UV.map (\ g4 -> assert (mod g4 4 == 0) (g4 `div` 4)) $ UV.create $ do
+                g4 <- UMV.replicate surfN 0
+                UV.imapM_ (\ s hi -> UMV.modify g4 (+ (4 - 2 * hi)) s) holes
+                UV.zipWithM_ (\ hi s' -> UMV.modify g4 (+ (2 * hi - 4)) s') (surfHoles g0) newS0
+                UV.zipWithM_ (\ hi s' -> UMV.modify g4 (+ (2 * hi - 4)) s') (surfHoles g1) newS1
+                UV.mapM_ (\ (s0, _) -> UMV.modify g4 (+ 1) (newS0 UV.! s0)) segmsToGlue
+                return g4
 
-    identityGutsM wallHoles endHoles =
-        let ls = UV.enumFromN wallHoles endHoles
-        in DottedGuts
-            { wallSurfs    = UV.enumFromN 0 wallHoles
-            , loopSurfs0   = ls
-            , loopSurfs1   = ls
-            , surfHolesN   = UV.replicate wallHoles 1 UV.++ UV.replicate endHoles 2
-            , surfHandlesN = UV.replicate (wallHoles + endHoles) 0
-            }
+        return $!
+            Guts
+                { wallSurfs   = wallS
+                , loopSurfs0  = loopS0
+                , loopSurfs1  = loopS1
+                , surfacesN   = surfN
+                , surfHoles   = holes
+                , surfHandles =
+                    UV.modify (\ handles -> do
+                            UV.zipWithM_ (\ dh -> UMV.modify handles (+ dh)) (surfHandles g0) newS0
+                            UV.zipWithM_ (\ dh -> UMV.modify handles (+ dh)) (surfHandles g1) newS1
+                        ) newHandles
+                }
+
+
+horComposeGuts :: (CobordismHeader, Int, UV.Vector Int, UV.Vector Int) -> (Guts, CobordismHeader, Int) -> (Guts, CobordismHeader, Int) -> Guts
+horComposeGuts (!h, !gl, !exLpReps0, !exLpReps1) (!gA, !hA, !posA) (!gB, !hB, !posB) =
+    ST.runST $ do
+        let legsA = legsN hA
+            legsB = legsN hB
+
+            segmsToGlue = UV.generate gl $ \ i ->
+                let legA = (posA + i) `mod` legsA
+                    legB = (posB + gl - 1 - i) `mod` legsB
+                in (wallSurfs gA UV.! (wallMap hA UV.! legA), wallSurfs gB UV.! (wallMap hB UV.! legB))
+
+        (newSA, newSB, surfN) <- do
+            newSA <- UMV.replicate (surfacesN gA) (-1)
+            newSB <- UMV.replicate (surfacesN gB) (-1)
+
+            let markA !color !surf = do
+                    whenM ((< 0) `fmap` UMV.read newSA surf) $ do
+                        UMV.write newSA surf color
+                        UV.forM_ segmsToGlue $ \ (sA, sB) -> when (surf == sA) $ markB color sB
+
+                markB !color !surf =
+                    whenM ((< 0) `fmap` UMV.read newSB surf) $ do
+                        UMV.write newSB surf color
+                        UV.forM_ segmsToGlue $ \ (sA, sB) -> when (surf == sB) $ markA color sA
+
+            freeColor <- newSTRef 0
+            let tryMarkA !s =
+                    whenM ((< 0) `fmap` UMV.read newSA s) $ do
+                        color <- readSTRef freeColor
+                        writeSTRef freeColor $! color + 1
+                        markA color s
+
+                tryMarkB !s =
+                    whenM ((< 0) `fmap` UMV.read newSB s) $ do
+                        color <- readSTRef freeColor
+                        writeSTRef freeColor $! color + 1
+                        markB color s
+
+            -- the order is important!
+            -- wall adjacent surfaces:
+            forM_ [0 .. legsA - gl - 1] $ \ !i -> tryMarkA $ wallMap hA UV.! ((posA + gl + i) `mod` legsA)
+            forM_ [0 .. legsB - gl - 1] $ \ !i -> tryMarkB $ wallMap hB UV.! ((posB + gl + i) `mod` legsB)
+            -- bottom loops:
+            forM_ [0 .. gl - 1] $ \ !i -> tryMarkA $ wallMap hA UV.! ((posA + i) `mod` legsA)
+            UV.mapM_ tryMarkA $ loopSurfs0 gA
+            UV.mapM_ tryMarkB $ loopSurfs0 gB
+            -- top loops:
+            UV.mapM_ tryMarkA $ loopSurfs1 gA
+            UV.mapM_ tryMarkB $ loopSurfs1 gB
+            -- closed surfaces:
+            forM_ [0 .. surfacesN gA - 1] tryMarkA
+            forM_ [0 .. surfacesN gB - 1] tryMarkB
+
+            newSA' <- UV.unsafeFreeze newSA
+            newSB' <- UV.unsafeFreeze newSB
+            surfN <- readSTRef freeColor
+            return $! (newSA', newSB', surfN)
+
+        let wallS = UV.create $ do
+                ws <- UMV.new (wallHolesN h)
+                forM_ [0 .. legsA - gl - 1] $ \ !i ->
+                    let leg = i
+                        legA = (posA + gl + i) `mod` legsA
+                    in UMV.write ws (wallMap h UV.! leg) $ (newSA UV.!) $ wallMap hA UV.! legA
+                forM_ [0 .. legsB - gl - 1] $ \ !i ->
+                    let leg = legsA - gl + i
+                        legB = (posB + gl + i) `mod` legsB
+                    in UMV.write ws (wallMap h UV.! leg) $ (newSB UV.!) $ wallMap hB UV.! legB
+                return ws
+
+            loopS0 =
+                UV.concat [ UV.map (\ !i -> (newSA UV.!) $ (wallMap hA UV.!) $ (posA + i) `mod` legsA) exLpReps0
+                          , UV.backpermute newSA $ loopSurfs0 gA
+                          , UV.backpermute newSB $ loopSurfs0 gB
+                          ]
+
+            loopS1 =
+                UV.concat [ UV.map (\ !i -> (newSA UV.!) $ (wallMap hA UV.!) $ (posA + i) `mod` legsA) exLpReps1
+                          , UV.backpermute newSA $ loopSurfs1 gA
+                          , UV.backpermute newSB $ loopSurfs1 gB
+                          ]
+
+            holes = UV.create $ do
+                hs <- UMV.replicate surfN 0
+                UV.mapM_ (UMV.modify hs (+ 1)) $
+                    wallS UV.++ loopS0 UV.++ loopS1
+                return hs
+
+            newHandles = UV.map (\ g2 -> assert (even g2) (g2 `div` 2)) $ UV.create $ do
+                g2 <- UMV.replicate surfN 0
+                UV.imapM_ (\ s hi -> UMV.modify g2 (+ (2 - hi)) s) holes
+                UV.zipWithM_ (\ hi s' -> UMV.modify g2 (+ (hi - 2)) s') (surfHoles gA) newSA
+                UV.zipWithM_ (\ hi s' -> UMV.modify g2 (+ (hi - 2)) s') (surfHoles gB) newSB
+                UV.mapM_ (\ (sA, _) -> UMV.modify g2 (+ 1) (newSA UV.! sA)) segmsToGlue
+                return g2
+
+        return $!
+            Guts
+                { wallSurfs   = wallS
+                , loopSurfs0  = loopS0
+                , loopSurfs1  = loopS1
+                , surfacesN   = surfN
+                , surfHoles   = holes
+                , surfHandles =
+                    UV.modify (\ handles -> do
+                            UV.zipWithM_ (\ dh -> UMV.modify handles (+ dh)) (surfHandles gA) newSA
+                            UV.zipWithM_ (\ dh -> UMV.modify handles (+ dh)) (surfHandles gB) newSB
+                        ) newHandles
+                }
+
 
 {-# INLINE glueArcs #-}
 glueArcs :: Int -> (UV.Vector Int, Int) -> (UV.Vector Int, Int) -> (UV.Vector Int, [Int])
@@ -549,64 +497,121 @@ rotateArcs rot a =
         return a'
 
 
-data Cobordism' g = Cob {-# UNPACK #-} !CobordismHeader !g
+data DottedCobordism' a = Cob !CobordismHeader !(Map.Map Guts a)
     deriving (Eq, Show)
 
-instance (CobordismGuts g) => Composition (Cobordism' g) where
-    Cob h1 g1 ∘ Cob h0 g0 | legsN h0  /= legsN h1   = error $ printf "(∘): different leg numbers <%i> and <%i>" (legsN h1) (legsN h0)
-                          | loops1 h0 /= loops0 h1  = error $ printf "(∘): different border loops numbers <%i> and <%i>" (loops0 h1) (loops1 h0)
-                          | arcs1 h0  /= arcs0 h1   = error "(∘): different border arcs"
-                          | otherwise               =
+
+normalizeDottedGuts :: (Num a) => Guts -> [(Guts, a)]
+normalizeDottedGuts =
+    let removeClosed g =
+            let (holes, handles) = UV.unzip $ UV.filter ((> 0) . fst) $ UV.zip (surfHoles g) (surfHandles g)
+            in cutNecks $ g { surfacesN = UV.length holes
+                            , surfHoles = holes
+                            , surfHandles = handles
+                            }
+
+        cutNecks g =
+            case UV.findIndex (> 1) (surfHoles g) of
+                Nothing   -> [(renumerateSurfaces g, 1)]
+                Just surf -> do
+                    let genus = surfHandles g UV.! surf
+                        dst = UV.length $ surfHandles g
+                        rew | Just i <- UV.findIndex (== surf) (wallSurfs g)   = g { wallSurfs  = wallSurfs g  UV.// [(i, dst)] }
+                            | Just i <- UV.findIndex (== surf) (loopSurfs0 g)  = g { loopSurfs0 = loopSurfs0 g UV.// [(i, dst)] }
+                            | Just i <- UV.findIndex (== surf) (loopSurfs1 g)  = g { loopSurfs1 = loopSurfs1 g UV.// [(i, dst)] }
+                            | otherwise                                        = g
+                    handles <- UV.snoc (surfHandles g) 1 : [ UV.snoc (surfHandles g) 0 UV.// [(surf, 1)] | genus == 0]
+                    cutNecks $
+                        rew { surfacesN   = UV.length handles
+                            , surfHoles   = UV.snoc (surfHoles g) 1 UV.// [(surf, (surfHoles g UV.! surf) - 1)]
+                            , surfHandles = handles
+                            }
+
+    in \ g ->
+        if | UV.any (> 1) (surfHandles g)                              -> []
+           | UV.any (== (0, 0)) (UV.zip (surfHoles g) (surfHandles g)) -> []
+           | otherwise                                                 -> removeClosed g
+
+
+normalizeDottedCobordism :: (Eq a, Num a) => DottedCobordism' a -> DottedCobordism' a
+normalizeDottedCobordism (Cob h m) =
+    Cob h $ Map.filter (/= 0) $ Map.fromListWith (+) $ do
+        (g, factor) <- Map.toList m
+        (g', factorNorm) <- normalizeDottedGuts g
+        return $! (g', factor * factorNorm)
+
+
+instance (Eq a, Num a) => Composition (DottedCobordism' a) where
+    Cob h1 map1 ∘ Cob h0 map0 | legsN h0  /= legsN h1   = error $ printf "(∘): different leg numbers <%i> and <%i>" (legsN h1) (legsN h0)
+                              | loops1 h0 /= loops0 h1  = error $ printf "(∘): different border loops numbers <%i> and <%i>" (loops0 h1) (loops1 h0)
+                              | arcs1 h0  /= arcs0 h1   = error "(∘): different border arcs"
+                              | otherwise               =
         let h = makeHeader (legsN h0) (arcs0 h0, loops0 h0) (arcs1 h1, loops1 h1)
-        in Cob h (verComposeGuts h (h1, g1) (h0, g0))
+        in Cob h $ Map.filter (/= 0) $ Map.fromListWith (+) $ do
+            (g0, f0) <- Map.toList map0
+            (g1, f1) <- Map.toList map1
+            let g = verComposeGuts h (h1, g1) (h0, g0)
+                f = f0 * f1 * 2 ^ (genusOfGuts g - genusOfGuts g0 - genusOfGuts g1)
+            (g', f') <- normalizeDottedGuts g
+            return $! (g', f * f')
 
-instance (CobordismGuts g) => TensorProduct (CobordismBorder (Cobordism' g)) where
+instance TensorProduct (CobordismBorder (DottedCobordism' a)) where
     a ⊗ b = horizontalComposition 0 (a, 0) (b, 0)
 
-instance (CobordismGuts g) => TensorProduct (Cobordism' g) where
+instance (Eq a, Num a) => TensorProduct (DottedCobordism' a) where
     a ⊗ b = horizontalComposition 0 (a, 0) (b, 0)
 
-instance (CobordismGuts g) => Cobordism (Cobordism' g) where
-    data CobordismBorder (Cobordism' g) = Brd {-# UNPACK #-} !Int !(UV.Vector Int)
+instance (Eq a, Num a) => Cobordism (DottedCobordism' a) where
+    data CobordismBorder (DottedCobordism' a) = Brd {-# UNPACK #-} !Int !(UV.Vector Int)
         deriving (Eq, Ord, Show)
 
     cobordismBorder0 (Cob h _) = Brd (loops0 h) (arcs0 h)
     cobordismBorder1 (Cob h _) = Brd (loops1 h) (arcs1 h)
 
     identityCobordism (Brd loops arcs) =
-        let h = makeHeader (UV.length arcs) (arcs, loops) (arcs, loops)
-        in Cob h (identityGuts (wallHolesN h) loops)
+        normalizeDottedCobordism $
+            let h = makeHeader (UV.length arcs) (arcs, loops) (arcs, loops)
+            in Cob h $ Map.singleton (identityGuts (wallHolesN h) loops) 1
 
-instance (CobordismGuts g) => TransposeAction (Cobordism' g) where
-    transposeIt (Cob h g) =
-        Cob (h { arcs0 = arcs1 h, arcs1 = arcs0 h, loops0 = loops1 h, loops1 = loops0 h })
-            (flipGuts g)
+instance (Eq a, Num a) => TransposeAction (DottedCobordism' a) where
+    transposeIt (Cob h m) =
+        Cob (transposeIt h) $
+            Map.filter (/= 0) $ Map.fromListWith (+) $ do
+                (g, factor) <- Map.toList m
+                (g', factorNorm) <- normalizeDottedGuts $ transposeIt g
+                return $! (g', factor * factorNorm)
 
-instance (CobordismGuts g) => Cobordism3 (Cobordism' g) where
+instance (Eq a, Num a) => Cobordism3 (DottedCobordism' a) where
     numberOfLoops (Brd ls _) = ls
 
-    surfOfGenusCobordism genus | genus < 0  = error $ printf "surfOfGenusCobordism: genus must be non-negative, but %i passed" genus
-                               | otherwise  = Cob (emptyHeader 0 0) (surfGuts genus)
+    surfOfGenusCobordism g =
+        normalizeDottedCobordism $
+            Cob (emptyHeader 0 0) $ Map.singleton (surfGuts g) 2
 
-    capOfGenusCobordism genus | genus < 0  = error $ printf "capOfGenusCobordism: genus must be non-negative, but %i passed" genus
-                              | otherwise  = Cob (emptyHeader 1 0) (capGuts genus)
+    capOfGenusCobordism 0 = Cob (emptyHeader 1 0) $ Map.singleton (capGuts 0) 1
+    capOfGenusCobordism 1 = Cob (emptyHeader 1 0) $ Map.singleton (capGuts 1) 2
+    capOfGenusCobordism _ = Cob (emptyHeader 1 0) $ Map.empty
 
     tubeCobordism = planarLoop 1
 
-    swapCobordism = Cob (emptyHeader 2 2) swapGuts
+    swapCobordism =
+        normalizeDottedCobordism $
+            Cob (emptyHeader 2 2) $ Map.singleton swapGuts 1
 
-    pantsCobordism = Cob (emptyHeader 2 1) pantsGuts
+    pantsCobordism =
+        normalizeDottedCobordism $
+            Cob (emptyHeader 2 1) $ Map.singleton pantsGuts 1
 
-instance (CobordismGuts g) => CannedCobordism (Cobordism' g) where
+instance (Eq a, Num a) => CannedCobordism (DottedCobordism' a) where
     saddleCobordism =
-        Cob (makeHeader 4 (UV.fromList [3, 2, 1, 0], 0)
-                          (UV.fromList [1, 0, 3, 2], 0)
-            ) saddleGuts
+        let bot = UV.fromList [3, 2, 1, 0]
+            top = UV.fromList [1, 0, 3, 2]
+        in Cob (makeHeader 4 (bot, 0) (top, 0)) (Map.singleton saddleGuts 1)
 
-instance (CobordismGuts g) => RotationAction (Cobordism' g) where
+instance (Eq a, Num a) => RotationAction (DottedCobordism' a) where
     rotationOrder (Cob h _) = legsN h
 
-    rotateByUnchecked !rot (Cob h g) =
+    rotateByUnchecked !rot (Cob h m) =
         let legs = legsN h
             h' = makeHeader legs (rotateArcs rot (arcs0 h), loops0 h)
                                  (rotateArcs rot (arcs1 h), loops1 h)
@@ -617,9 +622,13 @@ instance (CobordismGuts g) => RotationAction (Cobordism' g) where
                         oldH = wallMap h UV.! ((i - rot) `mod` legs)
                     in UMV.write s newH oldH
                 return s
-        in Cob h' (rotateGuts subst g)
 
-instance (CobordismGuts g) => PlanarAlgebra (Cobordism' g) where
+        in Cob h' $ Map.filter (/= 0) $ Map.fromListWith (+) $ do
+            (g, factor) <- Map.toList m
+            (g', factorNorm) <- normalizeDottedGuts $ rotateGuts subst g
+            return $! (g', factor * factorNorm)
+
+instance (Eq a, Num a) => PlanarAlgebra (DottedCobordism' a) where
     planarDegree (Cob h _) = legsN h
 
     planarEmpty = identityCobordism planarEmpty
@@ -628,22 +637,31 @@ instance (CobordismGuts g) => PlanarAlgebra (Cobordism' g) where
 
     planarPropagator = identityCobordism . planarPropagator
 
-    horizontalCompositionUnchecked !gl (Cob hA gA, !posA) (Cob hB gB, !posB) =
+    horizontalCompositionUnchecked !gl (Cob hA mapA, !posA) (Cob hB mapB, !posB) =
         let (resArcs0, extraLoops0) = glueArcs gl (arcs0 hA, posA) (arcs0 hB, posB)
             (resArcs1, extraLoops1) = glueArcs gl (arcs1 hA, posA) (arcs1 hB, posB)
+
             h = makeHeader (legsN hA + legsN hB - 2 * gl) (resArcs0, length extraLoops0 + loops0 hA + loops0 hB)
                                                           (resArcs1, length extraLoops1 + loops1 hA + loops1 hB)
-        in Cob h $ horComposeGuts (h, gl, UV.fromList extraLoops0, UV.fromList extraLoops1) (gA, hA, posA) (gB, hB, posB)
 
-instance (CobordismGuts g) => RotationAction (CobordismBorder (Cobordism' g)) where
+            tmp = (h, gl, UV.fromList extraLoops0, UV.fromList extraLoops1)
+        in Cob h $ Map.filter (/= 0) $ Map.fromListWith (+) $ do
+            (gA, fA) <- Map.toList mapA
+            (gB, fB) <- Map.toList mapB
+            let g = horComposeGuts tmp (gA, hA, posA) (gB, hB, posB)
+                f = fA * fB * 2 ^ (genusOfGuts g - genusOfGuts gA - genusOfGuts gB)
+            (g', f') <- normalizeDottedGuts g
+            return $! (g', f * f')
+
+instance RotationAction (CobordismBorder (DottedCobordism' a)) where
     rotationOrder (Brd _ a) = UV.length a
 
     rotateByUnchecked rot (Brd loops a) = Brd loops (rotateArcs rot a)
 
-instance (CobordismGuts g) => MirrorAction (CobordismBorder (Cobordism' g)) where
+instance MirrorAction (CobordismBorder (DottedCobordism' a)) where
     mirrorIt = error "mirror is not implemeted"
 
-instance (CobordismGuts g) => PlanarAlgebra (CobordismBorder (Cobordism' g)) where
+instance PlanarAlgebra (CobordismBorder (DottedCobordism' a)) where
     planarDegree (Brd _ a) = UV.length a
 
     planarEmpty = Brd 0 UV.empty
@@ -658,43 +676,43 @@ instance (CobordismGuts g) => PlanarAlgebra (CobordismBorder (Cobordism' g)) whe
         let (arcs, extraLoops) = glueArcs gl (a, posA) (b, posB)
         in Brd (length extraLoops + loopsA + loopsB) arcs
 
-instance (CobordismGuts g) => ChordDiagram (CobordismBorder (Cobordism' g)) where
+instance ChordDiagram (CobordismBorder (DottedCobordism' a)) where
     numberOfChordEnds (Brd _ a) = UV.length a
 
     chordMate (Brd _ a) x = a UV.! x
     chordMateArray (Brd _ a) = a
 
-instance (ModuleCobordismGuts g, Integral a) => Num (Cobordism' (ModuleGuts g a)) where
-    Cob h0 (MG m0) + Cob h1 (MG m1) | h0 /= h1   = error "(+): can not sum"
-                                    | otherwise  =
-        Cob h0 $ MG $ Map.filter (/= 0) $ Map.unionWith (+) m0 m1
+instance (Eq a, Num a) => Num (DottedCobordism' a) where
+    Cob h0 m0 + Cob h1 m1 | h0 /= h1   = error "(+): can not sum"
+                          | otherwise  =
+        Cob h0 $ Map.filter (/= 0) $ Map.unionWith (+) m0 m1
 
-    negate (Cob h (MG m)) =
-        Cob h $ MG $ Map.map negate m
+    negate (Cob h m) =
+        Cob h $ Map.map negate m
 
     (*) = (∘)
 
-    fromInteger 0 = Cob (emptyHeader 0 0) $ MG Map.empty
-    fromInteger n = Cob (emptyHeader 0 0) $ MG $ Map.singleton emptyGutsM (fromIntegral n)
+    fromInteger 0 = Cob (emptyHeader 0 0) Map.empty
+    fromInteger n = Cob (emptyHeader 0 0) $ Map.singleton emptyGuts (fromIntegral n)
 
     abs = id
     signum x = identityCobordism (cobordismBorder0 x)
 
-instance (ModuleCobordismGuts g, Integral a) => PreadditiveCobordism (Cobordism' (ModuleGuts g a)) where
+instance (Eq a, Num a) => PreadditiveCobordism (DottedCobordism' a) where
     zeroCobordism (Brd l0 a0) (Brd l1 a1) | UV.length a0 /= UV.length a1  = error "zeroCobordism: different number of legs"
-                                          | otherwise                     = Cob (makeHeader (UV.length a0) (a0, l0) (a1, l1)) (MG Map.empty)
+                                          | otherwise                     = Cob (makeHeader (UV.length a0) (a0, l0) (a1, l1)) Map.empty
 
-    isZeroCobordism (Cob _ (MG m)) = Map.null m
+    isZeroCobordism (Cob _ m) = Map.null m
 
 
-class (CannedCobordism c, PreadditiveCobordism c, Show c, Show (CobordismBorder c)) => DottedCobordism c where
+class (CannedCobordism c, PreadditiveCobordism c, Show c, Show (CobordismBorder c)) => KhovanovCobordism c where
     isIsomorphism :: c -> Bool
     delooping     :: CobordismBorder c -> (CobordismBorder c, V.Vector (c, c))
     tqftBorderDim :: CobordismBorder c -> Int
     prepareTQFT   :: Int -> (Int, c -> M.Matrix Integer)
 
-instance (Integral a, Show a) => DottedCobordism (Cobordism' (ModuleGuts DottedGuts a)) where
-    -- TODO: prove/fix it
+
+instance (Integral a, Show a) => KhovanovCobordism (DottedCobordism' a) where
     isIsomorphism c | b0 /= b1                         = False
                     | (c ∘ c) == identityCobordism b0  = True
                     | otherwise                        = False
@@ -702,8 +720,8 @@ instance (Integral a, Show a) => DottedCobordism (Cobordism' (ModuleGuts DottedG
               b1 = cobordismBorder1 c
 
     delooping (Brd loops arcs) =
-        let cap0 = Cob (emptyHeader 1 0) $ MG $ uncurry Map.singleton $ capGutsM 0
-            cap1 = Cob (emptyHeader 1 0) $ MG $ let (g, f) = capGutsM 1 in Map.singleton g (f `div` 2)
+        let cap0 = Cob (emptyHeader 1 0) $ Map.singleton (capGuts 0) 1
+            cap1 = Cob (emptyHeader 1 0) $ Map.singleton (capGuts 1) 1
             cup0 = transposeIt cap0
             cup1 = transposeIt cap1
 
@@ -744,12 +762,9 @@ instance (Integral a, Show a) => DottedCobordism (Cobordism' (ModuleGuts DottedG
                         l -> error $ printf "TQFT is not implemented for %i legs" l
 
             elementaryValue g =
-                functor Map.! surfHandlesN g
+                functor Map.! surfHandles g
 
-            tqft (Cob h (MG m)) | legsN h == legs  = Map.foldlWithKey' (\ carry k v -> carry + elementaryValue k * fromIntegral v) zero m
-                                | otherwise        = error "tqft: bad number of legs"
+            tqft (Cob h m) | legsN h == legs  = Map.foldlWithKey' (\ carry k v -> carry + elementaryValue k * fromIntegral v) zero m
+                           | otherwise        = error "tqft: bad number of legs"
 
         in (dim, tqft)
-
-
-type DottedCobordism' a = Cobordism' (ModuleGuts DottedGuts a)

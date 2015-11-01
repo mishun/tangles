@@ -144,4 +144,11 @@ generalCannedCobordismTests _ =
 
         , testCase "Triple pants" $ do
             (pantsCobordism ∘ (tubeCobordism ⊗ pantsCobordism)) =?~= horizontalComposition 2 (sideCutPantsCobordism, 0) (sideCutPantsCobordism, 0)
+
+        , testCase "Triple saddle and associativity" $ do
+            let a0 = planarPropagator 1 ⊗ saddleCobordism
+                a1 = saddleCobordism' ⊗ planarPropagator 1
+                b0 = saddleCobordism ⊗ planarPropagator 1
+                b1 = rotateBy 2 (planarPropagator 1 ⊗ saddleCobordism')
+            ((b1 ∘ b0) ∘ (a1 ∘ a0)) =?~= (b1 ∘ (b0 ∘ (a1 ∘ a0)))
         ]

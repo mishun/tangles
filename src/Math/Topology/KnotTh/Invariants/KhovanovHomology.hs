@@ -22,26 +22,37 @@ import Math.Topology.KnotTh.Tangle
 data BoundedChain c = Chain !(V.Vector (CM.CobordismMatrix c))
                     | Singl !(CobordismBorder (CM.CobordismMatrix c))
 
-deriving instance (DottedCobordism c) => Show (BoundedChain c)
+deriving instance (KhovanovCobordism c) => Show (BoundedChain c)
 
 
-objectChain :: (DottedCobordism c) => CobordismBorder c -> BoundedChain c
+objectChain :: (KhovanovCobordism c) => CobordismBorder c -> BoundedChain c
 objectChain = Singl . CM.singletonVector
 
 
-morphismChain :: (DottedCobordism c) => c -> BoundedChain c
+morphismChain :: (KhovanovCobordism c) => c -> BoundedChain c
 morphismChain = Chain . V.singleton . CM.singleton
 
 
-testBorders :: (DottedCobordism c) => String -> V.Vector (CM.CobordismMatrix c) -> V.Vector (CM.CobordismMatrix c) -> V.Vector (CM.CobordismMatrix c)
+testBorders :: (KhovanovCobordism c) => String -> V.Vector (CM.CobordismMatrix c) -> V.Vector (CM.CobordismMatrix c) -> V.Vector (CM.CobordismMatrix c)
 testBorders msg pre b =
-    case V.findIndex (not . isZeroCobordism) $ V.zipWith (∘) (V.tail b) b of
+    let indent off = (take off (repeat ' ') ++)
+
+        dumpChain off chain =
+            unlines $ (indent off "Chain:") : V.toList (V.imap (\ i m -> indent (off + 2) $ printf "Border %i:\n%s" i (dumpMatrix (off + 4) m)) chain)
+
+        dumpMatrix off m =
+            unlines $ ((indent off $ printf "Mat %ix%i" (CM.numberOfRows m) (CM.numberOfCols m)) :) $ do
+                row <- [0 .. CM.numberOfRows m - 1]
+                col <- [0 .. CM.numberOfCols m - 1]
+                return $ indent (off + 4) $ show $ m CM.! (row, col)
+
+    in case V.findIndex (not . isZeroCobordism) $ V.zipWith (∘) (V.tail b) b of
         Nothing -> b
-        Just i  -> error $ printf "border square failed (%i ∘ %i) %s on\n%s\n\n%s\n\n"
-                                (i + 1) i msg (show pre) (show b)
+        Just i  -> error $ printf "border square failed (%i ∘ %i) %s on\n%s\n\n\n\n%s\n\n\n\n%s\n\n"
+                                (i + 1) i msg (dumpChain 2 pre) (dumpChain 2 b) (dumpMatrix 2 $ (b V.! (i + 1)) ∘ (b V.! i))
 
 
-simplifyChain :: (DottedCobordism c) => BoundedChain c -> BoundedChain c
+simplifyChain :: (KhovanovCobordism c) => BoundedChain c -> BoundedChain c
 simplifyChain (Singl b) =
     Singl $ CM.fromVector $ V.concatMap (\ x ->
             let (delooped, factors) = delooping x
@@ -54,7 +65,7 @@ simplifyChain (Chain borders) = Chain $ goL 0 $ goE 0 borders
                      case CM.findIndex isIsomorphism $ kh V.! d of
                          Nothing         -> goE (d + 1) kh
                          Just (row, col) ->
-                            let msg = printf "elimination at d = %i pos = %s" d (show (row, col)) :: String
+                            let msg = printf "elimination at d = %i pos = %s" d (show (row, col))
                             in goE d (testBorders msg kh $ eliminateAt d row col kh)
 
         goL d kh | d > V.length kh  = goE 0 kh
@@ -64,7 +75,7 @@ simplifyChain (Chain borders) = Chain $ goL 0 $ goE 0 borders
                      in case V.findIndex ((> 0) . numberOfLoops) level of
                             Nothing      -> goL (d + 1) kh
                             Just loopPos ->
-                                let msg = printf "delooping d = %i pos = %i" d loopPos :: String
+                                let msg = printf "delooping d = %i pos = %i" d loopPos
                                 in goL d (testBorders msg kh $ deloopAt d loopPos kh)
 
         eliminateAt d row col kh =
@@ -106,9 +117,9 @@ simplifyChain (Chain borders) = Chain $ goL 0 $ goE 0 borders
 data KhovanovComplex c = Kh !Int !Int !(BoundedChain c)
 
 
-deriving instance (DottedCobordism c) => Show (KhovanovComplex c)
+deriving instance (KhovanovCobordism c) => Show (KhovanovComplex c)
 
-instance (DottedCobordism c) => RotationAction (KhovanovComplex c) where
+instance (KhovanovCobordism c) => RotationAction (KhovanovComplex c) where
     rotationOrder (Kh legs _ _) = legs
 
     rotateByUnchecked rot (Kh legs shift chain) =
@@ -117,10 +128,10 @@ instance (DottedCobordism c) => RotationAction (KhovanovComplex c) where
                 Singl b -> Singl $ rotateBy rot b
                 Chain c -> Chain $ V.map (rotateBy rot) c
 
-instance (DottedCobordism c) => TensorProduct (KhovanovComplex c) where
+instance (KhovanovCobordism c) => TensorProduct (KhovanovComplex c) where
     a ⊗ b = horizontalComposition 0 (a, 0) (b, 0)
 
-instance (DottedCobordism c) => PlanarAlgebra (KhovanovComplex c) where
+instance (KhovanovCobordism c) => PlanarAlgebra (KhovanovComplex c) where
     planarDegree (Kh legs _ _) = legs
 
     planarLoop n = stripComplex $ Kh 0 0 (simplifyChain $ objectChain (planarLoop n))

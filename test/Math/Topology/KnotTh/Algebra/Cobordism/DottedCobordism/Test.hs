@@ -20,17 +20,10 @@ test = testGroup "Dotted cobordisms"
     [ generalCobordism3Tests (undefined :: Cob)
     , generalCannedCobordismTests (undefined :: Cob)
     , barNatanConditionsTests (undefined :: Cob) 2
-
-    , testCase "Triple saddle and associativity" $ do
-        let a0 = planarPropagator 1 ⊗ saddleCobordism :: Cob
-            a1 = saddleCobordism' ⊗ planarPropagator 1 :: Cob
-            b0 = saddleCobordism ⊗ planarPropagator 1 :: Cob
-            b1 = rotateBy 2 (planarPropagator 1 ⊗ saddleCobordism') :: Cob
-        ((b1 ∘ b0) ∘ (a1 ∘ a0)) @?= (b1 ∘ (b0 ∘ (a1 ∘ a0)))
     ]
 
 
-barNatanConditionsTests :: forall cob. (DottedCobordism cob) => cob -> Int -> Test
+barNatanConditionsTests :: forall cob. (KhovanovCobordism cob) => cob -> Int -> Test
 barNatanConditionsTests _ torusValue =
     let (=?~=) = (@?=) :: cob -> cob -> Assertion
     in testGroup "Bar-Natan conditions"
