@@ -14,6 +14,7 @@ import qualified Data.Map as M
 import qualified Data.Vector.Unboxed as UV
 import qualified Data.Vector.Unboxed.Mutable as UMV
 import Text.Printf
+import Math.Topology.KnotTh.Algebra
 import Math.Topology.KnotTh.Knotted
 import Math.Topology.KnotTh.Invariants.KnotPolynomials
 import Math.Topology.KnotTh.Invariants.Util.Poly
@@ -109,6 +110,9 @@ instance (KauffmanXArg a) => MirrorAction (KauffmanXStateSum a) where
                         UMV.write a ((-i) `mod` l) ((-(x UV.! i)) `mod` l)
                     return a
             in singletonStateSum $ PlanarChordDiagram x' f
+
+instance (KauffmanXArg a) => TensorProduct (KauffmanXStateSum a) where
+    a ⊗ b = horizontalComposition 0 (a, 0) (b, 0)
 
 instance (KauffmanXArg a) => PlanarAlgebra (KauffmanXStateSum a) where
     planarDegree (KauffmanXStateSum d _) = d

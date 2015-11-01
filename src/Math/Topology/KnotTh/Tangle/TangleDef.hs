@@ -552,6 +552,9 @@ instance (Show a) => Show (Vertex Tangle a) where
             (show $ vertexContent v)
             (unwords $ map (show . opposite) $ outcomingDarts v)
 
+instance TensorProduct (Tangle a) where
+    a ⊗ b = horizontalComposition 0 (a, 0) (b, 0)
+
 instance PlanarAlgebra (Tangle a) where
     planarDegree = numberOfLegs
 

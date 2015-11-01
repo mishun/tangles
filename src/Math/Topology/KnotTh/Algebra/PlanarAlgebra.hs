@@ -20,10 +20,11 @@ import Control.Arrow ((***), first)
 import Data.Bits (shiftL, shiftR)
 import qualified Data.Ix as Ix
 import Text.Printf
+import Math.Topology.KnotTh.Algebra
 import Math.Topology.KnotTh.Algebra.Dihedral
 
 
-class (RotationAction a) => PlanarAlgebra a where
+class (TensorProduct a, RotationAction a) => PlanarAlgebra a where
     planarDegree          :: a -> Int
     planarEmpty           :: a
     planarLoop            :: Int -> a

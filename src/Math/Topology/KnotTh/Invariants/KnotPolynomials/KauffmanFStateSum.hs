@@ -12,6 +12,7 @@ import qualified Data.Map as M
 import qualified Data.Vector as V
 import qualified Data.Vector.Unboxed as UV
 import Text.Printf
+import Math.Topology.KnotTh.Algebra
 import Math.Topology.KnotTh.Knotted.Threads
 import Math.Topology.KnotTh.Tangle
 import Math.Topology.KnotTh.Moves.AdHoc
@@ -219,6 +220,9 @@ instance (KauffmanFArg a) => MirrorAction (ChordDiagramsSum a) where
     mirrorIt =
         mapStateSum $ \ (ChordDiagram a factor) ->
             decomposeTangle [] factor $ mirrorIt $ restoreBasicTangle a
+
+instance (KauffmanFArg a) => TensorProduct (ChordDiagramsSum a) where
+    a ⊗ b = horizontalComposition 0 (a, 0) (b, 0)
 
 instance (KauffmanFArg a) => PlanarAlgebra (ChordDiagramsSum a) where
     planarDegree (ChordDiagramsSum d _) = d
