@@ -1,4 +1,4 @@
-{-# LANGUAGE DeriveFunctor, GeneralizedNewtypeDeriving, MultiParamTypeClasses, TypeFamilies, UnboxedTuples #-}
+{-# LANGUAGE DeriveFunctor, GeneralizedNewtypeDeriving, MultiParamTypeClasses, TypeFamilies #-}
 module Math.Topology.KnotTh.Tangle.TangleDef
     ( Tangle
     , AsTangle(..)
@@ -747,7 +747,7 @@ instance Surgery Tangle where
                 b <- allVertices tangle
                 c <- allVertices $ vertexContent b
                 let nb = map (oppositeInt b) $ outcomingDarts c
-                return $! (nb, vertexContent c)
+                return (nb, vertexContent c)
             )
         where
             offset = UV.prescanl' (+) 0 $
@@ -874,7 +874,7 @@ glueToBorder !gl (!tangle', !lp) !cr | gl < 0 || gl > 4  = error $ printf "glueT
 loopTangle :: Int -> Tangle0 a
 loopTangle n | n < 0      = error "loopTangle: negative number of loops"
              | otherwise  =
-    T0 $ Tangle
+    T0 Tangle
         { loopsN   = n
         , vertexN  = 0
         , involArr = PV.empty
@@ -886,7 +886,7 @@ loopTangle n | n < 0      = error "loopTangle: negative number of loops"
 -- TODO: better name?
 emptyPropagatorTangle :: Tangle2 a
 emptyPropagatorTangle =
-    T2 $ Tangle
+    T2 Tangle
         { loopsN   = 0
         , vertexN  = 0
         , involArr = PV.fromList [1, 0]
@@ -898,7 +898,7 @@ emptyPropagatorTangle =
 -- TODO: better name?
 lonerPropagatorTangle :: a -> Tangle2 a
 lonerPropagatorTangle cr =
-    T2 $ Tangle
+    T2 Tangle
         { loopsN   = 0
         , vertexN  = 1
         , involArr = PV.fromList [4, 5, 3, 2, 0, 1]
@@ -909,7 +909,7 @@ lonerPropagatorTangle cr =
 
 zeroTangle :: Tangle4 a
 zeroTangle =
-    T4 $ Tangle
+    T4 Tangle
         { loopsN   = 0
         , vertexN  = 0
         , involArr = PV.fromList [3, 2, 1, 0]
@@ -920,7 +920,7 @@ zeroTangle =
 
 infinityTangle :: Tangle4 a
 infinityTangle =
-    T4 $ Tangle
+    T4 Tangle
         { loopsN   = 0
         , vertexN  = 0
         , involArr = PV.fromList [1, 0, 3, 2]
@@ -931,7 +931,7 @@ infinityTangle =
 
 lonerTangle :: a -> Tangle4 a
 lonerTangle cr =
-    T4 $ Tangle
+    T4 Tangle
         { loopsN   = 0
         , vertexN  = 1
         , involArr = PV.fromList [4, 5, 6, 7, 0, 1, 2, 3]
@@ -952,7 +952,7 @@ lonerUnderCrossing = lonerTangle UnderCrossing
 chainTangle :: V.Vector a -> Tangle4 a
 chainTangle cs | n == 0     = zeroTangle
                | otherwise  =
-        T4 $ Tangle
+        T4 Tangle
             { loopsN   = 0
             , vertexN  = n
             , involArr = PV.create $ do
@@ -1223,7 +1223,7 @@ instance VertexDiagram OrientedTangle where
     vertexContent (OrientedVertex _ v) = vertexContent v
 
     mapVertices f t@(OrientedTangle t' orient) =
-        OrientedTangle (mapVertices (\ v -> f $ OrientedVertex t v) t') orient
+        OrientedTangle (mapVertices (f . OrientedVertex t) t') orient
 
     vertexOwner (OrientedVertex t _) = t
     vertexIndex (OrientedVertex _ v) = vertexIndex v
@@ -1315,7 +1315,7 @@ instance OrientedKnotted OrientedTangle Tangle where
                     ) 1 (allEdges tangle)
 
                 visited' <- UV.unsafeFreeze visited
-                return $! (n - 1, visited')
+                return (n - 1, visited')
 
         in OrientedTangle tangle orientation
 

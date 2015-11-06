@@ -42,7 +42,7 @@ allRotationsOf :: (RotationAction a) => a -> [a]
 allRotationsOf a =
     case rotationOrder a of
         0 -> [a]
-        n -> map (flip rotateBy a) [0 .. n - 1]
+        n -> map (`rotateBy` a) [0 .. n - 1]
 
 naivePeriodOf :: (Eq a, RotationAction a) => a -> Int
 naivePeriodOf x | rotationOrder x == 0  = 0

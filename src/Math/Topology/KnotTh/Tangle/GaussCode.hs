@@ -124,7 +124,7 @@ fromGaussCode =
                             in (abs i, j)
 
                     vis <- STArray.newArray (1, n) False :: ST.ST s (STArray.STUArray s Int Bool)
-                    forM_ chords $ \ chord -> do
+                    forM_ chords $ \ chord ->
                         foldM_ (\ prev i -> do
                             second <- STArray.readArray vis $ abs i
                             STArray.writeArray vis (abs i) True
@@ -152,8 +152,8 @@ fromGaussCode =
 
             index <- do
                 free <- newSTRef 1
-                indices <- newSTRef $ M.empty
-                return $! \ !x -> do
+                indices <- newSTRef M.empty
+                return $ \ !x -> do
                     m <- readSTRef indices
                     if M.member x m
                         then return $! m M.! x
@@ -179,6 +179,6 @@ fromGaussCode =
                     STArray.writeArray (pickV raw) i True
                     return $! i * signum raw
 
-            return $! (n, simplified)
+            return (n, simplified)
 
     in decode . simplifyGaussCode

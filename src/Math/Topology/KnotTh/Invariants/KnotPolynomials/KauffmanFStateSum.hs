@@ -30,7 +30,7 @@ class (Eq a, Ord a, Num a) => KauffmanFArg a where
 
 
 instance KauffmanFArg Poly2 where
-    twistFactor p = monomial2 1 "a" (fromIntegral p / 1)
+    twistFactor p = monomial2 1 "a" (fromIntegral p)
     smoothFactor  = monomial2 1 "z" 1
     loopFactor    = (twistFactor 1 + twistFactor (-1)) * monomial2 1 "z" (-1) - 1
     swapTwists    = invert2 "a"

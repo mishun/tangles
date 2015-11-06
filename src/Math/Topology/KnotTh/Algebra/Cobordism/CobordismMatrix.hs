@@ -133,7 +133,7 @@ matrix :: (Cobordism c) => V.Vector (CobordismBorder c) -> V.Vector (CobordismBo
 matrix obj0 obj1 f =
     let rows = V.length obj1
         cols = V.length obj0
-    in checkMatrix $
+    in checkMatrix
         CM  { object0 = obj0
             , object1 = obj1
             , vector  =
@@ -174,17 +174,17 @@ flatten :: (PreadditiveCobordism c) => CobordismMatrix (CobordismMatrix c) -> Co
 flatten m | numberOfRows m <= 0  = error "flatten: numberOfRows is zero"
           | numberOfCols m <= 0  = error "flatten: numberOfCols is zero"
           | otherwise            =
-    checkMatrix $ CM
-        { object0 = V.concatMap (\ (CB x) -> x) (object0 m)
-        , object1 = V.concatMap (\ (CB x) -> x) (object1 m)
-        , vector  = V.concat $ do
-            row <- [0 .. numberOfRows m - 1]
-            row' <- [0 .. numberOfRows (m ! (row, 0)) - 1]
-            col <- [0 .. numberOfCols m - 1]
-            let sub = m ! (row, col)
-                n = numberOfCols sub
-            return $! V.slice (n * row') n (vector sub)
-        }
+    checkMatrix
+        CM  { object0 = V.concatMap (\ (CB x) -> x) (object0 m)
+            , object1 = V.concatMap (\ (CB x) -> x) (object1 m)
+            , vector  = V.concat $ do
+                row <- [0 .. numberOfRows m - 1]
+                row' <- [0 .. numberOfRows (m ! (row, 0)) - 1]
+                col <- [0 .. numberOfCols m - 1]
+                let sub = m ! (row, col)
+                    n = numberOfCols sub
+                return $! V.slice (n * row') n (vector sub)
+            }
 
 
 instance (PreadditiveCobordism c) => Composition (CobordismMatrix c) where
@@ -265,7 +265,7 @@ instance (CannedCobordism c, PreadditiveCobordism c) => RotationAction (Cobordis
 instance (CannedCobordism c, PreadditiveCobordism c) => PlanarAlgebra (CobordismBorder (CobordismMatrix c)) where
     planarDegree = rotationOrder
 
-    planarEmpty = CB $ V.singleton $ planarEmpty
+    planarEmpty = CB $ V.singleton planarEmpty
 
     planarPropagator = CB . V.singleton . planarPropagator
 

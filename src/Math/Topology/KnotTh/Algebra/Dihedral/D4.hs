@@ -112,7 +112,7 @@ d4EC3 = D4 7
 
 {-# INLINE fromRotation #-}
 fromRotation :: Int -> D4
-fromRotation x = D4 $ ((x .&. 3) `shiftL` 1)
+fromRotation x = D4 ((x .&. 3) `shiftL` 1)
 
 
 {-# INLINE fromReflectionRotation #-}

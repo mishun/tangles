@@ -28,7 +28,7 @@ smithNormalForm a0 =
                 row1 = V.zipWith (\ x0 x1 -> a10 * x0 + a11 * x1) (m V.! r0) (m V.! r1)
             S.put $! m V.// [(r0, row0), (r1, row1)]
 
-        transformCols !a00 !a01 !a10 !a11 !c0 !c1 = do
+        transformCols !a00 !a01 !a10 !a11 !c0 !c1 =
             S.modify $ V.map $ \ row ->
                 let x0 = row V.! c0
                     x1 = row V.! c1

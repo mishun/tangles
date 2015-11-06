@@ -7,6 +7,7 @@ module Math.Topology.KnotTh.Algebra.Cobordism.DottedCobordism
     , DottedCobordism'
     ) where
 
+import Control.Arrow ((***))
 import Control.Exception (assert)
 import Control.Monad (foldM, forM_, liftM2, when)
 import Control.Monad.IfElse (unlessM, whenM)
@@ -242,7 +243,7 @@ renumerateSurfaces g = assert (surfacesN g == UV.length (surfHoles g)) $
 verComposeGuts :: Int -> UV.Vector (Int, Int) -> UV.Vector Int -> UV.Vector Int -> Guts -> Guts -> Guts
 verComposeGuts !newBorderHolesN !segmsToGlueHoles !cornerHoles0 !newCornerHoles !g1 !g0 =
     ST.runST $ do
-        let segmsToGlueSurf = UV.map (\ (hole0, hole1) -> (wallSurfs g0 UV.! hole0, wallSurfs g1 UV.! hole1)) segmsToGlueHoles
+        let segmsToGlueSurf = UV.map ((wallSurfs g0 UV.!) *** (wallSurfs g1 UV.!)) segmsToGlueHoles
 
             loopsToGlueSurf = UV.zip (loopSurfs1 g0) (loopSurfs0 g1)
 
@@ -250,7 +251,7 @@ verComposeGuts !newBorderHolesN !segmsToGlueHoles !cornerHoles0 !newCornerHoles 
             newS0 <- UMV.replicate (surfacesN g0) (-1)
             newS1 <- UMV.replicate (surfacesN g1) (-1)
 
-            let mark0 !color !surf = do
+            let mark0 !color !surf =
                     whenM ((< 0) `fmap` UMV.read newS0 surf) $ do
                         UMV.write newS0 surf color
                         UV.forM_ segmsToGlueSurf $ \ (s0, s1) -> when (surf == s0) $ mark1 color s1
@@ -289,11 +290,11 @@ verComposeGuts !newBorderHolesN !segmsToGlueHoles !cornerHoles0 !newCornerHoles 
             newS0' <- UV.unsafeFreeze newS0
             newS1' <- UV.unsafeFreeze newS1
             surfN <- readSTRef freeColor
-            return $! (newS0', newS1', surfN)
+            return (newS0', newS1', surfN)
 
         let wallS = UV.create $ do
                 ws <- UMV.new newBorderHolesN
-                UV.zipWithM_ (\ s s0 -> UMV.write ws s s0) newCornerHoles (UV.backpermute newS0 cornerHoles0)
+                UV.zipWithM_ (UMV.write ws) newCornerHoles (UV.backpermute newS0 cornerHoles0)
                 return ws
 
             loopS0 = UV.backpermute newS0 (loopSurfs0 g0)
@@ -331,13 +332,13 @@ verComposeGuts !newBorderHolesN !segmsToGlueHoles !cornerHoles0 !newCornerHoles 
 horComposeGuts :: Int -> UV.Vector (Int, Int) -> (UV.Vector Int, UV.Vector Int) -> (UV.Vector Int, UV.Vector Int, Guts) -> (UV.Vector Int, UV.Vector Int, Guts) -> Guts
 horComposeGuts !newBorderHolesN !segmsToGlueHoles (!exLpRepsA0, !exLpRepsA1) (!cornerHolesA, newCornerHolesA, !gA) (!cornerHolesB, newCornerHolesB, !gB) =
     ST.runST $ do
-        let segmsToGlueSurf = UV.map (\ (holeA, holeB) -> (wallSurfs gA UV.! holeA, wallSurfs gB UV.! holeB)) segmsToGlueHoles
+        let segmsToGlueSurf = UV.map ((wallSurfs gA UV.!) *** (wallSurfs gB UV.!)) segmsToGlueHoles
 
         (newSA, newSB, surfN) <- do
             newSA <- UMV.replicate (surfacesN gA) (-1)
             newSB <- UMV.replicate (surfacesN gB) (-1)
 
-            let markA !color !surf = do
+            let markA !color !surf =
                     whenM ((< 0) `fmap` UMV.read newSA surf) $ do
                         UMV.write newSA surf color
                         UV.forM_ segmsToGlueSurf $ \ (sA, sB) -> when (surf == sA) $ markB color sB
@@ -378,12 +379,12 @@ horComposeGuts !newBorderHolesN !segmsToGlueHoles (!exLpRepsA0, !exLpRepsA1) (!c
             newSA' <- UV.unsafeFreeze newSA
             newSB' <- UV.unsafeFreeze newSB
             surfN <- readSTRef freeColor
-            return $! (newSA', newSB', surfN)
+            return (newSA', newSB', surfN)
 
         let wallS = UV.create $ do
                 ws <- UMV.new newBorderHolesN
-                UV.zipWithM_ (\ hole surf -> UMV.write ws hole surf) newCornerHolesA (UV.backpermute newSA cornerHolesA)
-                UV.zipWithM_ (\ hole surf -> UMV.write ws hole surf) newCornerHolesB (UV.backpermute newSB cornerHolesB)
+                UV.zipWithM_ (UMV.write ws) newCornerHolesA (UV.backpermute newSA cornerHolesA)
+                UV.zipWithM_ (UMV.write ws) newCornerHolesB (UV.backpermute newSB cornerHolesB)
                 return ws
 
             loopS0 =
@@ -451,13 +452,13 @@ glueArcs !gl (!a, !posA) (!b, !posB) =
                               (UV.generateM (legsB - gl) (\ !i -> mateB $ (posB + gl + i) `mod` legsB))
 
         loops <-
-            let markA !i = do
+            let markA !i =
                     unlessM (UMV.read visited i) $ do
                         UMV.write visited i True
                         let x = (posA + i) `mod` legsA
                         markB $ ((a UV.! x) - posA) `mod` legsA
 
-                markB !i = do
+                markB !i =
                     unlessM (UMV.read visited i) $ do
                         UMV.write visited i True
                         let x = (posB + gl - 1 - i) `mod` legsB
@@ -471,7 +472,7 @@ glueArcs !gl (!a, !posA) (!b, !posB) =
                              return $! ((posA + i) `mod` legsA) : lst
                 ) [] [0 .. gl - 1]
 
-        return $! (arcs, UV.fromList loops)
+        return (arcs, UV.fromList loops)
 
 
 {-# INLINE rotateArcs #-}
@@ -527,7 +528,7 @@ normalizeDottedCobordism (Cob h m) =
     Cob h $ Map.filter (/= 0) $ Map.fromListWith (+) $ do
         (g, f) <- Map.toList m
         (g', f') <- normalizeDottedGuts g
-        return $! (g', f * f')
+        return (g', f * f')
 
 
 instance (Eq a, Num a) => Composition (DottedCobordism' a) where
@@ -547,7 +548,7 @@ instance (Eq a, Num a) => Composition (DottedCobordism' a) where
             let f = f0 * f1 * 2 ^ (genusOfGuts g - genusOfGuts g0 - genusOfGuts g1)
                 g = verComposeGuts (wallHolesN h) segmsToGlueHoles (wallMap h0) (wallMap h) g1 g0
             (g', f') <- normalizeDottedGuts g
-            return $! (g', f * f')
+            return (g', f * f')
 
 instance TensorProduct (CobordismBorder (DottedCobordism' a)) where
     a ⊗ b = horizontalComposition 0 (a, 0) (b, 0)
@@ -573,7 +574,7 @@ instance (Eq a, Num a) => TransposeAction (DottedCobordism' a) where
             Map.filter (/= 0) $ Map.fromListWith (+) $ do
                 (g, factor) <- Map.toList m
                 (g', factorNorm) <- normalizeDottedGuts $ transposeIt g
-                return $! (g', factor * factorNorm)
+                return (g', factor * factorNorm)
 
 instance (Eq a, Num a) => Cobordism3 (DottedCobordism' a) where
     numberOfLoops (Brd ls _) = ls
@@ -620,7 +621,7 @@ instance (Eq a, Num a) => RotationAction (DottedCobordism' a) where
         in Cob h' $ Map.filter (/= 0) $ Map.fromListWith (+) $ do
             (g, factor) <- Map.toList m
             (g', factorNorm) <- normalizeDottedGuts $ rotateGuts subst g
-            return $! (g', factor * factorNorm)
+            return (g', factor * factorNorm)
 
 instance (Eq a, Num a) => PlanarAlgebra (DottedCobordism' a) where
     planarDegree (Cob h _) = legsN h
@@ -661,7 +662,7 @@ instance (Eq a, Num a) => PlanarAlgebra (DottedCobordism' a) where
                 g = horComposeGuts (wallHolesN h) segmsToGlueHoles tmp (cornerHolesA, newCornerHolesA, gA)
                                                                        (cornerHolesB, newCornerHolesB, gB)
             (g', f') <- normalizeDottedGuts g
-            return $! (g', f * f')
+            return (g', f * f')
 
 instance RotationAction (CobordismBorder (DottedCobordism' a)) where
     rotationOrder (Brd _ a) = UV.length a
@@ -745,7 +746,7 @@ instance (Integral a, Show a) => KhovanovCobordism (DottedCobordism' a) where
 
         in (delooped, V.fromList $ generate loops [(identityCobordism delooped, identityCobordism delooped)])
 
-    tqftBorderDim b = 2 ^ (numberOfChords b)
+    tqftBorderDim b = 2 ^ numberOfChords b
 
     prepareTQFT legs =
         let dim = 2 ^ (legs `div` 2)

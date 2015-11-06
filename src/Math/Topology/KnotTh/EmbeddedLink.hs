@@ -1,4 +1,4 @@
-{-# LANGUAGE DeriveFunctor, GeneralizedNewtypeDeriving, MultiParamTypeClasses, TypeFamilies, UnboxedTuples #-}
+{-# LANGUAGE DeriveFunctor, GeneralizedNewtypeDeriving, MultiParamTypeClasses, TypeFamilies #-}
 module Math.Topology.KnotTh.EmbeddedLink
     ( module Math.Topology.KnotTh.Knotted
     , module Math.Topology.KnotTh.Knotted.Crossings.Projection
@@ -118,8 +118,8 @@ instance VertexDiagram EmbeddedLink where
 
     mapVertices f t =
         t { crossingsArray =
-                V.generate (numberOfVertices t) $! \ i ->
-                    f (nthVertex t $! i + 1)
+                V.generate (numberOfVertices t) $ \ i ->
+                    f (nthVertex t $ i + 1)
           }
 
     vertexOwner (Vertex k _) = k
@@ -737,7 +737,7 @@ has4LegPlanarPart =
                         STArray.writeArray queue t v
                         writeSTRef qtail $! t + 1
 
-            let loop !qhead = do
+            let loop !qhead =
                     whenM ((qhead <) `fmap` readSTRef qtail) $ do
                         v <- STArray.readArray queue qhead
                         forM_ [0 .. 3] $ \ !i -> do

@@ -72,5 +72,5 @@ linkingNumbersInvariant knot =
         n = numberOfStrands ori
         ln = linkingNumbersTable ori
         fn = numberOfFreeLoops knot
-    in take (fn * n + fn * (fn - 1) `div` 2) (repeat 0)
+    in replicate (fn * n + fn * (fn - 1) `div` 2) 0
             ++ sort [abs $ (ln V.! i) UV.! j | i <- [0 .. n - 1], j <- [0 .. i - 1]]

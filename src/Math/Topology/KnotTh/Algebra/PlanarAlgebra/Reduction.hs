@@ -232,7 +232,7 @@ connectST s a@(!v, !p) b@(!u, !q) = do
 
 
 vertexDegreeST :: Context s a -> Int -> ST.ST s Int
-vertexDegreeST s v = do
+vertexDegreeST s v =
     MV.length `fmap` MV.read (adjacent s) v
 
 
@@ -310,14 +310,14 @@ extractStateSumST s = do
         foldM (\ (!rotCredit, !part) !leg -> do
                 vis <- UMV.read visited leg
                 if vis
-                    then return $! (rotCredit + 1, part)
+                    then return (rotCredit + 1, part)
                     else do
                         (v, pos) <- MV.read brd leg
                         case v of
                             0 -> do
                                 UMV.write visited leg True
                                 UMV.write visited pos True
-                                return $! (0, horizontalComposition 0 (planarPropagator 1, 0) (part, 1 + rotCredit))
+                                return (0, horizontalComposition 0 (planarPropagator 1, 0) (part, 1 + rotCredit))
 
                             _ -> do
                                 adj <- MV.read (adjacent s) v
@@ -325,7 +325,7 @@ extractStateSumST s = do
                                     (0, p') <- MV.read adj i
                                     UMV.write visited p' True
                                 ex <- MV.read (state s) v
-                                return $! (0, horizontalComposition 0 (ex, pos) (part, 1 + rotCredit))
+                                return (0, horizontalComposition 0 (ex, pos) (part, 1 + rotCredit))
             ) (0, globalFactor) [0 .. legsN - 1]
 
     return $! rotateBy (-1 - rotCredit) res

@@ -68,4 +68,4 @@ equivalenceClasses moves enumerateDiagrams =
                 inserted <- insert code $ wrap diagram
                 maybe (return ()) (declareEquivalent code) prevCode
                 when inserted $
-                    forM_ (concatMap ($ diagram) moves) (dfs $! Just code)
+                    forM_ (concatMap ($ diagram) moves) (dfs $ Just code)

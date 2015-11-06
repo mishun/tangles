@@ -1,4 +1,3 @@
-{-# LANGUAGE UnboxedTuples #-}
 module Math.Topology.KnotTh.Tangle.RootCode
     ( totalRootCode
     ) where

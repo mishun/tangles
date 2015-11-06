@@ -7,6 +7,7 @@ module Math.Topology.KnotTh.Invariants.KhovanovHomology
     , khovanovHomologyBetti
     ) where
 
+import Control.Arrow ((&&&))
 import qualified Data.Matrix as M
 import qualified Data.Vector as V
 import qualified Data.Vector.Unboxed as UV
@@ -35,10 +36,10 @@ morphismChain = Chain . V.singleton . CM.singleton
 
 testBorders :: (KhovanovCobordism c) => String -> V.Vector (CM.CobordismMatrix c) -> V.Vector (CM.CobordismMatrix c) -> V.Vector (CM.CobordismMatrix c)
 testBorders msg pre b =
-    let indent off = (take off (repeat ' ') ++)
+    let indent off = (replicate off ' ' ++)
 
         dumpChain off chain =
-            unlines $ (indent off "Chain:") : V.toList (V.imap (\ i m -> indent (off + 2) $ printf "Border %i:\n%s" i (dumpMatrix (off + 4) m)) chain)
+            unlines $ indent off "Chain:" : V.toList (V.imap (\ i m -> indent (off + 2) $ printf "Border %i:\n%s" i (dumpMatrix (off + 4) m)) chain)
 
         dumpMatrix off m =
             unlines $ ((indent off $ printf "Mat %ix%i" (CM.numberOfRows m) (CM.numberOfCols m)) :) $ do
@@ -81,7 +82,7 @@ simplifyChain (Chain borders) = Chain $ goL 0 $ goE 0 borders
         eliminateAt d row col kh =
             let m = (kh V.! d)
                 (eps, delta, gamma) = CM.minor (row, col) m
-            in (kh V.//) $ [(d, eps - gamma ∘ (CM.singleton $ m CM.! (row, col)) ∘ delta)]
+            in (kh V.//) $ [(d, eps - gamma ∘ CM.singleton (m CM.! (row, col)) ∘ delta)]
                                 ++ [(d - 1, CM.removeRow col (kh V.! (d - 1))) | d > 0]
                                 ++ [(d + 1, CM.removeCol row (kh V.! (d + 1))) | d < V.length kh - 1]
 
@@ -147,12 +148,12 @@ instance (KhovanovCobordism c) => PlanarAlgebra (KhovanovComplex c) where
 
             glueChains (Singl a)  (Singl b)  = Singl $ composeO a b
             glueChains (Singl a)  (Chain bc) = Chain $ V.map (composeM (identityCobordism a)) bc
-            glueChains (Chain ac) (Singl b)  = Chain $ V.map (flip composeM (identityCobordism b)) ac
+            glueChains (Chain ac) (Singl b)  = Chain $ V.map (`composeM` identityCobordism b) ac
             glueChains (Chain a)  (Chain b)  =
                 let spanA = V.length a
                     spanB = V.length b
 
-                    width d = max 0 $ (min d spanA) - (max 0 $ d - spanB) + 1
+                    width d = max 0 $ min d spanA - max 0 (d - spanB) + 1
 
                     coords d w =
                         let pa = w + max 0 (d - spanB)
@@ -247,8 +248,8 @@ khovanovHomologyBetti tangle =
                         in M.matrix rows cols $ \ (!row, !col) ->
                             let (extRow, intRow) = (row - 1) `divMod` tqftDim
                                 (extCol, intCol) = (col - 1) `divMod` tqftDim
-                            in (tqft $ m CM.! (extRow, extCol)) M.! (intRow + 1, intCol + 1)
+                            in tqft (m CM.! (extRow, extCol)) M.! (intRow + 1, intCol + 1)
 
                     bettiVector = cohomologyBettiNumbers $ V.map borderTQFT border
 
-                in map (\ d -> (shift + d, bettiVector UV.! d)) [0 .. dim]
+                in map ((+ shift) &&& (bettiVector UV.!)) [0 .. dim]
