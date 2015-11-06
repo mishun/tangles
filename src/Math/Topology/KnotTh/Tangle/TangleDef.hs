@@ -10,7 +10,6 @@ module Math.Topology.KnotTh.Tangle.TangleDef
     , TensorSurgery(..)
 
     , glueToBorder
-    , emptyTangle
     , emptyPropagatorTangle
     , lonerPropagatorTangle
     , loopTangle
@@ -38,16 +37,15 @@ module Math.Topology.KnotTh.Tangle.TangleDef
 
 import Control.Applicative (Applicative)
 import Control.DeepSeq (NFData(..))
-import Control.Monad (void, forM, forM_, when, foldM_, foldM, filterM, (>=>), guard)
+import Control.Monad (filterM, foldM, foldM_, forM, forM_, guard, when, (>=>))
 import Control.Monad.IfElse (unlessM)
 import qualified Control.Monad.ST as ST
 import qualified Control.Monad.Reader as Reader
 import Data.Bits ((.&.), complement, shiftL, shiftR)
 import Data.List (nub, sort, foldl', find)
-import Data.Maybe (fromMaybe)
 import qualified Data.Map as M
 import qualified Data.Set as S
-import Data.STRef (STRef, modifySTRef', newSTRef, readSTRef, writeSTRef)
+import Data.STRef (STRef, modifySTRef', newSTRef, readSTRef)
 import qualified Data.Vector as V
 import qualified Data.Vector.Mutable as MV
 import qualified Data.Vector.Unboxed as UV
@@ -61,6 +59,7 @@ import Math.Topology.KnotTh.Knotted.Crossings.Projection
 import Math.Topology.KnotTh.Knotted.Crossings.Diagram
 import Math.Topology.KnotTh.Knotted.Threads
 import Math.Topology.KnotTh.Moves.ModifyDSL
+import Math.Topology.KnotTh.Tangle.RootCode
 
 
 data Tangle a =
@@ -328,141 +327,13 @@ instance VertexDiagram Tangle where
     vertexIndicesRange t = (1, numberOfVertices t)
 
 instance Knotted Tangle where
-    unrootedHomeomorphismInvariant tangle
-        | n > 127    = error $ printf "Tangle.unrootedHomeomorphismInvariant: too many crossings (%i)" n
-        | otherwise  = UV.concat $ UV.singleton (numberOfFreeLoops tangle) : UV.singleton (numberOfLegs tangle) : border : internal
-        where
-            n = numberOfVertices tangle
-            l = numberOfLegs tangle
-
-            border | l == 0    = UV.empty
-                   | otherwise = minimum $ do
-                baseLeg <- allLegs tangle
-                dir <- bothDirections
-                globalG <- fromMaybe [d4I] $ globalTransformations tangle
-
-                return $! UV.create $ do
-                    index <- UMV.replicate (n + 1) 0
-                    incoming <- UMV.replicate (n + 1) 0
-                    queue <- MV.new n
-                    free <- newSTRef 1
-
-                    let {-# INLINE look #-}
-                        look !d | isLeg d    =
-                                    let offset = (legPlace d - legPlace baseLeg) * directionSign dir
-                                    in return $! -(offset `mod` l)
-
-                                | otherwise  = do
-                                    let (u, p) = beginPair' d
-                                    ux <- UMV.read index u
-                                    if ux > 0
-                                        then do
-                                            base <- UMV.unsafeRead incoming u
-                                            return $! (ux `shiftL` 2) + (((p - base) * directionSign dir) .&. 3)
-                                        else do
-                                            nf <- readSTRef free
-                                            writeSTRef free $! nf + 1
-                                            UMV.write index u nf
-                                            UMV.unsafeWrite incoming u p
-                                            MV.write queue (nf - 1) d
-                                            return $! nf `shiftL` 2
-
-                    rc <- UMV.new (l + 5 * n)
-                    foldM_ (\ !d !i -> do
-                            look (opposite d) >>= UMV.write rc i
-                            return $! nextDir dir d
-                        ) baseLeg [0 .. l - 1]
-
-                    let bfs !headI !offset = do
-                            tailI <- readSTRef free
-                            if headI >= tailI - 1
-                                then return $ UMV.take offset rc
-                                else do
-                                    input <- MV.read queue headI
-                                    case crossingCodeWithGlobal globalG dir input of
-                                        (# be, le #) -> UMV.write rc offset $! (be `shiftL` 3) + le
-                                    foldMIncomingDartsFrom input dir (\ !d !i -> do
-                                            look d >>= UMV.write rc i
-                                            return $! i + 1
-                                        ) (offset + 1) >>= bfs (headI + 1)
-
-                    bfs 0 l
-
-            internal | UV.length border >= (l + 2 * n)  = []
-                     | otherwise                        = sort $ map compCode comps
-                where
-                    comps = ST.runST $ do
-                        visited <- UMV.replicate (n + 1) (-1)
-                        let dfs mark v = do
-                                vis <- UMV.read visited (vertexIndex v)
-                                when (vis < 0) $ do
-                                    UMV.write visited (vertexIndex v) mark
-                                    forMIncomingDarts v $ \ !d ->
-                                        when (isDart d) (dfs mark $ beginVertex d)
-
-                        forM_ (allLegOpposites tangle) $ \ !d ->
-                            when (isDart d) (dfs 0 $ beginVertex d)
-
-                        c <- foldM (\ !ci !v -> do
-                                vis <- UMV.read visited (vertexIndex v)
-                                if vis < 0
-                                    then dfs ci v >> return (ci + 1)
-                                    else return ci
-                            ) 1 (allVertices tangle)
-
-                        lists <- MV.replicate c []
-                        forM_ (allVertices tangle) $ \ !v -> do
-                            ci <- UMV.read visited (vertexIndex v)
-                            lst <- MV.read lists ci
-                            MV.write lists ci (v : lst)
-
-                        mapM (MV.read lists) [1 .. c - 1]
-
-                    compCode comp = minimum $ do
-                        start <- comp
-                        root <- outcomingDarts start
-                        dir <- bothDirections
-                        globalG <- fromMaybe [d4I] $ globalTransformations tangle
-
-                        return $! UV.create $ do
-                            index <- UMV.replicate (n + 1) 0
-                            incoming <- UMV.replicate (n + 1) 0
-                            queue <- MV.new n
-                            free <- newSTRef 1
-
-                            let {-# INLINE look #-}
-                                look !d = do
-                                    let (u, p) = beginPair' d
-                                    ux <- UMV.read index u
-                                    if ux > 0
-                                        then do
-                                            base <- UMV.unsafeRead incoming u
-                                            return $! (ux `shiftL` 2) + (((p - base) * directionSign dir) .&. 3)
-                                        else do
-                                            nf <- readSTRef free
-                                            writeSTRef free $! nf + 1
-                                            UMV.write index u nf
-                                            UMV.unsafeWrite incoming u p
-                                            MV.write queue (nf - 1) d
-                                            return $! nf `shiftL` 2
-
-                            rc <- UMV.new (5 * n)
-                            void $ look root
-
-                            let bfs !headI !offset = do
-                                    tailI <- readSTRef free
-                                    if headI >= tailI - 1
-                                        then return $! UMV.take offset rc
-                                        else do
-                                            input <- MV.read queue headI
-                                            case crossingCodeWithGlobal globalG dir input of
-                                                (# be, le #) -> UMV.write rc offset $! (be `shiftL` 3) + le
-                                            foldMIncomingDartsFrom input dir (\ !d !i -> do
-                                                    look d >>= UMV.write rc i
-                                                    return $! i + 1
-                                                ) (offset + 1) >>= bfs (headI + 1)
-
-                            bfs 0 0
+    unrootedHomeomorphismInvariant tangle =
+        totalRootCode (numberOfVertices tangle)
+                      (numberOfLegs tangle)
+                      (numberOfFreeLoops tangle)
+                      (globalTransformations tangle)
+                      (involArr tangle)
+                      (crossArr tangle)
 
     isConnected tangle
         | numberOfEdges tangle == 0 && numberOfFreeLoops tangle <= 1  = True
@@ -558,7 +429,7 @@ instance TensorProduct (Tangle a) where
 instance PlanarAlgebra (Tangle a) where
     planarDegree = numberOfLegs
 
-    planarEmpty = toTangle emptyTangle
+    planarEmpty = planarLoop 0
 
     planarLoop = toTangle . loopTangle
 
@@ -868,7 +739,7 @@ instance Surgery Tangle where
                     , legsN    = legs
                     }
 
-    multiSurgery tangle = --tensorSubst 1 . fmap toTangle
+    multiSurgery tangle =
         implode
             ( numberOfFreeLoops tangle
             , map oppositeExt $ allLegs tangle
@@ -998,10 +869,6 @@ glueToBorder !gl (!tangle', !lp) !cr | gl < 0 || gl > 4  = error $ printf "glueT
           oldC = numberOfVertices tangle
           newC = oldC + 1
           newL = oldL + 4 - 2 * gl
-
-
-emptyTangle :: Tangle0 a
-emptyTangle = loopTangle 0
 
 
 loopTangle :: Int -> Tangle0 a

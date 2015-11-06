@@ -24,9 +24,10 @@ import Math.Topology.KnotTh.Algebra.Dihedral.D4
 
 
 class (RotationAction a, MirrorAction a, TransposeAction a, GroupAction D4 a) => Crossing a where
-    globalTransformations  :: (Knotted k) => k a -> Maybe [D4]
-    crossingCode           :: (Knotted k) => RotationDirection -> Dart k a -> (# Int, Int #)
-    crossingCodeWithGlobal :: (Knotted k) => D4 -> RotationDirection -> Dart k a -> (# Int, Int #)
+    globalTransformations   :: (Knotted k) => k a -> Maybe [D4]
+    crossingCode            :: (Knotted k) => RotationDirection -> Dart k a -> (# Int, Int #)
+    crossingCodeWithGlobal  :: (Knotted k) => D4 -> RotationDirection -> Dart k a -> (# Int, Int #)
+    crossingCodeWithGlobal' :: a -> D4 -> RotationDirection -> Int -> Int
 
 
 class (Functor k, VertexDiagram k) => Knotted k where

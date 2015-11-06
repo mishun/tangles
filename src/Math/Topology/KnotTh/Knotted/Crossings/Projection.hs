@@ -34,6 +34,7 @@ instance Crossing ProjectionCrossing where
     globalTransformations _ = Nothing
     crossingCode _ _ = (# 0, 0 #)
     crossingCodeWithGlobal _ _ _ = (# 0, 0 #)
+    crossingCodeWithGlobal' _ _ _ _ = 0
 
 instance OrientedCrossing ProjectionCrossing where
     strandContinuation _ x = (x + 2) .&. 3

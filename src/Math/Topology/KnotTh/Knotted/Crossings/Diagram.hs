@@ -51,8 +51,7 @@ instance Crossing DiagramCrossing where
 
     {-# INLINE crossingCode #-}
     crossingCode !_ !d =
-        let -- DC x = vertexContent $ beginVertex d
-            x = case vertexContent $ beginVertex d of
+        let x = case vertexContent $ beginVertex d of
                     OverCrossing  -> 0
                     UnderCrossing -> 1
             p = beginPlace d
@@ -61,12 +60,20 @@ instance Crossing DiagramCrossing where
     {-# INLINE crossingCodeWithGlobal #-}
     crossingCodeWithGlobal !g !_ !d =
         let t = equivalenceClassId subGroupDS g
-            --DC x = vertexContent $ beginVertex d
             x = case vertexContent $ beginVertex d of
                     OverCrossing  -> 0
                     UnderCrossing -> 1
             p = beginPlace d
         in (# 1, (x `xor` t) `xor` (p .&. 1) #)
+
+    {-# INLINE crossingCodeWithGlobal' #-}
+    crossingCodeWithGlobal' OverCrossing !g !_ !p =
+        let t = equivalenceClassId subGroupDS g
+        in t `xor` (p .&. 1)
+    crossingCodeWithGlobal' UnderCrossing !g !_ !p =
+        let t = equivalenceClassId subGroupDS g
+        in (1 `xor` t) `xor` (p .&. 1)
+
 
 instance OrientedCrossing DiagramCrossing where
     strandContinuation _ x = (x + 2) .&. 3

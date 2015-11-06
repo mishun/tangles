@@ -31,7 +31,7 @@ test = testGroup "Basic tangle tests"
 
     , testCase "Show tangle" $ do
         assertEqual "empty tangle" "implode (0,[],[])" $
-            show (toTangle emptyTangle :: TangleProjection)
+            show (toTangle (unlink 0))
 
         assertEqual "zero tangle" "implode (0,[(0,3),(0,2),(0,1),(0,0)],[])" $
             show (toTangle zeroTangle :: TangleProjection)
@@ -169,5 +169,15 @@ test = testGroup "Basic tangle tests"
 
         , testCase "Numerator closure" $ do
             numberOfFreeLoops (numeratorClosure zeroTangle :: Tangle0 DiagramCrossing) @?= 2
+        ]
+
+    , testGroup "Homeomorphism invariant" $
+        [ testCase "unlinks" $ do
+            assertBool "0 & 1" $ unrootedHomeomorphismInvariant (unlink 0) /= unrootedHomeomorphismInvariant (unlink 1)
+            assertBool "1 & 2" $ unrootedHomeomorphismInvariant (unlink 1) /= unrootedHomeomorphismInvariant (unlink 2)
+
+        , testCase "0 & ∞" $
+            unrootedHomeomorphismInvariant (zeroTangle :: Tangle4 DiagramCrossing)
+                @?= unrootedHomeomorphismInvariant (infinityTangle :: Tangle4 DiagramCrossing)
         ]
     ]

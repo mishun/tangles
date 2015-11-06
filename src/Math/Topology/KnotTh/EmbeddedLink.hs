@@ -23,7 +23,7 @@ module Math.Topology.KnotTh.EmbeddedLink
 import Control.Applicative (Applicative)
 import Control.Arrow (first)
 import Control.DeepSeq (NFData(..))
-import Control.Monad (filterM, foldM, foldM_, forM, forM_, guard, liftM2, unless, void, when)
+import Control.Monad (filterM, foldM, foldM_, forM, forM_, guard, liftM2, unless, when)
 import Control.Monad.IfElse (unlessM, whenM, whileM)
 import qualified Control.Monad.Reader as Reader
 import qualified Control.Monad.ST as ST
@@ -32,14 +32,13 @@ import qualified Data.Array.Unboxed as A
 import Data.Bits ((.&.), shiftL, shiftR, complement)
 import Data.Function (fix)
 import Data.List (foldl', find)
-import Data.Maybe (fromMaybe, fromJust)
+import Data.Maybe (fromJust)
 import Data.STRef (STRef, modifySTRef', newSTRef, readSTRef, writeSTRef)
 import qualified Data.Vector as V
 import qualified Data.Vector.Mutable as MV
 import qualified Data.Vector.Primitive as PV
 import qualified Data.Vector.Primitive.Mutable as PMV
 import qualified Data.Vector.Unboxed as UV
-import qualified Data.Vector.Unboxed.Mutable as UMV
 import Text.Printf
 import Math.Topology.KnotTh.Algebra.Dihedral.D4
 import Math.Topology.KnotTh.Algebra.SurfaceDiagram
@@ -51,6 +50,7 @@ import Math.Topology.KnotTh.Knotted.Threads
 import Math.Topology.KnotTh.Moves.ModifyDSL
 import qualified Math.Topology.KnotTh.SurfaceGraph as SG
 import Math.Topology.KnotTh.Tangle
+import Math.Topology.KnotTh.Tangle.RootCode
 
 
 data EmbeddedLink a =
@@ -157,63 +157,13 @@ instance (NFData a) => NFData (Vertex EmbeddedLink a)
 instance (NFData a) => NFData (Dart EmbeddedLink a)
 
 instance Knotted EmbeddedLink where
-    unrootedHomeomorphismInvariant link = UV.singleton (numberOfFreeLoops link) UV.++ internal
-        where
-            internal | numberOfVertices link == 0  = UV.empty
-                     | otherwise                   = minimum $ do
-                dart <- allDarts link
-                dir <- bothDirections
-                globalG <- fromMaybe [d4I] $ globalTransformations link
-                return $! codeWithDirection globalG dir dart
-
-            codeWithDirection !globalG !dir !start = UV.create $ do
-                let n = numberOfVertices link
-
-                index <- UMV.replicate (n + 1) 0
-                incoming <- UMV.replicate (n + 1) 0
-                queue <- MV.new n
-                free <- newSTRef 1
-
-                let {-# INLINE look #-}
-                    look !d = do
-                        let u = beginVertexIndex d
-                        ux <- UMV.unsafeRead index u
-                        if ux > 0
-                            then do
-                                up <- UMV.unsafeRead incoming u
-                                return $! (ux `shiftL` 2) + (((beginPlace d - up) * directionSign dir) .&. 3)
-                            else do
-                                nf <- readSTRef free
-                                writeSTRef free $! nf + 1
-                                UMV.unsafeWrite index u nf
-                                UMV.unsafeWrite incoming u (beginPlace d)
-                                MV.unsafeWrite queue (nf - 1) d
-                                return $! nf `shiftL` 2
-
-                rc <- UMV.replicate (6 * n + 1) 0
-                UMV.unsafeWrite rc 0 $! numberOfFreeLoops link
-
-                let {-# INLINE lookAndWrite #-}
-                    lookAndWrite !d !offset = do
-                        look d >>= UMV.unsafeWrite rc offset
-                        return $! offset + 1
-
-                void $ look start
-                flip fix 0 $ \ bfs !headI ->
-                    whenM ((headI + 1 <) `fmap` readSTRef free) $ do
-                        input <- MV.unsafeRead queue headI
-                        void $ foldMIncomingDartsFrom input dir lookAndWrite (6 * headI + 3)
-                        case crossingCodeWithGlobal globalG dir input of
-                            (# be, le #) -> do
-                                UMV.unsafeWrite rc (6 * headI + 1) be
-                                UMV.unsafeWrite rc (6 * headI + 2) le
-                        bfs $! headI + 1
-
-                fix $ \ _ -> do
-                    whenM ((<= n) `fmap` readSTRef free) $
-                        fail "codeWithDirection: disconnected diagram (not implemented)"
-
-                return rc
+    unrootedHomeomorphismInvariant link =
+        totalRootCode (numberOfVertices link)
+                      0
+                      (numberOfFreeLoops link)
+                      (globalTransformations link)
+                      (involutionArray link)
+                      (crossingsArray link)
 
     isConnected link =
         numberOfFreeLoops link < (if numberOfVertices link == 0 then 2 else 1)
@@ -274,8 +224,8 @@ instance ExplodeKnotted EmbeddedLink where
         return $! link
 
 
-emptyELink :: EmbeddedLink a
-emptyELink =
+emptyEmbeddedLink :: EmbeddedLink a
+emptyEmbeddedLink =
     EmbeddedLink
         { loopsCount      = 0
         , vertexCount     = 0
@@ -386,7 +336,7 @@ instance KnottedDiagram EmbeddedLink where
             sb = opposite bs
 
         return $! if rightFace (nextCW abl) == leftFace (nextCCW bal)
-            then emptyELink
+            then emptyEmbeddedLink
             else modifyKnot link $ do
                 if | qa == ap || rb == bs ->
                         if qa == ap && rb == bs

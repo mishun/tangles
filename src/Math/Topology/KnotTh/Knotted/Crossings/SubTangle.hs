@@ -18,6 +18,7 @@ module Math.Topology.KnotTh.Knotted.Crossings.SubTangle
     ) where
 
 import Control.DeepSeq
+import Data.Bits (shiftL)
 import Text.Printf
 import Math.Topology.KnotTh.Algebra.Dihedral.D4
 import Math.Topology.KnotTh.Knotted
@@ -91,6 +92,11 @@ instance Crossing (SubTangleCrossing a) where
             cr = vertexContent $ beginVertex d
             t = fromReflectionRotation (isClockwise dir) (-p) ∘ (orientation cr ∘ global)
         in (# code cr, equivalenceClassId (symmetry cr) t #)
+
+    {-# INLINE crossingCodeWithGlobal' #-}
+    crossingCodeWithGlobal' cr global dir p =
+        let t = fromReflectionRotation (isClockwise dir) (-p) ∘ (orientation cr ∘ global)
+        in (code cr `shiftL` 3) + equivalenceClassId (symmetry cr) t
 
 
 extractSubTangle :: (Crossing a) => SubTangleCrossing a -> Tangle4 a
