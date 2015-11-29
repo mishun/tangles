@@ -240,15 +240,22 @@ khovanovHomologyBetti tangle =
             Chain border ->
                 let dim = V.length border
 
-                    (tqftDim, tqft) = prepareTQFT $ numberOfLegs tangle
-
                     borderTQFT m =
-                        let rows = tqftDim * CM.numberOfRows m
-                            cols = tqftDim * CM.numberOfCols m
-                        in M.matrix rows cols $ \ (!row, !col) ->
-                            let (extRow, intRow) = (row - 1) `divMod` tqftDim
-                                (extCol, intCol) = (col - 1) `divMod` tqftDim
-                            in tqft (m CM.! (extRow, extCol)) M.! (intRow + 1, intCol + 1)
+                        let go xl xr yl yr | xl == xr && yl == yr  = tqft $ m CM.! (yl, xl)
+                                           | xl == xr              = go xl xr yl ym M.<-> go xl xr (ym + 1) yr
+                                           | yl == yr              = go xl xm yl yr M.<|> go (xm + 1) xr yl yr
+                                           | otherwise             = M.joinBlocks ( go xl xm yl ym      , go (xm + 1) xr yl ym
+                                                                                  , go xl xm (ym + 1) yr, go (xm + 1) xr (ym + 1) yr
+                                                                                  )
+                                where xm = (xl + xr) `div` 2
+                                      ym = (yl + yr) `div` 2
+
+                            rows = CM.numberOfRows m
+                            cols = CM.numberOfCols m
+                        in if rows == 0 || cols == 0
+                            then M.zero (V.sum $ V.map tqftBorderDim $ CM.toVector $ cobordismBorder1 m)
+                                        (V.sum $ V.map tqftBorderDim $ CM.toVector $ cobordismBorder0 m)
+                            else go 0 (cols - 1) 0 (rows - 1)
 
                     bettiVector = cohomologyBettiNumbers $ V.map borderTQFT border
 

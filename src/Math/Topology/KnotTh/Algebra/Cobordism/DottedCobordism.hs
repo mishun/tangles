@@ -12,6 +12,7 @@ import Control.Exception (assert)
 import Control.Monad (foldM, forM_, liftM2, when)
 import Control.Monad.IfElse (unlessM, whenM)
 import qualified Control.Monad.ST as ST
+import Data.Bits (testBit)
 import qualified Data.Map.Strict as Map
 import qualified Data.Matrix as M
 import Data.STRef (newSTRef, readSTRef, writeSTRef)
@@ -720,7 +721,7 @@ class (CannedCobordism c, PreadditiveCobordism c, Show c, Show (CobordismBorder 
     isIsomorphism :: c -> Bool
     delooping     :: CobordismBorder c -> (CobordismBorder c, V.Vector (c, c))
     tqftBorderDim :: CobordismBorder c -> Int
-    prepareTQFT   :: Int -> (Int, c -> M.Matrix Integer)
+    tqft          :: c -> M.Matrix Integer
 
 
 instance (Integral a, Show a) => KhovanovCobordism (DottedCobordism' a) where
@@ -748,34 +749,22 @@ instance (Integral a, Show a) => KhovanovCobordism (DottedCobordism' a) where
 
     tqftBorderDim b = 2 ^ numberOfChords b
 
-    prepareTQFT legs =
-        let dim = 2 ^ (legs `div` 2)
+    tqft (Cob header m) =
+        let dim = 2 ^ (legsN header `div` 2)
+            segs0 = UV.backpermute (wallMap header) $ UV.ifilter (<) $ arcs0 header
+            segs1 = UV.backpermute (wallMap header) $ UV.ifilter (<) $ arcs1 header
 
-            zero = M.zero dim dim
+            matrix factor g =
+                M.matrix dim dim $ \ (row, col) ->
+                    let delta = UV.create $ do
+                            d <- UMV.replicate (wallHolesN header) (-1 :: Int)
+                            UV.mapM_ (UMV.modify d (+ 1)) segs0
+                            UV.imapM_ (\ h s -> UMV.modify d (+ (surfHandles g UV.! s)) h) $ wallSurfs g
+                            UV.imapM_ (\ i -> when (testBit (col - 1) i) . UMV.modify d (+ 1)) segs0
+                            UV.imapM_ (\ i -> when (testBit (row - 1) i) . UMV.modify d (+ (-1))) segs1
+                            return d
+                    in if UV.all (== 0) delta
+                        then factor
+                        else 0
 
-            functor =
-                Map.fromList $
-                    case legs of
-                        0 -> [ (UV.empty, 1) ]
-
-                        2 -> [ (UV.singleton 0, M.identity 2)
-                             , (UV.singleton 1, M.fromList 2 2 [0, 0, 1, 0])
-                             ]
-
-                        4 -> [ (UV.fromList [0, 0], M.identity 4)
-                             , (UV.fromList [1, 0], M.fromList 4 4 [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0])
-                             , (UV.fromList [0, 1], M.fromList 4 4 [0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0])
-                             , (UV.fromList [1, 1], M.fromList 4 4 [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0])
-                             , (UV.fromList [0], M.fromList 4 4 [0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 1, 1, 0])
-                             , (UV.fromList [1], M.fromList 4 4 [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0])
-                             ]
-
-                        l -> error $ printf "TQFT is not implemented for %i legs" l
-
-            elementaryValue g =
-                functor Map.! surfHandles g
-
-            tqft (Cob h m) | legsN h == legs  = Map.foldlWithKey' (\ carry k v -> carry + elementaryValue k * fromIntegral v) zero m
-                           | otherwise        = error "tqft: bad number of legs"
-
-        in (dim, tqft)
+        in Map.foldlWithKey' (\ carry k v -> carry + matrix (fromIntegral v) k) (M.zero dim dim) m
