@@ -1,13 +1,13 @@
-{-# LANGUAGE StandaloneDeriving, UndecidableInstances #-}
+{-# LANGUAGE StandaloneDeriving, TypeFamilies, UndecidableInstances #-}
 module Math.Topology.KnotTh.Invariants.KhovanovHomology
     ( module Math.Topology.KnotTh.Algebra.Cobordism.DottedCobordism
     , KhovanovComplex(..)
     , testComplexBorders
     , khovanovComplex
-    , khovanovHomologyBetti
+    , KnottedWithKhovanovHomology(..)
     ) where
 
-import Control.Arrow ((&&&))
+import Control.Arrow (first, second)
 import qualified Data.Matrix as M
 import qualified Data.Vector as V
 import qualified Data.Vector.Unboxed as UV
@@ -222,7 +222,7 @@ khovanovHomologyBetti :: TangleDiagram -> [(Int, Int)]
 khovanovHomologyBetti tangle =
     let Kh _ shift0 chain = khovanovComplex tangle
 
-        shift =
+        levelShift =
             let oriented = arbitraryOrientation tangle
 
                 nminus = length $ filter (< 0) $ map selfWrithe $ allVertices oriented
@@ -234,13 +234,12 @@ khovanovHomologyBetti tangle =
 
             in shift0 - nminus - (crs - lns) `div` 2
 
-    in filter ((/= 0) . snd) $
-        case chain of
-            Singl space  -> [(shift, V.sum $ V.map tqftBorderDim $ CM.toVector space)]
-            Chain border ->
-                let dim = V.length border
+        cohomology =
+            let objectTQFT = V.concatMap tqftBorderDim . CM.toVector
 
-                    borderTQFT m =
+                objectTQFTDim = V.sum . V.map (V.length . tqftBorderDim) . CM.toVector
+
+                borderTQFT m =
                         let go xl xr yl yr | xl == xr && yl == yr  = tqft $ m CM.! (yl, xl)
                                            | xl == xr              = go xl xr yl ym M.<-> go xl xr (ym + 1) yr
                                            | yl == yr              = go xl xm yl yr M.<|> go (xm + 1) xr yl yr
@@ -253,10 +252,34 @@ khovanovHomologyBetti tangle =
                             rows = CM.numberOfRows m
                             cols = CM.numberOfCols m
                         in if rows == 0 || cols == 0
-                            then M.zero (V.sum $ V.map tqftBorderDim $ CM.toVector $ cobordismBorder1 m)
-                                        (V.sum $ V.map tqftBorderDim $ CM.toVector $ cobordismBorder0 m)
+                            then M.zero (objectTQFTDim $ cobordismBorder1 m)
+                                        (objectTQFTDim $ cobordismBorder0 m)
                             else go 0 (cols - 1) 0 (rows - 1)
 
-                    bettiVector = cohomologyBettiNumbers $ V.map borderTQFT border
+            in uncurry gradedCohomology $
+                case chain of
+                    Singl space   -> (V.singleton $ objectTQFT space, V.empty)
+                    Chain borders ->
+                        let levels = (cobordismBorder0 $ borders V.! 0) `V.cons` V.map cobordismBorder1 borders
+                        in (V.map objectTQFT levels, V.map borderTQFT borders)
 
-                in map ((+ shift) &&& (bettiVector UV.!)) [0 .. dim]
+    in map (first (+ levelShift)) $ filter ((/= 0) . snd) $
+        map (second (sum . map snd)) $
+            V.toList $ V.imap (,) cohomology
+
+
+class (Knotted k) => KnottedWithKhovanovHomology k where
+    type KhovanovHomology k :: *
+    khovanovHomology        :: k DiagramCrossing -> KhovanovHomology k
+
+
+instance KnottedWithKhovanovHomology Link where
+    type KhovanovHomology Link = [(Int, Int)]
+
+    khovanovHomology = khovanovHomologyBetti . toTangle
+
+
+instance KnottedWithKhovanovHomology Tangle where
+    type KhovanovHomology Tangle = [(Int, Int)]
+
+    khovanovHomology = khovanovHomologyBetti

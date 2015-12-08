@@ -718,13 +718,17 @@ instance (Eq a, Num a) => PreadditiveCobordism (DottedCobordism' a) where
 
 
 class (CannedCobordism c, PreadditiveCobordism c, Show c, Show (CobordismBorder c)) => KhovanovCobordism c where
-    isIsomorphism :: c -> Bool
-    delooping     :: CobordismBorder c -> (CobordismBorder c, V.Vector (c, c))
-    tqftBorderDim :: CobordismBorder c -> Int
-    tqft          :: c -> M.Matrix Integer
+    type Grading c :: *
+
+    isIsomorphism  :: c -> Bool
+    delooping      :: CobordismBorder c -> (CobordismBorder c, V.Vector (c, c))
+    tqftBorderDim  :: CobordismBorder c -> V.Vector (Grading c)
+    tqft           :: c -> M.Matrix Integer
 
 
 instance (Integral a, Show a) => KhovanovCobordism (DottedCobordism' a) where
+    type Grading (DottedCobordism' a) = ()
+
     isIsomorphism c | b0 /= b1                         = False
                     | (c ∘ c) == identityCobordism b0  = True
                     | otherwise                        = False
@@ -747,7 +751,7 @@ instance (Integral a, Show a) => KhovanovCobordism (DottedCobordism' a) where
 
         in (delooped, V.fromList $ generate loops [(identityCobordism delooped, identityCobordism delooped)])
 
-    tqftBorderDim b = 2 ^ numberOfChords b
+    tqftBorderDim b = V.replicate (2 ^ numberOfChords b) ()
 
     tqft (Cob header m) =
         let dim = 2 ^ (legsN header `div` 2)

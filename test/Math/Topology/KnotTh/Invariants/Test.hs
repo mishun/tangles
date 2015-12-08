@@ -287,39 +287,39 @@ test = testGroup "Invariants"
                 ]
 
         , testCase "unknot" $ do
-            khovanovHomologyBetti (toTangle unknot) @?= [(0, 2)]
+            khovanovHomology unknot @?= [(0, 2)]
 
         , testCase "left unknot 8" $ do
-            khovanovHomologyBetti (toTangle singleCrossingUnknotL) @?= [(0, 2)]
+            khovanovHomology singleCrossingUnknotL @?= [(0, 2)]
 
         , testCase "right unknot 8" $ do
-            khovanovHomologyBetti (toTangle singleCrossingUnknotR) @?= [(0, 2)]
+            khovanovHomology singleCrossingUnknotR @?= [(0, 2)]
 
         , testCase "left trefoil knot" $
-            khovanovHomologyBetti (toTangle leftTrefoilKnot) @?= [(-3, 1), (-2, 1), (0, 2)]
+            khovanovHomology leftTrefoilKnot @?= [(-3, 1), (-2, 1), (0, 2)]
 
         , testCase "right trefoil knot" $
-            khovanovHomologyBetti (toTangle rightTrefoilKnot) @?= [(0, 2), (2, 1), (3, 1)]
+            khovanovHomology rightTrefoilKnot @?= [(0, 2), (2, 1), (3, 1)]
 
         , testCase "figure eight knot" $
-            khovanovHomologyBetti (toTangle figureEightKnot) @?= [(-2, 1), (-1, 1), (0, 2), (1, 1), (2, 1)]
+            khovanovHomology figureEightKnot @?= [(-2, 1), (-1, 1), (0, 2), (1, 1), (2, 1)]
 
         , testCase "left cinquefoil knot" $
-            khovanovHomologyBetti (toTangle leftCinquefoilKnot) @?= [(-5, 1), (-4, 1), (-3, 1), (-2, 1), (0, 2)]
+            khovanovHomology leftCinquefoilKnot @?= [(-5, 1), (-4, 1), (-3, 1), (-2, 1), (0, 2)]
 
         , testCase "three twist knot" $
-            khovanovHomologyBetti (toTangle threeTwistKnot) @?= [(-5, 1), (-4, 1), (-3, 1), (-2, 2), (-1, 1), (0, 2)]
+            khovanovHomology threeTwistKnot @?= [(-5, 1), (-4, 1), (-3, 1), (-2, 2), (-1, 1), (0, 2)]
 
         , testCase "hopf link" $
-            khovanovHomologyBetti (toTangle hopfLink) @?= [(0, 2), (2, 2)]
+            khovanovHomology hopfLink @?= [(0, 2), (2, 2)]
 
         , testCase "whitehead link" $
-            khovanovHomologyBetti (toTangle whiteheadLink) @?= [(-3, 1), (-2, 2), (-1, 1), (0, 4), (1, 1), (2, 1)]
+            khovanovHomology whiteheadLink @?= [(-3, 1), (-2, 2), (-1, 1), (0, 4), (1, 1), (2, 1)]
 
         , testCase "borromean rings" $
-            khovanovHomologyBetti (toTangle borromeanRingsLink) @?= [(-3, 1), (-2, 3), (-1, 2), (0, 8), (1, 2), (2, 3), (3, 1)]
+            khovanovHomology borromeanRingsLink @?= [(-3, 1), (-2, 3), (-1, 2), (0, 8), (1, 2), (2, 3), (3, 1)]
 
-        , testReidemeisterMoves khovanovHomologyBetti
+        , testReidemeisterMoves khovanovHomology
         ]
     ]
 
