@@ -721,7 +721,7 @@ class (CannedCobordism c, PreadditiveCobordism c, Show c, Show (CobordismBorder 
     type Grading c :: *
 
     isIsomorphism  :: c -> Bool
-    delooping      :: CobordismBorder c -> (CobordismBorder c, V.Vector (c, c))
+    delooping      :: CobordismBorder c -> V.Vector (c, c)
     tqftBorderDim  :: CobordismBorder c -> V.Vector (Grading c)
     tqft           :: c -> M.Matrix Integer
 
@@ -749,7 +749,7 @@ instance (Integral a, Show a) => KhovanovCobordism (DottedCobordism' a) where
 
             delooped = Brd 0 arcs
 
-        in (delooped, V.fromList $ generate loops [(identityCobordism delooped, identityCobordism delooped)])
+        in V.fromList $ generate loops [(identityCobordism delooped, identityCobordism delooped)]
 
     tqftBorderDim b = V.replicate (2 ^ numberOfChords b) ()
 

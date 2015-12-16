@@ -55,10 +55,7 @@ testBorders msg pre b =
 
 simplifyChain :: (KhovanovCobordism c) => BoundedChain c -> BoundedChain c
 simplifyChain (Singl b) =
-    Singl $ CM.fromVector $ V.concatMap (\ x ->
-            let (delooped, factors) = delooping x
-            in V.replicate (V.length factors) delooped
-        ) $ CM.toVector b
+    Singl $ CM.fromVector $ V.concatMap (V.map (cobordismBorder1 . fst) . delooping) $ CM.toVector b
 simplifyChain (Chain borders) = Chain $ goL 0 $ goE 0 borders
     where
         goE d kh | d >= V.length kh  = kh
@@ -87,7 +84,7 @@ simplifyChain (Chain borders) = Chain $ goL 0 $ goE 0 borders
                                 ++ [(d + 1, CM.removeCol row (kh V.! (d + 1))) | d < V.length kh - 1]
 
         deloopAt d loopPos kh =
-            let (delooped, pairs) = delooping $
+            let pairs = delooping $
                     if | d == 0    -> CM.toVector (cobordismBorder0 $ kh V.! d) V.! loopPos
                        | otherwise -> CM.toVector (cobordismBorder1 $ kh V.! (d - 1)) V.! loopPos
 
@@ -96,7 +93,7 @@ simplifyChain (Chain borders) = Chain $ goL 0 $ goE 0 borders
                 postDeloop m =
                     let cols = CM.toVector $ cobordismBorder0 m
                         rows = let v = CM.toVector $ cobordismBorder1 m
-                               in V.take loopPos v V.++ V.replicate newLines delooped V.++ V.drop (loopPos + 1) v
+                               in V.take loopPos v V.++ V.map (cobordismBorder1 . fst) pairs V.++ V.drop (loopPos + 1) v
                     in CM.matrix cols rows $ \ row col ->
                         if | row < loopPos             -> m CM.! (row, col)
                            | row >= loopPos + newLines -> m CM.! (row - newLines + 1, col)
@@ -105,7 +102,7 @@ simplifyChain (Chain borders) = Chain $ goL 0 $ goE 0 borders
                 preDeloop m =
                     let rows = CM.toVector $ cobordismBorder1 m
                         cols = let v = CM.toVector $ cobordismBorder0 m
-                               in V.take loopPos v V.++ V.replicate newLines delooped V.++ V.drop (loopPos + 1) v
+                               in V.take loopPos v V.++ V.map (cobordismBorder1 . fst) pairs V.++ V.drop (loopPos + 1) v
                     in CM.matrix cols rows $ \ row col ->
                         if | col < loopPos             -> m CM.! (row, col)
                            | col >= loopPos + newLines -> m CM.! (row, col - newLines + 1)
