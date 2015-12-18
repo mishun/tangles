@@ -7,7 +7,7 @@ module Math.Topology.KnotTh.Invariants.KhovanovHomology
     , KnottedWithKhovanovHomology(..)
     ) where
 
-import Control.Arrow (first, second)
+import Control.Arrow ((***), first)
 import qualified Data.Matrix as M
 import qualified Data.Vector as V
 import qualified Data.Vector.Unboxed as UV
@@ -204,8 +204,7 @@ testComplexBorders _ = True
 
 
 crossingComplex :: DiagramCrossing -> KhovanovComplex (DottedCobordism' Integer)
-crossingComplex OverCrossing  = Kh 4 0 (morphismChain saddleCobordism)
-crossingComplex UnderCrossing = Kh 4 0 (morphismChain saddleCobordism')
+crossingComplex = Kh 4 0 . morphismChain . crossingCobordism
 
 
 khovanovComplex :: TangleDiagram -> KhovanovComplex (DottedCobordism' Integer)
@@ -215,21 +214,22 @@ khovanovComplex tangle | ls == 0    = kh
           kh = reduceWithDefaultStrategy $ fmap crossingComplex tangle
 
 
-khovanovHomologyBetti :: TangleDiagram -> [(Int, Int)]
+khovanovHomologyBetti :: TangleDiagram -> [((Int, Int), Int)]
 khovanovHomologyBetti tangle =
     let Kh _ shift0 chain = khovanovComplex tangle
 
-        levelShift =
+        (levelShift, degreeShift) =
             let oriented = arbitraryOrientation tangle
 
                 nminus = length $ filter (< 0) $ map selfWrithe $ allVertices oriented
+                nplus  = length $ filter (> 0) $ map selfWrithe $ allVertices oriented
 
-                lns = V.sum $ V.imap (\ !i -> UV.sum . UV.imap (\ j w -> if i < j then abs w else 0)) $
-                        linkingNumbersTable oriented
+                pokeCreep =
+                    let lns = V.sum $ V.imap (\ !i -> UV.sum . UV.imap (\ j w -> if i < j then abs w else 0)) $
+                                        linkingNumbersTable oriented
+                    in (numberOfVertices tangle - nplus - nminus - lns) `div` 2
 
-                crs = length $ filter (not . isSelfIntersection) $ allVertices oriented
-
-            in shift0 - nminus - (crs - lns) `div` 2
+            in (shift0 - nminus - pokeCreep, nplus - 2 * nminus - pokeCreep)
 
         cohomology =
             let objectTQFT = V.concatMap tqftBorderDim . CM.toVector
@@ -260,23 +260,32 @@ khovanovHomologyBetti tangle =
                         let levels = (cobordismBorder0 $ borders V.! 0) `V.cons` V.map cobordismBorder1 borders
                         in (V.map objectTQFT levels, V.map borderTQFT borders)
 
-    in map (first (+ levelShift)) $ filter ((/= 0) . snd) $
-        map (second (sum . map snd)) $
-            V.toList $ V.imap (,) cohomology
+    in map (first ((+ levelShift) *** (+ degreeShift))) $
+        filter ((/= 0) . snd) $
+                concat $ V.toList $ V.imap (\ h -> map (first ((,) h))) cohomology
 
 
 class (Knotted k) => KnottedWithKhovanovHomology k where
     type KhovanovHomology k :: *
     khovanovHomology        :: k DiagramCrossing -> KhovanovHomology k
+    minimalKhovanovHomology :: k DiagramCrossing -> KhovanovHomology k
 
 
 instance KnottedWithKhovanovHomology Link where
-    type KhovanovHomology Link = [(Int, Int)]
+    type KhovanovHomology Link = [((Int, Int), Int)]
 
     khovanovHomology = khovanovHomologyBetti . toTangle
 
+    minimalKhovanovHomology link =
+        min (khovanovHomology link)
+            (khovanovHomology $ transposeCrossings link)
+
 
 instance KnottedWithKhovanovHomology Tangle where
-    type KhovanovHomology Tangle = [(Int, Int)]
+    type KhovanovHomology Tangle = [((Int, Int), Int)]
 
     khovanovHomology = khovanovHomologyBetti
+
+    minimalKhovanovHomology tangle =
+        min (khovanovHomology tangle)
+            (khovanovHomology $ transposeCrossings tangle)

@@ -250,9 +250,11 @@ instance (Cobordism3 c, PreadditiveCobordism c) => Cobordism3 (CobordismMatrix c
 
     surfOfGenusCobordism = singleton . surfOfGenusCobordism
     capOfGenusCobordism  = singleton . capOfGenusCobordism
+    cupOfGenusCobordism  = singleton . cupOfGenusCobordism
     tubeCobordism        = singleton tubeCobordism
     swapCobordism        = singleton swapCobordism
     pantsCobordism       = singleton pantsCobordism
+    pantsCobordism'      = singleton pantsCobordism'
 
 instance (CannedCobordism c, PreadditiveCobordism c) => RotationAction (CobordismBorder (CobordismMatrix c)) where
     rotationOrder (CB x) =

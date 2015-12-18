@@ -37,9 +37,6 @@ class (Cobordism c, TransposeAction c) => Cobordism3 c where
     torusCobordism      = surfOfGenusCobordism 1
     capCobordism        = capOfGenusCobordism 0
     cupCobordism        = cupOfGenusCobordism 0
-    capOfGenusCobordism = transposeIt . cupOfGenusCobordism
-    cupOfGenusCobordism = transposeIt . capOfGenusCobordism
-    pantsCobordism'     = transposeIt pantsCobordism
 
 class (Cobordism c, Eq c, Num c) => PreadditiveCobordism c where
     zeroCobordism   :: CobordismBorder c -> CobordismBorder c -> c

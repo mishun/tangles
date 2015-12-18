@@ -26,31 +26,27 @@ generalCobordism3Tests _ =
             let cup = cupCobordism :: cob
             numberOfLoops (cobordismBorder0 cup) @?= 0
             numberOfLoops (cobordismBorder1 cup) @?= 1
-            cobordismBorder0 cap @?= cobordismBorder1 cup
-            cobordismBorder0 cup @?= cobordismBorder1 cap
 
             let tube = tubeCobordism :: cob
+            numberOfLoops (cobordismBorder0 tube) @?= 1
+            numberOfLoops (cobordismBorder1 tube) @?= 1
             cobordismBorder1 tube @?= cobordismBorder0 tube
-            cobordismBorder0 tube @?= cobordismBorder0 cap
-            cobordismBorder0 tube @?= cobordismBorder1 cup
 
             let sphere = sphereCobordism :: cob
-            cobordismBorder1 sphere @?= cobordismBorder0 sphere
-            cobordismBorder0 sphere @?= cobordismBorder1 cap
-            cobordismBorder0 sphere @?= cobordismBorder0 cup
+            numberOfLoops (cobordismBorder0 sphere) @?= 0
+            numberOfLoops (cobordismBorder1 sphere) @?= 0
 
             let torus = torusCobordism :: cob
-            cobordismBorder0 torus @?= cobordismBorder0 sphere
-            cobordismBorder1 torus @?= cobordismBorder1 sphere
+            numberOfLoops (cobordismBorder0 torus) @?= 0
+            numberOfLoops (cobordismBorder1 torus) @?= 0
 
             let pants = pantsCobordism :: cob
             numberOfLoops (cobordismBorder0 pants) @?= 2
-            cobordismBorder1 pants @?= cobordismBorder1 cup
-            cobordismBorder0 pants @?= cobordismBorder0 (cap ⊗ cap)
+            numberOfLoops (cobordismBorder1 pants) @?= 1
 
             let swap = swapCobordism :: cob
-            cobordismBorder0 swap @?= cobordismBorder0 pants
-            cobordismBorder1 swap @?= cobordismBorder0 pants
+            numberOfLoops (cobordismBorder0 swap) @?= 2
+            numberOfLoops (cobordismBorder1 swap) @?= 2
 
         , testCase "Transpose" $ do
             transposeIt capCobordism =?~= cupCobordism
@@ -115,8 +111,6 @@ generalCannedCobordismTests _ =
             planarDegree saddle @?= 4
             numberOfLoops (cobordismBorder0 saddle) @?= 0
             numberOfLoops (cobordismBorder1 saddle) @?= 0
-            cobordismBorder0 saddle @?= planarPropagator 2
-            cobordismBorder1 saddle @?= rotateBy 1 (planarPropagator 2)
 
         , testCase "Tube in many ways" $ do
             identityCobordism (horizontalComposition 2 (planarPropagator 1, 0) (planarPropagator 1, 0)) =?~= tubeCobordism

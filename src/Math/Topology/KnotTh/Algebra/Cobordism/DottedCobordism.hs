@@ -12,7 +12,7 @@ import Control.Exception (assert)
 import Control.Monad (foldM, forM_, liftM2, when)
 import Control.Monad.IfElse (unlessM, whenM)
 import qualified Control.Monad.ST as ST
-import Data.Bits (testBit)
+import Data.Bits (testBit, popCount)
 import qualified Data.Map.Strict as Map
 import qualified Data.Matrix as M
 import Data.STRef (newSTRef, readSTRef, writeSTRef)
@@ -25,6 +25,7 @@ import Math.Topology.KnotTh.Algebra.Cobordism
 import Math.Topology.KnotTh.Algebra.Dihedral
 import Math.Topology.KnotTh.Algebra.PlanarAlgebra
 import Math.Topology.KnotTh.ChordDiagram
+import Math.Topology.KnotTh.Knotted.Crossings.Diagram
 
 
 data CobordismHeader =
@@ -34,6 +35,8 @@ data CobordismHeader =
         , loops1     :: {-# UNPACK #-} !Int
         , arcs0      :: !(UV.Vector Int)
         , arcs1      :: !(UV.Vector Int)
+        , deg0       :: !Int
+        , deg1       :: !Int
         , wallHolesN :: {-# UNPACK #-} !Int
         , wallMap    :: !(UV.Vector Int)
         }
@@ -47,21 +50,23 @@ instance TransposeAction CobordismHeader where
           , loops1 = loops0 h
           }
 
-emptyHeader :: Int -> Int -> CobordismHeader
-emptyHeader l0 l1 =
+emptyHeader :: (Int, Int) -> (Int, Int) -> CobordismHeader
+emptyHeader (!l0, !d0) (!l1, !d1) =
     CobordismHeader
         { legsN      = 0
         , loops0     = l0
         , loops1     = l1
         , arcs0      = UV.empty
         , arcs1      = UV.empty
+        , deg0       = d0
+        , deg1       = d1
         , wallHolesN = 0
         , wallMap    = UV.empty
         }
 
 {-# INLINE makeHeader #-}
-makeHeader :: Int -> (UV.Vector Int, Int) -> (UV.Vector Int, Int) -> CobordismHeader
-makeHeader !legs (!bot, !botLoops) (!top, !topLoops) =
+makeHeader :: Int -> (UV.Vector Int, Int, Int) -> (UV.Vector Int, Int, Int) -> CobordismHeader
+makeHeader !legs (!bot, !botLoops, !botDeg) (!top, !topLoops, !topDeg) =
     ST.runST $ do
         hid <- UMV.replicate legs (-1)
 
@@ -86,6 +91,8 @@ makeHeader !legs (!bot, !botLoops) (!top, !topLoops) =
                 , loops1     = topLoops
                 , arcs0      = bot
                 , arcs1      = top
+                , deg0       = botDeg
+                , deg1       = topDeg
                 , wallHolesN = hn
                 , wallMap    = hid'
                 }
@@ -535,9 +542,11 @@ normalizeDottedCobordism (Cob h m) =
 instance (Eq a, Num a) => Composition (DottedCobordism' a) where
     Cob h1 map1 ∘ Cob h0 map0 | legsN h0  /= legsN h1   = error $ printf "(∘): different leg numbers <%i> and <%i>" (legsN h1) (legsN h0)
                               | loops1 h0 /= loops0 h1  = error $ printf "(∘): different border loops numbers <%i> and <%i>" (loops0 h1) (loops1 h0)
+                              | deg1 h0   /= deg0 h1    = error "(∘): different degrees"
                               | arcs1 h0  /= arcs0 h1   = error "(∘): different border arcs"
                               | otherwise               =
-        let h = makeHeader (legsN h0) (arcs0 h0, loops0 h0) (arcs1 h1, loops1 h1)
+        let h = makeHeader (legsN h0) (arcs0 h0, loops0 h0, deg0 h0)
+                                      (arcs1 h1, loops1 h1, deg1 h1)
 
             segmsToGlueHoles =
                 let mate = (arcs1 h0 UV.!)
@@ -558,15 +567,15 @@ instance (Eq a, Num a) => TensorProduct (DottedCobordism' a) where
     a ⊗ b = horizontalComposition 0 (a, 0) (b, 0)
 
 instance (Eq a, Num a) => Cobordism (DottedCobordism' a) where
-    data CobordismBorder (DottedCobordism' a) = Brd {-# UNPACK #-} !Int !(UV.Vector Int)
+    data CobordismBorder (DottedCobordism' a) = Brd {-# UNPACK #-} !Int !(UV.Vector Int) {-# UNPACK #-} !Int
         deriving (Eq, Ord, Show)
 
-    cobordismBorder0 (Cob h _) = Brd (loops0 h) (arcs0 h)
-    cobordismBorder1 (Cob h _) = Brd (loops1 h) (arcs1 h)
+    cobordismBorder0 (Cob h _) = Brd (loops0 h) (arcs0 h) (deg0 h)
+    cobordismBorder1 (Cob h _) = Brd (loops1 h) (arcs1 h) (deg1 h)
 
-    identityCobordism (Brd loops arcs) =
+    identityCobordism (Brd loops arcs deg) =
         normalizeDottedCobordism $
-            let h = makeHeader (UV.length arcs) (arcs, loops) (arcs, loops)
+            let h = makeHeader (UV.length arcs) (arcs, loops, deg) (arcs, loops, deg)
             in Cob h $ Map.singleton (identityGuts (wallHolesN h) loops) 1
 
 instance (Eq a, Num a) => TransposeAction (DottedCobordism' a) where
@@ -578,39 +587,52 @@ instance (Eq a, Num a) => TransposeAction (DottedCobordism' a) where
                 return (g', factor * factorNorm)
 
 instance (Eq a, Num a) => Cobordism3 (DottedCobordism' a) where
-    numberOfLoops (Brd ls _) = ls
+    numberOfLoops (Brd ls _ _) = ls
 
     surfOfGenusCobordism g =
         normalizeDottedCobordism $
-            Cob (emptyHeader 0 0) $ Map.singleton (surfGuts g) 2
+            Cob (emptyHeader (0, 0) (0, -2 + 2 * g)) $ Map.singleton (surfGuts g) 2
 
-    capOfGenusCobordism 0 = Cob (emptyHeader 1 0) $ Map.singleton (capGuts 0) 1
-    capOfGenusCobordism 1 = Cob (emptyHeader 1 0) $ Map.singleton (capGuts 1) 2
-    capOfGenusCobordism _ = Cob (emptyHeader 1 0) Map.empty
+    capOfGenusCobordism 0 = Cob (emptyHeader (1, 0) (0, -1)) $ Map.singleton (capGuts 0) 1
+    capOfGenusCobordism 1 = Cob (emptyHeader (1, 0) (0,  1)) $ Map.singleton (capGuts 1) 2
+    capOfGenusCobordism g = Cob (emptyHeader (1, 0) (0, -1 + 2 * g)) Map.empty
+
+    cupOfGenusCobordism 0 = Cob (emptyHeader (0,  1) (1, 0)) $ Map.singleton (transposeIt $ capGuts 0) 1
+    cupOfGenusCobordism 1 = Cob (emptyHeader (0, -1) (1, 0)) $ Map.singleton (transposeIt $ capGuts 1) 2
+    cupOfGenusCobordism g = Cob (emptyHeader (0, 1 - 2 * g) (1, 0)) Map.empty
 
     tubeCobordism = planarLoop 1
 
     swapCobordism =
         normalizeDottedCobordism $
-            Cob (emptyHeader 2 2) $ Map.singleton swapGuts 1
+            Cob (emptyHeader (2, 0) (2, 0)) $ Map.singleton swapGuts 1
 
     pantsCobordism =
         normalizeDottedCobordism $
-            Cob (emptyHeader 2 1) $ Map.singleton pantsGuts 1
+            Cob (emptyHeader (2, 0) (1, 1)) $ Map.singleton pantsGuts 1
+
+    pantsCobordism' =
+        normalizeDottedCobordism $
+            Cob (emptyHeader (1, 0) (2, 1)) $ Map.singleton (transposeIt pantsGuts) 1
 
 instance (Eq a, Num a) => CannedCobordism (DottedCobordism' a) where
     saddleCobordism =
         let bot = UV.fromList [3, 2, 1, 0]
             top = UV.fromList [1, 0, 3, 2]
-        in Cob (makeHeader 4 (bot, 0) (top, 0)) (Map.singleton saddleGuts 1)
+        in Cob (makeHeader 4 (bot, 0, 0) (top, 0, 1)) (Map.singleton saddleGuts 1)
+
+    saddleCobordism' =
+        let bot = UV.fromList [1, 0, 3, 2]
+            top = UV.fromList [3, 2, 1, 0]
+        in Cob (makeHeader 4 (bot, 0, 0) (top, 0, 1)) (Map.singleton saddleGuts 1)
 
 instance (Eq a, Num a) => RotationAction (DottedCobordism' a) where
     rotationOrder (Cob h _) = legsN h
 
     rotateByUnchecked !rot (Cob h m) =
         let legs = legsN h
-            h' = makeHeader legs (rotateArcs rot (arcs0 h), loops0 h)
-                                 (rotateArcs rot (arcs1 h), loops1 h)
+            h' = makeHeader legs (rotateArcs rot (arcs0 h), loops0 h, deg0 h)
+                                 (rotateArcs rot (arcs1 h), loops1 h, deg1 h)
             subst = UV.create $ do
                 s <- UMV.new (wallHolesN h)
                 forM_ [0 .. legsN h - 1] $ \ !i ->
@@ -649,8 +671,8 @@ instance (Eq a, Num a) => PlanarAlgebra (DottedCobordism' a) where
                 in (wallMap hA UV.! legA, wallMap hB UV.! legB)
 
             h = makeHeader (legsA + legsB - 2 * gl)
-                           (resArcs0, UV.length extraLoops0 + loops0 hA + loops0 hB)
-                           (resArcs1, UV.length extraLoops1 + loops1 hA + loops1 hB)
+                           (resArcs0, UV.length extraLoops0 + loops0 hA + loops0 hB, deg0 hA + deg0 hB)
+                           (resArcs1, UV.length extraLoops1 + loops1 hA + loops1 hB, deg1 hA + deg1 hB)
 
             (newCornerHolesA, newCornerHolesB) = UV.splitAt (legsA - gl) (wallMap h)
 
@@ -666,33 +688,33 @@ instance (Eq a, Num a) => PlanarAlgebra (DottedCobordism' a) where
             return (g', f * f')
 
 instance RotationAction (CobordismBorder (DottedCobordism' a)) where
-    rotationOrder (Brd _ a) = UV.length a
+    rotationOrder (Brd _ a _) = UV.length a
 
-    rotateByUnchecked rot (Brd loops a) = Brd loops (rotateArcs rot a)
+    rotateByUnchecked rot (Brd loops a deg) = Brd loops (rotateArcs rot a) deg
 
 instance MirrorAction (CobordismBorder (DottedCobordism' a)) where
     mirrorIt = error "mirror is not implemeted"
 
 instance PlanarAlgebra (CobordismBorder (DottedCobordism' a)) where
-    planarDegree (Brd _ a) = UV.length a
+    planarDegree (Brd _ a _) = UV.length a
 
-    planarEmpty = Brd 0 UV.empty
+    planarEmpty = Brd 0 UV.empty 0
 
-    planarLoop n | n >= 0     = Brd n UV.empty
+    planarLoop n | n >= 0     = Brd n UV.empty 0
                  | otherwise  = error $ printf "planarLoop: number of loops %i is negative" n
 
     planarPropagator n | n < 0      = error $ printf "planarPropagator: parameter must be non-negative, but %i passed" n
-                       | otherwise  = Brd 0 $ UV.generate (2 * n) (\ i -> 2 * n - 1 - i)
+                       | otherwise  = Brd 0 (UV.generate (2 * n) $ \ i -> 2 * n - 1 - i) 0
 
-    horizontalCompositionUnchecked !gl (Brd loopsA a, !posA) (Brd loopsB b, !posB) =
+    horizontalCompositionUnchecked !gl (Brd loopsA a degA, !posA) (Brd loopsB b degB, !posB) =
         let (arcs, extraLoops) = glueArcs gl (a, posA) (b, posB)
-        in Brd (UV.length extraLoops + loopsA + loopsB) arcs
+        in Brd (UV.length extraLoops + loopsA + loopsB) arcs (degA + degB)
 
 instance ChordDiagram (CobordismBorder (DottedCobordism' a)) where
-    numberOfChordEnds (Brd _ a) = UV.length a
+    numberOfChordEnds (Brd _ a _) = UV.length a
 
-    chordMate (Brd _ a) x = a UV.! x
-    chordMateArray (Brd _ a) = a
+    chordMate (Brd _ a _) x = a UV.! x
+    chordMateArray (Brd _ a _) = a
 
 instance (Eq a, Num a) => Num (DottedCobordism' a) where
     Cob h0 m0 + Cob h1 m1 | h0 /= h1   = error "(+): can not sum"
@@ -704,30 +726,34 @@ instance (Eq a, Num a) => Num (DottedCobordism' a) where
 
     (*) = (∘)
 
-    fromInteger 0 = Cob (emptyHeader 0 0) Map.empty
-    fromInteger n = Cob (emptyHeader 0 0) $ Map.singleton emptyGuts (fromIntegral n)
+    fromInteger 0 = Cob (emptyHeader (0, 0) (0, 0)) Map.empty
+    fromInteger n = Cob (emptyHeader (0, 0) (0, 0)) $ Map.singleton emptyGuts (fromIntegral n)
 
     abs = id
     signum x = identityCobordism (cobordismBorder0 x)
 
 instance (Eq a, Num a) => PreadditiveCobordism (DottedCobordism' a) where
-    zeroCobordism (Brd l0 a0) (Brd l1 a1) | UV.length a0 /= UV.length a1  = error "zeroCobordism: different number of legs"
-                                          | otherwise                     = Cob (makeHeader (UV.length a0) (a0, l0) (a1, l1)) Map.empty
+    zeroCobordism (Brd l0 a0 d0) (Brd l1 a1 d1) | UV.length a0 /= UV.length a1  = error "zeroCobordism: different number of legs"
+                                                | otherwise                     = Cob (makeHeader (UV.length a0) (a0, l0, d0) (a1, l1, d1)) Map.empty
 
     isZeroCobordism (Cob _ m) = Map.null m
 
 
 class (CannedCobordism c, PreadditiveCobordism c, Show c, Show (CobordismBorder c)) => KhovanovCobordism c where
-    type Grading c :: *
+    type Grading c    :: *
 
-    isIsomorphism  :: c -> Bool
-    delooping      :: CobordismBorder c -> V.Vector (c, c)
-    tqftBorderDim  :: CobordismBorder c -> V.Vector (Grading c)
-    tqft           :: c -> M.Matrix Integer
+    crossingCobordism :: DiagramCrossing -> c
+    isIsomorphism     :: c -> Bool
+    delooping         :: CobordismBorder c -> V.Vector (c, c)
+    tqftBorderDim     :: CobordismBorder c -> V.Vector (Grading c)
+    tqft              :: c -> M.Matrix Integer
 
 
 instance (Integral a, Show a) => KhovanovCobordism (DottedCobordism' a) where
-    type Grading (DottedCobordism' a) = ()
+    type Grading (DottedCobordism' a) = Int
+
+    crossingCobordism OverCrossing  = saddleCobordism
+    crossingCobordism UnderCrossing = saddleCobordism'
 
     isIsomorphism c | b0 /= b1                         = False
                     | (c ∘ c) == identityCobordism b0  = True
@@ -735,11 +761,11 @@ instance (Integral a, Show a) => KhovanovCobordism (DottedCobordism' a) where
         where b0 = cobordismBorder0 c
               b1 = cobordismBorder1 c
 
-    delooping (Brd loops arcs) =
-        let cap0 = Cob (emptyHeader 1 0) $ Map.singleton (capGuts 0) 1
-            cap1 = Cob (emptyHeader 1 0) $ Map.singleton (capGuts 1) 1
-            cup0 = transposeIt cap0
-            cup1 = transposeIt cap1
+    delooping (Brd loops arcs deg) =
+        let cap0 = Cob (makeHeader 0 (UV.empty, 1, 0) (UV.empty, 0, -1)) $ Map.singleton (capGuts 0) 1
+            cap1 = Cob (makeHeader 0 (UV.empty, 1, 0) (UV.empty, 0, 1)) $ Map.singleton (capGuts 1) 1
+            cup0 = Cob (makeHeader 0 (UV.empty, 0, 1) (UV.empty, 1, 0)) $ Map.singleton (transposeIt $ capGuts 0) 1
+            cup1 = Cob (makeHeader 0 (UV.empty, 0, -1) (UV.empty, 1, 0)) $ Map.singleton (transposeIt $ capGuts 1) 1
 
             generate 0 cobs = cobs
             generate n cobs =
@@ -747,11 +773,11 @@ instance (Integral a, Show a) => KhovanovCobordism (DottedCobordism' a) where
                     (a, b) <- cobs
                     [(a ⊗ cap0, b ⊗ cup1), (a ⊗ cap1, b ⊗ cup0)]
 
-            delooped = Brd 0 arcs
+            delooped = Brd 0 arcs deg
 
         in V.fromList $ generate loops [(identityCobordism delooped, identityCobordism delooped)]
 
-    tqftBorderDim b = V.replicate (2 ^ numberOfChords b) ()
+    tqftBorderDim b@(Brd _ _ deg) = V.generate (2 ^ numberOfChords b) (\ i -> deg - popCount i)
 
     tqft (Cob header m) =
         let dim = 2 ^ (legsN header `div` 2)

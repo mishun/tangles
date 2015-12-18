@@ -28,16 +28,15 @@ barNatanConditionsTests _ torusValue =
     let (=?~=) = (@?=) :: cob -> cob -> Assertion
     in testGroup "Bar-Natan conditions"
         [ testCase "Sphere" $ do
-            sphereCobordism =?~= 0
+            assertBool "" $ isZeroCobordism (sphereCobordism :: cob)
 
         , testCase "Torus" $ do
             torusCobordism  =?~= fromIntegral torusValue
 
         , testProperty "Closed surface" $ \ genus ->
-            genus >= 0 ==> (surfOfGenusCobordism genus :: cob) ==
-                                case genus of
-                                    1 -> fromIntegral torusValue
-                                    _ -> 0
+            genus >= 0 ==>
+                (if genus == 1 then (== fromIntegral torusValue) else isZeroCobordism)
+                    (surfOfGenusCobordism genus :: cob)
 
         , testCase "4Tu relation" $ do
             let cap = capCobordism
