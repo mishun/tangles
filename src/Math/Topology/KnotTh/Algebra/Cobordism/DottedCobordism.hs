@@ -436,6 +436,10 @@ horComposeGuts !newBorderHolesN !segmsToGlueHoles (!exLpRepsA0, !exLpRepsA1) (!c
                 }
 
 
+gutsDegree :: Guts -> Int
+gutsDegree g = 2 * surfacesN g - UV.sum (surfHoles g) - 2 * UV.sum (surfHandles g)
+
+
 {-# INLINE glueArcs #-}
 glueArcs :: Int -> (UV.Vector Int, Int) -> (UV.Vector Int, Int) -> (UV.Vector Int, UV.Vector Int)
 glueArcs !gl (!a, !posA) (!b, !posB) =
@@ -777,7 +781,9 @@ instance (Integral a, Show a) => KhovanovCobordism (DottedCobordism' a) where
 
         in V.fromList $ generate loops [(identityCobordism delooped, identityCobordism delooped)]
 
-    tqftBorderDim b@(Brd _ _ deg) = V.generate (2 ^ numberOfChords b) (\ i -> deg - popCount i)
+    tqftBorderDim b@(Brd _ _ deg) =
+        let n = numberOfChords b
+        in V.generate (2 ^ n) (\ i -> deg + (n - 2 * popCount i))
 
     tqft (Cob header m) =
         let dim = 2 ^ (legsN header `div` 2)
@@ -785,16 +791,16 @@ instance (Integral a, Show a) => KhovanovCobordism (DottedCobordism' a) where
             segs1 = UV.backpermute (wallMap header) $ UV.ifilter (<) $ arcs1 header
 
             matrix factor g =
-                M.matrix dim dim $ \ (row, col) ->
-                    let delta = UV.create $ do
-                            d <- UMV.replicate (wallHolesN header) (-1 :: Int)
-                            UV.mapM_ (UMV.modify d (+ 1)) segs0
-                            UV.imapM_ (\ h s -> UMV.modify d (+ (surfHandles g UV.! s)) h) $ wallSurfs g
-                            UV.imapM_ (\ i -> when (testBit (col - 1) i) . UMV.modify d (+ 1)) segs0
-                            UV.imapM_ (\ i -> when (testBit (row - 1) i) . UMV.modify d (+ (-1))) segs1
-                            return d
-                    in if UV.all (== 0) delta
-                        then factor
-                        else 0
+                assert (deg0 header - deg1 header == gutsDegree g - legsN header `div` 2) $
+                    M.matrix dim dim $ \ (row, col) ->
+                        let delta = UV.create $ do
+                                d <- UMV.replicate (wallHolesN header) (1 :: Int)
+                                UV.imapM_ (\ h s -> UMV.modify d (+ ((-2) * (surfHandles g UV.! s))) h) $ wallSurfs g
+                                UV.imapM_ (\ i -> UMV.modify d (+ if testBit (col - 1) i then -1 else 1)) segs0
+                                UV.imapM_ (\ i -> UMV.modify d (+ if testBit (row - 1) i then 1 else -1)) segs1
+                                return d
+                        in if UV.all (== 0) delta
+                            then factor
+                            else 0
 
         in Map.foldlWithKey' (\ carry k v -> carry + matrix (fromIntegral v) k) (M.zero dim dim) m
