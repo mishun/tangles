@@ -2,9 +2,10 @@ module Math.Topology.KnotTh.Algebra.Homology
     ( gradedCohomology
     ) where
 
+import Control.Arrow ((***))
 import Control.Monad (forM_, liftM2, when)
 import qualified Control.Monad.ST as ST
-import qualified Data.Map.Strict as M
+import qualified Data.Map.Strict as Map
 import qualified Data.Matrix as Matrix
 import qualified Data.Vector as V
 import qualified Data.Vector.Mutable as MV
@@ -134,16 +135,13 @@ smithNormalForm colGrading rowGrading matrix = ST.runST $ do
     eliminate 0
 
 
-gradedCohomology :: (Integral a, Ord g) => V.Vector (V.Vector g) -> V.Vector (Matrix.Matrix a) -> V.Vector [(g, Int)]
+gradedCohomology :: (Integral a, Ord g) => V.Vector (V.Vector g) -> V.Vector (Matrix.Matrix a) -> V.Vector [((g, a), Int)]
 gradedCohomology grad chain | V.length grad /= 1 + V.length chain  = error "size conflict"
                             | otherwise                            =
-    let dim = V.length chain
-        smith = V.imap (\ d -> smithNormalForm (grad V.! d) (grad V.! (d + 1))) chain
-    in V.generate (V.length grad) $ \ !d ->
-        let kernel | d == dim   = V.toList (grad V.! d) `zip` repeat 1
-                   | otherwise  = V.toList (snd $ smith V.! d) `zip` repeat 1
-
-            image | d == 0     = []
-                  | otherwise  = map (\ (g, _) -> (g, -1)) $ V.toList (fst $ smith V.! (d - 1))
-
-        in M.toList $ M.fromListWith (+) $ kernel ++ image
+    let cohomology im ker =
+            let image = concatMap (\ (deg, tor) -> ((deg, 1), -1) : [((deg, tor), 1) | tor /= 1]) $ V.toList im
+                kernel = map (\ deg -> ((deg, 1), 1)) $ V.toList ker
+            in Map.toList $ Map.filter (/= 0) $ Map.fromListWith (+) $ kernel ++ image
+    in uncurry (V.zipWith cohomology) $
+        V.cons V.empty *** (`V.snoc` V.last grad) $
+            V.unzip $ V.zipWith3 smithNormalForm grad (V.drop 1 grad) chain

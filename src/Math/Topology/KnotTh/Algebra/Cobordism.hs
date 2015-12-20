@@ -33,10 +33,10 @@ class (Cobordism c, TransposeAction c) => Cobordism3 c where
     pantsCobordism       :: c
     pantsCobordism'      :: c
 
-    sphereCobordism     = surfOfGenusCobordism 0
-    torusCobordism      = surfOfGenusCobordism 1
-    capCobordism        = capOfGenusCobordism 0
-    cupCobordism        = cupOfGenusCobordism 0
+    sphereCobordism = surfOfGenusCobordism 0
+    torusCobordism  = surfOfGenusCobordism 1
+    capCobordism    = capOfGenusCobordism 0
+    cupCobordism    = cupOfGenusCobordism 0
 
 class (Cobordism c, Eq c, Num c) => PreadditiveCobordism c where
     zeroCobordism   :: CobordismBorder c -> CobordismBorder c -> c
