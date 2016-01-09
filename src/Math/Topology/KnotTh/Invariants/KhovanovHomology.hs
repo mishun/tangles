@@ -210,7 +210,7 @@ khovanovComplex :: TangleDiagram -> KhovanovComplex (DottedCobordism' Integer)
 khovanovComplex tangle | ls == 0    = kh
                        | otherwise  = kh ⊗ planarLoop ls
     where ls = numberOfFreeLoops tangle
-          kh = reduceWithDefaultStrategy $ fmap crossingComplex tangle
+          kh = reducePlanarAlgebra $ fmap crossingComplex tangle
 
 
 class (Knotted k) => KnottedWithKhovanovHomology k where

@@ -1,13 +1,6 @@
 {-# LANGUAGE RankNTypes #-}
 module Math.Topology.KnotTh.Algebra.PlanarAlgebra.Reduction
-    ( PlanarM
-    , VertexM
-    , StrategyResult(..)
-    , Strategy
-    , vertexDegreeM
-    , oppositeM
-    , reduceWithStrategy
-    , reduceWithDefaultStrategy
+    ( reducePlanarAlgebra
     ) where
 
 import Control.Arrow (first)
@@ -108,12 +101,6 @@ data StrategyResult a = Contract (DartM a)
 type Strategy a = forall s. [DartM a] -> PlanarM s a (StrategyResult a)
 
 
-vertexDegreeM :: VertexM a -> PlanarM s a Int
-vertexDegreeM (VertexM v) =
-    ask >>= \ context ->
-        lift $ vertexDegreeST context v
-
-
 oppositeM :: DartM a -> PlanarM s a (DartM a)
 oppositeM (VertexM !v, p) = ask >>= \ !s -> lift $ do
     (!u, !q) <- neighbourST s (v, p)
@@ -121,8 +108,8 @@ oppositeM (VertexM !v, p) = ask >>= \ !s -> lift $ do
     return (VertexM u, q)
 
 
-reduceWithDefaultStrategy :: (LeggedDiagram d, VertexDiagram d, PlanarAlgebra a) => d a -> a
-reduceWithDefaultStrategy =
+reducePlanarAlgebra :: (LeggedDiagram d, VertexDiagram d, PlanarAlgebra a) => d a -> a
+reducePlanarAlgebra =
     reduceWithStrategy $
         let try [] = error "standardReductionStrategy: no reduction places left"
             try ((v, i) : t) = do
@@ -198,26 +185,6 @@ data Context s a =
         , multiple :: !(STRef s a)
         }
 
-
-{-
-dumpStateST :: (Show a) => Context s a -> ST s String
-dumpStateST s = do
-    cross <- forM [1 .. size s] $ \ i -> do
-        act <- UMV.read (active s) i
-        if not act
-            then return "???"
-            else do
-                adj <- MV.read (adjacent s) i
-                let bound = MV.length adj
-                con <- fmap concat $ forM [0 .. bound - 1] $ \ j ->
-                    show `fmap` MV.read adj j
-                st <- MV.read (state s) i
-                return $ printf "{ %s } %s" con (show st)
-
-    alive' <- readSTRef $ alive s
-    multiple' <- readSTRef $ multiple s
-    return $ printf "\nalive = %i\nmultiple=%s\n%s" alive' (show multiple') $ unlines cross
--}
 
 appendMultipleST :: (PlanarAlgebra a) => Context s a -> a -> ST.ST s ()
 appendMultipleST s b =

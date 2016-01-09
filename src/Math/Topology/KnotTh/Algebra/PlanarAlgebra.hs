@@ -53,8 +53,6 @@ class (TensorProduct a, RotationAction a) => PlanarAlgebra a where
         where legsA = planarDegree a
               legsB = planarDegree b
 
-    horizontalCompositionUnchecked = horizontalComposition
-
 
 -- | To trick GeneralizedNewtypeDeriving
 class DartDiagram' (d :: * -> *) where

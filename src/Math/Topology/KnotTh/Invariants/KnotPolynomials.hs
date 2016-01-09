@@ -22,7 +22,7 @@ crossingSkein UnderCrossing = skeinLMinus
 
 
 reduceSkein :: (SkeinRelation f p) => TangleDiagram -> f p
-reduceSkein = reduceWithDefaultStrategy . fmap crossingSkein
+reduceSkein = reducePlanarAlgebra . fmap crossingSkein
 
 
 skeinRelationPostMinimization :: (Ord (f p), MirrorAction (f p), SkeinRelation f p) => (TangleDiagram -> f p) -> TangleDiagram -> f p
