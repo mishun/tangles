@@ -324,8 +324,6 @@ instance VertexDiagram Tangle where
 
     isDart (Dart t i) = i < (vertexN t `shiftL` 2)
 
-    vertexIndicesRange t = (1, numberOfVertices t)
-
 instance Knotted Tangle where
     unrootedHomeomorphismInvariant tangle =
         totalRootCode (numberOfVertices tangle)
@@ -1256,8 +1254,6 @@ instance VertexDiagram OrientedTangle where
     incomingDarts  (OrientedVertex t v) = map (OrientedDart t) $ incomingDarts v
 
     isDart (OrientedDart _ d) = isDart d
-
-    vertexIndicesRange (OrientedTangle t _) = vertexIndicesRange t
 
 instance (Show a) => Show (Vertex OrientedTangle a) where
     show (OrientedVertex _ v) = show v

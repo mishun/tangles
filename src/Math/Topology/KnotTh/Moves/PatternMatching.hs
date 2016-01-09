@@ -13,8 +13,7 @@ module Math.Topology.KnotTh.Moves.PatternMatching
 import Data.Maybe (mapMaybe)
 import Data.List ((\\), subsequences)
 import qualified Data.Set as S
-import Data.Array.IArray ((!), (//), listArray)
-import Data.Array.Unboxed (UArray)
+import qualified Data.Vector.Unboxed as UV
 import Control.Applicative (Applicative(..), Alternative(..))
 import Control.Monad.State (execState, gets, modify)
 import Control.Monad (MonadPlus(..), unless, guard)
@@ -74,9 +73,8 @@ subTangleP legs =
         subList <- subsequences cs
         guard $ not $ null subList
 
-        let sub :: UArray Int Bool
-            sub = listArray (vertexIndicesRange tangle) (repeat False)
-                    // map (\ d -> (vertexIndex d, True)) subList
+        let sub = UV.replicate (1 + numberOfVertices tangle) False
+                    UV.// map (\ d -> (vertexIndex d, True)) subList
 
         guard $
             let mask = execState (dfs $ head subList) S.empty
@@ -85,7 +83,7 @@ subTangleP legs =
                     unless visited $ do
                         modify $ S.insert c
                         mapM_ dfs $
-                            filter ((sub !) . vertexIndex) $
+                            filter ((sub UV.!) . vertexIndex) $
                                 mapMaybe maybeEndVertex $ outcomingDarts c
             in all (`S.member` mask) subList
 
@@ -93,7 +91,7 @@ subTangleP legs =
                 let yx = opposite xy
                     x = beginVertex xy
                     y = beginVertex yx
-                in isDart xy && (sub ! vertexIndex x) && (isLeg yx || not (sub ! vertexIndex y))
+                in isDart xy && (sub UV.! vertexIndex x) && (isLeg yx || not (sub UV.! vertexIndex y))
 
         let border = filter onBorder $ concatMap outcomingDarts cs
         guard $ legs == length border

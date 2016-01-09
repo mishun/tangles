@@ -1,6 +1,5 @@
 module Math.Topology.KnotTh.Knotted.Threads
-    ( ThreadList
-    , ThreadedCrossing(..)
+    ( ThreadedCrossing(..)
     , allThreads
     , numberOfThreads
     , allThreadsWithMarks
@@ -8,16 +7,11 @@ module Math.Topology.KnotTh.Knotted.Threads
 
 import Control.Monad (foldM)
 import qualified Control.Monad.ST as ST
-import Data.Array.Unboxed (UArray)
-import Data.Array.Unsafe (unsafeFreeze)
-import Data.Array.ST (STUArray, newArray, readArray, writeArray)
-import Data.Ix (Ix)
 import Data.Maybe (fromJust)
 import Data.STRef (newSTRef, readSTRef, modifySTRef')
+import qualified Data.Vector.Unboxed as UV
+import qualified Data.Vector.Unboxed.Mutable as UMV
 import Math.Topology.KnotTh.Knotted
-
-
-type ThreadList d = (Int, UArray d Int, [(Int, [(d, d)])])
 
 
 class ThreadedCrossing a where
@@ -40,7 +34,7 @@ numberOfThreads knot =
     in n
 
 
-allThreadsWithMarks :: (ThreadedCrossing a, Knotted k) => k a -> ThreadList (Dart k a)
+allThreadsWithMarks :: (ThreadedCrossing a, Knotted k) => k a -> (Int, Dart k a -> Int, [(Int, [(Dart k a, Dart k a)])])
 allThreadsWithMarks knot = ST.runST $ do
     let lp = numberOfFreeLoops knot
     threads <- newSTRef $ replicate lp (0, [])
@@ -48,16 +42,16 @@ allThreadsWithMarks knot = ST.runST $ do
     (n, visited) <- if numberOfEdges knot == 0
         then return (1, undefined)
         else do
-            visited <- (newArray :: (Ix i) => (i, i) -> Int -> ST.ST s (STUArray s i Int)) (dartsRange knot) 0
+            visited <- UMV.replicate (numberOfDarts knot) 0
             n <- foldM (\ !i (!startA, !startB) -> do
-                    v <- readArray visited startA
+                    v <- UMV.read visited (dartIndex startA)
                     if v /= 0
                         then return $! i
                         else do
                             let traceBack !prev !b = do
                                     let a = opposite b
-                                    writeArray visited a i
-                                    writeArray visited b (-i)
+                                    UMV.write visited (dartIndex a) i
+                                    UMV.write visited (dartIndex b) (-i)
                                     let !next = (a, b) : prev
                                     case maybeThreadContinuation a of
                                         Nothing                -> return $! Right $! next
@@ -69,8 +63,8 @@ allThreadsWithMarks knot = ST.runST $ do
                                         Nothing -> return $! reverse prev
                                         Just !a -> do
                                             let !b = opposite a
-                                            writeArray visited a i
-                                            writeArray visited b (-i)
+                                            UMV.write visited (dartIndex a) i
+                                            UMV.write visited (dartIndex b) (-i)
                                             traceFront ((a, b) : prev) b
 
                             tb <- traceBack [] startB
@@ -83,6 +77,6 @@ allThreadsWithMarks knot = ST.runST $ do
                             modifySTRef' threads ((i, thread) :)
                             return $! i + 1
                 ) 1 (allEdges knot)
-            (,) n `fmap` unsafeFreeze visited
+            (,) n `fmap` UV.unsafeFreeze visited
 
-    (,,) (n - 1 + lp) visited `fmap` readSTRef threads
+    (,,) (n - 1 + lp) ((visited UV.!) . dartIndex) `fmap` readSTRef threads

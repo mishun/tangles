@@ -274,6 +274,8 @@ instance (CannedCobordism c, PreadditiveCobordism c) => PlanarAlgebra (Cobordism
     horizontalComposition !gl (CB a, !posA) (CB b, !posB) =
         CB $ V.concatMap (\ a' -> V.map (\ b' -> horizontalComposition gl (a', posA) (b', posB)) b) a
 
+    horizontalCompositionUnchecked = horizontalComposition
+
 instance (CannedCobordism c, PreadditiveCobordism c) => RotationAction (CobordismMatrix c) where
     rotationOrder m = max (rotationOrder $ cobordismBorder0 m)
                           (rotationOrder $ cobordismBorder1 m)

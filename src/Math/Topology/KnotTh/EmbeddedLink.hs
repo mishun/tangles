@@ -28,7 +28,6 @@ import Control.Monad.IfElse (unlessM, whenM, whileM)
 import qualified Control.Monad.Reader as Reader
 import qualified Control.Monad.ST as ST
 import qualified Data.Array.ST as STArray
-import qualified Data.Array.Unboxed as A
 import Data.Bits ((.&.), shiftL, shiftR, complement)
 import Data.Function (fix)
 import Data.List (foldl', find)
@@ -39,6 +38,7 @@ import qualified Data.Vector.Mutable as MV
 import qualified Data.Vector.Primitive as PV
 import qualified Data.Vector.Primitive.Mutable as PMV
 import qualified Data.Vector.Unboxed as UV
+import qualified Data.Vector.Unboxed.Mutable as UMV
 import Text.Printf
 import Math.Topology.KnotTh.Algebra.Dihedral.D4
 import Math.Topology.KnotTh.Algebra.SurfaceDiagram
@@ -146,8 +146,6 @@ instance VertexDiagram EmbeddedLink where
     beginPlace (Dart _ d) = d .&. 3
 
     isDart _ = True
-
-    vertexIndicesRange k = (1, numberOfVertices k)
 
 instance (NFData a) => NFData (EmbeddedLink a) where
     rnf k = rnf (crossingsArray k) `seq` k `seq` ()
@@ -575,7 +573,7 @@ testLayering link | numberOfFreeLoops link > 0  = False
             isComponentRoot <- newSTRef True
 
             forM_ (snd $ fromJust $ find ((== u) . fst) threads) $ \ (_, d) -> do
-                let v = abs (marks A.! nextCCW d)
+                let v = abs (marks $ nextCCW d)
                 when (isPassingUnder d && v /= u) $ do
                     do
                         vlw <- STArray.readArray lowlink v
@@ -699,47 +697,47 @@ stoerWagner link = ST.runST $ do
 has4LegPlanarPart :: EmbeddedLink a -> Bool
 has4LegPlanarPart =
     let planar link start darts = ST.runST $ do
-            vertex <- (STArray.newArray :: (STArray.Ix i) => (i, i) -> Bool -> ST.ST s (STArray.STUArray s i Bool)) (verticesRange link) False
-            edge <- (STArray.newArray :: (STArray.Ix i) => (i, i) -> Bool -> ST.ST s (STArray.STUArray s i Bool)) (dartsRange link) False
+            vertex <- UMV.replicate (1 + numberOfVertices link) False
+            edge <- UMV.replicate (numberOfDarts link) False
+            face <- UMV.replicate (1 + numberOfFaces link) False
 
-            face <- (STArray.newArray :: (STArray.Ix i) => (i, i) -> Bool -> ST.ST s (STArray.STUArray s i Bool)) (facesRange link) False
-            mapM_ (\ !e -> STArray.writeArray face (leftFace e) True) darts
+            mapM_ (\ !e -> UMV.write face (faceIndex $ leftFace e) True) darts
 
-            queue <- (STArray.newArray_ :: (STArray.Ix i) => (i, i) -> ST.ST s (STArray.STArray s i a)) (0, numberOfVertices link)
+            queue <- MV.new (1 + numberOfVertices link)
             qtail <- newSTRef 1
 
-            STArray.writeArray vertex start True
-            STArray.writeArray queue 0 start
+            UMV.write vertex (vertexIndex start) True
+            MV.write queue 0 start
 
             nv <- newSTRef 1
             ne <- newSTRef 4
             nf <- newSTRef 4
 
             let testFace f = do
-                    fi <- STArray.readArray face f
+                    fi <- UMV.read face (faceIndex f)
                     unless fi $ do
-                        STArray.writeArray face f True
+                        UMV.write face (faceIndex f) True
                         modifySTRef' nf (+ 1)
 
             let testEdge e = do
-                    ei <- STArray.readArray edge e
+                    ei <- UMV.read edge (dartIndex e)
                     unless ei $ do
-                        STArray.writeArray edge e True
-                        STArray.writeArray edge (opposite e) True
+                        UMV.write edge (dartIndex e) True
+                        UMV.write edge (dartIndex $ opposite e) True
                         modifySTRef' ne (+ 1)
 
             let testVertex v = do
-                    vi <- STArray.readArray vertex v
+                    vi <- UMV.read vertex (vertexIndex v)
                     unless vi $ do
-                        STArray.writeArray vertex v True
+                        UMV.write vertex (vertexIndex v) True
                         modifySTRef' nv (+ 1)
                         t <- readSTRef qtail
-                        STArray.writeArray queue t v
+                        MV.write queue t v
                         writeSTRef qtail $! t + 1
 
             let loop !qhead =
                     whenM ((qhead <) `fmap` readSTRef qtail) $ do
-                        v <- STArray.readArray queue qhead
+                        v <- MV.read queue qhead
                         forM_ [0 .. 3] $ \ !i -> do
                             let e = nthOutcomingDart v i
                             when (e `notElem` darts) $ do

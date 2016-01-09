@@ -8,11 +8,14 @@ module Math.Topology.KnotTh.SurfaceGraph.SurfaceGraphDef
     , barycentricSubdivision
     , barycentricSubdivision'
     , nthBarycentricSubdivision
+    , verticesRange
     ) where
 
+import Control.Arrow ((***), first)
 import Control.Monad (forM_, foldM)
 import qualified Control.Monad.ST as ST
 import qualified Data.Array as A
+import qualified Data.Ix as Ix
 import Data.List (intercalate)
 import qualified Data.Vector as V
 import qualified Data.Vector.Unboxed as UV
@@ -85,7 +88,12 @@ instance VertexDiagram SurfaceGraph where
         let (vi, p) = _connToVert g UV.! i
         in (Vertex g vi, p)
 
-    vertexIndicesRange g = (0, numberOfVertices g - 1)
+-- TODO: remove it?
+instance Ix.Ix (Vertex SurfaceGraph a) where
+    range     (a, b)   = map (nthVertex (vertexOwner b)) [vertexIndex a .. vertexIndex b]
+    index     (a, b) c = Ix.index (vertexIndex a, vertexIndex b) (vertexIndex c)
+    inRange   (a, b) c = (vertexIndex c >= vertexIndex a) && (vertexIndex c <= vertexIndex b)
+    rangeSize (a, b)   = max 0 (vertexIndex b - vertexIndex a + 1)
 
 instance SurfaceDiagram SurfaceGraph where
     numberOfFaces g = V.length (_faces g)
@@ -114,6 +122,13 @@ instance SurfaceDiagram SurfaceGraph where
         in Dart g $ (_faces g V.! i) UV.! jj
 
     faceIndicesRange g = (0, numberOfFaces g - 1)
+
+-- TODO: remove it?
+instance Ix.Ix (Face SurfaceGraph t) where
+    range     (a, b)   = map (nthFace (faceOwner b)) [faceIndex a .. faceIndex b]
+    index     (a, b) c = Ix.index (faceIndex a, faceIndex b) (faceIndex c)
+    inRange   (a, b) c = (faceIndex c >= faceIndex a) && (faceIndex c <= faceIndex b)
+    rangeSize (a, b)   = max 0 (faceIndex b - faceIndex a + 1)
 
 instance Show (SurfaceGraph a) where
     show graph =
@@ -274,3 +289,12 @@ barycentricSubdivision' g = (bs, zip (x [0 ..]) (allVertices g), zip (x [v ..]) 
 nthBarycentricSubdivision :: Int -> SurfaceGraph a -> SurfaceGraph a
 nthBarycentricSubdivision n g | n > 0      = nthBarycentricSubdivision (n - 1) $ barycentricSubdivision g
                               | otherwise  = g
+
+
+vertexIndicesRange :: SurfaceGraph a -> (Int, Int)
+vertexIndicesRange g = (0, numberOfVertices g - 1)
+
+
+verticesRange :: SurfaceGraph a -> (Vertex SurfaceGraph a, Vertex SurfaceGraph a)
+verticesRange a | numberOfVertices a > 0  = (nthVertex a *** nthVertex a) $ vertexIndicesRange a
+                | otherwise               = error "verticesRange: no vertices"

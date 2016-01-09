@@ -10,7 +10,6 @@ module Math.Topology.KnotTh.Algebra.SurfaceDiagram
     ) where
 
 import Control.Arrow ((***), first)
-import qualified Data.Ix as Ix
 import Math.Topology.KnotTh.Algebra.PlanarAlgebra
 
 
@@ -49,12 +48,6 @@ instance (SurfaceDiagram a) => Eq (Face a t) where
 
 instance (SurfaceDiagram a) => Ord (Face a t) where
     compare a b = faceIndex a `compare` faceIndex b
-
-instance (SurfaceDiagram a) => Ix.Ix (Face a t) where
-    range     (a, b)   = map (nthFace (faceOwner b)) [faceIndex a .. faceIndex b]
-    index     (a, b) c = Ix.index (faceIndex a, faceIndex b) (faceIndex c)
-    inRange   (a, b) c = (faceIndex c >= faceIndex a) && (faceIndex c <= faceIndex b)
-    rangeSize (a, b)   = max 0 (faceIndex b - faceIndex a + 1)
 
 
 {-# INLINE rightFace #-}

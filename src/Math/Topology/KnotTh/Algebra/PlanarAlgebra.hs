@@ -32,17 +32,15 @@ class (TensorProduct a, RotationAction a) => PlanarAlgebra a where
     horizontalComposition :: Int -> (a, Int) -> (a, Int) -> a
     horizontalLooping     :: Int -> (a, Int) -> a
 
-    -- | Never call it. Default horizontalComposition calls it after all bound checks.
+    -- | Never call it. Default horizontalComposition and horizontalLooping call it after all bound checks.
     horizontalCompositionUnchecked :: Int -> (a, Int) -> (a, Int) -> a
+    horizontalLoopingUnchecked     :: Int -> (a, Int) -> a
 
     planarEmpty = planarPropagator 0
 
     planarLoop n =
         let p = planarPropagator n
         in horizontalComposition (2 * n) (p, 0) (p, 0)
-
-    horizontalLooping gl (x, pos) =
-        horizontalComposition (2 * gl) (x, pos) (planarPropagator gl, 0)
 
     {-# INLINE horizontalComposition #-}
     horizontalComposition !gl (!a, !posA) (!b, !posB)
@@ -52,6 +50,17 @@ class (TensorProduct a, RotationAction a) => PlanarAlgebra a where
         | otherwise   = horizontalCompositionUnchecked gl (a, posA) (b, posB)
         where legsA = planarDegree a
               legsB = planarDegree b
+
+    {-# INLINE horizontalLooping #-}
+    horizontalLooping !gl (!x, !pos)
+        | gl < 0         = error $ printf "horizontalLooping: gl (%i) must be non-negative" gl
+        | 2 * gl > legs  = error $ printf "horizontalLooping: gl (%i) exceeds half of the number of legs (%i)" gl legs
+        | otherwise      = horizontalLoopingUnchecked gl (x, pos)
+        where legs = planarDegree x
+
+    {-# INLINE horizontalLoopingUnchecked #-}
+    horizontalLoopingUnchecked gl (x, pos) =
+        horizontalCompositionUnchecked (2 * gl) (x, pos) (planarPropagator gl, 0)
 
 
 -- | To trick GeneralizedNewtypeDeriving
@@ -169,24 +178,17 @@ class (VertexDiagram' d) => VertexDiagram d where
 
     -- TODO: remove it?
     isDart             :: Dart d a -> Bool
-    vertexIndicesRange :: d a -> (Int, Int)
-    verticesRange      :: d a -> (Vertex d a, Vertex d a)
+--    vertexIndicesRange :: d a -> (Int, Int)
+--    verticesRange      :: d a -> (Vertex d a, Vertex d a)
     isDart _ = True
-    verticesRange a | numberOfVertices a > 0  = (nthVertex a *** nthVertex a) $ vertexIndicesRange a
-                    | otherwise               = error "verticesRange: no vertices"
+--    verticesRange a | numberOfVertices a > 0  = (nthVertex a *** nthVertex a) $ vertexIndicesRange a
+--                    | otherwise               = error "verticesRange: no vertices"
 
 instance (VertexDiagram d) => Eq (Vertex d a) where
     (==) a b = vertexIndex a == vertexIndex b
 
 instance (VertexDiagram d) => Ord (Vertex d a) where
     compare a b = vertexIndex a `compare` vertexIndex b
-
--- TODO: remove it?
-instance (VertexDiagram d) => Ix.Ix (Vertex d a) where
-    range     (a, b)   = map (nthVertex (vertexOwner b)) [vertexIndex a .. vertexIndex b]
-    index     (a, b) c = Ix.index (vertexIndex a, vertexIndex b) (vertexIndex c)
-    inRange   (a, b) c = (vertexIndex c >= vertexIndex a) && (vertexIndex c <= vertexIndex b)
-    rangeSize (a, b)   = max 0 (vertexIndex b - vertexIndex a + 1)
 
 
 {-# INLINE hasVertices #-}
