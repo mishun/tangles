@@ -11,7 +11,7 @@ module Math.Topology.KnotTh.SurfaceGraph.SurfaceGraphDef
     , verticesRange
     ) where
 
-import Control.Arrow ((***), first)
+import Control.Arrow ((***))
 import Control.Monad (forM_, foldM)
 import qualified Control.Monad.ST as ST
 import qualified Data.Array as A

@@ -25,7 +25,7 @@ module Math.Topology.KnotTh.Tangle
     , gridTangle
     , rationalTangle
     , rationalTangle'
-    , twistedSatellite
+    , cablingSatellite
     , conwayRecip
     , conwayProduct
     , conwayRamification
@@ -124,8 +124,8 @@ rationalTangle' :: (MirrorAction a) => [V.Vector a] -> Tangle4 a
 rationalTangle' = foldl conwayProduct infinityTangle . map chainTangle
 
 
-twistedSatellite :: (TensorSurgery k, OrientedKnotted k' k) => Int -> k DiagramCrossing -> k DiagramCrossing
-twistedSatellite n tangle = tensorSurgery n $ mapVertices wrap tangle
+cablingSatellite :: (CablingSurgery k, OrientedKnotted k' k) => Int -> k DiagramCrossing -> k DiagramCrossing
+cablingSatellite n tangle = cablingSurgery n $ mapVertices wrap tangle
     where
         oriented = arbitraryOrientation tangle
 

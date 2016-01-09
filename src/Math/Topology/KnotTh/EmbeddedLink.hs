@@ -503,10 +503,10 @@ splitIntoTangleAndStar link =
 instance Surgery EmbeddedLink where
     surgery = error "not implemented"
 
-    multiSurgery = tensorSurgery 1 . fmap toTangle
+    multiSurgery = cablingSurgery 1 . fmap toTangle
 
-instance TensorSurgery EmbeddedLink where
-    tensorSurgery k link = implode (k * numberOfFreeLoops link, body)
+instance CablingSurgery EmbeddedLink where
+    cablingSurgery k link = implode (k * numberOfFreeLoops link, body)
         where
             n = numberOfVertices link
 

@@ -7,7 +7,7 @@ module Math.Topology.KnotTh.Tangle.TangleDef
     , Tangle4
     , Tangle6
     , Surgery(..)
-    , TensorSurgery(..)
+    , CablingSurgery(..)
 
     , glueToBorder
     , emptyPropagatorTangle
@@ -91,8 +91,8 @@ instance DartDiagram' Tangle0 where
 instance VertexDiagram' Tangle0 where
     newtype Vertex Tangle0 a = V0 (Vertex Tangle a)
 
-instance TensorSurgery Tangle0 where
-    tensorSurgery k (T0 t) = T0 $ tensorSurgery k t
+instance CablingSurgery Tangle0 where
+    cablingSurgery k (T0 t) = T0 $ cablingSurgery k t
 
 instance ExplodeKnotted Tangle0 where
     type ExplodeType Tangle0 a = (Int, [([(Int, Int)], a)])
@@ -752,23 +752,23 @@ instance Surgery Tangle where
                 UV.generate (numberOfVertices tangle) $ \ !i ->
                     numberOfVertices $ vertexContent $ nthVertex tangle (i + 1)
 
-            oppositeInt b u | isLeg v    = oppositeExt $ nthOutcomingDart b (legPlace v) -- dartByCrossingLegId b (legPlace v)
+            oppositeInt b u | isLeg v    = oppositeExt $ nthOutcomingDart b (legPlace v)
                             | otherwise  = (w, beginPlace v)
                 where v = opposite u
                       c = beginVertex v
                       w = (offset UV.! (vertexIndex b - 1)) + vertexIndex c
 
             oppositeExt u | isLeg v    = (0, legPlace v)
-                          | otherwise  = oppositeInt c $ nthLeg (vertexContent $ beginVertex v) (beginPlace v) --subTangleLegFromDart v
+                          | otherwise  = oppositeInt c $ nthLeg (vertexContent $ beginVertex v) (beginPlace v)
                 where v = opposite u
                       c = beginVertex v
 
 
-class (Surgery k) => TensorSurgery k where
-    tensorSurgery :: Int -> k (Tangle a) -> k a
+class (Surgery k) => CablingSurgery k where
+    cablingSurgery :: Int -> k (Tangle a) -> k a
 
-instance TensorSurgery Tangle where
-    tensorSurgery k tangle = implode (k * numberOfFreeLoops tangle, border, body)
+instance CablingSurgery Tangle where
+    cablingSurgery k tangle = implode (k * numberOfFreeLoops tangle, border, body)
         where
             n = numberOfVertices tangle
 

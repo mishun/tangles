@@ -66,7 +66,7 @@ test = testGroup "Enumeration tests"
             testInvariantness weakTangleClasses 5 (kauffmanXPolynomial . tangleDoubling)
 
         , testCase "Jones polynomial of doubling satellite" $
-            testInvariantness tangleClasses 4 (minimalKauffmanXPolynomial . twistedSatellite 2)
+            testInvariantness tangleClasses 4 (minimalKauffmanXPolynomial . cablingSatellite 2)
 
         -- , testCase "Kauffman F polynomial of triple satellite" $
         --    testInvariantness tangleClasses 1 (minimalKauffmanFPolynomial . twistedSatellite 3)
@@ -77,7 +77,7 @@ test = testGroup "Enumeration tests"
             (\ maxN -> do
                 let sifted =
                         let invariantSet tangle = ( minimalKauffmanXPolynomial tangle
-                                                  , minimalKauffmanXPolynomial $ twistedSatellite 2 tangle
+                                                  , minimalKauffmanXPolynomial $ cablingSatellite 2 tangle
                                                   )
                         in siftByInvariant invariantSet $
                             tangleClasses $ \ yield ->

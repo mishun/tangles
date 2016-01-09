@@ -177,12 +177,8 @@ class (VertexDiagram' d) => VertexDiagram d where
     --foldMOutcomingDartsFrom
 
     -- TODO: remove it?
-    isDart             :: Dart d a -> Bool
---    vertexIndicesRange :: d a -> (Int, Int)
---    verticesRange      :: d a -> (Vertex d a, Vertex d a)
+    isDart :: Dart d a -> Bool
     isDart _ = True
---    verticesRange a | numberOfVertices a > 0  = (nthVertex a *** nthVertex a) $ vertexIndicesRange a
---                    | otherwise               = error "verticesRange: no vertices"
 
 instance (VertexDiagram d) => Eq (Vertex d a) where
     (==) a b = vertexIndex a == vertexIndex b
