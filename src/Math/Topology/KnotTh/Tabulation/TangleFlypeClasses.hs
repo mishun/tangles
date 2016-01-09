@@ -57,7 +57,7 @@ directSumDescendants crossings (t4, symmetry) = do
             let leg = nthLeg t legIndex
                 coLeg = nextCCW $ nextCCW leg
                 flypeS =
-                    case additionalFlypeSymmetry (tangle4 $ vertexOwner root) of
+                    case additionalFlypeSymmetry (tangle' $ vertexOwner root) of
                         Just x  -> addSymmetryToSubGroup s x
                         Nothing -> s
             in case (isLonerInVertex root, isLonerInVertex $ endVertex leg, isLonerInVertex $ endVertex coLeg) of
@@ -84,7 +84,7 @@ directSumDescendants crossings (t4, symmetry) = do
                 let root = glueToBorder 2 (tangle, leg) st
                 (s, _, rc) <- rootingSymmetryTest root
                 sym <- postTest root (tangle, leg) s
-                return (rc, (tangle4 $ vertexOwner root, sym))
+                return (rc, (tangle' $ vertexOwner root, sym))
         else do
             (leg, inducedSymmetry) <- uniqueGlueSites' 2 (tangle, symmetry)
             st <- possibleSubTangleOrientations cr inducedSymmetry
@@ -93,7 +93,7 @@ directSumDescendants crossings (t4, symmetry) = do
                 let root = glueToBorder 2 (tangle, leg) st
                 (s, _, _) <- rootingSymmetryTest root
                 sym <- postTest root (tangle, leg) s
-                return (tangle4 $ vertexOwner root, sym)
+                return (tangle' $ vertexOwner root, sym)
 
 
 generateFlypeEquivalentDecomposition' :: (Monad m) => Bool -> Int -> ((SubTangleTangle ProjectionCrossing, SubGroup Dn) -> m ()) -> m ()
@@ -124,7 +124,7 @@ generateFlypeEquivalentDecomposition' triangle maxN yield = do
                         forM_ [1 .. halfN - curN] $ \ cn ->
                             forM_ (templateDescendants True halfN (crossings V.! cn) cn curN ancestor) $ \ child@(childTangle, _) ->
                                 case numberOfLegs childTangle of
-                                    4 -> growTree $ first tangle4 child
+                                    4 -> growTree $ first tangle' child
                                     _ -> glueTemplates (curN + cn) child
 
                 let glueDirectSums curN ancestor =
@@ -149,7 +149,7 @@ generateFlypeEquivalentDecomposition' triangle maxN yield = do
                 forM_ [1 .. min halfN (maxN - curN)] $ \ cn ->
                     forM_ (templateDescendants triangle maxN (crossings V.! cn) cn curN ancestor) $ \ child@(childTangle, childSymmetry) ->
                         case numberOfLegs childTangle of
-                            4 -> tree (curN + cn) $ first tangle4 child
+                            4 -> tree (curN + cn) $ first tangle' child
                             _ -> lift (yield (childTangle, childSymmetry)) >> glueTemplates (curN + cn) child
 
         let glueDirectSums curN ancestor =

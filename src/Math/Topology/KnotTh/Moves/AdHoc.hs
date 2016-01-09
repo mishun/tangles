@@ -167,8 +167,8 @@ instance AdHocMoves Tangle where
 
 
 instance AdHocMoves Tangle0 where
-    flype = map tangle0 . flype . toTangle
-    pass = map tangle0 . pass . toTangle
+    flype = map tangle' . flype . toTangle
+    pass = map tangle' . pass . toTangle
 
 
 smoothA :: TangleDiagramVertex -> ModifyM Tangle DiagramCrossing s ()

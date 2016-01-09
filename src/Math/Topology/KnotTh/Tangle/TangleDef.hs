@@ -1,7 +1,8 @@
-{-# LANGUAGE DeriveFunctor, GeneralizedNewtypeDeriving, MultiParamTypeClasses, TypeFamilies #-}
+{-# LANGUAGE DataKinds, DeriveFunctor, GADTs, GeneralizedNewtypeDeriving, MultiParamTypeClasses, ScopedTypeVariables, StandaloneDeriving, TypeFamilies #-}
 module Math.Topology.KnotTh.Tangle.TangleDef
     ( Tangle
     , AsTangle(..)
+    , Tangle'
     , Tangle0
     , Tangle2
     , Tangle4
@@ -21,18 +22,12 @@ module Math.Topology.KnotTh.Tangle.TangleDef
     , lonerUnderCrossing
     , chainTangle
     , zipTangles
-    , zipTangles2
-    , zipTangles4
-    , zipTangles6
+    , zipKTangles
     , conwaySum
-
-    , tangle0
-    , tangle2
-    , tangle4
-    , tangle6
+    , tangle'
 
     , OrientedTangle
-    , OrientedTangle0
+    , OrientedTangle'
     ) where
 
 import Control.Applicative (Applicative)
@@ -44,6 +39,7 @@ import qualified Control.Monad.Reader as Reader
 import Data.Bits ((.&.), complement, shiftL, shiftR)
 import Data.List (nub, sort, foldl', find)
 import qualified Data.Map as M
+import Data.Proxy (Proxy(..))
 import qualified Data.Set as S
 import Data.STRef (STRef, modifySTRef', newSTRef, readSTRef)
 import qualified Data.Vector as V
@@ -52,7 +48,8 @@ import qualified Data.Vector.Unboxed as UV
 import qualified Data.Vector.Unboxed.Mutable as UMV
 import qualified Data.Vector.Primitive as PV
 import qualified Data.Vector.Primitive.Mutable as PMV
-import Text.Printf
+import GHC.TypeLits (Nat, KnownNat, natVal, CmpNat)
+import Text.Printf (printf)
 import Math.Topology.KnotTh.Algebra.Dihedral.D4
 import Math.Topology.KnotTh.Knotted
 import Math.Topology.KnotTh.Knotted.Crossings.Projection
@@ -79,95 +76,58 @@ instance AsTangle Tangle where
     toTangle t = t
 
 
-newtype Tangle0 a = T0 (Tangle a)
-    deriving (Show, Functor, NFData, MirrorAction, TransposeAction, DartDiagram, VertexDiagram, Knotted, KnottedDiagram, Surgery)
+newtype Tangle' :: Nat -> * -> * where
+    T :: Tangle a -> Tangle' k a
+    deriving ( Show
+             , Functor
+             , NFData
+             , AsTangle
+             , MirrorAction
+             , TransposeAction
+             , DartDiagram
+             , VertexDiagram
+             , LeggedDiagram
+             , Knotted
+             , KnottedDiagram
+             , Surgery
+             )
 
-instance AsTangle Tangle0 where
-    toTangle (T0 t) = t
+deriving instance (CmpNat 0 k ~ LT) => RotationAction (Tangle' k a)
 
-instance DartDiagram' Tangle0 where
-    newtype Dart Tangle0 a = D0 (Dart Tangle a)
+instance DartDiagram' (Tangle' k) where
+    newtype Dart (Tangle' k) a = D (Dart Tangle a)
 
-instance VertexDiagram' Tangle0 where
-    newtype Vertex Tangle0 a = V0 (Vertex Tangle a)
+instance VertexDiagram' (Tangle' k) where
+    newtype Vertex (Tangle' k) a = V (Vertex Tangle a)
 
-instance CablingSurgery Tangle0 where
-    cablingSurgery k (T0 t) = T0 $ cablingSurgery k t
+instance Show (Dart (Tangle' k) a) where
+    show (D d) = show d
 
-instance ExplodeKnotted Tangle0 where
-    type ExplodeType Tangle0 a = (Int, [([(Int, Int)], a)])
-    explode (T0 t) = let (f, [], l) = explode t in (f, l)
-    implode (f, l) = T0 (implode (f, [], l))
-
-instance (Crossing a) => KnotWithPrimeTest Tangle0 a where
-    isPrime (T0 t) = isPrime t
-
-instance (Show a) => Show (Vertex Tangle0 a) where
-    show (V0 v) = show v
-
-instance Show (Dart Tangle0 a) where
-    show (D0 d) = show d
-
-
-newtype Tangle2 a = T2 (Tangle a)
-    deriving (Show, Functor, NFData, RotationAction, MirrorAction, TransposeAction, DartDiagram, LeggedDiagram, VertexDiagram, Knotted, Surgery)
-
-instance AsTangle Tangle2 where
-    toTangle (T2 t) = t
-
-instance DartDiagram' Tangle2 where
-    newtype Dart Tangle2 a = D2 (Dart Tangle a)
-
-instance VertexDiagram' Tangle2 where
-    newtype Vertex Tangle2 a = V2 (Vertex Tangle a)
-
-instance (Show a) => Show (Vertex Tangle2 a) where
-    show (V2 v) = show v
-
-instance Show (Dart Tangle2 a) where
-    show (D2 d) = show d
+instance (Show a) => Show (Vertex (Tangle' k) a) where
+    show (V d) = show d
 
 
-newtype Tangle4 a = T4 (Tangle a)
-    deriving (Show, Functor, NFData, RotationAction, MirrorAction, TransposeAction, DartDiagram, LeggedDiagram, VertexDiagram, Knotted, Surgery)
+instance CablingSurgery (Tangle' 0) where
+    cablingSurgery k (T t) = T $ cablingSurgery k t
 
-instance AsTangle Tangle4 where
-    toTangle (T4 t) = t
+instance ExplodeKnotted (Tangle' 0) where
+    type ExplodeType (Tangle' 0) a = (Int, [([(Int, Int)], a)])
+    explode (T t) = let (f, [], l) = explode t in (f, l)
+    implode (f, l) = T (implode (f, [], l))
 
-instance DartDiagram' Tangle4 where
-    newtype Dart Tangle4 a = D4 (Dart Tangle a)
+instance (Crossing a) => KnotWithPrimeTest (Tangle' 0) a where
+    isPrime (T t) = isPrime t
 
-instance VertexDiagram' Tangle4 where
-    newtype Vertex Tangle4 a = V4 (Vertex Tangle a)
 
-instance (Show a) => Show (Vertex Tangle4 a) where
-    show (V4 v) = show v
-
-instance Show (Dart Tangle4 a) where
-    show (D4 d) = show d
-
-instance (MirrorAction a) => GroupAction D4 (Tangle4 a) where
+instance (MirrorAction a) => GroupAction D4 (Tangle' 4 a) where
     transform g t | reflection g  = mirrorIt $ rotateBy (rotation g) t
                   | otherwise     = rotateBy (rotation g) t
 
 
-newtype Tangle6 a = T6 (Tangle a)
-    deriving (Show, Functor, NFData, RotationAction, MirrorAction, TransposeAction, DartDiagram, LeggedDiagram, VertexDiagram, Knotted, Surgery)
-
-instance AsTangle Tangle6 where
-    toTangle (T6 t) = t
-
-instance DartDiagram' Tangle6 where
-    newtype Dart Tangle6 a = D6 (Dart Tangle a)
-
-instance VertexDiagram' Tangle6 where
-    newtype Vertex Tangle6 a = V6 (Vertex Tangle a)
-
-instance (Show a) => Show (Vertex Tangle6 a) where
-    show (V6 v) = show v
-
-instance Show (Dart Tangle6 a) where
-    show (D6 d) = show d
+type Tangle0 = Tangle' 0
+type Tangle2 = Tangle' 2
+type Tangle4 = Tangle' 4
+type Tangle6 = Tangle' 6
 
 
 instance (NFData a) => NFData (Tangle a) where
@@ -666,11 +626,11 @@ instance (Crossing a) => KnotWithPrimeTest Tangle a where
 
 
 class (Knotted k) => Surgery k where
-    surgery      :: Tangle4 a -> Vertex k a -> k a
-    multiSurgery :: k (Tangle4 a) -> k a
+    surgery      :: Tangle' 4 a -> Vertex k a -> k a
+    multiSurgery :: k (Tangle' 4 a) -> k a
 
 instance Surgery Tangle where
-    surgery (T4 sub) v =
+    surgery (T sub) v =
         ST.runST $ do
             let tangle = vertexOwner v
                 legs = legsN tangle
@@ -822,7 +782,7 @@ instance CablingSurgery Tangle where
 -- ........|  |   \-----|--0       ........|                       (leg-2)-|--|-----/   |
 -- ........|  +=========+          ........|                       ........|  +=========+
 glueToBorder :: (AsTangle t) => Int -> (t a, Int) -> a -> Vertex Tangle a
-glueToBorder !gl (!tangle', !lp) !cr | gl < 0 || gl > 4  = error $ printf "glueToBorder: legsToGlue must be in [0 .. 4], but %i found" gl
+glueToBorder !gl (!tangle0, !lp) !cr | gl < 0 || gl > 4  = error $ printf "glueToBorder: legsToGlue must be in [0 .. 4], but %i found" gl
                                      | gl > oldL         = error $ printf "glueToBorder: not enough legs to glue (l = %i, gl = %i)" oldL gl
                                      | otherwise         =
     flip nthVertex newC $!
@@ -862,17 +822,17 @@ glueToBorder !gl (!tangle', !lp) !cr | gl < 0 || gl > 4  = error $ printf "glueT
             , crossArr = V.snoc (crossArr tangle) cr
             , legsN    = newL
             }
-    where tangle = toTangle tangle'
+    where tangle = toTangle tangle0
           oldL = numberOfLegs tangle
           oldC = numberOfVertices tangle
           newC = oldC + 1
           newL = oldL + 4 - 2 * gl
 
 
-loopTangle :: Int -> Tangle0 a
+loopTangle :: Int -> Tangle' 0 a
 loopTangle n | n < 0      = error "loopTangle: negative number of loops"
              | otherwise  =
-    T0 Tangle
+    T Tangle
         { loopsN   = n
         , vertexN  = 0
         , involArr = PV.empty
@@ -882,9 +842,9 @@ loopTangle n | n < 0      = error "loopTangle: negative number of loops"
 
 
 -- TODO: better name?
-emptyPropagatorTangle :: Tangle2 a
+emptyPropagatorTangle :: Tangle' 2 a
 emptyPropagatorTangle =
-    T2 Tangle
+    T Tangle
         { loopsN   = 0
         , vertexN  = 0
         , involArr = PV.fromList [1, 0]
@@ -894,9 +854,9 @@ emptyPropagatorTangle =
 
 
 -- TODO: better name?
-lonerPropagatorTangle :: a -> Tangle2 a
+lonerPropagatorTangle :: a -> Tangle' 2 a
 lonerPropagatorTangle cr =
-    T2 Tangle
+    T Tangle
         { loopsN   = 0
         , vertexN  = 1
         , involArr = PV.fromList [4, 5, 3, 2, 0, 1]
@@ -905,9 +865,9 @@ lonerPropagatorTangle cr =
         }
 
 
-zeroTangle :: Tangle4 a
+zeroTangle :: Tangle' 4 a
 zeroTangle =
-    T4 Tangle
+    T Tangle
         { loopsN   = 0
         , vertexN  = 0
         , involArr = PV.fromList [3, 2, 1, 0]
@@ -916,9 +876,9 @@ zeroTangle =
         }
 
 
-infinityTangle :: Tangle4 a
+infinityTangle :: Tangle' 4 a
 infinityTangle =
-    T4 Tangle
+    T Tangle
         { loopsN   = 0
         , vertexN  = 0
         , involArr = PV.fromList [1, 0, 3, 2]
@@ -927,9 +887,9 @@ infinityTangle =
         }
 
 
-lonerTangle :: a -> Tangle4 a
+lonerTangle :: a -> Tangle' 4 a
 lonerTangle cr =
-    T4 Tangle
+    T Tangle
         { loopsN   = 0
         , vertexN  = 1
         , involArr = PV.fromList [4, 5, 6, 7, 0, 1, 2, 3]
@@ -938,19 +898,19 @@ lonerTangle cr =
         }
 
 
-lonerProjection :: Tangle4 ProjectionCrossing
+lonerProjection :: Tangle' 4 ProjectionCrossing
 lonerProjection = lonerTangle ProjectionCrossing
 
 
-lonerOverCrossing, lonerUnderCrossing :: Tangle4 DiagramCrossing
+lonerOverCrossing, lonerUnderCrossing :: Tangle' 4 DiagramCrossing
 lonerOverCrossing = lonerTangle OverCrossing
 lonerUnderCrossing = lonerTangle UnderCrossing
 
 
-chainTangle :: V.Vector a -> Tangle4 a
+chainTangle :: V.Vector a -> Tangle' 4 a
 chainTangle cs | n == 0     = zeroTangle
                | otherwise  =
-        T4 Tangle
+        T Tangle
             { loopsN   = 0
             , vertexN  = n
             , involArr = PV.create $ do
@@ -971,56 +931,30 @@ chainTangle cs | n == 0     = zeroTangle
     where n = V.length cs
 
 
-zipTangles :: Tangle a -> Tangle a -> Tangle0 a
-zipTangles a b | l /= l'    = error $ printf "zipTangles: arguments must have same number of legs, but %i and %i provided" l l'
-               | otherwise  = T0 $ horizontalComposition l (a, 0) (b, 1)
+zipTangles :: forall k a. (KnownNat k) => Tangle' k a -> Tangle' k a -> Tangle' 0 a
+zipTangles (T a) (T b) =
+    let l = fromIntegral $ natVal (Proxy :: Proxy k)
+    in T $ horizontalComposition l (a, 0) (b, 1)
+
+
+zipKTangles :: Tangle a -> Tangle a -> Tangle' 0 a
+zipKTangles a b | l /= l'    = error $ printf "zipTangles: arguments must have same number of legs, but %i and %i provided" l l'
+                | otherwise  = T $ horizontalComposition l (a, 0) (b, 1)
     where l = numberOfLegs a
           l' = numberOfLegs b
 
 
-zipTangles2 :: Tangle2 a -> Tangle2 a -> Tangle0 a
-zipTangles2 (T2 a) (T2 b) = T0 $ horizontalComposition 2 (a, 0) (b, 1)
-
-
-zipTangles4 :: Tangle4 a -> Tangle4 a -> Tangle0 a
-zipTangles4 (T4 a) (T4 b) = T0 $ horizontalComposition 4 (a, 0) (b, 1)
-
-
-zipTangles6 :: Tangle6 a -> Tangle6 a -> Tangle0 a
-zipTangles6 (T6 a) (T6 b) = T0 $ horizontalComposition 6 (a, 0) (b, 1)
-
-
 -- See http://www.mi.sanu.ac.rs/vismath/sl/l14.htm
-conwaySum :: Tangle4 a -> Tangle4 a -> Tangle4 a
-conwaySum (T4 a) (T4 b) = T4 $ horizontalComposition 2 (a, 2) (b, 0)
+conwaySum :: Tangle' 4 a -> Tangle' 4 a -> Tangle' 4 a
+conwaySum (T a) (T b) = T $ horizontalComposition 2 (a, 2) (b, 0)
 
 
-{-# INLINE tangle0 #-}
-tangle0 :: Tangle a -> Tangle0 a
-tangle0 t | l == 0     = T0 t
-          | otherwise  = error $ printf "tangle0: tangle must have 0 legs, but %i presented" l
+{-# INLINE tangle' #-}
+tangle' :: forall k a. (KnownNat k) => Tangle a -> Tangle' k a
+tangle' t | l == l'    = T t
+          | otherwise  = error $ printf "tangle': tangle expected to have %i legs, but %i presented" l' l
     where l = numberOfLegs t
-
-
-{-# INLINE tangle2 #-}
-tangle2 :: Tangle a -> Tangle2 a
-tangle2 t | l == 2     = T2 t
-          | otherwise  = error $ printf "tangle2: tangle must have 2 legs, but %i presented" l
-    where l = numberOfLegs t
-
-
-{-# INLINE tangle4 #-}
-tangle4 :: Tangle a -> Tangle4 a
-tangle4 t | l == 4     = T4 t
-          | otherwise  = error $ printf "tangle4: tangle must have 4 legs, but %i presented" l
-    where l = numberOfLegs t
-
-
-{-# INLINE tangle6 #-}
-tangle6 :: Tangle a -> Tangle6 a
-tangle6 t | l == 6     = T6 t
-          | otherwise  = error $ printf "tangle6: tangle must have 6 legs, but %i presented" l
-    where l = numberOfLegs t
+          l' = fromIntegral $ natVal (Proxy :: Proxy k)
 
 
 data CrossingFlag a = Direct !a | Flipped !a | Masked
@@ -1326,24 +1260,30 @@ instance OrientedKnotted OrientedTangle Tangle where
         in abs p - 1
 
 
-newtype OrientedTangle0 a = OT0 (OrientedTangle a)
-    deriving (Functor, {- MirrorAction, TransposeAction, -} DartDiagram, VertexDiagram, Knotted)
+newtype OrientedTangle' :: Nat -> * -> * where
+    OT :: OrientedTangle a -> OrientedTangle' k a
+    deriving ( Functor
+             {- MirrorAction, TransposeAction, -}
+             , DartDiagram
+             , VertexDiagram
+             , Knotted
+             )
 
-instance DartDiagram' OrientedTangle0 where
-    newtype Dart OrientedTangle0 a = OD0 (Dart OrientedTangle a)
+instance DartDiagram' (OrientedTangle' k) where
+    newtype Dart (OrientedTangle' k) a = OD (Dart OrientedTangle a)
 
-instance VertexDiagram' OrientedTangle0 where
-    newtype Vertex OrientedTangle0 a = OV0 (Vertex OrientedTangle a)
+instance VertexDiagram' (OrientedTangle' k) where
+    newtype Vertex (OrientedTangle' k) a = OV (Vertex OrientedTangle a)
 
-instance OrientedKnotted OrientedTangle0 Tangle0 where
-    dropOrientation (OT0 t) = T0 $ dropOrientation t
-    arbitraryOrientation (T0 t) = OT0 $ arbitraryOrientation t
-    numberOfStrands (OT0 t) = numberOfStrands t
-    dartOrientation (OD0 d) = dartOrientation d
-    dartStrandIndex (OD0 d) = dartStrandIndex d
+instance OrientedKnotted (OrientedTangle' k) (Tangle' k) where
+    dropOrientation (OT t) = T $ dropOrientation t
+    arbitraryOrientation (T t) = OT $ arbitraryOrientation t
+    numberOfStrands (OT t) = numberOfStrands t
+    dartOrientation (OD d) = dartOrientation d
+    dartStrandIndex (OD d) = dartStrandIndex d
 
-instance (Show a) => Show (Vertex OrientedTangle0 a) where
-    show (OV0 v) = show v
+instance (Show a) => Show (Vertex (OrientedTangle' k) a) where
+    show (OV v) = show v
 
-instance Show (Dart OrientedTangle0 a) where
-    show (OD0 d) = show d
+instance Show (Dart (OrientedTangle' k) a) where
+    show (OD d) = show d

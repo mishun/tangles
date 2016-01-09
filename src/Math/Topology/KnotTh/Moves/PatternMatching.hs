@@ -152,4 +152,4 @@ instance PatternMatching Tangle where
 
 instance PatternMatching Tangle0 where
     searchMoves patterns =
-        map tangle0 . searchMoves patterns . toTangle
+        map tangle' . searchMoves patterns . toTangle

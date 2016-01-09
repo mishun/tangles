@@ -60,7 +60,7 @@ module Math.Topology.KnotTh.Tangle
     ) where
 
 import qualified Data.Vector as V
-import Text.Printf
+import Text.Printf (printf)
 import Math.Topology.KnotTh.Algebra.Dihedral.D4
 import Math.Topology.KnotTh.Invariants.LinkingNumbers
 import Math.Topology.KnotTh.Knotted
@@ -93,7 +93,7 @@ type LinkDiagramDart = Dart Tangle DiagramCrossing
 
 
 tangleDoubling :: (MirrorAction a) => Tangle a -> Tangle0 a
-tangleDoubling t = zipTangles t (mirrorIt t)
+tangleDoubling t = zipKTangles t (mirrorIt t)
 
 
 gridTangle :: (Int, Int) -> ((Int, Int) -> a) -> Tangle a
@@ -150,15 +150,15 @@ conwayRamification a = conwaySum (conwayRecip a) . conwayRecip
 
 -- TODO: better name?
 propagatorClosure :: Tangle2 a -> Tangle0 a
-propagatorClosure t = zipTangles2 t emptyPropagatorTangle
+propagatorClosure t = zipTangles t emptyPropagatorTangle
 
 
 numeratorClosure :: Tangle4 a -> Tangle0 a
-numeratorClosure t = zipTangles4 t infinityTangle
+numeratorClosure t = zipTangles t infinityTangle
 
 
 denominatorClosure :: Tangle4 a -> Tangle0 a
-denominatorClosure t = zipTangles4 t zeroTangle
+denominatorClosure t = zipTangles t zeroTangle
 
 
 reidemeisterIExamples :: [(Tangle2 DiagramCrossing, Tangle2 DiagramCrossing)]
@@ -186,8 +186,9 @@ reidemeisterIIIExamples =
             let at = toTangle $ lonerTangle a
                 bt = toTangle $ lonerTangle b
                 d = horizontalComposition 1 (at, 0) (at, 0)
-            in ( tangle6 $ horizontalComposition 2 (bt, 0) (d, 5)
-               , tangle6 $ rotateBy (-1) $ horizontalComposition 2 (d, 2) (bt, 0))
+            in ( tangle' $ horizontalComposition 2 (bt, 0) (d, 5)
+               , tangle' $ rotateBy (-1) $ horizontalComposition 2 (d, 2) (bt, 0)
+               )
     in  [ preparePair OverCrossing OverCrossing
         , preparePair OverCrossing UnderCrossing
         , preparePair UnderCrossing OverCrossing

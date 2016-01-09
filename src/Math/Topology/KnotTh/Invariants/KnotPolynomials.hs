@@ -40,5 +40,5 @@ skeinRelationMidMinimization invariant tangle = minimum $ do
 skeinRelationPreMinimization :: (Ord (f p), SkeinRelation f p) => (TangleDiagram -> f p) -> TangleDiagram -> f p 
 skeinRelationPreMinimization invariant tangle = minimum $ do
     inv <- [id, transposeCrossings]
-    tangle' <- allOrientationsOf tangle
-    return $ invariant $ inv tangle'
+    t <- allOrientationsOf tangle
+    return $ invariant $ inv t
