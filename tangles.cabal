@@ -65,6 +65,7 @@ library
         Math.Topology.KnotTh.Algebra.Dihedral.Dn,
         Math.Topology.KnotTh.Algebra.Homology,
         Math.Topology.KnotTh.Algebra.PlanarAlgebra,
+        Math.Topology.KnotTh.Algebra.PlanarAlgebra.CableAlgebra,
         Math.Topology.KnotTh.Algebra.PlanarAlgebra.Reduction,
         Math.Topology.KnotTh.Algebra.SurfaceDiagram,
         Math.Topology.KnotTh.ChordDiagram,
