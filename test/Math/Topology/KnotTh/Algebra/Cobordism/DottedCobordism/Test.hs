@@ -27,10 +27,10 @@ barNatanConditionsTests :: forall cob. (KhovanovCobordism cob) => cob -> Int -> 
 barNatanConditionsTests _ torusValue =
     let (=?~=) = (@?=) :: cob -> cob -> Assertion
     in testGroup "Bar-Natan conditions"
-        [ testCase "Sphere" $ do
+        [ testCase "Sphere" $
             assertBool "" $ isZeroCobordism (sphereCobordism :: cob)
 
-        , testCase "Torus" $ do
+        , testCase "Torus" $
             torusCobordism  =?~= fromIntegral torusValue
 
         , testProperty "Closed surface" $ \ genus ->
@@ -48,7 +48,7 @@ barNatanConditionsTests _ torusValue =
             (((cup ⊗ cup) ∘ arc) + (arc' ∘ (cap ⊗ cap))) =?~= ((tube ⊗ cut) + (cut ⊗ tube))
             ((arc ∘ (tube ⊗ cap ⊗ cap ⊗ tube)) + (cap ⊗ arc ⊗ cap)) =?~= ((arc ⊗ cap ⊗ cap) + (cap ⊗ cap ⊗ arc))
 
-        , testCase "Neck cutting relation" $ do
+        , testCase "Neck cutting relation" $
             (tubeCobordism + tubeCobordism) =?~= ((cupOfGenusCobordism 1 ∘ capCobordism) + (cupCobordism ∘ capOfGenusCobordism 1))
 
         , testCase "Reidemeister I homotopy" $ do

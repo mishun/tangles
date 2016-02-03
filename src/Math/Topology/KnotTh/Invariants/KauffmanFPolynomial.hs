@@ -26,7 +26,7 @@ instance KnottedWithKauffmanFPolynomial Tangle where
                 let writheFactor = twistFactor (-totalSelfWrithe' tangle)
                     loopsFactor = loopFactor ^ numberOfFreeLoops tangle
                 in writheFactor * loopsFactor
-        in fmap (factor *) $ reduceSkein tangle
+        in (factor *) `fmap` reduceSkein tangle
 
     minimalKauffmanFPolynomial = skeinRelationPreMinimization kauffmanFPolynomial
 

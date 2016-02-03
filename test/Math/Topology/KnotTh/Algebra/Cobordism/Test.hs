@@ -56,7 +56,7 @@ generalCobordism3Tests _ =
             transposeIt torusCobordism =?~= torusCobordism
             transposeIt pantsCobordism' =?~= pantsCobordism
 
-        , testCase "cap ∘ cup" $ do
+        , testCase "cap ∘ cup" $
             (capCobordism ∘ tubeCobordism ∘ cupCobordism) =?~= sphereCobordism
 
         , testCase "cup ∘ cap" $ do
@@ -71,10 +71,10 @@ generalCobordism3Tests _ =
             (tubeCobordism ∘ pantsCobordism ∘ (tubeCobordism ⊗ tubeCobordism)) =?~= pantsCobordism
             ((tubeCobordism ⊗ tubeCobordism) ∘ (tubeCobordism ⊗ tubeCobordism)) =?~= (tubeCobordism ⊗ tubeCobordism)
 
-        , testCase "Swap is idempotent" $ do
+        , testCase "Swap is idempotent" $
             (swapCobordism ∘ swapCobordism) =?~= (tubeCobordism ⊗ tubeCobordism)
 
-        , testCase "Torus from pants and caps/cups" $ do
+        , testCase "Torus from pants and caps/cups" $
             torusCobordism =~?=
                 foldl1 (∘)
                     [ capCobordism
@@ -84,7 +84,7 @@ generalCobordism3Tests _ =
                     , cupCobordism
                     ]
 
-        , testCase "Sphere from pants and caps/cups" $ do
+        , testCase "Sphere from pants and caps/cups" $
             sphereCobordism =~?=
                 foldl1 (∘)
                     [ capCobordism   ⊗ capCobordism
@@ -125,7 +125,7 @@ generalCannedCobordismTests _ =
             rotateBy 1 saddleCobordism =?~= saddleCobordism'
             rotateBy 2 saddleCobordism =?~= saddleCobordism
 
-        , testCase "Saddle and identity" $ do
+        , testCase "Saddle and identity" $
             identityCobordism (rotateBy 1 $ planarPropagator 2) ∘ saddleCobordism ∘ planarPropagator 2 =?~= saddleCobordism
 
         , testCase "Pants from saddle" $ do
@@ -136,7 +136,7 @@ generalCannedCobordismTests _ =
             let g = horizontalComposition 2 (saddleCobordism, 0) (planarPropagator 1, 0)
             capCobordism ∘ horizontalComposition 2 (planarPropagator 1, 0) (transposeIt g ∘ g, 0) ∘ cupCobordism =?~= torusCobordism
 
-        , testCase "Triple pants" $ do
+        , testCase "Triple pants" $
             (pantsCobordism ∘ (tubeCobordism ⊗ pantsCobordism)) =?~= horizontalComposition 2 (sideCutPantsCobordism, 0) (sideCutPantsCobordism, 0)
 
         , testCase "Triple saddle and associativity" $ do

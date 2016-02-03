@@ -167,11 +167,11 @@ test = testGroup "Basic tangle tests"
                 f = unrootedHomeomorphismInvariant . toTangle
             in all ((< 12) . abs) list ==> f (conwayRecip t) == f (conwayProduct t zeroTangle)
 
-        , testCase "Numerator closure" $ do
+        , testCase "Numerator closure" $
             numberOfFreeLoops (numeratorClosure zeroTangle :: Tangle0 DiagramCrossing) @?= 2
         ]
 
-    , testGroup "Homeomorphism invariant" $
+    , testGroup "Homeomorphism invariant"
         [ testCase "unlinks" $ do
             assertBool "0 & 1" $ unrootedHomeomorphismInvariant (unlink 0) /= unrootedHomeomorphismInvariant (unlink 1)
             assertBool "1 & 2" $ unrootedHomeomorphismInvariant (unlink 1) /= unrootedHomeomorphismInvariant (unlink 2)

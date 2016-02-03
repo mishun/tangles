@@ -40,7 +40,7 @@ instance KnottedWithKauffmanXPolynomial Tangle where
                         in (if w <= 0 then -aFactor else -bFactor) ^ abs (3 * w)
                     loopsFactor = loopFactor ^ numberOfFreeLoops tangle
                 in writheFactor * loopsFactor
-        in fmap (factor *) $ reduceSkein tangle
+        in (factor *) `fmap` reduceSkein tangle
 
     minimalKauffmanXPolynomial = skeinRelationPostMinimization kauffmanXPolynomial
 

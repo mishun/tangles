@@ -269,7 +269,7 @@ test = testGroup "Invariants"
         ]
 
     , testGroup "Khovanov homology"
-        [ testCase "∂∘∂" $ do
+        [ testCase "∂∘∂" $
             mapM_ (\ tangle ->
                     let kh = khovanovComplex tangle
                     in assertBool (printf "∂∘∂ failed at: %s" (show tangle)) $ testComplexBorders kh
@@ -286,15 +286,15 @@ test = testGroup "Invariants"
                 , toTangle leftTrefoilKnot
                 ]
 
-        , testCase "unknot" $ do
+        , testCase "unknot" $
             khovanovHomology unknot @?=
                 [((0, -1, 1), 1), ((0, 1, 1), 1)]
 
-        , testCase "left unknot 8" $ do
+        , testCase "left unknot 8" $
             khovanovHomology singleCrossingUnknotL @?=
                 [((0, -1, 1), 1), ((0, 1, 1), 1)]
 
-        , testCase "right unknot 8" $ do
+        , testCase "right unknot 8" $
             khovanovHomology singleCrossingUnknotR @?=
                 [((0, -1, 1), 1), ((0, 1, 1), 1)]
 

@@ -46,7 +46,7 @@ test =
             forM_ [1 .. 9] $ \ !n ->
                 forM_ (listChordDiagrams $ generateNonPlanarRaw n) $ \ (cd, (mirror, period)) -> do
                     assertEqual (printf "%s period" (show cd)) (naivePeriodOf cd) period
-                    let expectedMirror = mirrorIt cd `elem` map (flip rotateBy cd) [0 .. rotationOrder cd - 1]
+                    let expectedMirror = mirrorIt cd `elem` map (`rotateBy` cd) [0 .. rotationOrder cd - 1]
                     assertEqual (printf "%s mirror" (show cd)) expectedMirror mirror
 
         , testGroup "String combinatorial functions tests"

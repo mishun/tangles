@@ -112,7 +112,7 @@ pushResidualFlow tangle starts ends flow = evalState bfs initial >>= push
                     if endFlag UV.! vertexIndex u
                         then do
                             p <- getPath u
-                            return $! Just p
+                            return $ Just p
                         else do
                             let ud = filter (\ d -> flow UV.! dartIndex d < 1) $ outcomingDarts u
                             let brd = find (isLeg . opposite) ud

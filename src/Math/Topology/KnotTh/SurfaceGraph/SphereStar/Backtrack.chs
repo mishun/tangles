@@ -36,7 +36,7 @@ backtrack graph = unsafePerformIO $ do
         writeArray coedges (offset + 1) (fromIntegral $ faceIndex $ leftFace b)
 
     vertexDegrees <- newArray_ (0, v - 1)
-    forM_ ([0 ..] `zip` allVertices graph) $ \ (offset, ver) -> do
+    forM_ ([0 ..] `zip` allVertices graph) $ \ (offset, ver) ->
         writeArray vertexDegrees offset (fromIntegral $ vertexDegree ver)
 
     resultFaces <- newArray_ (0, f - 1)

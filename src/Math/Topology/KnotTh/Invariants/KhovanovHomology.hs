@@ -267,10 +267,10 @@ instance KnottedWithKhovanovHomology Tangle where
                     case chain of
                         Singl space   -> (V.singleton $ objectTQFT space, V.empty)
                         Chain borders ->
-                            let levels = (cobordismBorder0 $ borders V.! 0) `V.cons` V.map cobordismBorder1 borders
+                            let levels = cobordismBorder0 (borders V.! 0) `V.cons` V.map cobordismBorder1 borders
                             in (V.map objectTQFT levels, V.map borderTQFT borders)
 
-        in filter ((/= 0) . snd) $ concat $ V.toList $ V.imap (\ level -> map (shift level)) cohomology
+        in filter ((/= 0) . snd) $ concat $ V.toList $ V.imap (map . shift) cohomology
 
     minimalKhovanovHomology tangle =
         min (khovanovHomology tangle)

@@ -116,7 +116,7 @@ foreign import ccall "circlePacking"
 
 
 circlePacking' :: [[Int]] -> StorableArray Int CDouble -> IO ()
-circlePacking' adj r = do
+circlePacking' adj r =
     A.withArray (map (fromIntegral . length) adj) $ \ lensPtr -> do
         let n = length adj
         ls <- newListArray (0, n - 1) =<< mapM (A.newArray . map fromIntegral) adj
