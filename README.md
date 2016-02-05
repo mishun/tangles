@@ -1,6 +1,8 @@
 Tangles
 =======
 
+[![Build Status](https://travis-ci.org/mishun/tangles.svg?branch=master)](https://travis-ci.org/mishun/tangles)
+
 Tangles is a Haskell library implementing some enumeration algorithms for knot theory objects,
 such as k-tangle projections, alternating k-tangles, non-alternating k-tangles, alternating
 virtual links. Also it can compute Jones and Kauffman F polynomial invariants of links and

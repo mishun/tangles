@@ -1,0 +1,14 @@
+language: haskell
+
+install:
+  - sudo apt-get -qq update
+  - sudo apt-get install -y libgsl0-dev
+  - cabal install --only-dependencies --enable-tests
+
+ghc:
+  - 7.8
+
+script:
+  - cabal configure --enable-tests  -finternal-tests
+  - cabal build
+  - cabal test
