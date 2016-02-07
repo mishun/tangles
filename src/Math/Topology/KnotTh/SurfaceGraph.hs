@@ -5,7 +5,6 @@ module Math.Topology.KnotTh.SurfaceGraph
     ) where
 
 import Math.Topology.KnotTh.SurfaceGraph.SurfaceGraphDef as X
-import Math.Topology.KnotTh.SurfaceGraph.Embedding as X
 import Math.Topology.KnotTh.SurfaceGraph.SphereStar as X
 
 
