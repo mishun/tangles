@@ -16,7 +16,6 @@ ghc:
   - 7.8
 
 script:
-  - gcc --version
   - cabal configure --enable-tests  -finternal-tests
   - cabal build
   - cabal test
