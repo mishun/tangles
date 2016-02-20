@@ -1,4 +1,4 @@
-{-# LANGUAGE FunctionalDependencies, MultiParamTypeClasses, TypeFamilies, UnboxedTuples #-}
+{-# LANGUAGE FlexibleContexts, FunctionalDependencies, MultiParamTypeClasses, TypeFamilies, UnboxedTuples #-}
 module Math.Topology.KnotTh.Knotted
     ( module Math.Topology.KnotTh.Algebra.PlanarAlgebra
     , module Math.Topology.KnotTh.Algebra.Dihedral

@@ -1,4 +1,4 @@
-{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE FlexibleInstances, TypeFamilies #-}
 module Math.Topology.KnotTh.Tangle.TangleCat
     ( TangleCategory
     , promoteTangle

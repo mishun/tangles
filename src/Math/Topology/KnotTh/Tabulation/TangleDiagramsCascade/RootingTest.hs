@@ -1,4 +1,4 @@
-{-# LANGUAGE UnboxedTuples #-}
+{-# LANGUAGE MultiWayIf, UnboxedTuples #-}
 module Math.Topology.KnotTh.Tabulation.TangleDiagramsCascade.RootingTest
     ( rootingSymmetryTest
     , rootCodeLeg

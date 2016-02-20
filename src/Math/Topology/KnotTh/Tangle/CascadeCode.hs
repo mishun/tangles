@@ -1,4 +1,4 @@
-{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE FlexibleContexts, FlexibleInstances, TypeFamilies #-}
 module Math.Topology.KnotTh.Tangle.CascadeCode
     ( CascadePattern(..)
     , decodeCascadeCode

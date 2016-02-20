@@ -1,4 +1,4 @@
-{-# LANGUAGE StandaloneDeriving, TypeFamilies, UndecidableInstances #-}
+{-# LANGUAGE FlexibleInstances, MultiWayIf, StandaloneDeriving, TypeFamilies, UndecidableInstances #-}
 module Math.Topology.KnotTh.Algebra.Cobordism.CobordismMatrix
     ( CobordismMatrix
     , numberOfRows

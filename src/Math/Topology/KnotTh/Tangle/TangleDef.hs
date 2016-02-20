@@ -1,4 +1,4 @@
-{-# LANGUAGE DataKinds, DeriveFunctor, GADTs, GeneralizedNewtypeDeriving, MultiParamTypeClasses, ScopedTypeVariables, StandaloneDeriving, TypeFamilies #-}
+{-# LANGUAGE DataKinds, DeriveFunctor, FlexibleInstances, GADTs, GeneralizedNewtypeDeriving, MultiParamTypeClasses, ScopedTypeVariables, StandaloneDeriving, TypeFamilies #-}
 module Math.Topology.KnotTh.Tangle.TangleDef
     ( Tangle
     , AsTangle(..)

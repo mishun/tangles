@@ -1,4 +1,4 @@
-{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE FlexibleContexts, TypeFamilies #-}
 module Math.Topology.KnotTh.Algebra.Cobordism
     ( Cobordism(..)
     , Cobordism3(..)

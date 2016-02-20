@@ -1,3 +1,4 @@
+{-# LANGUAGE FlexibleInstances #-}
 module Math.Topology.KnotTh.Knotted.EdgeIndicesEncoding
     ( edgeIndicesEncoding
     ) where

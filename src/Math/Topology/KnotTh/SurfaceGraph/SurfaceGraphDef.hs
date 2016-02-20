@@ -1,4 +1,4 @@
-{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE FlexibleInstances, TypeFamilies #-}
 module Math.Topology.KnotTh.SurfaceGraph.SurfaceGraphDef
     ( module Math.Topology.KnotTh.Algebra.PlanarAlgebra
     , module Math.Topology.KnotTh.Algebra.SurfaceDiagram

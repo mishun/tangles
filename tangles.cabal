@@ -25,11 +25,7 @@ flag internal-tests
 
 library
     default-language:   Haskell2010
-    default-extensions:
-        BangPatterns,
-        FlexibleContexts,
-        FlexibleInstances,
-        MultiWayIf
+    default-extensions: BangPatterns
     ghc-options:        -Wall
     ghc-prof-options:   -prof -auto-all -caf-all
     cc-options:         -Wall -std=c++11
@@ -130,7 +126,7 @@ library
 test-suite TestTangles
     type:               exitcode-stdio-1.0
     default-language:   Haskell2010
-    default-extensions: BangPatterns, CPP
+    default-extensions: BangPatterns
     ghc-options:        -Wall -threaded
     ghc-prof-options:   -rtsopts -prof -auto-all -caf-all
     build-depends:

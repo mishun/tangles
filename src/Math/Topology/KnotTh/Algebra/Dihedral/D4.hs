@@ -1,4 +1,4 @@
-{-# LANGUAGE MultiParamTypeClasses, TypeFamilies #-}
+{-# LANGUAGE FlexibleInstances, MultiParamTypeClasses, TypeFamilies #-}
 module Math.Topology.KnotTh.Algebra.Dihedral.D4
     ( module Math.Topology.KnotTh.Algebra
     , module Math.Topology.KnotTh.Algebra.Dihedral

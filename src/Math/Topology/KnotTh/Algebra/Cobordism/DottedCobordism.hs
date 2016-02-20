@@ -1,4 +1,4 @@
-{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE FlexibleContexts, FlexibleInstances, MultiWayIf, TypeFamilies #-}
 module Math.Topology.KnotTh.Algebra.Cobordism.DottedCobordism
     ( module Math.Topology.KnotTh.Algebra
     , module Math.Topology.KnotTh.Algebra.Cobordism

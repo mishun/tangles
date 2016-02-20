@@ -1,4 +1,4 @@
-{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE FlexibleInstances, RankNTypes #-}
 module Math.Topology.KnotTh.Moves.PatternMatching
     ( Pattern
     , PatternM

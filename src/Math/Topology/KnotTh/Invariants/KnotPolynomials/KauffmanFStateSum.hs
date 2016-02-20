@@ -1,4 +1,4 @@
-{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE FlexibleInstances, MultiParamTypeClasses, MultiWayIf #-}
 module Math.Topology.KnotTh.Invariants.KnotPolynomials.KauffmanFStateSum
     ( KauffmanFArg(..)
     , ChordDiagramsSum

@@ -1,3 +1,4 @@
+{-# LANGUAGE MultiWayIf #-}
 module Math.Topology.KnotTh.Tabulation.TangleFlypeClasses
     ( generateFlypeEquivalentDecomposition
     , generateFlypeEquivalentDecompositionInTriangle

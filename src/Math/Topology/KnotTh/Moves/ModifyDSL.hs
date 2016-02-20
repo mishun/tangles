@@ -1,4 +1,4 @@
-{-# LANGUAGE TypeFamilies, RankNTypes #-}
+{-# LANGUAGE FlexibleContexts, TypeFamilies, RankNTypes #-}
 module Math.Topology.KnotTh.Moves.ModifyDSL
     ( ModifyDSL(..)
     , greedy

@@ -1,4 +1,4 @@
-{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE MultiWayIf, RankNTypes #-}
 module Math.Topology.KnotTh.Algebra.PlanarAlgebra.Reduction
     ( reducePlanarAlgebra
     ) where

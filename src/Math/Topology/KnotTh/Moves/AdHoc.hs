@@ -1,3 +1,4 @@
+{-# LANGUAGE FlexibleInstances, MultiWayIf #-}
 module Math.Topology.KnotTh.Moves.AdHoc
     ( reduce1st
     , reduce2nd

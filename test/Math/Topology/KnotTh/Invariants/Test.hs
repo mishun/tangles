@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 module Math.Topology.KnotTh.Invariants.Test
     ( test
     , testHard
