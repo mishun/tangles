@@ -1,6 +1,7 @@
 Tangles
 =======
 
+![First Khovanov homology collision](https://mishun.github.io/img/kh-collision-9.png)
 [![Build Status](https://travis-ci.org/mishun/tangles.svg?branch=master)](https://travis-ci.org/mishun/tangles)
 
 Tangles is a Haskell library implementing some enumeration algorithms for knot theory objects,
