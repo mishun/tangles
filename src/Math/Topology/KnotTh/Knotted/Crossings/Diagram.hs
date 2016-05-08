@@ -25,7 +25,8 @@ data DiagramCrossing = OverCrossing
                      | UnderCrossing
     deriving (Eq, Show, Read)
 
-instance NFData DiagramCrossing
+instance NFData DiagramCrossing where
+    rnf c = c `seq` ()
 
 instance RotationAction DiagramCrossing where
     rotationOrder _ = 4

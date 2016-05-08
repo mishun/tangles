@@ -1,4 +1,4 @@
-{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE FlexibleContexts, RankNTypes #-}
 module Math.Topology.KnotTh.Moves.MovesOfELink
     ( movesOfELink
     ) where
@@ -7,7 +7,7 @@ import Data.Maybe (mapMaybe)
 import Data.List ((\\), subsequences)
 import qualified Data.Set as S
 import qualified Data.Vector.Unboxed as UV
-import Control.Applicative (Applicative(..), Alternative(..))
+import Control.Applicative (Alternative(..))
 import Control.Monad.State (execState, gets, modify)
 import Control.Monad (MonadPlus(..), unless, guard)
 import Math.Topology.KnotTh.EmbeddedLink

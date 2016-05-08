@@ -1,4 +1,4 @@
-{-# LANGUAGE FlexibleInstances, RankNTypes #-}
+{-# LANGUAGE FlexibleContexts, FlexibleInstances, RankNTypes #-}
 module Math.Topology.KnotTh.Moves.PatternMatching
     ( Pattern
     , PatternM
@@ -14,7 +14,7 @@ import Data.Maybe (mapMaybe)
 import Data.List ((\\), subsequences)
 import qualified Data.Set as S
 import qualified Data.Vector.Unboxed as UV
-import Control.Applicative (Applicative(..), Alternative(..))
+import Control.Applicative (Alternative(..))
 import Control.Monad.State (execState, gets, modify)
 import Control.Monad (MonadPlus(..), unless, guard)
 import Math.Topology.KnotTh.Tangle

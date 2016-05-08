@@ -1,3 +1,4 @@
+{-# LANGUAGE TypeFamilies #-}
 module Math.Topology.KnotTh.Tangle.GaussCode
     ( toDTCode
     , fromDTCode

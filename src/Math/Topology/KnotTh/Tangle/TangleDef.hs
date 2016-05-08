@@ -30,7 +30,6 @@ module Math.Topology.KnotTh.Tangle.TangleDef
     , OrientedTangle'
     ) where
 
-import Control.Applicative (Applicative)
 import Control.DeepSeq (NFData(..))
 import Control.Monad (filterM, foldM, foldM_, forM, forM_, guard, when, (>=>))
 import Control.Monad.IfElse (unlessM)
@@ -92,7 +91,7 @@ newtype Tangle' :: Nat -> * -> * where
              , Surgery
              )
 
-deriving instance (CmpNat 0 k ~ LT) => RotationAction (Tangle' k a)
+deriving instance (CmpNat 0 k ~ 'LT) => RotationAction (Tangle' k a)
 
 instance DartDiagram' (Tangle' k) where
     newtype Dart (Tangle' k) a = D (Dart Tangle a)
@@ -178,7 +177,8 @@ instance (TransposeAction a) => TransposeAction (Tangle a) where
 instance DartDiagram' Tangle where
     data Dart Tangle a = Dart !(Tangle a) {-# UNPACK #-} !Int
 
-instance (NFData a) => NFData (Dart Tangle a)
+instance (NFData a) => NFData (Dart Tangle a) where
+    rnf (Dart t i) = rnf t `seq` rnf i
 
 instance DartDiagram Tangle where
     dartOwner (Dart t _) = t
@@ -239,7 +239,8 @@ instance LeggedDiagram Tangle where
 instance VertexDiagram' Tangle where
     data Vertex Tangle a = Vertex !(Tangle a) {-# UNPACK #-} !Int
 
-instance (NFData a) => NFData (Vertex Tangle a)
+instance (NFData a) => NFData (Vertex Tangle a) where
+    rnf (Vertex t i) = rnf t `seq` rnf i
 
 instance VertexDiagram Tangle where
     vertexContent (Vertex t i) = crossArr t `V.unsafeIndex` i

@@ -20,7 +20,6 @@ module Math.Topology.KnotTh.EmbeddedLink
     , has4LegPlanarPart
     ) where
 
-import Control.Applicative (Applicative)
 import Control.Arrow (first)
 import Control.DeepSeq (NFData(..))
 import Control.Monad (filterM, foldM, foldM_, forM, forM_, guard, liftM2, unless, when)
@@ -150,9 +149,11 @@ instance VertexDiagram EmbeddedLink where
 instance (NFData a) => NFData (EmbeddedLink a) where
     rnf k = rnf (crossingsArray k) `seq` k `seq` ()
 
-instance (NFData a) => NFData (Vertex EmbeddedLink a)
+instance (NFData a) => NFData (Vertex EmbeddedLink a) where
+    rnf (Vertex l i) = rnf l `seq` rnf i
 
-instance (NFData a) => NFData (Dart EmbeddedLink a)
+instance (NFData a) => NFData (Dart EmbeddedLink a) where
+    rnf (Dart l i) = rnf l `seq` rnf i
 
 instance Knotted EmbeddedLink where
     unrootedHomeomorphismInvariant link =

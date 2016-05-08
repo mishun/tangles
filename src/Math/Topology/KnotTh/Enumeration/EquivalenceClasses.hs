@@ -1,4 +1,4 @@
-{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE FlexibleContexts, RankNTypes #-}
 module Math.Topology.KnotTh.Enumeration.EquivalenceClasses
     ( equivalenceClasses
     ) where

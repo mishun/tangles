@@ -14,7 +14,8 @@ import Math.Topology.KnotTh.Knotted.Threads
 data ProjectionCrossing = ProjectionCrossing
     deriving (Eq, Show, Read)
 
-instance NFData ProjectionCrossing
+instance NFData ProjectionCrossing where
+    rnf c = c `seq` ()
 
 instance RotationAction ProjectionCrossing where
     rotationOrder _ = 4
