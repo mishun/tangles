@@ -31,15 +31,15 @@ library
     cc-options:         -Wall -std=c++11
     build-tools:        c2hs
     build-depends:
-        base >=4.6,
-        vector >=0.10,
+        base >=4.8,
+        vector >=0.11,
         array,
         matrix,
-        deepseq,
+        deepseq >=1.4,
         parallel,
         mtl,
         containers,
-        disjoint-set,
+        disjoint-set ==0.2,
         IfElse,
         HaskellForMaths
     hs-source-dirs:     src
