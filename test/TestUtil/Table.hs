@@ -1,4 +1,4 @@
-{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE FlexibleContexts, RankNTypes #-}
 module TestUtil.Table
     ( Table
     , generateTable

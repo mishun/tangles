@@ -1,3 +1,4 @@
+{-# LANGUAGE FlexibleContexts #-}
 module Math.Topology.KnotTh.EmbeddedLink.Test
     ( test
     ) where
