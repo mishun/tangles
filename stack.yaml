@@ -1,0 +1,14 @@
+resolver: lts-5.15
+
+packages:
+- '.'
+
+extra-deps:
+- HaskellForMaths-0.4.8
+- disjoint-set-0.2
+
+flags:
+  tangles:
+    internal-tests: true
+
+extra-package-dbs: []
