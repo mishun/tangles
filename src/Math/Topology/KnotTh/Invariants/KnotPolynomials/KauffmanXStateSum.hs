@@ -16,6 +16,7 @@ import qualified Data.Vector.Unboxed.Mutable as UMV
 import Text.Printf
 import Math.Topology.KnotTh.Algebra
 import Math.Topology.KnotTh.Knotted
+import Math.Topology.KnotTh.Knotted.Crossings.Diagram
 import Math.Topology.KnotTh.Invariants.KnotPolynomials
 import Math.Topology.KnotTh.Invariants.Util.Poly
 
@@ -193,13 +194,12 @@ instance (KauffmanXArg a) => TransposeAction (KauffmanXStateSum a) where
     transposeIt = fmap transposeFactors
 
 instance (KauffmanXArg a) => SkeinRelation KauffmanXStateSum a where
-    skeinLPlus =
+    crossingSkein OverCrossing =
         concatStateSums $ map singletonStateSum
             [ PlanarChordDiagram (UV.fromList [3, 2, 1, 0]) aFactor
             , PlanarChordDiagram (UV.fromList [1, 0, 3, 2]) bFactor
             ]
-
-    skeinLMinus =
+    crossingSkein UnderCrossing =
         concatStateSums $ map singletonStateSum
             [ PlanarChordDiagram (UV.fromList [3, 2, 1, 0]) bFactor
             , PlanarChordDiagram (UV.fromList [1, 0, 3, 2]) aFactor

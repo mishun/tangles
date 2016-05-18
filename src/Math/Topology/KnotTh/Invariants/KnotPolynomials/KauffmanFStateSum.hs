@@ -246,10 +246,9 @@ instance (KauffmanFArg a) => TransposeAction (ChordDiagramsSum a) where
     transposeIt = fmap swapTwists
 
 instance (KauffmanFArg a) => SkeinRelation ChordDiagramsSum a where
-    skeinLPlus =
+    crossingSkein OverCrossing =
         singletonStateSum $ ChordDiagram (UV.fromList [2, 3, 0, 1]) 1
-
-    skeinLMinus =
+    crossingSkein UnderCrossing =
         concatStateSums $ map singletonStateSum
             [ ChordDiagram (UV.fromList [2, 3, 0, 1]) (-1)
             , ChordDiagram (UV.fromList [3, 2, 1, 0]) smoothFactor
