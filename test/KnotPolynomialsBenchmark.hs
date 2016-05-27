@@ -1,9 +1,9 @@
+{-# LANGUAGE FlexibleContexts #-}
 module Main (main) where
 
 import Data.Monoid (Last(..))
 import Text.Printf
 import Criterion.Main
-import Criterion.Config
 import Math.Topology.KnotTh.Tangle
 import Math.Topology.KnotTh.Invariants
 
@@ -18,20 +18,20 @@ polynomialsBenchmark knot =
 
 benchmarks :: [Benchmark]
 benchmarks =
-    [   let ratCode = [2, 3, 4, 5, 6, 7, 8, 10, 20]
-        in bgroup (printf "Big rational tangle %s" $ show ratCode) $
-            polynomialsBenchmark $ toTangle $ rationalTangle ratCode
-
-    , bgroup "Twisted triple of loner" $
-        let tangle = twistedSatellite 3 $ toTangle lonerOverCrossing
+    [ bgroup "Twisted triple of loner" $
+        let tangle = cablingSatellite 3 $ toTangle lonerOverCrossing
         in polynomialsBenchmark tangle
 
+    , let ratCode = [2, 3, 4, 5, 6, 7, 8, 10, 20]
+      in bgroup (printf "Big rational tangle %s" $ show ratCode) $
+          polynomialsBenchmark $ toTangle $ rationalTangle ratCode
+
     , bgroup "Twisted triple of pair" $
-        let tangle = twistedSatellite 3 $ toTangle $ rationalTangle [2]
+        let tangle = cablingSatellite 3 $ toTangle $ rationalTangle [2]
         in polynomialsBenchmark tangle
 
     , bgroup "Twisted triple of ..." $
-        let tangle = twistedSatellite 3 $ toTangle $ rationalTangle [2, 1]
+        let tangle = cablingSatellite 3 $ toTangle $ rationalTangle [2, 1]
         in polynomialsBenchmark tangle
 
     , bgroup "Tricky link with 7 threads" $
@@ -63,8 +63,4 @@ benchmarks =
 
 
 main :: IO ()
-main =
-    defaultMainWith
-        (defaultConfig { cfgSamples = Last (Just 1) })
-        (return ())
-        benchmarks
+main = defaultMain benchmarks
