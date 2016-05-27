@@ -24,7 +24,7 @@ instance KnottedWithKauffmanFPolynomial Tangle where
     kauffmanFPolynomial tangle =
         let factor =
                 let writheFactor = twistFactor (-totalSelfWrithe' tangle)
-                    loopsFactor = loopFactor ^ numberOfFreeLoops tangle
+                    loopsFactor = loopFactor (numberOfFreeLoops tangle)
                 in writheFactor * loopsFactor
         in (factor *) `fmap` reduceSkein tangle
 
@@ -39,6 +39,6 @@ instance KnottedWithKauffmanFPolynomial Tangle0 where
 
 normalizedKauffmanFPolynomialOfLink :: LinkDiagram -> Poly2
 normalizedKauffmanFPolynomialOfLink link | isEmpty    = error "normalizedKauffmanFPolynomialOfLink: empty link provided"
-                                         | otherwise  = normalizeBy2 (common * loopFactor) (common * kauffmanFPolynomial link)
+                                         | otherwise  = normalizeBy2 (common * loopFactor 1) (common * kauffmanFPolynomial link)
     where isEmpty = numberOfVertices link == 0 && numberOfFreeLoops link == 0
           common = twistFactor 1 * smoothFactor

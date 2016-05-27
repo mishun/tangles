@@ -25,14 +25,14 @@ import Math.Topology.KnotTh.Invariants.Util.Poly
 class (Eq a, Ord a, Num a) => KauffmanFArg a where
     twistFactor  :: Int -> a
     smoothFactor :: a
-    loopFactor   :: a
+    loopFactor   :: Int -> a
     swapTwists   :: a -> a
 
 
 instance KauffmanFArg Poly2 where
     twistFactor p = monomial2 1 "a" (fromIntegral p)
     smoothFactor  = monomial2 1 "z" 1
-    loopFactor    = (twistFactor 1 + twistFactor (-1)) * monomial2 1 "z" (-1) - 1
+    loopFactor n  = ((twistFactor 1 + twistFactor (-1)) * monomial2 1 "z" (-1) - 1) ^ n
     swapTwists    = invert2 "a"
 
 
@@ -146,67 +146,70 @@ data ThreadTag = BorderThread {-# UNPACK #-} !(Int, Int) {-# UNPACK #-} !Int
                | InternalThread {-# UNPACK #-} !Int {-# UNPACK #-} !Int
 
 
-irregularCrossings :: TangleDiagram -> [TangleDiagramVertex]
-irregularCrossings tangle =
-    let (_, _, threads) = allThreadsWithMarks tangle
+bruteForceF :: (KauffmanFArg a) => a -> TangleDiagram -> ChordDiagramsSum a
+bruteForceF =
+    let irregularCrossings tangle =
+            let (_, _, threads) = allThreadsWithMarks tangle
 
-        expectedPassOver =
-            let tags :: A.Array TangleDiagramDart ThreadTag
-                tags = A.array (dartsRange tangle) $ do
-                    (tid, thread) <- threads
-                    let make = case thread of
-                            []                     -> error "internal error"
-                            (h, _) : _ | isDart h  -> InternalThread $ numberOfLegs tangle + tid
-                                       | otherwise -> let a = legPlace h
-                                                          b = legPlace $ snd $ last thread
-                                                      in BorderThread (min a b, max a b)
-                    (ord, (a, b)) <- [0 ..] `zip` thread
-                    [(a, make $ 2 * ord), (b, make $ 2 * ord + 1)]
+                expectedPassOver =
+                    let tags :: A.Array TangleDiagramDart ThreadTag
+                        tags = A.array (dartsRange tangle) $ do
+                            (tid, thread) <- threads
+                            let make = case thread of
+                                    []                     -> error "internal error"
+                                    (h, _) : _ | isDart h  -> InternalThread $ numberOfLegs tangle + tid
+                                               | otherwise -> let a = legPlace h
+                                                                  b = legPlace $ snd $ last thread
+                                                              in BorderThread (min a b, max a b)
+                            (ord, (a, b)) <- [0 ..] `zip` thread
+                            [(a, make $ 2 * ord), (b, make $ 2 * ord + 1)]
 
-                tagPassOver _ (InternalThread a ai) (InternalThread b bi) = (a, ai) < (b, bi)
-                tagPassOver _ (InternalThread _ _) (BorderThread _ _) = False
-                tagPassOver _ (BorderThread _ _) (InternalThread _ _) = True
-                tagPassOver n (BorderThread a ai) (BorderThread b bi)
-                    | a == b                = ai < bi
-                    | haveIntersection a b  = canonicalOver n a b
-                    | otherwise             = a < b
+                        tagPassOver _ (InternalThread a ai) (InternalThread b bi) = (a, ai) < (b, bi)
+                        tagPassOver _ (InternalThread _ _)  (BorderThread _ _)    = False
+                        tagPassOver _ (BorderThread _ _)    (InternalThread _ _)  = True
+                        tagPassOver n (BorderThread a ai)   (BorderThread b bi)
+                            | a == b                = ai < bi
+                            | haveIntersection a b  = canonicalOver n a b
+                            | otherwise             = a < b
 
-            in \ d -> on (tagPassOver $ numberOfLegs tangle) (tags A.!) d (nextCCW d)
+                    in \ d -> on (tagPassOver $ numberOfLegs tangle) (tags A.!) d (nextCCW d)
 
-    in filter (\ c ->
-            let d0 = nthOutcomingDart c 0
-            in isPassingOver d0 /= expectedPassOver d0
-       ) $ allVertices tangle
+            in filter (\ c ->
+                    let d0 = nthOutcomingDart c 0
+                    in isPassingOver d0 /= expectedPassOver d0
+               ) $ allVertices tangle
 
+        decompose path (!initialFactor, !tangle0) =
+            let splices [] toInvert factor inter =
+                    let normal = modifyKnot tangle0 $ modifyC False transposeIt toInvert
 
-decomposeTangle :: (KauffmanFArg a) => [(Int, [(Int, Int)], [([(Int, Int)], DiagramCrossing)])] -> a -> TangleDiagram -> ChordDiagramsSum a
-decomposeTangle path !initialFactor !tangle0 =
-    let splices [] toInvert factor inter =
-            let tangle = modifyKnot tangle0 $ modifyC False transposeIt toInvert
+                        (n, _, threads) = allThreadsWithMarks normal
 
-                (n, _, threads) = allThreadsWithMarks tangle
+                        base =
+                            let cd = (UV.replicate (numberOfLegs normal) 0 UV.//) $ do
+                                        (_, thread) <- threads
+                                        case thread of
+                                            (h, _) : _ | isLeg h ->
+                                                let i = legPlace $ fst $ head thread
+                                                    j = legPlace $ snd $ last thread
+                                                in [(i, j), (j, i)]
+                                            _                    -> []
 
-                a = (UV.replicate (numberOfLegs tangle ) 0 UV.//) $ do
-                        (_, thread) <- threads
-                        case thread of
-                            (h, _) : _ | isLeg h ->
-                                let i = legPlace $ fst $ head thread
-                                    j = legPlace $ snd $ last thread
-                                in [(i, j), (j, i)]
-                            _                    -> []
+                            in singletonStateSum $ ChordDiagram cd $
+                               let w = totalSelfWrithe' normal
+                               in factor * twistFactor w * loopFactor (n - numberOfLegs normal `div` 2)
 
-            in {- (if length path >= 10 then trace (show $ explode tangle0 : path) else id) $ -}
-                    (: map (uncurry $ decomposeTangle (explode tangle0 : path)) inter) $
-                        singletonStateSum $ ChordDiagram a $
-                            let w = totalSelfWrithe' tangle
-                            in factor * twistFactor w * loopFactor ^ (n - numberOfLegs tangle `div` 2)
+                    in {- (if length path >= 10 then trace (show $ map explode $ tangle0 : path) else id) $ -}
+                        base : map (decompose (tangle0 : path)) inter
 
-        splices (h : r) toInvert factor inter =
-            let a = (factor * smoothFactor, modifyKnot tangle0 $ modifyC False transposeIt toInvert >> smoothA h >> greedy [reduce2nd])
-                b = (factor * smoothFactor, modifyKnot tangle0 $ modifyC False transposeIt toInvert >> smoothB h >> greedy [reduce2nd])
-            in splices r (h : toInvert) (-factor) (a : b : inter)
+                splices (h : r) toInvert factor inter =
+                    let a = (factor * smoothFactor, modifyKnot tangle0 $ modifyC False transposeIt toInvert >> smoothA h >> greedy [reduce2nd])
+                        b = (factor * smoothFactor, modifyKnot tangle0 $ modifyC False transposeIt toInvert >> smoothB h >> greedy [reduce2nd])
+                    in splices r (h : toInvert) (-factor) (a : b : inter)
 
-    in concatStateSums $ splices (irregularCrossings tangle0) [] initialFactor []
+            in concatStateSums $ splices (irregularCrossings tangle0) [] initialFactor []
+
+    in curry (decompose [])
 
 
 instance (KauffmanFArg a) => RotationAction (ChordDiagramsSum a) where
@@ -214,12 +217,12 @@ instance (KauffmanFArg a) => RotationAction (ChordDiagramsSum a) where
 
     rotateByUnchecked !rot =
         mapStateSum $ \ (ChordDiagram a factor) ->
-            decomposeTangle [] factor $ rotateBy rot $ restoreBasicTangle a
+            bruteForceF factor (rotateBy rot $ restoreBasicTangle a)
 
 instance (KauffmanFArg a) => MirrorAction (ChordDiagramsSum a) where
     mirrorIt =
         mapStateSum $ \ (ChordDiagram a factor) ->
-            decomposeTangle [] factor $ mirrorIt $ restoreBasicTangle a
+            bruteForceF factor (mirrorIt $ restoreBasicTangle a)
 
 instance (KauffmanFArg a) => TensorProduct (ChordDiagramsSum a) where
     a ⊗ b = horizontalComposition 0 (a, 0) (b, 0)
@@ -229,7 +232,7 @@ instance (KauffmanFArg a) => PlanarAlgebra (ChordDiagramsSum a) where
 
     planarEmpty = ChordDiagramsSum 0 [ChordDiagram UV.empty 1]
 
-    planarLoop n = ChordDiagramsSum 0 [ChordDiagram UV.empty (loopFactor ^ n)]
+    planarLoop n = ChordDiagramsSum 0 [ChordDiagram UV.empty (loopFactor n)]
 
     planarPropagator n | n < 0      = error $ printf "planarPropagator: parameter must be non-negative, but %i passed" n
                        | otherwise  = ChordDiagramsSum (2 * n) [ChordDiagram (UV.generate (2 * n) $ \ i -> 2 * n - 1 - i) 1]
@@ -239,8 +242,7 @@ instance (KauffmanFArg a) => PlanarAlgebra (ChordDiagramsSum a) where
             let ta = restoreBasicTangle xa
             in flip mapStateSum sumB $ \ (ChordDiagram xb kb) ->
                 let tb = restoreBasicTangle xb
-                in decomposeTangle [explode ta, explode tb] (ka * kb) $
-                    horizontalComposition gl (ta, posA) (tb, posB)
+                in bruteForceF (ka * kb) $ horizontalComposition gl (ta, posA) (tb, posB)
 
 instance (KauffmanFArg a) => TransposeAction (ChordDiagramsSum a) where
     transposeIt = fmap swapTwists
