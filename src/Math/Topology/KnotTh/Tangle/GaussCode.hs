@@ -11,7 +11,7 @@ import qualified Control.Monad.ST as ST
 import qualified Data.Array.ST as STArray
 import qualified Data.Array.Unboxed as A
 import Data.List (mapAccumL, findIndices)
-import qualified Data.Map as M
+import qualified Data.Map.Strict as Map
 import Data.STRef (newSTRef, readSTRef, writeSTRef)
 import Text.Printf
 import Math.Topology.KnotTh.Knotted
@@ -153,16 +153,16 @@ fromGaussCode =
 
             index <- do
                 free <- newSTRef 1
-                indices <- newSTRef M.empty
+                indices <- newSTRef Map.empty
                 return $ \ !x -> do
                     m <- readSTRef indices
-                    if M.member x m
-                        then return $! m M.! x
-                        else do
+                    case Map.lookup x m of
+                        Just v  -> return v
+                        Nothing -> do
                             y <- readSTRef free
                             when (y > n) $ fail "fromGaussCode: too many different values in gauss code"
                             writeSTRef free $! y + 1
-                            writeSTRef indices $! M.insert x y m
+                            writeSTRef indices $! Map.insert x y m
                             return $! y
 
             visitedP <- STArray.newArray (1, n) False :: ST.ST s (STArray.STUArray s Int Bool)

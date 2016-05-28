@@ -10,15 +10,15 @@ module Math.Topology.KnotTh.Invariants.Util.Poly
     , kauffmanXToJones
     ) where
 
-import Data.Ratio (Ratio, (%), numerator)
-import qualified Data.Map as M
 import Control.Arrow (second)
+import qualified Data.Map as Map
+import Data.Ratio (Ratio, (%), numerator)
 import qualified Math.Algebra.Field.Base as B
 import qualified Math.Projects.KnotTheory.LaurentMPoly as LMP
 
 
 monomialPoly :: a -> String -> Ratio Integer -> LMP.LaurentMPoly a
-monomialPoly a var d = LMP.LP [(LMP.LM $ M.fromList [(var, B.Q d)], a)]
+monomialPoly a var d = LMP.LP [(LMP.LM $ Map.fromList [(var, B.Q d)], a)]
 
 
 invertPoly :: (Integral a) => String -> LMP.LaurentMPoly a -> LMP.LaurentMPoly a
@@ -26,7 +26,7 @@ invertPoly var (LMP.LP monomials) = sum $ do
     (LMP.LM vars, coeff) <- monomials
     let modify x d | x == var   = -d
                    | otherwise  = d
-    return $! LMP.LP [(LMP.LM $ M.mapWithKey modify vars, coeff)]
+    return $! LMP.LP [(LMP.LM $ Map.mapWithKey modify vars, coeff)]
 
 
 normalizePoly :: (Integral a) => LMP.LaurentMPoly a -> LMP.LaurentMPoly a -> LMP.LaurentMPoly a
@@ -37,7 +37,8 @@ normalizePoly (LMP.LP denominator) (LMP.LP monomials)
         in LMP.LP $ map (second numerator) q'
     where
         factor =
-            let mono = M.map (min 0) $ foldl (\ a (LMP.LM b, _) -> M.unionWith min a b) M.empty monomials
+            -- let mono = Map.map (min 0) $ foldl (\ a (LMP.LM b, _) -> Map.unionWith min a b) Map.empty monomials
+            let mono = Map.map (min 0) $ Map.unionsWith min $ map (\ (LMP.LM b, _) -> b) monomials
             in LMP.LP [(LMP.LM mono, 1)]
 
         (quotient, remainder) =
@@ -79,8 +80,8 @@ kauffmanXToJones :: Poly -> Poly
 kauffmanXToJones (LMP.LP monomials) =
     sum $ do
         (LMP.LM m, coeff) <- monomials
-        let next = case M.assocs m of
-                [("a", p)] | odd (B.numeratorQ p) -> (LMP.LM $ M.fromList [("t", p / (-4))], coeff)
-                           | otherwise            -> (LMP.LM $ M.fromList [("t", p / (-4))], coeff)
+        let next = case Map.assocs m of
+                [("a", p)] | odd (B.numeratorQ p) -> (LMP.LM $ Map.singleton "t" (p / (-4)), coeff)
+                           | otherwise            -> (LMP.LM $ Map.singleton "t" (p / (-4)), coeff)
                 _                                 -> (LMP.LM m, coeff)
         return $ LMP.LP [next]

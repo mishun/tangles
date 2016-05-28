@@ -6,7 +6,7 @@ module Math.Topology.KnotTh.Invariants.Test
 
 import Control.Monad (forM_)
 #ifdef TESTING
-import qualified Data.Map as M
+import qualified Data.Map as Map
 #endif
 import Test.Framework (Test, testGroup)
 import Test.Framework.Providers.HUnit (testCase)
@@ -31,7 +31,7 @@ testKauffmanFtoXRelation =
 
         toKauffmanX (LMP.LP monomials) =
             sum $ flip map monomials $ \ (LMP.LM m, f) ->
-                (fromIntegral f *) $ product $ flip map (M.toList m) $ \ (var, p) ->
+                (fromIntegral f *) $ product $ flip map (Map.toList m) $ \ (var, p) ->
                     let x = case var of
                             "a" | p >= 0    -> monomial (-1) "a" 3
                                 | otherwise -> monomial (-1) "a" (-3)

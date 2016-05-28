@@ -7,8 +7,7 @@ module Math.Topology.KnotTh.Enumeration.SiftByInvariant
     ) where
 
 import Data.Function (fix)
-import Data.List (foldl')
-import qualified Data.Map as M
+import qualified Data.Map.Strict as Map
 import Math.Topology.KnotTh.Knotted
 import Math.Topology.KnotTh.Enumeration.DiagramInfo
 
@@ -37,7 +36,7 @@ siftByInvariant invariant input =
                         [h] : rest -> next (h : fine, collisions) rest
                         l : rest   -> next (fine, l : collisions) rest
                     ) ([], [])
-            in findCollisions $ M.elems $ foldl' (\ !m !c -> M.insertWith' (++) (invariant $ representative c) [c] m) M.empty input
+            in findCollisions $ Map.elems $ Map.fromListWith (++) $ map (\ c -> (invariant $ representative c, [c])) input
     in SiftResult
         { singleRepresentativeClasses = cls
         , collisionClasses            = cols

@@ -3,14 +3,14 @@ module Math.Topology.KnotTh.Moves.AdHoc.Resting
     ( restingPart
     ) where
 
-import Data.Maybe
-import Data.List (find)
-import qualified Data.Sequence as Seq
-import qualified Data.Set as S
-import qualified Data.Map as M
-import qualified Data.Vector.Unboxed as UV
-import Control.Monad.State.Strict (execState, evalState, gets, modify)
 import Control.Monad (unless, forM_)
+import qualified Control.Monad.State.Strict as State
+import Data.List (find)
+import qualified Data.Map.Strict as Map
+import Data.Maybe (mapMaybe)
+import qualified Data.Sequence as Seq
+import qualified Data.Set as Set
+import qualified Data.Vector.Unboxed as UV
 import Math.Topology.KnotTh.Tangle
 
 
@@ -41,35 +41,34 @@ restingPart tangle incoming
 
                 push flowValue flow
                     | flowValue > m       = Nothing
-                    | isNothing nextFlow  = Just (flow, flowValue)
-                    | otherwise           = push (flowValue + 1) (fromJust nextFlow)
-
-                    where
-                        nextFlow = pushResidualFlow tangle starts ends flow
+                    | otherwise           =
+                        case pushResidualFlow tangle starts ends flow of
+                            Nothing       -> Just (flow, flowValue)
+                            Just nextFlow -> push (flowValue + 1) nextFlow
 
         getSubtangle (flow, flowValue) = Just (result, flowValue)
             where
                 --result = listArray (vertexIndicesRange tangle) $ map (`S.member` subtangle) $ allVertices tangle
-                result = UV.fromListN (numberOfVertices tangle + 1) $ False : map (`S.member` subtangle) (allVertices tangle)
+                result = UV.fromListN (numberOfVertices tangle + 1) $ False : map (`Set.member` subtangle) (allVertices tangle)
 
-                subtangle = execState (forM_ starts dfs) S.empty
+                subtangle = State.execState (forM_ starts dfs) Set.empty
 
                 dfs c = do
-                    visited <- gets $ S.member c
+                    visited <- State.gets $ Set.member c
                     unless visited $ do
-                        modify $ S.insert c
+                        State.modify' $ Set.insert c
                         mapM_ (dfs . endVertex) $ filter (\ d -> (flow UV.! dartIndex d) < 1) $ outcomingDarts c
 
         checkConnectivity (sub, flowValue)
-            | all (`S.member` mask) $ tail starts  = Just (sub, flowValue)
-            | otherwise                            = Nothing
+            | all (`Set.member` mask) $ tail starts  = Just (sub, flowValue)
+            | otherwise                              = Nothing
             where
-                mask = execState (dfs $ head starts) S.empty
+                mask = State.execState (dfs $ head starts) Set.empty
 
                 dfs c = do
-                    visited <- gets $ S.member c
+                    visited <- State.gets $ Set.member c
                     unless visited $ do
-                        modify $ S.insert c
+                        State.modify' $ Set.insert c
                         mapM_ dfs $ filter ((sub UV.!) . vertexIndex) $ mapMaybe maybeEndVertex $ outcomingDarts c
 
         outcoming (sub, flowValue)
@@ -98,9 +97,9 @@ restingPart tangle incoming
 
 
 pushResidualFlow :: Tangle ct -> [Vertex Tangle ct] -> [Vertex Tangle ct] -> UV.Vector Int -> Maybe (UV.Vector Int)
-pushResidualFlow tangle starts ends flow = evalState bfs initial >>= push
+pushResidualFlow tangle starts ends flow = State.evalState bfs initial >>= push
     where
-        initial = (Seq.fromList starts, M.fromList $ zip starts (repeat []))
+        initial = (Seq.fromList starts, Map.fromList $ zip starts (repeat []))
 
         endFlag = UV.replicate (numberOfVertices tangle + 1) False UV.// map (\ v -> (vertexIndex v, True)) ends
 
@@ -116,12 +115,11 @@ pushResidualFlow tangle starts ends flow = evalState bfs initial >>= push
                             return $ Just p
                         else do
                             let ud = filter (\ d -> flow UV.! dartIndex d < 1) $ outcomingDarts u
-                            let brd = find (isLeg . opposite) ud
-                            if isJust brd
-                                then do
+                            case find (isLeg . opposite) ud of
+                                Just brd -> do
                                     p <- getPath u
-                                    return $! Just $! fromJust brd : p
-                                else do
+                                    return $! Just $! brd : p
+                                Nothing  -> do
                                     mapM_ relax ud
                                     bfs
             where
@@ -130,18 +128,18 @@ pushResidualFlow tangle starts ends flow = evalState bfs initial >>= push
                     vis <- isVisited v
                     unless vis $ enqueue v d
 
-                isEmpty = gets (\ (q, _) -> Seq.null q)
+                isEmpty = State.gets (Seq.null . fst)
 
                 dequeue = do
-                    (c Seq.:< rest) <- gets (\ (q, _) -> Seq.viewl q)
-                    modify (\ (_, p) -> (rest, p))
+                    (c Seq.:< rest) <- State.gets (\ (q, _) -> Seq.viewl q)
+                    State.modify' (\ (_, p) -> (rest, p))
                     return c
 
-                getPath v = gets (\ (_, p) -> p M.! v)
+                getPath v = State.gets (\ (_, p) -> p Map.! v)
 
-                enqueue c d = modify (\ (q, p) -> (q Seq.|> c, M.insert c (d : p M.! beginVertex d) p))
+                enqueue c d = State.modify' (\ (q, p) -> (q Seq.|> c, Map.insert c (d : p Map.! beginVertex d) p))
 
-                isVisited c = gets (\ (_, p) -> M.member c p)
+                isVisited c = State.gets (Map.member c . snd)
 
         push path = return $! flow UV.// pathFlow
             where

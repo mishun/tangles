@@ -37,7 +37,7 @@ import qualified Control.Monad.ST as ST
 import qualified Control.Monad.Reader as Reader
 import Data.Bits ((.&.), complement, shiftL, shiftR)
 import Data.List (nub, sort, foldl', find)
-import qualified Data.Map as M
+import qualified Data.Map.Strict as Map
 import Data.Proxy (Proxy(..))
 import qualified Data.Set as S
 import Data.STRef (STRef, modifySTRef', newSTRef, readSTRef)
@@ -588,12 +588,12 @@ instance (Crossing a) => KnotWithPrimeTest Tangle a where
     isPrime tangle = connections == nub connections
         where
             idm = let faces = directedPathsDecomposition (nextCW, nextCCW)
-                  in M.fromList $ concatMap (\ (face, i) -> zip face $ repeat i) $ zip faces [(0 :: Int) ..]
+                  in Map.fromList $ concatMap (\ (face, i) -> zip face $ repeat i) $ zip faces [(0 :: Int) ..]
 
             connections =
                 let getPair (da, db) =
-                        let a = idm M.! da
-                            b = idm M.! db
+                        let a = idm Map.! da
+                            b = idm Map.! db
                         in (min a b, max a b)
                 in sort $ map getPair $ allEdges tangle
 
