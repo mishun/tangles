@@ -13,7 +13,6 @@ import Math.Topology.KnotTh.Tangle
 
 class (Functor f, TransposeAction (f p), PlanarAlgebra (f p)) => SkeinRelation f p where
     crossingSkein :: DiagramCrossing -> f p
-    takeAsScalar  :: f p -> p
 
 
 reduceSkein :: (SkeinRelation f p) => TangleDiagram -> f p

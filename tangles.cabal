@@ -70,6 +70,9 @@ library
         Math.Topology.KnotTh.Enumeration.SiftByInvariant,
         Math.Topology.KnotTh.Invariants,
         Math.Topology.KnotTh.Invariants.LinkingNumbers,
+        Math.Topology.KnotTh.Invariants.HomflyPolynomial,
+        Math.Topology.KnotTh.Invariants.KauffmanFPolynomial,
+        Math.Topology.KnotTh.Invariants.KauffmanXPolynomial,
         Math.Topology.KnotTh.Invariants.KhovanovHomology,
         Math.Topology.KnotTh.Knotted,
         Math.Topology.KnotTh.Knotted.Crossings.Diagram,
@@ -95,12 +98,7 @@ library
         Math.Topology.KnotTh.Tabulation.TangleStarGlue,
         Math.Topology.KnotTh.Tangle
     other-modules:
-        Math.Topology.KnotTh.Invariants.HomflyPolynomial,
-        Math.Topology.KnotTh.Invariants.KauffmanFPolynomial,
-        Math.Topology.KnotTh.Invariants.KauffmanXPolynomial,
         Math.Topology.KnotTh.Invariants.KnotPolynomials,
-        Math.Topology.KnotTh.Invariants.KnotPolynomials.KauffmanFStateSum,
-        Math.Topology.KnotTh.Invariants.KnotPolynomials.KauffmanXStateSum,
         Math.Topology.KnotTh.Invariants.KnotPolynomials.Surface,
         Math.Topology.KnotTh.Moves.AdHoc.Resting,
         Math.Topology.KnotTh.SurfaceGraph.SurfaceGraphDef,
