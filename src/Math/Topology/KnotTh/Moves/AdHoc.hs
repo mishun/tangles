@@ -4,8 +4,8 @@ module Math.Topology.KnotTh.Moves.AdHoc
     , reduce2nd
     , flype
     , pass
-    , smoothA
-    , smoothB
+    , zeroSmoothing
+    , inftySmoothing
     , weak
     ) where
 
@@ -172,8 +172,22 @@ instance AdHocMoves Tangle0 where
     pass = map tangle' . pass . toTangle
 
 
-smoothA :: TangleDiagramVertex -> ModifyM Tangle DiagramCrossing s ()
-smoothA cs = do
+zeroSmoothing :: TangleDiagramVertex -> ModifyM Tangle DiagramCrossing s ()
+zeroSmoothing c =
+    case vertexContent c of
+        OverCrossing  -> smoothZ c
+        UnderCrossing -> smoothI c
+
+
+inftySmoothing :: TangleDiagramVertex -> ModifyM Tangle DiagramCrossing s ()
+inftySmoothing c =
+    case vertexContent c of
+        OverCrossing  -> smoothI c
+        UnderCrossing -> smoothZ c
+
+
+smoothI, smoothZ :: TangleDiagramVertex -> ModifyM Tangle DiagramCrossing s ()
+smoothI cs = do
     let dn@[_, d1, d2, d3] = outcomingDarts cs
     [od0, od1, od2, od3] <- mapM oppositeC dn
     if | od0 == d1 && od3 == d2 -> emitLoopsC 2
@@ -182,10 +196,7 @@ smoothA cs = do
        | od1 == d2              -> connectC [(od0, od3)]
        | otherwise              -> substituteC [(od0, d1), (od3, d2)]
     maskC [cs]
-
-
-smoothB :: TangleDiagramVertex -> ModifyM Tangle DiagramCrossing s ()
-smoothB cs = do
+smoothZ cs = do
     let dn@[_, d1, d2, d3] = outcomingDarts cs
     [od0, od1, od2, od3] <- mapM oppositeC dn
     if | od0 == d3 && od1 == d2 -> emitLoopsC 2

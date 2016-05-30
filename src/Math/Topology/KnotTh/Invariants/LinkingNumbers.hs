@@ -3,6 +3,8 @@ module Math.Topology.KnotTh.Invariants.LinkingNumbers
     , selfWrithe
     , totalSelfWrithe
     , totalSelfWrithe'
+    , totalCrossWrithe
+    , totalCrossWrithe'
     , linkingNumbersTable
     , linkingNumbersInvariant
     ) where
@@ -31,12 +33,20 @@ selfWrithe v | dartStrandIndex d0 /= dartStrandIndex d1                        =
           d1 = nextCCW d0
 
 
-totalSelfWrithe :: (OrientedKnotted k k') => k DiagramCrossing -> Int
+totalSelfWrithe :: (OrientedKnotted o n) => o DiagramCrossing -> Int
 totalSelfWrithe = sum . map selfWrithe . allVertices
 
 
-totalSelfWrithe' :: (OrientedKnotted k k') => k' DiagramCrossing -> Int
+totalSelfWrithe' :: (OrientedKnotted o n) => n DiagramCrossing -> Int
 totalSelfWrithe' = totalSelfWrithe . arbitraryOrientation
+
+
+totalCrossWrithe :: (OrientedKnotted o n) => o DiagramCrossing -> Int
+totalCrossWrithe = V.sum . V.imap (\ !i -> UV.sum . UV.imap (\ j w -> if i < j then abs w else 0)) . linkingNumbersTable
+
+
+totalCrossWrithe' :: (OrientedKnotted o n) => n DiagramCrossing -> Int
+totalCrossWrithe' = totalCrossWrithe . arbitraryOrientation
 
 
 linkingNumbersTable :: (OrientedKnotted k k') => k DiagramCrossing -> V.Vector (UV.Vector Int)

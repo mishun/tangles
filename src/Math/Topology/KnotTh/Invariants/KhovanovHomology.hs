@@ -9,7 +9,6 @@ module Math.Topology.KnotTh.Invariants.KhovanovHomology
 
 import qualified Data.Matrix as M
 import qualified Data.Vector as V
-import qualified Data.Vector.Unboxed as UV
 import Text.Printf
 import Math.Topology.KnotTh.Algebra.Homology
 import qualified Math.Topology.KnotTh.Algebra.Cobordism.CobordismMatrix as CM
@@ -231,10 +230,7 @@ instance KnottedWithKhovanovHomology Tangle where
                     nminus = length $ filter (< 0) $ map selfWrithe $ allVertices oriented
                     nplus  = length $ filter (> 0) $ map selfWrithe $ allVertices oriented
 
-                    pokeCreep =
-                        let lns = V.sum $ V.imap (\ !i -> UV.sum . UV.imap (\ j w -> if i < j then abs w else 0)) $
-                                            linkingNumbersTable oriented
-                        in (numberOfVertices tangle - nplus - nminus - lns) `div` 2
+                    pokeCreep = (numberOfVertices tangle - nplus - nminus - totalCrossWrithe oriented) `div` 2
 
                     levelShift = shift0 - nminus - pokeCreep
                     degreeShift = nplus - 2 * nminus - pokeCreep

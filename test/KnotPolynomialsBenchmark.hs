@@ -9,10 +9,10 @@ import Math.Topology.KnotTh.Invariants
 
 
 polynomialsBenchmark knot =
-    [ bench "Kauffman F" $
-        nf (show . kauffmanFPolynomial) knot
-    , bench "Jones" $
-        nf (show . jonesPolynomial) knot
+    [ bench "Dubrovnik" $
+        nf (show . dubrovnikPolynomial) knot
+    , bench "Kauffman X" $
+        nf (show . kauffmanXPolynomial) knot
     ]
 
 

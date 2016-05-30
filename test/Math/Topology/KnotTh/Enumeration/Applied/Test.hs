@@ -56,20 +56,23 @@ test = testGroup "Enumeration tests"
         [ testCase "Linking numbers" $
             testInvariantness tangleClasses 6 linkingNumbersInvariant
 
-        , testCase "Jones polynomial" $
+        , testCase "Kauffman X polynomial" $
             testInvariantness tangleClasses 6 minimalKauffmanXPolynomial
 
-        , testCase "Kauffman F polynomial" $
-            testInvariantness tangleClasses 5 minimalKauffmanFPolynomial
+        , testCase "Dubrovnik polynomial" $
+            testInvariantness tangleClasses 5 minimalDubrovnikPolynomial
 
-        , testCase "Jones polynomial of gluing with mirror image (weak classes invariant)" $
+        , testCase "Kauffman X polynomial of gluing with mirror image (weak classes invariant)" $
             testInvariantness weakTangleClasses 5 (kauffmanXPolynomial . tangleDoubling)
 
-        , testCase "Jones polynomial of doubling satellite" $
+        , testCase "Kauffman X polynomial of doubling satellite" $
             testInvariantness tangleClasses 4 (minimalKauffmanXPolynomial . cablingSatellite 2)
 
-        -- , testCase "Kauffman F polynomial of triple satellite" $
-        --    testInvariantness tangleClasses 1 (minimalKauffmanFPolynomial . twistedSatellite 3)
+        , testCase "Dubrovnik polynomial of triple satellite" $
+            testInvariantness tangleClasses 2 (minimalDubrovnikPolynomial . cablingSatellite 3)
+
+        , testCase "Khovanov homology" $
+            testInvariantness tangleClasses 5 minimalKhovanovHomology
         ]
 
     , testCase "Enumeration of tangles" $

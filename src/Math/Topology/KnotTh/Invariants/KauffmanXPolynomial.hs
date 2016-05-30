@@ -14,7 +14,6 @@ import Control.Monad.IfElse (unlessM)
 import qualified Control.Monad.ST as ST
 import Data.List (intercalate, partition)
 import qualified Data.Map.Strict as Map
-import Data.Maybe (fromMaybe)
 import Data.Function (fix)
 import qualified Data.Vector.Unboxed as UV
 import qualified Data.Vector.Unboxed.Mutable as UMV
@@ -197,7 +196,7 @@ instance KnottedWithKauffmanXPolynomial Tangle0 where
 
     kauffmanXPolynomial link =
         let TL 0 m = kauffmanXPolynomial $ toTangle link
-        in fromMaybe 0 $ Map.lookup UV.empty m
+        in Map.findWithDefault 0 UV.empty m
 
     minimalKauffmanXPolynomial link =
         let x = kauffmanXPolynomial link

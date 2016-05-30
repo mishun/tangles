@@ -8,11 +8,14 @@ module Math.Topology.KnotTh.Invariants.Util.Poly
     , invert
     , normalizeBy
     , kauffmanXToJones
+    , dubrovnikToKauffmanF
     ) where
 
 import Control.Arrow (second)
+import Control.Exception (assert)
 import qualified Data.Map as Map
 import Data.Ratio (Ratio, (%), numerator)
+import Text.Printf
 import qualified Math.Algebra.Field.Base as B
 import qualified Math.Projects.KnotTheory.LaurentMPoly as LMP
 
@@ -29,9 +32,9 @@ invertPoly var (LMP.LP monomials) = sum $ do
     return $! LMP.LP [(LMP.LM $ Map.mapWithKey modify vars, coeff)]
 
 
-normalizePoly :: (Integral a) => LMP.LaurentMPoly a -> LMP.LaurentMPoly a -> LMP.LaurentMPoly a
+normalizePoly :: (Integral a, Show a) => LMP.LaurentMPoly a -> LMP.LaurentMPoly a -> LMP.LaurentMPoly a
 normalizePoly (LMP.LP denominator) (LMP.LP monomials)
-    | remainder /= 0  = error "normalizeBy: non-divisible"
+    | remainder /= 0  = error $ printf "normalizeBy: non-divisible %s by %s" (show $ LMP.LP denominator) (show $ LMP.LP monomials)
     | otherwise       =
         let (LMP.LP q') = factor * quotient
         in LMP.LP $ map (second numerator) q'
@@ -85,3 +88,17 @@ kauffmanXToJones (LMP.LP monomials) =
                            | otherwise            -> (LMP.LM $ Map.singleton "t" (p / (-4)), coeff)
                 _                                 -> (LMP.LM m, coeff)
         return $ LMP.LP [next]
+
+
+dubrovnikToKauffmanF :: Int -> Int -> Poly2 -> Poly2
+dubrovnikToKauffmanF links comps (LMP.LP monomials) =
+     sum $ do
+        (LMP.LM m, coeff) <- monomials
+        let an = B.numeratorQ $ Map.findWithDefault 0 "a" m
+            zn = B.numeratorQ $ Map.findWithDefault 0 "z" m
+
+            powerI = 3 * (an - fromIntegral links) + zn
+
+            signs = assert (even powerI) $ fromIntegral comps + div powerI 2
+
+        return $ assert (even $ an + zn) $ LMP.LP [(LMP.LM m, if odd signs then -coeff else coeff)]

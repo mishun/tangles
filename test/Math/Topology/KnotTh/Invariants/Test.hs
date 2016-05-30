@@ -213,14 +213,15 @@ test = testGroup "Invariants"
             kauffmanXPolynomial conwayKnot @?= kauffmanXPolynomial kinoshitaTerasakaKnot
         ]
 
-    , testGroup "Kauffman F polynomial"
-        [ testReidemeisterMoves kauffmanFPolynomial
+    , testGroup "Dubrovnik/Kauffman F polynomial"
+        [ testReidemeisterMoves dubrovnikPolynomial
 
-        , testGroup "Exact values on links" $ do
+        , testGroup "Normalized Kauffman F values on links" $ do
             (header, l, target) <-
                 [ ("unknot"             , unknot               , "1"                                                                                       )
                 , ("unknot left '8'"    , singleCrossingUnknotL, "1"                                                                                       )
                 , ("unknot right '8'"   , singleCrossingUnknotR, "1"                                                                                       )
+                , ("unlink 2 comps"     , unlink 2             , "a^-1z^-1-1+az^-1"                                                                        )
                 , ("right trefoil knot" , rightTrefoilKnot     , "a^-5z-a^-4+a^-4z^2+a^-3z-2a^-2+a^-2z^2"                                                  )
                 , ("figure eight knot"  , figureEightKnot      , "-a^-2+a^-2z^2-a^-1z-1+a^-1z^3+2z^2-az-a^2+az^3+a^2z^2"                                   )
                 , ("solomon's seal knot", rightCinquefoilKnot  , "a^-9z+a^-8z^2-a^-7z+2a^-6+a^-7z^3-3a^-6z^2-2a^-5z+3a^-4+a^-6z^4+a^-5z^3-4a^-4z^2+a^-4z^4")
@@ -231,18 +232,18 @@ test = testGroup "Invariants"
             return $ testCase header $
                 show (normalizedKauffmanFPolynomialOfLink l) @?= target
 
-        , testGroup "Exact values on tangles" $ do
+        , testGroup "Dubrovnik values on tangles" $ do
             (header, t, target) <-
                 [ ("empty"         , planarEmpty                , "(1)[]"                                  )
                 , ("identity"      , planarPropagator 1         , "(1)[1,0]"                               )
                 , ("0"             , toTangle zeroTangle        , "(1)[3,2,1,0]"                           )
                 , ("∞"             , toTangle infinityTangle    , "(1)[1,0,3,2]"                           )
                 , ("over crossing" , toTangle lonerOverCrossing , "(1)[2,3,0,1]"                           )
-                , ("under crossing", toTangle lonerUnderCrossing, "(z)[1,0,3,2]+(-1)[2,3,0,1]+(z)[3,2,1,0]")
+                , ("under crossing", toTangle lonerUnderCrossing, "(z)[1,0,3,2]+(1)[2,3,0,1]+(-z)[3,2,1,0]")
                 ]
 
             return $ testCase header $
-                show (kauffmanFPolynomial t) @?= target
+                show (dubrovnikPolynomial t) @?= target
 
 #ifdef TESTING
         , testCase "Relation to Kauffman X polynomial" $
@@ -266,7 +267,7 @@ test = testGroup "Invariants"
 #endif
 
         , testCase "Collision between Conway and Kinoshita-Terasaka knots" $
-            kauffmanFPolynomial conwayKnot @?= kauffmanFPolynomial kinoshitaTerasakaKnot
+            dubrovnikPolynomial conwayKnot @?= dubrovnikPolynomial kinoshitaTerasakaKnot
         ]
 
     , testGroup "Khovanov homology"
@@ -378,7 +379,7 @@ testHard =
     testGroup "Invariants"
         [
 #ifdef TESTING
-          testCase "Relation to Kauffman X polynomial on entire links table" $
+          testCase "Kauffman F to Kauffman X relation on entire links table" $
             mapM_ testKauffmanFtoXRelation $ do
                 n <- [0 .. 10]
                 l <- [0 .. n `div` 2]
