@@ -1,7 +1,6 @@
 {-# LANGUAGE RankNTypes #-}
 module Main (main) where
 
-import Control.Monad.State (execState, modify)
 import Control.Monad (when)
 import Math.Topology.KnotTh.Tangle
 import Math.Topology.KnotTh.Tabulation.TangleDiagramsCascade

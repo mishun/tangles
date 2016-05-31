@@ -4,11 +4,11 @@ module Math.Topology.KnotTh.Tabulation.TangleDiagramsCascade.IncrementalTests
     , testFlow4
     ) where
 
+import Control.Monad (when, unless, forM_)
+import qualified Control.Monad.ST as ST
 import qualified Data.Vector.Mutable as MV
 import qualified Data.Vector.Unboxed.Mutable as UMV
 import Data.STRef (newSTRef, readSTRef, writeSTRef, modifySTRef')
-import Control.Monad.ST (runST)
-import Control.Monad (when, unless, forM_)
 import Math.Topology.KnotTh.Tangle
 
 
@@ -35,7 +35,7 @@ testNo2ndReidemeisterReduction cr leg gl =
 
 
 testFlow4 :: Vertex Tangle ct -> Bool
-testFlow4 finish = runST $ do
+testFlow4 finish = ST.runST $ do
     let tangle = vertexOwner finish
         n = numberOfVertices tangle
         l = numberOfLegs tangle

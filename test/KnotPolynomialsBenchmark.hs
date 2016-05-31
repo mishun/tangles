@@ -1,23 +1,21 @@
 {-# LANGUAGE FlexibleContexts #-}
 module Main (main) where
 
-import Data.Monoid (Last(..))
 import Text.Printf
 import Criterion.Main
 import Math.Topology.KnotTh.Tangle
 import Math.Topology.KnotTh.Invariants
 
 
-polynomialsBenchmark knot =
-    [ bench "Dubrovnik" $
-        nf (show . dubrovnikPolynomial) knot
-    , bench "Kauffman X" $
-        nf (show . kauffmanXPolynomial) knot
-    ]
-
-
 benchmarks :: [Benchmark]
 benchmarks =
+    let polynomialsBenchmark knot =
+            [ bench "Dubrovnik" $
+                nf (show . dubrovnikPolynomial) knot
+            , bench "Kauffman X" $
+                nf (show . kauffmanXPolynomial) knot
+            ]
+    in
     [ bgroup "Twisted triple of loner" $
         let tangle = cablingSatellite 3 $ toTangle lonerOverCrossing
         in polynomialsBenchmark tangle

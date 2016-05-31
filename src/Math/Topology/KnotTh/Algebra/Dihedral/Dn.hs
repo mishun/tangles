@@ -120,8 +120,8 @@ fromPeriodAndMirroredZero n p mz | n <= 0        = error $ printf "fromPeriodAnd
 
 
 hasReflectionPart :: SubGroup Dn -> Bool
-hasReflectionPart (Per {})   = False
-hasReflectionPart (Mir {}) = True
+hasReflectionPart Per {} = False
+hasReflectionPart Mir {} = True
 
 
 mirroredZero :: SubGroup Dn -> Maybe Int

@@ -3,13 +3,13 @@ module Math.Topology.KnotTh.Moves.MovesOfELink
     ( movesOfELink
     ) where
 
+import Control.Applicative (Alternative(..))
+import Control.Monad (MonadPlus(..), unless, guard)
+import qualified Control.Monad.State as State
 import Data.Maybe (mapMaybe)
 import Data.List ((\\), subsequences)
-import qualified Data.Set as S
+import qualified Data.Set as Set
 import qualified Data.Vector.Unboxed as UV
-import Control.Applicative (Alternative(..))
-import Control.Monad.State (execState, gets, modify)
-import Control.Monad (MonadPlus(..), unless, guard)
 import Math.Topology.KnotTh.EmbeddedLink
 import Math.Topology.KnotTh.Moves.ModifyDSL
 
@@ -68,15 +68,15 @@ subTangleP legs =
                     UV.// map (\ d -> (vertexIndex d, True)) subList
 
         guard $
-            let mask = execState (dfs $ head subList) S.empty
+            let mask = State.execState (dfs $ head subList) Set.empty
                 dfs c = do
-                    visited <- gets $ S.member c
+                    visited <- State.gets $ Set.member c
                     unless visited $ do
-                        modify $ S.insert c
+                        State.modify $ Set.insert c
                         mapM_ dfs $
                             filter ((sub UV.!) . vertexIndex) $
                                 mapMaybe maybeEndVertex $ outcomingDarts c
-            in all (`S.member` mask) subList
+            in all (`Set.member` mask) subList
 
         let onBorder xy =
                 let yx = opposite xy

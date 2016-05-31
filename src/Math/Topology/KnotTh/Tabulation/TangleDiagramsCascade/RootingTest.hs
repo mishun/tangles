@@ -4,16 +4,16 @@ module Math.Topology.KnotTh.Tabulation.TangleDiagramsCascade.RootingTest
     , rootCodeLeg
     ) where
 
-import Data.Function (fix)
-import Data.Ord (comparing)
-import Data.List (minimumBy)
+import Control.Monad (when, guard)
+import qualified Control.Monad.ST as ST
 import Data.Bits (shiftL)
+import Data.Function (fix)
+import Data.List (minimumBy)
+import Data.Ord (comparing)
+import Data.STRef (newSTRef, readSTRef, writeSTRef)
 import qualified Data.Vector.Mutable as MV
 import qualified Data.Vector.Unboxed as UV
 import qualified Data.Vector.Unboxed.Mutable as UMV
-import Data.STRef (newSTRef, readSTRef, writeSTRef)
-import Control.Monad.ST (runST)
-import Control.Monad (when, guard)
 import Math.Topology.KnotTh.Algebra.Dihedral.Dn
 import Math.Topology.KnotTh.Algebra.Dihedral.D4
 import Math.Topology.KnotTh.Knotted.Crossings.SubTangle
@@ -42,7 +42,7 @@ rootCodeLeg root dir
 
 
 investigateConnectivity :: Vertex Tangle a -> Maybe (UV.Vector Bool)
-investigateConnectivity lastCrossing = runST $ do
+investigateConnectivity lastCrossing = ST.runST $ do
     let tangle = vertexOwner lastCrossing
     let n = numberOfVertices tangle
 
@@ -149,7 +149,7 @@ compareRootCodeUnsafe root dir rootCode =
         tangle = dartOwner root
         n = numberOfVertices tangle
 
-        rawCompareWithGlobal global = runST $ do
+        rawCompareWithGlobal global = ST.runST $ do
             x <- UMV.replicate (n + 1) 0
             UMV.unsafeWrite x (vertexIndex $ endVertex root) 1
             q <- MV.new n
@@ -186,7 +186,7 @@ compareRootCodeUnsafe root dir rootCode =
 
             bfs 0
 
-        rawCompare = runST $ do
+        rawCompare = ST.runST $ do
             x <- UMV.replicate (n + 1) 0
             UMV.unsafeWrite x (vertexIndex $ endVertex root) 1
             q <- MV.new n

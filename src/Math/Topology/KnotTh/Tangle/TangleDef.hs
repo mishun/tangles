@@ -39,7 +39,7 @@ import Data.Bits ((.&.), complement, shiftL, shiftR)
 import Data.List (nub, sort, foldl', find)
 import qualified Data.Map.Strict as Map
 import Data.Proxy (Proxy(..))
-import qualified Data.Set as S
+import qualified Data.Set as Set
 import Data.STRef (STRef, modifySTRef', newSTRef, readSTRef)
 import qualified Data.Vector as V
 import qualified Data.Vector.Mutable as MV
@@ -297,12 +297,12 @@ instance Knotted Tangle where
     isConnected tangle
         | numberOfEdges tangle == 0 && numberOfFreeLoops tangle <= 1  = True
         | numberOfFreeLoops tangle /= 0                               = False
-        | otherwise                                                   = all (\ (a, b) -> S.member a con && S.member b con) edges
+        | otherwise                                                   = all (\ (a, b) -> Set.member a con && Set.member b con) edges
         where
             edges = allEdges tangle
-            con = dfs S.empty $ fst $ head edges
-            dfs vis c | S.member c vis  = vis
-                      | otherwise       = foldl' dfs (S.insert c vis) neigh
+            con = dfs Set.empty $ fst $ head edges
+            dfs vis c | Set.member c vis  = vis
+                      | otherwise         = foldl' dfs (Set.insert c vis) neigh
                 where
                     neigh | isLeg c    = [opposite c]
                           | otherwise  = [opposite c, nextCCW c, nextCW c]
@@ -599,20 +599,15 @@ instance (Crossing a) => KnotWithPrimeTest Tangle a where
 
             directedPathsDecomposition continue =
                 let processDart (paths, s) d
-                        | S.member d s  = (paths, s)
-                        | otherwise     = (path : paths, nextS)
-                        where
-                            path = containingDirectedPath continue d
-                            nextS = foldl' (flip S.insert) s path
-                in fst $ foldl' processDart ([], S.empty) $ allDarts tangle
+                        | Set.member d s  = (paths, s)
+                        | otherwise       =
+                            let path = containingDirectedPath continue d
+                                nextS = foldl' (flip Set.insert) s path
+                            in (path : paths, nextS)
+                in fst $ foldl' processDart ([], Set.empty) $ allDarts tangle
 
-            containingDirectedPath (adjForward, adjBackward) start
-                | isCycle    = forward
-                | otherwise  = walkBackward (start, forward)
-                where
-                    (forward, isCycle) = walkForward start
-
-                    walkForward d
+            containingDirectedPath (adjForward, adjBackward) start =
+                let walkForward d
                         | isLeg opp     = ([d], False)
                         | start == nxt  = ([d], True)
                         | otherwise     = (d : nextPath, nextCycle)
@@ -621,9 +616,13 @@ instance (Crossing a) => KnotWithPrimeTest Tangle a where
                             nxt = adjForward opp
                             (nextPath, nextCycle) = walkForward nxt
 
-                    walkBackward (d, path)
-                        | isLeg d    = path
-                        | otherwise  = let prev = opposite $ adjBackward d in walkBackward (prev, prev : path)
+                in case walkForward start of
+                    (forward, True)  -> forward
+                    (forward, False) ->
+                        let walkBackward (d, path) | isLeg d    = path
+                                                   | otherwise  = let prev = opposite $ adjBackward d
+                                                                  in walkBackward (prev, prev : path)
+                        in walkBackward (start, forward)
 
 
 class (Knotted k) => Surgery k where

@@ -5,7 +5,7 @@ module Math.Topology.KnotTh.Invariants.KnotPolynomials.Surface
 import Control.Monad (guard)
 import Data.List (sortBy, minimumBy)
 import Data.Ord (comparing)
-import qualified Data.Set as S
+import qualified Data.Set as Set
 import Math.Topology.KnotTh.Algebra
 
 
@@ -13,7 +13,7 @@ torusMinimization :: (Ord a) => [((Int, Int), a)] -> [((Int, Int), a)]
 torusMinimization list =
     let weight ((x, y), value) = (abs x + abs y, -x, -y, value)
     in minimumBy (comparing $ map weight) $ do
-        (x1, y1) <- S.toList $ S.fromList $ do
+        (x1, y1) <- Set.toList $ Set.fromList $ do
             (x, y) <- case filter (/= (0, 0)) (map fst list) of
                           [] -> [(1, 0)]
                           l  -> l
@@ -24,7 +24,7 @@ torusMinimization list =
 
         let (1, y2, x2) = extendedGCD x1 y1
 
-        n <- S.toList $ S.fromList $ (0 :) $ do
+        n <- Set.toList $ Set.fromList $ (0 :) $ do
             ((x', y'), _) <- list
             let (x, y) | d >= 0     = (u, d)
                        | otherwise  = (-u, -d)

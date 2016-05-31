@@ -5,13 +5,13 @@ module Math.Topology.KnotTh.Algebra.PlanarAlgebra.Reduction
 
 import Control.Arrow (first)
 import Control.Monad (filterM, foldM, forM, forM_, unless, when)
-import Control.Monad.Reader (ReaderT, runReaderT, ask, lift)
+import qualified Control.Monad.Reader as Reader
 import qualified Control.Monad.ST as ST
 import Data.Function (fix)
+import Data.STRef (STRef, newSTRef, readSTRef, writeSTRef, modifySTRef')
 import qualified Data.Vector.Mutable as MV
 import qualified Data.Vector.Unboxed as UV
 import qualified Data.Vector.Unboxed.Mutable as UMV
-import Data.STRef (STRef, newSTRef, readSTRef, writeSTRef, modifySTRef')
 import Text.Printf
 import Math.Topology.KnotTh.Algebra.Dihedral
 import Math.Topology.KnotTh.Algebra.PlanarAlgebra
@@ -90,7 +90,7 @@ nextCWM (DartM v p) =
 -}
 
 
-type PlanarM s a = ReaderT (Context s a) (ST.ST s)
+type PlanarM s a = Reader.ReaderT (Context s a) (ST.ST s)
 
 newtype VertexM a = VertexM Int deriving (Eq, Show)
 
@@ -102,7 +102,7 @@ type Strategy a = forall s. [DartM a] -> PlanarM s a (StrategyResult a)
 
 
 oppositeM :: DartM a -> PlanarM s a (DartM a)
-oppositeM (VertexM !v, p) = ask >>= \ !s -> lift $ do
+oppositeM (VertexM !v, p) = Reader.ask >>= \ !s -> Reader.lift $ do
     (!u, !q) <- neighbourST s (v, p)
     when (u == 0) $ fail $ printf "touching border at (%i, %i) <-> (%i, %i)" v p u q
     return (VertexM u, q)
@@ -167,7 +167,7 @@ reduceWithStrategy strategy diagram =
             case edges of
                 [] -> extractStateSumST context
                 _  -> do
-                    action <- runReaderT (strategy $ map (first VertexM) edges) context
+                    action <- Reader.runReaderT (strategy $ map (first VertexM) edges) context
                     case action of
                         Contract (VertexM v, p) -> contractEdgeST context (v, p)
                     continue
