@@ -4,8 +4,9 @@ packages:
 - '.'
 
 extra-deps:
-- HaskellForMaths-0.4.8
+- HaskellForMaths-0.4.9
 - disjoint-set-0.2
+- IfElse-0.85
 
 flags:
   tangles:
